@@ -112,6 +112,11 @@ In Supabase → **Project Settings → API Keys** copy:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable key (or the legacy "anon" key) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret key (or the legacy "service_role" key). **Keep this private.** |
 | `NEXT_PUBLIC_SITE_URL` | The portal's web address |
+| `RESEND_API_KEY` | resend.com → API Keys (task emails). **Keep this private.** |
+| `EMAIL_FROM` | Who task emails come from, for example `Engaged Care <tasks@engagedcare.com.au>`. The domain must be verified in Resend. |
+
+Until `RESEND_API_KEY` is set, task emails wait in a queue and nothing is
+lost; they're sent once it's added.
 
 Never put these keys in the code, in GitHub or in a chat. They go in the
 website's environment variables (step 6) or in `.env.local` on your own
@@ -120,7 +125,7 @@ computer, which is never committed.
 ## 6. Put the website online (Vercel)
 
 1. On **vercel.com** → **Add New → Project** → import this GitHub repository.
-2. **Environment Variables:** add the 4 settings from step 5.
+2. **Environment Variables:** add the settings from step 5.
 3. Click **Deploy**.
 4. **Settings → Domains:** add the company's address, for example
    `engagedcare.cmeproject.com` or `portal.engagedcare.com.au`.

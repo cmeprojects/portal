@@ -9,7 +9,23 @@ email address, so nobody needs a Microsoft 365 account.
 Each company runs its own copy, with its own database, website, branding and
 wording. See **[docs/SETUP.md](docs/SETUP.md)** to set one up.
 
-## What's in this version (Milestone 1: foundations)
+## What's in this version
+
+**Milestone 2: tasks**
+
+- **New task:** title, registry, description, priority, due date, who looks
+  after it, and helpers.
+- **My tasks:** counts (assigned, helping on, due this week, overdue) and
+  tabs for Assigned to me, Helping on, Created by me and Completed.
+- **Task page:** details, helpers, registry managers, an activity timeline,
+  and "tag someone to help out".
+- **Emails:** the person looking after the task (helpers copied in), new
+  helpers, and the registry's managers. Sent through Resend; anything that
+  can't be sent waits in a queue.
+- Who can see a task: the person looking after it, helpers, its creator,
+  their team leader, the registry's managers and system admins.
+
+**Milestone 1: foundations**
 
 - **Invite-only sign-in:** email and password, emailed sign-in link, or
   Google. Public sign-up is off.

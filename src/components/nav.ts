@@ -9,7 +9,13 @@ export function navFor(role: Role, features: Record<string, boolean>): NavGroup[
   const groups: NavGroup[] = [];
 
   groups.push({
-    items: [features.tasks !== false ? { href: "/", label: "My tasks" } : { href: "/", label: "Home" }],
+    items:
+      features.tasks !== false
+        ? [
+            { href: "/", label: "My tasks" },
+            { href: "/tasks/new", label: "New task" },
+          ]
+        : [{ href: "/", label: "My tasks" }],
   });
 
   if (staffAdmin) {
