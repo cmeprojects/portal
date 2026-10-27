@@ -66,6 +66,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     .maybeSingle<TaskRow>();
   // Not found and not allowed look the same, so nobody can probe for tasks.
   if (!task) notFound();
+  // Opening a task clears it from your bell.
+  await supabase.rpc("mark_task_seen", { p_task_id: id });
 
   const [
     { data: helpers },

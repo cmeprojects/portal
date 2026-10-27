@@ -15,10 +15,12 @@ function isActive(path: string, href: string) {
 export function Sidebar({
   groups,
   brandMark,
+  bell,
   footer,
 }: {
   groups: NavGroup[];
   brandMark: React.ReactNode;
+  bell: React.ReactNode;
   footer: React.ReactNode;
 }) {
   const path = usePathname();
@@ -32,6 +34,8 @@ export function Sidebar({
       <aside className="flex flex-col gap-4 px-4 py-4 text-side-fg md:sticky md:top-0 md:h-screen md:overflow-y-auto md:overscroll-contain md:py-6">
         <div className="flex items-center justify-between gap-2">
           {brandMark}
+          <div className="-mr-2 flex shrink-0 items-center">
+          {bell}
           <button
             type="button"
             className="flex size-11 shrink-0 items-center justify-center rounded-md text-side-fg hover:bg-side-hover md:hidden"
@@ -44,6 +48,7 @@ export function Sidebar({
               {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
             </svg>
           </button>
+          </div>
         </div>
 
         <div id="main-menu" className={`${open ? "flex" : "hidden"} flex-1 flex-col gap-4 md:flex`}>

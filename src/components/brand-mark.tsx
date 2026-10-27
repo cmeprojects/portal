@@ -10,7 +10,7 @@ export function BrandMark({ brand }: { brand: Branding }) {
         <img src={brand.logoMarkUrl} alt="" className="max-h-full max-w-full object-contain" />
       </span>
       <span className="min-w-0 leading-tight">
-        <span className="block truncate font-display text-base font-semibold tracking-wider text-side-fg uppercase">{brand.companyName}</span>
+        <span className="block font-display text-sm leading-tight font-semibold tracking-wider text-balance text-side-fg uppercase">{brand.companyName}</span>
         <span className="block truncate font-display text-[11px] font-light tracking-[0.25em] text-side-muted uppercase">{brand.portalName}</span>
       </span>
     </div>

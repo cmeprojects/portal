@@ -98,8 +98,12 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   // Kim sees it and tags Ali.
   const kim = await signIn(browser, "kim@example.com");
   await kim.waitForSelector("text=Check first aid kit expiry dates");
+  await kim.click("button[aria-label='1 new task for you']");
+  await kim.waitForSelector("text=New for you");
+  await kim.screenshot({ path: `${OUT}/m2-05-bell.png` });
+  step("the bell shows 1 new task for the assignee");
   await kim.screenshot({ path: `${OUT}/m2-03-my-tasks.png`, fullPage: true });
-  await kim.click("text=Check first aid kit expiry dates");
+  await kim.click("a:has-text('Check first aid kit expiry dates') >> nth=0");
   await kim.waitForSelector("text=Tag someone to help out");
   await kim.selectOption("#helper", { label: "Ali Worker" });
   await kim.click("button:has-text('Add helper')");
@@ -107,6 +111,9 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   await kim.waitForSelector("text=added Ali Worker as a helper");
   await kim.screenshot({ path: `${OUT}/m2-04-task-desktop.png`, fullPage: true });
   step("assignee sees the task and tagged a helper");
+  await kim.goto(`${BASE}/`);
+  await kim.waitForSelector("button[aria-label='No new tasks']");
+  step("opening the task cleared it from the bell");
   await waitForMail("ali@example.com", "You're helping on");
   step("new helper emailed");
 

@@ -42,13 +42,8 @@ export function navFor(role: Role, features: Record<string, boolean>): NavGroup[
     });
   }
 
-  groups.push({
-    heading: "You",
-    items: [
-      { href: "/account", label: "My account" },
-      { href: "/about", label: "About" },
-    ],
-  });
+  // Last, with no heading.
+  groups.push({ items: [{ href: "/account", label: "My account" }] });
 
   return groups;
 }
