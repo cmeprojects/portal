@@ -17,6 +17,8 @@ export type Profile = {
 export type Session = {
   profile: Profile;
   features: Record<string, boolean>;
+  // Whether this person's role must use two-factor login right now.
+  mfaRequired: boolean;
 };
 
 type Access = {
@@ -51,6 +53,7 @@ export const getSession = cache(async (): Promise<Session | null> => {
   return {
     profile,
     features: Object.fromEntries((features ?? []).map((f) => [f.key, f.enabled])),
+    mfaRequired: access.mfa_required,
   };
 });
 

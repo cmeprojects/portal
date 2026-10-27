@@ -185,6 +185,25 @@ function step(name) { console.log("✓", name); }
   await fresh.waitForSelector("text=turned off");
   step("deactivated person cannot sign in again");
 
+  // Main two-factor switch: off lets the manager in without a code.
+  await page.goto(`${BASE}/system`);
+  page.once("dialog", (d) => d.accept());
+  await page.click("button[aria-label='Two-factor login: on']");
+  await page.waitForSelector("text=Two-factor login is switched off");
+  const m2 = await (await browser.newContext()).newPage();
+  await m2.goto(`${BASE}/login`);
+  await m2.fill("#email", "morgan@example.com");
+  await m2.fill("#password", "morgans-password-1");
+  await m2.click("button:has-text('Sign in')");
+  await m2.waitForURL(BASE + "/");
+  step("with two-factor switched off, the manager signs in without a code");
+  await page.click("button[aria-label='Two-factor login: off']");
+  await page.waitForSelector("button[aria-label='Two-factor login: on']");
+  await m2.goto(`${BASE}/settings/registries`);
+  await m2.goto(`${BASE}/`);
+  await m2.waitForURL(/\/mfa/);
+  step("switched back on, the manager is asked to set up two-factor again");
+
   await browser.close();
   console.log("ALL E2E CHECKS PASSED");
 })().catch((e) => { console.error("E2E FAILED:", e); process.exit(1); });

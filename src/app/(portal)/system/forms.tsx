@@ -9,7 +9,19 @@ import { saveSetting, setFeature } from "./actions";
 export function FeatureSwitch({ feature }: { feature: { key: string; label: string; description: string | null; enabled: boolean } }) {
   const [state, action, pending] = useActionState(setFeature, null);
   return (
-    <form action={action} className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-4 first:border-t-0">
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (
+          feature.key === "two_factor" &&
+          feature.enabled &&
+          !confirm("Turn off two-factor login for everyone, including system admins? Accounts will only be protected by passwords.")
+        ) {
+          e.preventDefault();
+        }
+      }}
+      className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-4 first:border-t-0"
+    >
       <input type="hidden" name="key" value={feature.key} />
       <input type="hidden" name="enabled" value={feature.enabled ? "false" : "true"} />
       <div className="min-w-56 flex-1">
