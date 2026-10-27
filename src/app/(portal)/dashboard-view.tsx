@@ -228,7 +228,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
       <Card id="all" className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-line px-5 py-3">
           <h2 className="heading-sm">All ongoing tasks · {filtered.length}</h2>
-          <form className="grid gap-2 md:grid-cols-[1fr_1fr_1.5fr_auto_auto] md:items-center" role="search" action="/#all">
+          <form className="grid gap-2 sm:grid-cols-[1fr_1fr_1.5fr_auto_auto] sm:items-center" role="search" action="/#all">
             <label className="sr-only" htmlFor="d-register">Register</label>
             <select id="d-register" name="register" defaultValue={register} className={inputClass}>
               <option value="">All registers</option>
