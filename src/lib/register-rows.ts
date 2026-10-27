@@ -1,12 +1,12 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, formatValue, refLabel, type Details, type Registry, type RegistryField } from "@/lib/registers";
+import { choiceColour, formatDate, formatValue, refLabel, type ChoiceColour, type Details, type Registry, type RegistryField } from "@/lib/registers";
 import { DONE, PRIORITY_LABELS, STATUS_LABELS, type Priority, type Status } from "@/lib/tasks";
 import type { AssetOption, PersonOption } from "@/lib/register-data";
 
 export type Column = { key: string; label: string; wide?: boolean };
-export type Cell = { text: string; href?: string; tone?: "danger" | "muted" };
+export type Cell = { text: string; href?: string; tone?: "danger" | "muted"; badge?: ChoiceColour };
 export type Table = { columns: Column[]; rows: { id: string; href: string; cells: Record<string, Cell> }[] };
 
 export type Filter = { status: "open" | "done" | "all"; q: string };
@@ -52,7 +52,7 @@ export async function registerTable(
           ref: { text: refLabel(registry.prefix, r.ref_number) },
           title: { text: r.archived ? `${r.title} (archived)` : r.title, tone: r.archived ? "muted" : undefined },
         };
-        for (const f of shown) cells[f.key] = { text: formatValue(f, details[f.key], lookup) };
+        for (const f of shown) cells[f.key] = { text: formatValue(f, details[f.key], lookup), badge: choiceColour(f, details[f.key]) };
         return { id: r.id, href: `/records/${r.id}`, cells };
       }),
     };
@@ -99,7 +99,7 @@ export async function registerTable(
         review_date: { text: formatDate(t.review_date) },
         outcome: { text: t.outcome },
       };
-      for (const f of shown) cells[f.key] = { text: formatValue(f, details[f.key], lookup) };
+      for (const f of shown) cells[f.key] = { text: formatValue(f, details[f.key], lookup), badge: choiceColour(f, details[f.key]) };
       return { id: t.id, href: `/tasks/${t.id}`, cells };
     }),
   };

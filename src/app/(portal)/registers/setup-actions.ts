@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireSession } from "@/lib/session";
 import { friendlyError } from "@/lib/db-error";
-import { FIELD_TYPES, keyFromLabel, type FieldType } from "@/lib/registers";
+import { CHOICE_COLOURS, FIELD_TYPES, keyFromLabel, type ChoiceColour, type FieldType } from "@/lib/registers";
 import { text, type FormState } from "@/lib/form";
 
 const PREFIX = /^[A-Z0-9]{2,6}$/;
@@ -14,6 +14,16 @@ const on = (form: FormData, name: string) => form.get(name) === "on";
 
 function options(form: FormData): string[] {
   return [...new Set(text(form, "options").split(/\r?\n/).map((o) => o.trim()).filter(Boolean))].slice(0, 100);
+}
+
+// Colours chosen for each choice (inputs named colour::<choice>).
+function colours(form: FormData, opts: string[]): Record<string, ChoiceColour> {
+  const out: Record<string, ChoiceColour> = {};
+  for (const o of opts) {
+    const c = form.get(`colour::${o}`);
+    if (typeof c === "string" && (CHOICE_COLOURS as readonly string[]).includes(c)) out[o] = c as ChoiceColour;
+  }
+  return out;
 }
 
 function refresh(id: string) {
@@ -152,7 +162,15 @@ export async function updateField(_: FormState, form: FormData): Promise<FormSta
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("registry_fields")
-    .update({ label, type, required: on(form, "required"), options: opts, help: text(form, "help"), active: on(form, "active") })
+    .update({
+      label,
+      type,
+      required: on(form, "required"),
+      options: opts,
+      option_colors: type === "choice" ? colours(form, opts) : {},
+      help: text(form, "help"),
+      active: on(form, "active"),
+    })
     .eq("id", id)
     .select("id");
   if (error) return { error: friendlyError(error) };

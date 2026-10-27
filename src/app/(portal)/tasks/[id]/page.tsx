@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
-import { formatDate, formatValue, refLabel, type Details } from "@/lib/registers";
+import { CHOICE_COLOUR_CLASS, choiceColour, formatDate, formatValue, refLabel, type Details } from "@/lib/registers";
 import {
   DONE,
   PRIORITY_CLASS,
@@ -177,7 +177,18 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
                 {shownFields.map((f) => (
                   <div key={f.id} className={f.type === "long_text" ? "sm:col-span-2" : ""}>
                     <Label>{f.label}</Label>
-                    <dd className="whitespace-pre-line text-sm">{display(f) || <span className="text-muted">Not filled in</span>}</dd>
+                    <dd className="whitespace-pre-line text-sm">
+                      {(() => {
+                        const text = display(f);
+                        const colour = choiceColour(f, task.details[f.key]);
+                        if (!text) return <span className="text-muted">Not filled in</span>;
+                        return colour ? (
+                          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHOICE_COLOUR_CLASS[colour]}`}>{text}</span>
+                        ) : (
+                          text
+                        );
+                      })()}
+                    </dd>
                   </div>
                 ))}
                 {registry.show_outcome ? (

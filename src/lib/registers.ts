@@ -38,7 +38,38 @@ export type RegistryField = {
   help: string;
   sort_order: number;
   active: boolean;
+  // Choice -> colour name, for colour-coded dropdowns.
+  option_colors: Record<string, ChoiceColour>;
 };
+
+export const CHOICE_COLOURS = ["green", "yellow", "orange", "red", "blue", "grey"] as const;
+export type ChoiceColour = (typeof CHOICE_COLOURS)[number];
+
+export const CHOICE_COLOUR_LABELS: Record<ChoiceColour, string> = {
+  green: "Green",
+  yellow: "Yellow",
+  orange: "Orange",
+  red: "Red",
+  blue: "Blue",
+  grey: "Grey",
+};
+
+// Badge classes for each colour (they adapt to dark mode).
+export const CHOICE_COLOUR_CLASS: Record<ChoiceColour, string> = {
+  green: "bg-good-soft text-good",
+  yellow: "bg-yellow-soft text-yellow",
+  orange: "bg-warn-soft text-warn",
+  red: "bg-danger-soft text-danger",
+  blue: "bg-brand-soft text-brand",
+  grey: "bg-page text-muted ring-1 ring-line ring-inset",
+};
+
+// The colour of a stored value, if its field is colour-coded.
+export function choiceColour(field: Pick<RegistryField, "type" | "option_colors">, value: unknown): ChoiceColour | undefined {
+  if (field.type !== "choice" || typeof value !== "string") return undefined;
+  const c = field.option_colors?.[value];
+  return c && (CHOICE_COLOURS as readonly string[]).includes(c) ? c : undefined;
+}
 
 export type Registry = {
   id: string;
@@ -62,7 +93,7 @@ export type Registry = {
 export const REGISTRY_COLUMNS =
   "id, name, description, kind, prefix, requires_approval, active, is_default, title_label, description_label, show_due_date, show_review_date, review_label, show_outcome, outcome_label, sort_order";
 
-export const FIELD_COLUMNS = "id, registry_id, key, label, type, required, options, help, sort_order, active";
+export const FIELD_COLUMNS = "id, registry_id, key, label, type, required, options, help, sort_order, active, option_colors";
 
 export type Details = Record<string, unknown>;
 

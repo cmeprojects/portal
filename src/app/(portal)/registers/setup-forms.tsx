@@ -3,7 +3,7 @@
 
 import { useActionState, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
-import { FIELD_TYPE_LABELS, FIELD_TYPES, type FieldType, type Registry, type RegistryField } from "@/lib/registers";
+import { CHOICE_COLOUR_CLASS, CHOICE_COLOUR_LABELS, CHOICE_COLOURS, FIELD_TYPE_LABELS, FIELD_TYPES, type FieldType, type Registry, type RegistryField } from "@/lib/registers";
 import type { FormState } from "@/lib/form";
 import { addField, createRegistry, saveManagers, saveRegistrySettings, updateField } from "./setup-actions";
 
@@ -183,6 +183,28 @@ function FieldInputs({ field, idp }: { field?: RegistryField; idp: string }) {
         <Field label="Choices (one per line)" htmlFor={`${idp}-options`}>
           <textarea id={`${idp}-options`} name="options" rows={5} defaultValue={field?.options.join("\n")} className={`${inputClass} h-auto py-3`} />
         </Field>
+      ) : null}
+      {type === "choice" && field && field.options.length ? (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-sm font-medium">Colours (optional)</legend>
+          <p className="-mt-1 text-xs text-muted">Shown as a coloured label in lists and on tasks. New choices can be coloured after you save.</p>
+          {field.options.map((o) => {
+            const current = field.option_colors?.[o] ?? "";
+            return (
+              <label key={o} className="flex flex-wrap items-center gap-3 text-sm">
+                <span className={`inline-flex min-w-32 rounded-full px-2.5 py-0.5 text-xs font-semibold ${current ? CHOICE_COLOUR_CLASS[current] : "bg-page text-ink"}`}>{o}</span>
+                <select name={`colour::${o}`} defaultValue={current} aria-label={`Colour for ${o}`} className={`${inputClass} max-w-40`}>
+                  <option value="">No colour</option>
+                  {CHOICE_COLOURS.map((c) => (
+                    <option key={c} value={c}>
+                      {CHOICE_COLOUR_LABELS[c]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
+        </fieldset>
       ) : null}
       <Field label="Help text (optional)" htmlFor={`${idp}-help`} hint="Shown under the field on the form.">
         <input id={`${idp}-help`} name="help" defaultValue={field?.help} className={inputClass} />

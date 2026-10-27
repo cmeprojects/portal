@@ -19,7 +19,11 @@ export const getRegistries = cache(async (): Promise<Registry[]> => {
 export const getFields = cache(async (): Promise<RegistryField[]> => {
   const supabase = await createClient();
   const { data } = await supabase.from("registry_fields").select(FIELD_COLUMNS).order("sort_order").returns<RegistryField[]>();
-  return (data ?? []).map((f) => ({ ...f, options: Array.isArray(f.options) ? f.options : [] }));
+  return (data ?? []).map((f) => ({
+    ...f,
+    options: Array.isArray(f.options) ? f.options : [],
+    option_colors: f.option_colors && typeof f.option_colors === "object" ? f.option_colors : {},
+  }));
 });
 
 export type PersonOption = { id: string; label: string; name: string; active: boolean; role: Role };

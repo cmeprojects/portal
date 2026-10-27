@@ -95,3 +95,9 @@ select pg_temp.field('AST', 'current_value', 'Current value', 'money', false, '{
 select pg_temp.field('AST', 'location', 'Location', 'text', false, '{}', 80);
 select pg_temp.field('AST', 'status', 'Status', 'choice', false,
   '{"In use","In storage","Being repaired","Disposed"}', 90);
+
+-- Colour-coded choices.
+update public.registry_fields f set option_colors = '{"Low": "green", "Medium": "yellow", "High": "orange", "Extreme": "red"}'
+  from public.registries r where r.id = f.registry_id and r.prefix = 'RSK' and f.key = 'risk_rating';
+update public.registry_fields f set option_colors = '{"Effective": "green", "Partly effective": "orange", "Not effective": "red", "Not yet reviewed": "grey"}'
+  from public.registries r where r.id = f.registry_id and r.prefix = 'RSK' and f.key = 'effectiveness';
