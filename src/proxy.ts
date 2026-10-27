@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Pages anyone can open without signing in.
-const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password"];
+const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/health"];
 
 // Keeps the sign-in session fresh on every request and sends signed-out
 // visitors to the sign-in page. Role and two-factor checks happen on each
