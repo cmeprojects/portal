@@ -1,0 +1,35 @@
+/* Staff Portal · © cmeproject. All rights reserved. */
+@import "tailwindcss";
+
+/* Brand colours are set per company (System settings) on <html>. */
+:root {
+  --brand-primary: #134f8e;
+  --brand-dark: #0f2f57;
+  --brand-accent: #6497c8;
+}
+
+@theme inline {
+  --color-brand: var(--brand-primary);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-soft: color-mix(in srgb, var(--brand-primary) 9%, white);
+  --color-page: #f6f8fb;
+  --color-line: #e3e8f0;
+  --color-field: #c9d3e1;
+  --color-ink: #1b2333;
+  --color-muted: #5a6478;
+  --color-danger: #a11b1b;
+  --color-warn: #9a3b0b;
+  --color-good: #1d6b3a;
+  --font-sans: var(--font-figtree), system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--brand-accent);
+  outline-offset: 2px;
+}
