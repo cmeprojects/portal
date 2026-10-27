@@ -9,7 +9,7 @@ Staff Portal · © cmeproject
    - ✅ Registers: custom fields, register pages, set-up, General tasks,
      follow-up actions, asset list
 3. Ticket features: comments, status changes, approvals, reassign,
-   escalate, attachments
+   escalate, attachments; logo upload in System settings (per company)
 4. Manager side: dashboard, reports and exports, auto-escalation
 5. Vehicles and mileage
 6. Going live
