@@ -67,7 +67,7 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   sql(`insert into public.team_leaders select t.id, p.id from public.teams t, public.profiles p
        where t.name = 'Team A' and p.email = 'lead@example.com'`);
   sql(`insert into public.registry_managers select r.id, p.id from public.registries r, public.profiles p
-       where r.name = 'Compliance Registry' and p.email = 'boss@example.com'`);
+       where r.name = 'Continuous Improvement Register' and p.email = 'boss@example.com'`);
 
   const browser = await chromium.launch();
 
@@ -75,7 +75,7 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   const sam = await signIn(browser, "sam@example.com", { width: 390, height: 844 });
   await sam.goto(`${BASE}/tasks/new`);
   await sam.fill("#title", "Check first aid kit expiry dates");
-  await sam.selectOption("#registry_id", { label: "Compliance Registry" });
+  await sam.selectOption("#registry_id", { label: "Continuous Improvement Register" });
   await sam.click("label:has-text('High') >> nth=0");
   await sam.fill("#description", "Kits in both cars and the office.\nReplace anything out of date.");
   await sam.selectOption("#assigned_to", { label: "Kim Worker · Support worker" });
@@ -92,7 +92,7 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   const ccLead = (toKim.Cc ?? []).map((c) => c.Address);
   if (!ccLead.includes("lead@example.com")) throw new Error("helper not copied in: " + JSON.stringify(toKim.Cc));
   step("assignee emailed, helper copied in");
-  await waitForMail("boss@example.com", "New task in Compliance Registry");
+  await waitForMail("boss@example.com", "New task in Continuous Improvement Register");
   step("registry manager emailed");
 
   // Kim sees it and tags Ali.
@@ -124,7 +124,7 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   const owner = await signIn(browser, "owner@example.com");
   await owner.goto(`${BASE}/tasks/new`);
   await owner.fill("#title", "Private maintenance job");
-  await owner.selectOption("#registry_id", { label: "Maintenance" });
+  await owner.selectOption("#registry_id", { label: "Maintenance and Repair Register" });
   await owner.click("button:has-text('Create task')");
   await owner.waitForURL(/\/tasks\/[0-9a-f-]{36}/);
   const privateUrl = owner.url().replace("?created=1", "");

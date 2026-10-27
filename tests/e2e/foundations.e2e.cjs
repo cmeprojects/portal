@@ -144,7 +144,7 @@ function step(name) { console.log("✓", name); }
 
   // Registries + teams + system settings as system admin.
   await page.goto(`${BASE}/settings/registries`);
-  await page.waitForSelector("text=Compliance Registry");
+  await page.waitForSelector("text=Continuous Improvement Register");
   await page.screenshot({ path: `${OUT}/08-registries.png`, fullPage: true });
   step("registries page lists the company's registries");
 

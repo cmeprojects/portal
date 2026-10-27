@@ -20,7 +20,7 @@ for test in supabase/tests/*.test.sql; do
   for f in supabase/migrations/*.sql; do
     run -f "$f"
   done
-  run -f supabase/companies/engaged-care.sql
+  run -o /dev/null -f supabase/companies/engaged-care.sql
   run -f supabase/tests/helpers.sql
   run -f "$test" 2>&1 | sed 's/^psql:[^ ]* NOTICE:  /  /'
 

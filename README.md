@@ -11,6 +11,21 @@ wording. See **[docs/SETUP.md](docs/SETUP.md)** to set one up.
 
 ## What's in this version
 
+**Registers**
+
+- **One tasks table for every register.** A register page is a filtered view
+  of it with that register's own columns, so nothing is copied or synced.
+- **Each register has its own set-up:** reference prefix (RSK-0001), labels,
+  approval, due/review dates, an outcome box, managers and **custom fields**
+  (text, long text, number, money, date, dropdown, checkboxes, yes/no, staff
+  member, link to an asset). Fields are retired, never deleted, so data is kept.
+- **Managers can create registers** and become their manager.
+- **General tasks** is built in for everyday jobs.
+- **Follow-up actions:** smaller linked tasks with their own person and due date.
+- **Lists of things** (like the Asset Register): items with details and
+  history, an "estimate current value" button, and the tasks that link to them.
+- **Download for Excel** from any register.
+
 **Milestone 2: tasks**
 
 - **New task:** title, registry, description, priority, due date, who looks

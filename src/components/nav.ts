@@ -14,8 +14,12 @@ export function navFor(role: Role, features: Record<string, boolean>): NavGroup[
         ? [
             { href: "/", label: "My tasks" },
             { href: "/tasks/new", label: "New task" },
+            { href: "/registers", label: "Registers" },
           ]
-        : [{ href: "/", label: "My tasks" }],
+        : [
+            { href: "/", label: "My tasks" },
+            { href: "/registers", label: "Registers" },
+          ],
   });
 
   if (staffAdmin) {
@@ -24,7 +28,6 @@ export function navFor(role: Role, features: Record<string, boolean>): NavGroup[
       items: [
         { href: "/settings/staff", label: "Staff & roles" },
         { href: "/settings/teams", label: "Teams" },
-        { href: "/settings/registries", label: "Registries" },
       ],
     });
   }

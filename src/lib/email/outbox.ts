@@ -5,6 +5,7 @@ import { getBranding } from "@/lib/branding";
 import { env } from "@/lib/env";
 import { sendEmail } from "./send";
 import { render, type TaskInfo } from "./templates";
+import { refLabel } from "@/lib/registers";
 
 const MAX_ATTEMPTS = 5;
 
@@ -47,7 +48,7 @@ export async function flushOutbox(taskId?: string): Promise<void> {
     admin.from("profiles").select("id, full_name, email, active").in("id", peopleIds),
     admin
       .from("tasks")
-      .select("id, number, title, description, priority, due_date, registry_id, assigned_to, created_by, registries(name)")
+      .select("id, ref_number, title, description, priority, due_date, registry_id, assigned_to, created_by, registries(name, prefix)")
       .in("id", taskIds),
     admin.from("task_events").select("task_id, actor_id, type, created_at").in("task_id", taskIds),
   ]);
@@ -72,10 +73,10 @@ export async function flushOutbox(taskId?: string): Promise<void> {
       const cause = (events ?? [])
         .filter((e) => e.task_id === row.task_id && e.created_at <= row.created_at)
         .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
-      const registry = task.registries as unknown as { name: string } | null;
+      const registry = task.registries as unknown as { name: string; prefix: string } | null;
       const info: TaskInfo = {
         id: task.id,
-        number: task.number,
+        ref: refLabel(registry?.prefix, task.ref_number),
         title: task.title,
         description: task.description,
         priority: task.priority,

@@ -1,23 +1,26 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import { requireSession } from "@/lib/session";
-import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
-import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { ROLE_LABELS } from "@/lib/roles";
+import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { NewTaskForm } from "./form";
 
 export const metadata: Metadata = { title: "New task" };
 
-export default async function NewTaskPage() {
+export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/new">) {
   const { profile, features } = await requireSession();
-  const supabase = await createClient();
-  const [{ data: registries }, { data: people }, timeZone] = await Promise.all([
-    supabase.from("registries").select("id, name, requires_approval").eq("active", true).order("sort_order").order("name"),
-    supabase.from("profiles").select("id, full_name, email, role").eq("active", true).order("full_name"),
+  const { register } = await searchParams;
+  const [registries, fields, people, assets, timeZone] = await Promise.all([
+    getRegistries(),
+    getFields(),
+    getPeople(),
+    getAssets(),
     getTimeZone(),
   ]);
+  const taskRegistries = registries.filter((r) => r.active && r.kind === "tasks");
 
   if (features.tasks === false) {
     return (
@@ -30,22 +33,17 @@ export default async function NewTaskPage() {
 
   return (
     <>
-      <PageHeader title="New task" intro="Create a task and choose who will look after it." />
+      <PageHeader title="New task" intro="Choose a register, fill in the details and pick who will look after it." />
       <Card className="max-w-4xl p-5 sm:p-7">
-        {(registries ?? []).length === 0 ? (
-          <Notice>There are no registries yet. Ask a staff admin to add one.</Notice>
-        ) : (
-          <NewTaskForm
-            registries={registries ?? []}
-            people={(people ?? []).map((p) => ({
-              id: p.id,
-              name: p.full_name || p.email,
-              detail: ROLE_LABELS[p.role as Role],
-            }))}
-            meId={profile.id}
-            today={todayIn(timeZone)}
-          />
-        )}
+        <NewTaskForm
+          registries={taskRegistries}
+          fields={fields}
+          people={people.filter((p) => p.active).map((p) => ({ id: p.id, name: p.name, detail: ROLE_LABELS[p.role] }))}
+          assets={assets.filter((a) => !a.archived)}
+          meId={profile.id}
+          today={todayIn(timeZone)}
+          initialRegistryId={typeof register === "string" ? register : undefined}
+        />
       </Card>
     </>
   );

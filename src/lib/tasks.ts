@@ -36,10 +36,6 @@ export function isPriority(v: unknown): v is Priority {
   return typeof v === "string" && (PRIORITIES as readonly string[]).includes(v);
 }
 
-export function taskNumber(n: number): string {
-  return `T-${String(n).padStart(4, "0")}`;
-}
-
 // Today's date (YYYY-MM-DD) in the company's time zone.
 export function todayIn(timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date());

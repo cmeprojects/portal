@@ -1,9 +1,9 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { PRIORITY_LABELS, taskNumber, type Priority } from "@/lib/tasks";
+import { PRIORITY_LABELS, type Priority } from "@/lib/tasks";
 
 export type TaskInfo = {
   id: string;
-  number: number;
+  ref: string;
   title: string;
   description: string;
   priority: Priority;
@@ -31,7 +31,7 @@ function dueText(due: string | null) {
 function layout(ctx: Ctx, heading: string, intro: string): Rendered & { subjectSuffix?: never } {
   const t = ctx.task;
   const rows: [string, string][] = [
-    ["Task", `${taskNumber(t.number)} · ${t.title}`],
+    ["Task", `${t.ref} · ${t.title}`],
     ["Registry", t.registry],
     ["Priority", PRIORITY_LABELS[t.priority]],
     ["Due", dueText(t.due_date)],
@@ -66,7 +66,7 @@ function layout(ctx: Ctx, heading: string, intro: string): Rendered & { subjectS
 
 export function render(template: string, ctx: Ctx): Rendered {
   const t = ctx.task;
-  const tag = `${taskNumber(t.number)}: ${t.title}`;
+  const tag = `${t.ref}: ${t.title}`;
   switch (template) {
     case "task_assigned": {
       const r = layout(ctx, "You have a new task", `${ctx.actorName} has asked you to look after this task.`);

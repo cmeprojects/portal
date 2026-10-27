@@ -62,7 +62,7 @@ reset role;
 
 select test.act_as('sam@example.com', 'aal1');
 set role authenticated;
-select test.ok((select count(*) from public.registries) = 7, 'support worker sees registries');
+select test.ok((select count(*) from public.registries) = 8, 'support worker sees registries');
 select test.ok((select count(*) from public.profiles) = 7, 'support worker sees colleagues (for assigning tasks)');
 select test.refused($$update public.profiles set role = 'manager' where email = 'sam@example.com'$$,
   'support worker cannot promote themselves');
@@ -162,11 +162,11 @@ reset role;
 select test.act_as('owner@example.com');
 set role authenticated;
 update public.features set enabled = true where key = 'vehicles';
-update public.app_settings set value = '"Engaged Care"' where key = 'brand.company_name';
+update public.app_settings set value = '"Engaged Care Melbourne"' where key = 'brand.company_name';
 update public.profiles set role = 'staff_admin' where email = 'boss@example.com';
 select test.ok((select count(*) from public.audit_log where action = 'feature_on') = 1,
   'system admin switched a feature on, and it was logged');
-select test.ok((select count(*) from public.audit_log where action = 'setting_changed') = 1,
+select test.ok((select count(*) from public.audit_log where action = 'setting_changed' and actor_id is not null) = 1,
   'setting change was logged');
 select test.ok((select count(*) from public.audit_log where action = 'invite_resent') = 1,
   'resent invite was logged');

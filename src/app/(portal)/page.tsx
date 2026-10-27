@@ -12,25 +12,25 @@ import {
   dueState,
   endOfWeek,
   formatDue,
-  taskNumber,
   todayIn,
   type Priority,
   type Status,
 } from "@/lib/tasks";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
+import { refLabel } from "@/lib/registers";
 
 export const metadata: Metadata = { title: "My tasks" };
 
 type Row = {
   id: string;
-  number: number;
+  ref_number: number;
   title: string;
   priority: Priority;
   status: Status;
   due_date: string | null;
   assigned_to: string;
   created_by: string;
-  registries: { name: string } | null;
+  registries: { name: string; prefix: string } | null;
 };
 
 const TABS = [
@@ -59,7 +59,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   if (helpingIds.length) filters.push(`id.in.(${helpingIds.join(",")})`);
   const { data } = await supabase
     .from("tasks")
-    .select("id, number, title, priority, status, due_date, assigned_to, created_by, registries(name)")
+    .select("id, ref_number, title, priority, status, due_date, assigned_to, created_by, registries(name, prefix)")
     .or(filters.join(","))
     .order("created_at", { ascending: false })
     .limit(500)
@@ -157,7 +157,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                     <span className="min-w-56 flex-1">
                       <span className="block text-base font-bold">{t.title}</span>
                       <span className="block text-sm text-muted">
-                        {taskNumber(t.number)} · {t.registries?.name}
+                        {refLabel(t.registries?.prefix, t.ref_number)} · {t.registries?.name}
                       </span>
                     </span>
                     <span className={`inline-flex rounded-full px-3 py-1 text-[13px] font-bold ${PRIORITY_CLASS[t.priority]}`}>

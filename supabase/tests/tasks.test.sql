@@ -24,7 +24,7 @@ insert into public.team_leaders (team_id, user_id)
 select t.id, p.id from public.teams t, public.profiles p where t.name = 'Team A' and p.email = 'lead@example.com';
 insert into public.registry_managers (registry_id, user_id)
 select r.id, p.id from public.registries r, public.profiles p
- where r.name = 'Compliance Registry' and p.email = 'boss@example.com';
+ where r.name = 'Continuous Improvement Register' and p.email = 'boss@example.com';
 
 create function test.pid(p_email text) returns uuid language sql as $$
   select id from public.profiles where email = p_email
@@ -50,12 +50,12 @@ grant execute on all functions in schema test to authenticated;
 select test.act_as('kim@example.com', 'aal1');
 set role authenticated;
 select test.refused($$insert into public.tasks (title, registry_id, assigned_to, created_by)
-  values ('x', test.rid('Maintenance'), test.pid('kim@example.com'), test.pid('kim@example.com'))$$,
+  values ('x', test.rid('Maintenance and Repair Register'), test.pid('kim@example.com'), test.pid('kim@example.com'))$$,
   'nobody can insert into tasks directly');
-select test.refused($$select public.create_task('  ', test.rid('Maintenance'), test.pid('sam@example.com'))$$,
+select test.refused($$select public.create_task('  ', test.rid('Maintenance and Repair Register'), test.pid('sam@example.com'))$$,
   'a task needs a title');
 -- Task 1: Kim (Team B) creates a Maintenance task for Sam (Team A), helped by Ali.
-select public.create_task('Fix the back door', test.rid('Maintenance'), test.pid('sam@example.com'),
+select public.create_task('Fix the back door', test.rid('Maintenance and Repair Register'), test.pid('sam@example.com'),
   'It sticks when wet', 'medium', current_date + 3,
   array[test.pid('ali@example.com'), test.pid('sam@example.com')]);
 reset role;
@@ -75,7 +75,7 @@ select test.ok((select count(*) = 1 and bool_and(to_user = test.pid('sam@example
 -- Task 2: Morgan (manager) creates a Compliance task for Kim.
 select test.act_as('boss@example.com');
 set role authenticated;
-select public.create_task('Update screening register', test.rid('Compliance Registry'), test.pid('kim@example.com'),
+select public.create_task('Update screening register', test.rid('Continuous Improvement Register'), test.pid('kim@example.com'),
   '', 'high', current_date - 1, '{}');
 reset role;
 select test.ok((select count(*) from public.email_outbox where template = 'task_created_manager') = 0,
@@ -84,7 +84,7 @@ select test.ok((select count(*) from public.email_outbox where template = 'task_
 -- Task 3: Kim creates a Compliance task for herself; the manager hears about it.
 select test.act_as('kim@example.com');
 set role authenticated;
-select public.create_task('Check fire extinguishers', test.rid('Compliance Registry'), test.pid('kim@example.com'));
+select public.create_task('Check fire extinguishers', test.rid('Continuous Improvement Register'), test.pid('kim@example.com'));
 reset role;
 select test.ok((select count(*) from public.email_outbox where template = 'task_created_manager'
                   and to_user = test.pid('boss@example.com')) = 1,
@@ -137,7 +137,7 @@ select test.ok((select count(*) from public.email_outbox where template = 'helpe
 update public.features set enabled = false where key = 'email_notifications';
 select test.act_as('kim@example.com');
 set role authenticated;
-select public.create_task('No email please', test.rid('Maintenance'), test.pid('sam@example.com'));
+select public.create_task('No email please', test.rid('Maintenance and Repair Register'), test.pid('sam@example.com'));
 reset role;
 select test.ok((select count(*) from public.email_outbox
                  where task_id = (select id from public.tasks where title = 'No email please')) = 0,
@@ -147,7 +147,7 @@ update public.features set enabled = false where key = 'tasks';
 select test.ok(test.visible('sam@example.com') = 2, 'tasks stay readable when the Tasks feature is switched off');
 select test.act_as('kim@example.com');
 set role authenticated;
-select test.refused($$select public.create_task('x', test.rid('Maintenance'), test.pid('sam@example.com'))$$,
+select test.refused($$select public.create_task('x', test.rid('Maintenance and Repair Register'), test.pid('sam@example.com'))$$,
   'no new tasks while the Tasks feature is switched off');
 reset role;
 
