@@ -10,6 +10,10 @@ import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-d
 import { parseFilter, registerTable } from "@/lib/register-rows";
 import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
 import { DataTable } from "@/components/data-table";
+import { ExportPanel } from "./export-panel";
+import { PrintButton } from "@/components/print-button";
+import { PrintHeader } from "@/components/print-header";
+import { getBranding } from "@/lib/branding";
 
 export const metadata: Metadata = { title: "Register" };
 
@@ -49,22 +53,25 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
     return s ? `?${s}` : "";
   };
 
+  const brand = await getBranding();
+  const printedAt = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date());
+
   return (
     <>
+      <PrintHeader brand={brand} title={registry.name} subtitle={`${tabs.find((t) => t.key === filter.status)?.label ?? ""}${filter.q ? ` · "${filter.q}"` : ""}`} printedAt={printedAt} />
       <PageHeader
         eyebrow={`Registers · ${registry.prefix}`}
         title={registry.name}
         intro={registry.description || undefined}
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <PrintButton />
             {manages ? (
               <Link href={`/registers/${id}/setup`} className={buttonClass("outline")}>
                 Set up
               </Link>
             ) : null}
-            <a href={`/registers/${id}/export${qs(filter.status)}`} className={buttonClass("outline")}>
-              Download for Excel
-            </a>
+            <ExportPanel registerId={id} today={todayIn(timeZone)} records={records} status={filter.status} q={filter.q} />
             {records ? (
               manages ? (
                 <Link href={`/registers/${id}/new`} className={buttonClass("primary")}>
@@ -86,7 +93,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
             label="Filter"
             items={tabs.map((t) => ({ href: `/registers/${id}${qs(t.key)}`, text: t.label, current: filter.status === t.key }))}
           />
-          <form className="flex min-w-60 flex-1 gap-2 sm:max-w-sm" role="search">
+          <form className="flex min-w-60 flex-1 gap-2 sm:max-w-sm print:hidden" role="search">
             {filter.status !== "open" ? <input type="hidden" name="status" value={filter.status} /> : null}
             <label htmlFor="q" className="sr-only">
               Search this register

@@ -30,7 +30,7 @@ export function Sidebar({
   const current = all.filter((h) => isActive(path, h)).sort((a, b) => b.length - a.length)[0];
 
   return (
-    <div className="border-side-edge bg-brand-dark max-md:border-b md:border-r">
+    <div className="border-side-edge bg-brand-dark max-md:border-b md:border-r print:hidden">
       <aside className="flex flex-col gap-4 px-4 py-4 text-side-fg md:sticky md:top-0 md:h-screen md:overflow-y-auto md:overscroll-contain md:py-6">
         <div className="flex items-center justify-between gap-2">
           {brandMark}

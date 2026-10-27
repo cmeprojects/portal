@@ -80,7 +80,7 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   await owner.screenshot({ path: `${OUT}/r-02-asset-form.png`, fullPage: true });
   await owner.click("button:has-text('Add to the list')");
   await owner.waitForURL(/\/records\//);
-  await owner.waitForSelector("text=AST-0001");
+  await owner.waitForSelector("text=AST-0001 >> visible=true");
   const assetUrl = owner.url().replace("?saved=1", "");
   step(`asset added with an estimated current value ($${estimate})`);
 
@@ -98,7 +98,7 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   await sam.screenshot({ path: `${OUT}/r-03-new-risk-phone.png`, fullPage: true });
   await sam.click("button:has-text('Create task')");
   await sam.waitForURL(/\/tasks\/[0-9a-f-]{36}/);
-  await sam.waitForSelector("text=RSK-0001");
+  await sam.waitForSelector("text=RSK-0001 >> visible=true");
   await sam.waitForSelector("dd:has-text('High')");
   const riskUrl = sam.url().replace("?created=1", "");
   step("support worker created a Risk task with its own fields (RSK-0001)");
@@ -110,7 +110,7 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   await sam.selectOption(f("asset"), { label: "AST-0001 · Electric wheelchair" });
   await sam.selectOption(f("triggers"), "Breakdown");
   await sam.click("button:has-text('Create task')");
-  await sam.waitForSelector("text=MNT-0001");
+  await sam.waitForSelector("text=MNT-0001 >> visible=true");
   await owner.goto(assetUrl);
   await owner.waitForSelector("text=Wheelchair battery not charging");
   await owner.screenshot({ path: `${OUT}/r-04-asset-page.png`, fullPage: true });
@@ -145,10 +145,20 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   await boss.waitForSelector("th:has-text('Risk rating')");
   await boss.waitForSelector("td:has-text('Extreme')");
   await boss.screenshot({ path: `${OUT}/r-06-risk-register.png`, fullPage: true });
-  const [download] = await Promise.all([boss.waitForEvent("download"), boss.click("text=Download for Excel")]);
-  const csv = require("fs").readFileSync(await download.path(), "utf8");
-  if (!csv.includes("Risk rating") || !csv.includes("Wet floor in kitchen") || !csv.includes("Extreme")) throw new Error("bad CSV: " + csv.slice(0, 300));
-  step("register page shows its own columns, and downloads for Excel");
+  await boss.click("button:has-text('Download for Excel')");
+  await boss.click("button:has-text('This month')");
+  const [download] = await Promise.all([boss.waitForEvent("download"), boss.click("form button:has-text('Download')")]);
+  const ExcelJS = require("exceljs");
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(await download.path());
+  const ws = wb.worksheets[0];
+  const all = [];
+  ws.eachRow((r) => all.push(r.values.filter(Boolean).join("|")));
+  const text = all.join("\n");
+  if (!text.includes("Risk rating") || !text.includes("Wet floor in kitchen") || !text.includes("Extreme") || !text.includes("Risk Management Register"))
+    throw new Error("bad Excel: " + text.slice(0, 400));
+  if (ws.getImages().length !== 1) throw new Error("no logo in the Excel file");
+  step("register page shows its own columns, and downloads an Excel file for this month with the logo and header");
 
   // Manager creates a register and adds a field
   await boss.goto(`${BASE}/registers/new`);

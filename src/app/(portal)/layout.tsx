@@ -37,12 +37,12 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   );
 
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[230px_minmax(0,1fr)]">
+    <div className="min-h-screen md:grid md:grid-cols-[230px_minmax(0,1fr)] print:block">
       <Sidebar groups={navFor(profile.role, features)} brandMark={<BrandMark brand={brand} />}
         bell={features.tasks !== false ? <Bell items={bellItems} /> : null}
         footer={footer}
       />
-      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8">{children}</main>
+      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">{children}</main>
     </div>
   );
 }

@@ -9,12 +9,33 @@ export type Column = { key: string; label: string; wide?: boolean };
 export type Cell = { text: string; href?: string; tone?: "danger" | "muted"; badge?: ChoiceColour };
 export type Table = { columns: Column[]; rows: { id: string; href: string; cells: Record<string, Cell> }[] };
 
-export type Filter = { status: "open" | "done" | "all"; q: string };
+// from / to: dates (YYYY-MM-DD) on the date reported (tasks) or date added (lists).
+export type Filter = { status: "open" | "done" | "all"; q: string; from: string; to: string };
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function parseFilter(params: Record<string, string | string[] | undefined>): Filter {
   const status = params.status === "done" || params.status === "all" ? params.status : "open";
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 100) : "";
-  return { status, q };
+  const date = (v: unknown) => (typeof v === "string" && ISO_DATE.test(v) ? v : "");
+  return { status, q, from: date(params.from), to: date(params.to) };
+}
+
+// The filter as a query string (for links and downloads).
+export function filterQuery(f: Filter, status = f.status): string {
+  const p = new URLSearchParams();
+  if (status !== "open") p.set("status", status);
+  if (f.q) p.set("q", f.q);
+  if (f.from) p.set("from", f.from);
+  if (f.to) p.set("to", f.to);
+  const s = p.toString();
+  return s ? `?${s}` : "";
+}
+
+function nextDay(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 // Rows of a register, as the signed-in person is allowed to see them.
@@ -38,7 +59,9 @@ export async function registerTable(
     if (filter.status === "open") query = query.eq("archived", false);
     if (filter.status === "done") query = query.eq("archived", true);
     if (q) query = query.ilike("title", `%${q}%`);
-    const { data } = await query.limit(2000);
+    if (filter.from) query = query.gte("created_at", filter.from);
+    if (filter.to) query = query.lt("created_at", nextDay(filter.to));
+    const { data } = await query.limit(5000);
     const columns: Column[] = [
       { key: "ref", label: "Ref." },
       { key: "title", label: registry.title_label, wide: true },
@@ -67,7 +90,9 @@ export async function registerTable(
   if (filter.status === "open") query = query.not("status", "in", `(${DONE.join(",")})`);
   if (filter.status === "done") query = query.in("status", DONE);
   if (q) query = query.ilike("title", `%${q}%`);
-  const { data } = await query.limit(2000);
+  if (filter.from) query = query.gte("date_reported", filter.from);
+  if (filter.to) query = query.lte("date_reported", filter.to);
+  const { data } = await query.limit(5000);
 
   const columns: Column[] = [
     { key: "ref", label: "Ref." },

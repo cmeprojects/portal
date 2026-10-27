@@ -96,7 +96,7 @@ export function PageHeader({ eyebrow, title, intro, action }: { eyebrow?: string
 // Underlined tabs (e.g. Assigned to me · Helping on).
 export function Tabs({ label, items }: { label: string; items: { href: string; text: string; current: boolean }[] }) {
   return (
-    <nav aria-label={label} className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line [scrollbar-width:thin]">
+    <nav aria-label={label} className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line [scrollbar-width:thin] print:hidden">
       {items.map((t) => (
         <Link
           key={t.href}

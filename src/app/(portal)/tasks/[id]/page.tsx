@@ -19,6 +19,9 @@ import {
   type Status,
 } from "@/lib/tasks";
 import { Badge, Card, Notice } from "@/components/ui";
+import { PrintButton } from "@/components/print-button";
+import { PrintHeader } from "@/components/print-header";
+import { getBranding } from "@/lib/branding";
 import { AddHelperForm } from "./add-helper";
 import { EditDetailsForm } from "./edit-details";
 import { FollowUpForm } from "./follow-up";
@@ -96,6 +99,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     getAssets(),
     getTimeZone(),
   ]);
+  const brand = await getBranding();
 
   const registry = registries.find((r) => r.id === task.registry_id);
   if (!registry) notFound();
@@ -135,11 +139,24 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
 
   return (
     <>
-      {created ? <Notice tone="success">Task created. We&apos;ve emailed the people involved.</Notice> : null}
+      <PrintHeader
+        brand={brand}
+        title={`${registry.name} · ${refLabel(registry.prefix, task.ref_number)}`}
+        subtitle={task.title}
+        printedAt={when.format(new Date())}
+      />
+      {created ? (
+        <div className="print:hidden">
+          <Notice tone="success">Task created. We&apos;ve emailed the people involved.</Notice>
+        </div>
+      ) : null}
       <div className="flex flex-col gap-2">
-        <Link href={`/registers/${registry.id}`} className="text-sm font-semibold text-brand">
-          ← {registry.name}
-        </Link>
+        <div className="flex items-center justify-between gap-3 print:hidden">
+          <Link href={`/registers/${registry.id}`} className="text-sm font-semibold text-brand">
+            ← {registry.name}
+          </Link>
+          <PrintButton />
+        </div>
         {parent ? (
           <p className="text-sm">
             Follow-up action for{" "}
@@ -161,7 +178,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
         </div>
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_340px]">
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_340px] print:grid-cols-[1fr_240px]">
         <div className="flex min-w-0 flex-col gap-4">
           <Card className="p-5">
             <h2 className="mb-2 heading-sm">{registry.description_label}</h2>
@@ -202,7 +219,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           ) : null}
 
           {canEdit && open ? (
-            <details className="rounded-lg border border-line bg-surface">
+            <details className="rounded-lg border border-line bg-surface print:hidden">
               <summary className="flex min-h-14 cursor-pointer list-none items-center px-5 font-semibold text-brand">Edit details</summary>
               <div className="px-5 pb-5">
                 <EditDetailsForm
@@ -244,7 +261,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
                 <p className="text-sm text-muted">No actions yet.</p>
               )}
               {canEdit && open ? (
-                <details>
+                <details className="print:hidden">
                   <summary className="flex min-h-11 cursor-pointer list-none items-center font-semibold text-brand">+ Add a follow-up action</summary>
                   <div className="pt-2">
                     <FollowUpForm parentId={task.id} people={activePeople} today={today} />
@@ -271,7 +288,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
                 </li>
               ))}
             </ol>
-            <p className="mt-4 text-sm text-muted">Comments, status changes and attachments are coming in the next update.</p>
+            <p className="mt-4 text-sm text-muted print:hidden">Comments, status changes and attachments are coming in the next update.</p>
           </Card>
         </div>
 
@@ -312,7 +329,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
             </div>
           </dl>
           {open ? (
-            <div className="border-t border-line pt-4">
+            <div className="border-t border-line pt-4 print:hidden">
               <AddHelperForm taskId={task.id} people={helperChoices.map((p) => ({ id: p.id, name: p.label }))} />
             </div>
           ) : null}
