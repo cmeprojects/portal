@@ -12,11 +12,11 @@ export default async function ForgotPasswordPage() {
   return (
     <AuthShell brand={brand}>
       <div className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-bold">Forgot your password?</h1>
-        <p className="text-[15px] text-muted">We&apos;ll email you a link to set a new one.</p>
+        <h1 className="heading">Forgot your password?</h1>
+        <p className="text-sm text-muted">We&apos;ll email you a link to set a new one.</p>
       </div>
       <ForgotPasswordForm />
-      <Link href="/login" className="text-center text-[15px] font-semibold text-brand">
+      <Link href="/login" className="text-center text-sm font-semibold text-brand">
         Back to sign in
       </Link>
     </AuthShell>

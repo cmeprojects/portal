@@ -11,7 +11,7 @@ export default async function NewRegisterPage() {
   await requireRole(["manager", "staff_admin", "system_admin"]);
   return (
     <>
-      <Link href="/registers" className="text-[15px] font-semibold text-brand">
+      <Link href="/registers" className="text-sm font-semibold text-brand">
         ← Registers
       </Link>
       <PageHeader title="New register" intro="If you're a manager, you'll be this register's manager. You can add others after." />

@@ -11,7 +11,7 @@ export function AddHelperForm({ taskId, people }: { taskId: string; people: { id
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="task_id" value={taskId} />
-      <label htmlFor="helper" className="text-[15px] font-semibold">
+      <label htmlFor="helper" className="text-sm font-semibold">
         Tag someone to help out
       </label>
       <div className="flex flex-wrap gap-2">

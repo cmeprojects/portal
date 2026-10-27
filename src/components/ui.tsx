@@ -1,15 +1,18 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { ComponentProps, ReactNode } from "react";
+import Link from "next/link";
 
+// Buttons: crisp corners, white with a thin border; the main action filled.
+// 44px tall on phones (easy to tap during a shift), compact on bigger screens.
 const BUTTON = {
-  primary: "bg-brand text-white hover:bg-brand-dark",
-  secondary: "bg-brand-soft text-brand hover:bg-brand/15",
-  outline: "border border-field bg-white text-brand hover:bg-brand-soft",
-  danger: "border border-field bg-white text-danger hover:bg-red-50",
+  primary: "border-brand bg-brand text-brand-fg hover:opacity-90",
+  secondary: "border-transparent bg-brand-soft text-brand hover:border-brand/40",
+  outline: "border-field bg-surface text-ink hover:border-muted",
+  danger: "border-field bg-surface text-danger hover:border-danger",
 };
 
 export function buttonClass(variant: keyof typeof BUTTON = "primary", extra = "") {
-  return `inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${BUTTON[variant]} ${extra}`;
+  return `inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:min-h-10 ${BUTTON[variant]} ${extra}`;
 }
 
 export function Button({
@@ -21,7 +24,7 @@ export function Button({
 }
 
 export const inputClass =
-  "h-12 w-full rounded-xl border border-field bg-white px-3.5 text-base text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none";
+  "h-11 w-full rounded-md border border-field bg-surface px-3 text-base text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none md:text-sm";
 
 export function Field({
   label,
@@ -36,27 +39,27 @@ export function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-[15px] font-semibold">
+      <label htmlFor={htmlFor} className="text-sm font-medium">
         {label}
       </label>
       {children}
-      {hint ? <p className="text-sm text-muted">{hint}</p> : null}
+      {hint ? <p className="text-xs text-muted">{hint}</p> : null}
     </div>
   );
 }
 
 export function Card({ className = "", ...props }: ComponentProps<"div">) {
-  return <div className={`rounded-[20px] border border-line bg-white ${className}`} {...props} />;
+  return <div className={`rounded-lg border border-line bg-surface ${className}`} {...props} />;
 }
 
 export function Notice({ tone = "info", children }: { tone?: "info" | "error" | "success"; children: ReactNode }) {
   const tones = {
     info: "bg-brand-soft text-brand",
-    error: "bg-red-50 text-danger",
-    success: "bg-green-50 text-good",
+    error: "bg-danger-soft text-danger",
+    success: "bg-good-soft text-good",
   };
   return (
-    <p role={tone === "error" ? "alert" : "status"} className={`rounded-xl px-4 py-3 text-[15px] font-medium ${tones[tone]}`}>
+    <p role={tone === "error" ? "alert" : "status"} className={`rounded-md px-4 py-3 text-sm ${tones[tone]}`}>
       {children}
     </p>
   );
@@ -65,13 +68,13 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "error" | 
 export function Badge({ children, tone = "soft" }: { children: ReactNode; tone?: "soft" | "dark" | "grey" | "warn" | "good" }) {
   const tones = {
     soft: "bg-brand-soft text-brand",
-    dark: "bg-brand-dark text-white",
-    grey: "bg-slate-100 text-slate-600",
-    warn: "bg-orange-50 text-warn",
-    good: "bg-green-50 text-good",
+    dark: "bg-brand text-brand-fg",
+    grey: "bg-page text-muted ring-1 ring-line ring-inset",
+    warn: "bg-warn-soft text-warn",
+    good: "bg-good-soft text-good",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-3 py-1 text-[13px] font-bold ${tones[tone]}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${tones[tone]}`}>
       {children}
     </span>
   );
@@ -81,19 +84,35 @@ export function PageHeader({ eyebrow, title, intro, action }: { eyebrow?: string
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        {eyebrow ? <p className="text-sm font-semibold text-muted">{eyebrow}</p> : null}
-        <h1 className="text-[28px] font-extrabold leading-tight">{title}</h1>
-        {intro ? <p className="mt-1 max-w-2xl text-[15px] text-muted">{intro}</p> : null}
+        {eyebrow ? <p className="text-xs font-medium tracking-widest text-muted uppercase">{eyebrow}</p> : null}
+        <h1 className="heading">{title}</h1>
+        {intro ? <p className="mt-1 max-w-2xl text-sm text-muted">{intro}</p> : null}
       </div>
       {action}
     </div>
   );
 }
 
-export function Credits() {
+// Underlined tabs (e.g. Assigned to me · Helping on).
+export function Tabs({ label, items }: { label: string; items: { href: string; text: string; current: boolean }[] }) {
   return (
-    <p className="text-[13px] text-muted">
-      Developed by <span className="font-semibold">cmeproject</span>
-    </p>
+    <nav aria-label={label} className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line [scrollbar-width:thin]">
+      {items.map((t) => (
+        <Link
+          key={t.href}
+          href={t.href}
+          aria-current={t.current ? "page" : undefined}
+          className={`-mb-px flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm font-semibold whitespace-nowrap ${
+            t.current ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"
+          }`}
+        >
+          {t.text}
+        </Link>
+      ))}
+    </nav>
   );
+}
+
+export function Credits() {
+  return <p className="text-xs text-muted">Built by cmeproject</p>;
 }

@@ -33,11 +33,11 @@ export default async function RegistersPage() {
           <Link key={r.id} href={`/registers/${r.id}`} className="block">
             <Card className="flex h-full flex-col gap-2 p-5 hover:border-brand">
               <div className="flex items-start justify-between gap-2">
-                <h2 className="text-lg font-extrabold">{r.name}</h2>
+                <h2 className="heading-sm">{r.name}</h2>
                 <Badge tone="grey">{r.prefix}</Badge>
               </div>
-              {r.description ? <p className="text-[15px] text-muted">{r.description}</p> : null}
-              <p className="mt-auto pt-2 text-[15px] font-semibold text-brand">
+              {r.description ? <p className="text-sm text-muted">{r.description}</p> : null}
+              <p className="mt-auto pt-2 text-sm font-semibold text-brand">
                 {count(r.id)} {r.kind === "records" ? "items" : "open"}
                 {r.kind === "records" ? " · list" : r.requires_approval ? " · approval needed to close" : ""}
               </p>

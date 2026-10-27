@@ -16,7 +16,7 @@ import {
   type Priority,
   type Status,
 } from "@/lib/tasks";
-import { Card, PageHeader, buttonClass } from "@/components/ui";
+import { Card, PageHeader, Tabs, buttonClass } from "@/components/ui";
 import { refLabel } from "@/lib/registers";
 
 export const metadata: Metadata = { title: "My tasks" };
@@ -111,34 +111,26 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {counts.map((c) => (
           <Card key={c.label} className="px-5 py-4">
-            <p className={`text-[32px] font-extrabold ${c.alert && c.n > 0 ? "text-danger" : "text-brand"}`}>{c.n}</p>
-            <p className="text-[15px] font-semibold text-muted">{c.label}</p>
+            <p className={`text-[32px] font-semibold ${c.alert && c.n > 0 ? "text-danger" : "text-brand"}`}>{c.n}</p>
+            <p className="text-sm font-semibold text-muted">{c.label}</p>
           </Card>
         ))}
       </div>
 
       <Card className="overflow-hidden">
-        <nav aria-label="Task lists" className="flex gap-2 overflow-x-auto border-b border-line px-4 py-3">
-          {TABS.map((t) => {
-            const active = t.key === tab;
-            return (
-              <Link
-                key={t.key}
-                href={t.key === "assigned" ? "/" : `/?tab=${t.key}`}
-                aria-current={active ? "page" : undefined}
-                className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-[15px] font-semibold ${
-                  active ? "bg-brand font-bold text-white" : "border border-field bg-white text-ink"
-                }`}
-              >
-                {t.label}
-                {t.key !== "completed" ? ` · ${lists[t.key].length}` : ""}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="px-4 pt-2">
+          <Tabs
+            label="Task lists"
+            items={TABS.map((t) => ({
+              href: t.key === "assigned" ? "/" : `/?tab=${t.key}`,
+              text: t.key !== "completed" ? `${t.label} · ${lists[t.key].length}` : t.label,
+              current: t.key === tab,
+            }))}
+          />
+        </div>
 
         {shown.length === 0 ? (
-          <p className="p-6 text-[15px] text-muted">
+          <p className="p-6 text-sm text-muted">
             {tab === "assigned"
               ? "Nothing assigned to you right now."
               : tab === "helping"
@@ -155,15 +147,15 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                 <li key={t.id} className="border-t border-line first:border-t-0">
                   <Link href={`/tasks/${t.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 hover:bg-page">
                     <span className="min-w-56 flex-1">
-                      <span className="block text-base font-bold">{t.title}</span>
+                      <span className="block text-base font-semibold">{t.title}</span>
                       <span className="block text-sm text-muted">
                         {refLabel(t.registries?.prefix, t.ref_number)} · {t.registries?.name}
                       </span>
                     </span>
-                    <span className={`inline-flex rounded-full px-3 py-1 text-[13px] font-bold ${PRIORITY_CLASS[t.priority]}`}>
+                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${PRIORITY_CLASS[t.priority]}`}>
                       {PRIORITY_LABELS[t.priority]}
                     </span>
-                    <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-[13px] font-semibold text-brand">
+                    <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
                       {STATUS_LABELS[t.status]}
                     </span>
                     <span

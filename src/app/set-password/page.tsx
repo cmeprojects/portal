@@ -16,7 +16,7 @@ export default async function SetPasswordPage() {
 
   return (
     <AuthShell brand={brand}>
-      <h1 className="text-[22px] font-bold">Set a new password</h1>
+      <h1 className="heading">Set a new password</h1>
       <SetPasswordForm />
     </AuthShell>
   );

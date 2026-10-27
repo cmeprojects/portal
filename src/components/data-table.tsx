@@ -3,14 +3,14 @@ import Link from "next/link";
 import type { Table } from "@/lib/register-rows";
 
 export function DataTable({ table, empty }: { table: Table; empty: string }) {
-  if (table.rows.length === 0) return <p className="p-6 text-[15px] text-muted">{empty}</p>;
+  if (table.rows.length === 0) return <p className="p-6 text-sm text-muted">{empty}</p>;
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[15px]">
+      <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="text-left text-[13px] uppercase tracking-wide text-muted">
+          <tr className="text-left text-xs uppercase tracking-wide text-muted">
             {table.columns.map((c) => (
-              <th key={c.key} scope="col" className={`whitespace-nowrap px-4 py-3 font-bold ${c.wide ? "min-w-64" : ""}`}>
+              <th key={c.key} scope="col" className={`whitespace-nowrap px-4 py-3 font-semibold ${c.wide ? "min-w-64" : ""}`}>
                 {c.label}
               </th>
             ))}
@@ -25,7 +25,7 @@ export function DataTable({ table, empty }: { table: Table; empty: string }) {
                 return (
                   <td key={c.key} className={`px-4 py-3 ${c.wide ? "max-w-md" : "whitespace-nowrap"} ${tone}`}>
                     {i <= 1 ? (
-                      <Link href={row.href} className={`${i === 1 ? "font-bold text-ink" : "text-muted"} hover:text-brand`}>
+                      <Link href={row.href} className={`${i === 1 ? "font-semibold text-ink" : "text-muted"} hover:text-brand`}>
                         {cell?.text}
                       </Link>
                     ) : (

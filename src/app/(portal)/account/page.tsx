@@ -32,10 +32,10 @@ export default async function AccountPage() {
         </Card>
         <Card className="flex flex-col gap-3 p-5">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-bold">Two-factor login</h2>
+            <h2 className="heading-sm">Two-factor login</h2>
             {hasMfa && !switchedOff ? <Badge tone="good">On</Badge> : <Badge tone="grey">Off</Badge>}
           </div>
-          <p className="text-[15px] text-muted">{help}</p>
+          <p className="text-sm text-muted">{help}</p>
           {!switchedOff && !hasMfa ? (
             <Link href="/mfa" className={buttonClass("outline", "self-start")}>Set up two-factor login</Link>
           ) : null}
@@ -45,7 +45,7 @@ export default async function AccountPage() {
           {hasMfa && (!mfaRequired || switchedOff) ? <TurnOffTwoFactor factorIds={factorIds} /> : null}
         </Card>
         <Card className="p-5 lg:col-span-2">
-          <h2 className="mb-3 text-lg font-bold">Change password</h2>
+          <h2 className="mb-3 heading-sm">Change password</h2>
           <PasswordForm />
         </Card>
       </div>

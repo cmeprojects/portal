@@ -19,7 +19,7 @@ export function WelcomeForm({ name, email }: { name: string; email: string }) {
         <input id="email" value={email} readOnly className={`${inputClass} border-line bg-page text-muted`} />
       </Field>
       <PasswordFields />
-      <Button className="h-[52px] text-[17px]" disabled={pending}>
+      <Button className="min-h-12 text-base" disabled={pending}>
         {pending ? "Saving…" : "Join the portal"}
       </Button>
       <Button variant="outline" name="skip_password" value="1" className="h-12" disabled={pending}>

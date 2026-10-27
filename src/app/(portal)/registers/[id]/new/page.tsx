@@ -25,7 +25,7 @@ export default async function NewRecordPage({ params }: PageProps<"/registers/[i
 
   return (
     <>
-      <Link href={`/registers/${id}`} className="text-[15px] font-semibold text-brand">
+      <Link href={`/registers/${id}`} className="text-sm font-semibold text-brand">
         ← {registry.name}
       </Link>
       <PageHeader title={`Add to ${registry.name}`} />

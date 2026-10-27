@@ -58,11 +58,11 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
     <>
       {saved ? <Notice tone="success">Saved.</Notice> : null}
       <div className="flex flex-col gap-2">
-        <Link href={`/registers/${registry.id}`} className="text-[15px] font-semibold text-brand">
+        <Link href={`/registers/${registry.id}`} className="text-sm font-semibold text-brand">
           ← {registry.name}
         </Link>
         <p className="text-sm font-semibold text-muted">{refLabel(registry.prefix, record.ref_number)}</p>
-        <h1 className="text-[28px] font-extrabold leading-tight">{record.title}</h1>
+        <h1 className="heading">{record.title}</h1>
         {record.archived ? <span><Badge tone="grey">Archived</Badge></span> : null}
       </div>
 
@@ -74,8 +74,8 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
                 .filter((f) => f.active || details[f.key] !== undefined)
                 .map((f) => (
                   <div key={f.id}>
-                    <dt className="text-[13px] font-bold uppercase tracking-wide text-muted">{f.label}</dt>
-                    <dd className="text-[15px]">
+                    <dt className="text-xs font-medium tracking-wider text-muted uppercase">{f.label}</dt>
+                    <dd className="text-sm">
                       {formatValue(f, details[f.key], { person: (pid) => names.get(pid) ?? "", asset: (aid) => assets.find((a) => a.id === aid)?.label ?? "" }) || (
                         <span className="text-muted">Not filled in</span>
                       )}
@@ -85,8 +85,8 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
             </dl>
           </Card>
           {manages ? (
-            <details className="rounded-[20px] border border-line bg-white">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center px-5 font-bold text-brand">Edit</summary>
+            <details className="rounded-lg border border-line bg-surface">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center px-5 font-semibold text-brand">Edit</summary>
               <div className="px-5 pb-5">
                 <RecordForm
                   registry={registry}
@@ -100,7 +100,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
             </details>
           ) : null}
           <Card className="p-5">
-            <h2 className="mb-3 text-lg font-bold">Linked tasks</h2>
+            <h2 className="mb-3 heading-sm">Linked tasks</h2>
             {(linked ?? []).length ? (
               <ul className="flex flex-col divide-y divide-line">
                 {(linked ?? []).map((t) => {
@@ -118,17 +118,17 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
                 })}
               </ul>
             ) : (
-              <p className="text-[15px] text-muted">No tasks you can see link to this yet.</p>
+              <p className="text-sm text-muted">No tasks you can see link to this yet.</p>
             )}
           </Card>
         </div>
         <Card className="p-5">
-          <h2 className="mb-3 text-lg font-bold">History</h2>
+          <h2 className="mb-3 heading-sm">History</h2>
           <ol className="flex flex-col gap-3">
             {(events ?? []).map((e) => {
               const changed = (e.details as { fields?: string[] })?.fields;
               return (
-                <li key={e.id} className="text-[15px]">
+                <li key={e.id} className="text-sm">
                   <strong>{e.actor_id ? names.get(e.actor_id) ?? "Someone" : "System"}</strong>{" "}
                   {e.type === "created" ? "added it" : `changed ${changed?.join(", ") ?? "it"}`}
                   <time dateTime={e.created_at} className="block text-sm text-muted">

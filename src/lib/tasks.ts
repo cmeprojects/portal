@@ -24,10 +24,10 @@ export const STATUS_LABELS: Record<Status, string> = {
 
 // Badge colours: priority is told apart by lightness as well as hue.
 export const PRIORITY_CLASS: Record<Priority, string> = {
-  low: "bg-slate-100 text-slate-600",
+  low: "bg-page text-muted ring-1 ring-line ring-inset",
   medium: "bg-brand-soft text-brand",
-  high: "bg-orange-50 text-warn",
-  urgent: "bg-red-50 text-danger",
+  high: "bg-warn-soft text-warn",
+  urgent: "bg-danger-soft text-danger",
 };
 
 export const DONE: Status[] = ["completed", "closed"];

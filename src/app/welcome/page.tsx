@@ -28,10 +28,10 @@ export default async function WelcomePage() {
     <AuthShell brand={brand}>
       <div className="flex flex-col gap-2">
         <span className="self-start"><Badge>You&apos;re invited</Badge></span>
-        <h1 className="text-2xl font-bold leading-snug">
+        <h1 className="heading">
           {firstName ? `Hi ${firstName}, welcome` : "Welcome"} to the {brand.companyName} portal
         </h1>
-        <p className="text-[15px] text-muted">
+        <p className="text-sm text-muted">
           You&apos;ve been added as <strong className="text-ink">{ROLE_LABELS[profile.role as Role]}</strong>. Set up how
           you&apos;d like to sign in.
         </p>

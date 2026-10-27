@@ -14,7 +14,7 @@ export function ForgotPasswordForm() {
       <Field label="Email" htmlFor="email">
         <input id="email" name="email" type="email" autoComplete="email" required className={inputClass} />
       </Field>
-      <Button className="h-[52px] text-[17px]" disabled={pending}>
+      <Button className="min-h-12 text-base" disabled={pending}>
         {pending ? "Sending…" : "Email me a reset link"}
       </Button>
     </form>

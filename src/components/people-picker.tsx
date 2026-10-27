@@ -27,7 +27,7 @@ export function PeopleChecklist({
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="mb-1.5 text-[15px] font-semibold">{label}</legend>
+      <legend className="mb-1.5 text-sm font-semibold">{label}</legend>
       {people.length > 6 ? (
         <input
           type="search"
@@ -38,7 +38,7 @@ export function PeopleChecklist({
           className={inputClass}
         />
       ) : null}
-      <div className="flex max-h-64 flex-col overflow-y-auto rounded-xl border border-line">
+      <div className="flex max-h-64 flex-col overflow-y-auto rounded-md border border-line">
         {shown.length === 0 ? <p className="p-3 text-sm text-muted">No one matches.</p> : null}
         {shown.map((p) => (
           <label key={p.id} className="flex min-h-12 items-center gap-3 border-b border-line px-3 last:border-b-0">
@@ -51,7 +51,7 @@ export function PeopleChecklist({
               className="h-5 w-5 accent-[var(--brand-primary)]"
             />
             <span className="flex flex-col">
-              <span className="text-[15px] font-semibold">{p.name}</span>
+              <span className="text-sm font-semibold">{p.name}</span>
               <span className="text-sm text-muted">{p.detail}</span>
             </span>
           </label>

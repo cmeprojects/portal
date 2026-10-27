@@ -32,7 +32,7 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
 
   return (
     <>
-      <Link href={`/registers/${id}`} className="text-[15px] font-semibold text-brand">
+      <Link href={`/registers/${id}`} className="text-sm font-semibold text-brand">
         ← {registry.name}
       </Link>
       {created ? <Notice tone="success">Register created. Now add its fields and choose its managers.</Notice> : null}
@@ -40,12 +40,12 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
 
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <Card className="p-5">
-          <h2 className="mb-4 text-lg font-bold">Settings</h2>
+          <h2 className="mb-4 heading-sm">Settings</h2>
           <RegistrySettingsForm registry={registry} />
         </Card>
         <Card className="p-5">
-          <h2 className="mb-1 text-lg font-bold">Managers</h2>
-          <p className="mb-3 text-[15px] text-muted">
+          <h2 className="mb-1 heading-sm">Managers</h2>
+          <p className="mb-3 text-sm text-muted">
             Managers see every entry in this register, get emailed about new ones and can change its set-up.
           </p>
           <ManagersForm registryId={id} managerIds={(managers ?? []).map((m) => m.user_id)} candidates={candidates} />
@@ -53,19 +53,19 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
       </div>
 
       <Card className="p-5">
-        <h2 className="mb-1 text-lg font-bold">Fields</h2>
-        <p className="mb-4 text-[15px] text-muted">
+        <h2 className="mb-1 heading-sm">Fields</h2>
+        <p className="mb-4 text-sm text-muted">
           {registry.kind === "tasks"
             ? "Every task already has a title, description, priority, status, person looking after it, helpers, dates, attachments and comments. Add the extra details this register needs."
             : "Add the details you keep for each item."}
         </p>
-        {fields.length === 0 ? <p className="mb-4 text-[15px] text-muted">No extra fields yet.</p> : null}
-        <ol className="mb-5 flex flex-col divide-y divide-line rounded-2xl border border-line">
+        {fields.length === 0 ? <p className="mb-4 text-sm text-muted">No extra fields yet.</p> : null}
+        <ol className="mb-5 flex flex-col divide-y divide-line rounded-lg border border-line">
           {fields.map((f, i) => (
             <li key={f.id} className="px-4 py-3">
               <details>
                 <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className={`flex-1 font-bold ${f.active ? "" : "text-muted line-through"}`}>{f.label}</span>
+                  <span className={`flex-1 font-semibold ${f.active ? "" : "text-muted line-through"}`}>{f.label}</span>
                   <Badge tone="grey">{FIELD_TYPE_LABELS[f.type]}</Badge>
                   {f.required ? <Badge>Required</Badge> : null}
                   {!f.active ? <Badge tone="grey">Retired</Badge> : null}
@@ -100,8 +100,8 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
             </li>
           ))}
         </ol>
-        <details className="rounded-2xl border border-dashed border-field p-4">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center font-bold text-brand">+ Add a field</summary>
+        <details className="rounded-lg border border-dashed border-field p-4">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center font-semibold text-brand">+ Add a field</summary>
           <div className="pt-3">
             <AddFieldForm registryId={id} />
           </div>

@@ -49,19 +49,19 @@ export function TeamForm({
         <input id={`name-${team.id}`} name="name" defaultValue={team.name} required className={inputClass} />
       </Field>
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-[15px] font-semibold">Team leaders</legend>
+        <legend className="mb-1 text-sm font-semibold">Team leaders</legend>
         {candidates.length === 0 ? (
           <p className="text-sm text-muted">Give someone the Team leader role on the Staff &amp; roles page first.</p>
         ) : (
           candidates.map((c) => (
-            <label key={c.id} className="flex min-h-11 items-center gap-3 text-[15px]">
+            <label key={c.id} className="flex min-h-11 items-center gap-3 text-sm">
               <input type="checkbox" name="leaders" value={c.id} defaultChecked={leaderIds.includes(c.id)} className="h-5 w-5 accent-[var(--brand-primary)]" />
               {c.full_name || c.email}
             </label>
           ))
         )}
       </fieldset>
-      <label className="flex min-h-11 items-center gap-3 text-[15px]">
+      <label className="flex min-h-11 items-center gap-3 text-sm">
         <input type="checkbox" name="active" defaultChecked={team.active} className="h-5 w-5 accent-[var(--brand-primary)]" />
         Team is in use
       </label>

@@ -44,8 +44,8 @@ export default async function SystemPage() {
       ) : null}
 
       <Card className="px-5 py-2">
-        <h2 className="pt-3 text-lg font-bold">Features</h2>
-        <p className="text-[15px] text-muted">
+        <h2 className="pt-3 heading-sm">Features</h2>
+        <p className="text-sm text-muted">
           Switching a feature off hides it and blocks it in the database. Its records stay and can still be read.
         </p>
         <div className="mt-2">
@@ -60,8 +60,8 @@ export default async function SystemPage() {
         if (!rows.length) return null;
         return (
           <Card key={section.prefix} className="px-5 py-2">
-            <h2 className="pt-3 text-lg font-bold">{section.title}</h2>
-            {section.intro ? <p className="text-[15px] text-muted">{section.intro}</p> : null}
+            <h2 className="pt-3 heading-sm">{section.title}</h2>
+            {section.intro ? <p className="text-sm text-muted">{section.intro}</p> : null}
             <div className="mt-2">
               {rows.map((s) => (
                 <SettingForm key={s.key} setting={s} />

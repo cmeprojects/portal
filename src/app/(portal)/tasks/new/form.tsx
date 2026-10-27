@@ -12,12 +12,12 @@ import { createTask } from "../actions";
 export function PriorityPicker({ value = "medium" }: { value?: string }) {
   return (
     <fieldset>
-      <legend className="mb-1.5 text-[15px] font-semibold">Priority</legend>
+      <legend className="mb-1.5 text-sm font-semibold">Priority</legend>
       <div className="flex flex-wrap gap-2">
         {PRIORITIES.map((p) => (
           <label key={p} className="cursor-pointer">
             <input type="radio" name="priority" value={p} defaultChecked={p === value} className="peer sr-only" />
-            <span className="inline-flex min-h-11 items-center rounded-full border border-field bg-white px-5 text-[15px] font-semibold peer-checked:border-brand peer-checked:bg-brand peer-checked:text-white peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-brand-accent">
+            <span className="inline-flex min-h-11 items-center rounded-md border border-field bg-surface px-4 text-sm font-semibold peer-checked:border-brand peer-checked:bg-brand peer-checked:text-brand-fg peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-brand-accent">
               {PRIORITY_LABELS[p]}
             </span>
           </label>
@@ -99,8 +99,8 @@ export function NewTaskForm({
 
       {custom.length ? (
         // key resets the inputs when the register changes.
-        <fieldset key={registryId} className="flex flex-col gap-5 rounded-2xl border border-line bg-page/60 p-4 sm:p-5">
-          <legend className="px-1 text-[15px] font-bold text-brand">{registry?.name} details</legend>
+        <fieldset key={registryId} className="flex flex-col gap-5 rounded-lg border border-line bg-page/60 p-4 sm:p-5">
+          <legend className="px-1 text-sm font-semibold text-brand">{registry?.name} details</legend>
           {custom.map((f) => (
             <FieldInput key={f.id} field={f} people={personOptions} assets={assets} />
           ))}
@@ -124,7 +124,7 @@ export function NewTaskForm({
         We&apos;ll email the person looking after it and copy in the helpers. Photos and files can be added once the
         task is created.
       </p>
-      <Button className="h-[52px] self-start px-8 text-[17px]" disabled={pending}>
+      <Button className="min-h-12 self-start px-8 text-base" disabled={pending}>
         {pending ? "Creating…" : "Create task"}
       </Button>
     </form>

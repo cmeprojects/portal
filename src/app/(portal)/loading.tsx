@@ -8,10 +8,10 @@ export default function Loading() {
       <div className="h-8 w-56 animate-pulse rounded-full bg-line" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-[20px] bg-white" />
+          <div key={i} className="h-24 animate-pulse rounded-lg bg-surface" />
         ))}
       </div>
-      <div className="h-64 animate-pulse rounded-[20px] bg-white" />
+      <div className="h-64 animate-pulse rounded-lg bg-surface" />
     </div>
   );
 }

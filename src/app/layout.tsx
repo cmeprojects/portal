@@ -1,11 +1,16 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
-import { Figtree } from "next/font/google";
+import { Figtree, Jost } from "next/font/google";
 import { getBranding } from "@/lib/branding";
 import "./globals.css";
 
-const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"] });
+// Jost for headings (geometric capitals), Figtree for everything you read and type.
+const display = Jost({ variable: "--font-display", subsets: ["latin"], weight: ["300", "500", "600"] });
+const body = Figtree({ variable: "--font-body", subsets: ["latin"] });
+
+// Applies the saved Light/Dark choice before the page paints (see ThemeSwitch).
+const THEME_SCRIPT = `try{var t=localStorage.getItem("portal-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getBranding();
@@ -30,7 +35,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   } as CSSProperties;
 
   return (
-    <html lang="en-AU" className={`${figtree.variable} h-full antialiased`} style={style}>
+    <html lang="en-AU" className={`${display.variable} ${body.variable} h-full antialiased`} style={style} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );

@@ -26,8 +26,8 @@ export default async function MfaPage() {
   return (
     <AuthShell brand={brand}>
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-[22px] font-bold">Two-factor login</h1>
-        <p className="text-[15px] leading-relaxed text-muted">
+        <h1 className="heading">Two-factor login</h1>
+        <p className="text-sm leading-relaxed text-muted">
           As a <strong className="text-ink">{ROLE_LABELS[access.role]}</strong> you can see more records, so we need a
           code from your phone as well as your password.
         </p>

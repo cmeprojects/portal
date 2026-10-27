@@ -54,7 +54,7 @@ export function RecordForm({
           <div key={f.id} className={f.type === "long_text" || f.type === "multi_choice" ? "md:col-span-2" : ""}>
             <FieldInput field={f} value={record?.details[f.key]} people={people} assets={assets} />
             {f.key === "current_value" && canEstimate ? (
-              <button type="button" onClick={estimate} className="mt-2 min-h-11 text-[15px] font-semibold text-brand underline">
+              <button type="button" onClick={estimate} className="mt-2 min-h-11 text-sm font-semibold text-brand underline">
                 Estimate from purchase value and age
               </button>
             ) : null}
@@ -62,7 +62,7 @@ export function RecordForm({
         ))}
       </div>
       {record ? (
-        <label className="flex min-h-11 items-center gap-3 text-[15px]">
+        <label className="flex min-h-11 items-center gap-3 text-sm">
           <input type="checkbox" name="archived" defaultChecked={record.archived} className="h-5 w-5 accent-[var(--brand-primary)]" />
           Archived (no longer in use; kept for the record)
         </label>

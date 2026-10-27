@@ -3,7 +3,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { Button, Notice } from "@/components/ui";
+import { Button, Notice, buttonClass } from "@/components/ui";
 import { PasswordFields } from "@/components/password-fields";
 import { changePassword } from "@/app/account/actions";
 
@@ -13,7 +13,7 @@ export function SetPasswordForm() {
     return (
       <div className="flex flex-col gap-4">
         <Notice tone="success">Your new password is saved.</Notice>
-        <Link href="/" className="inline-flex min-h-12 items-center justify-center rounded-full bg-brand px-5 font-bold text-white">
+        <Link href="/" className={buttonClass("primary")}>
           Go to the portal
         </Link>
       </div>
@@ -23,7 +23,7 @@ export function SetPasswordForm() {
     <form action={action} className="flex flex-col gap-4">
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <PasswordFields label="New password" />
-      <Button className="h-[52px] text-[17px]" disabled={pending}>
+      <Button className="min-h-12 text-base" disabled={pending}>
         {pending ? "Saving…" : "Save new password"}
       </Button>
     </form>

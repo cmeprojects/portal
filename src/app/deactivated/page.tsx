@@ -11,8 +11,8 @@ export default async function DeactivatedPage() {
   const brand = await getBranding();
   return (
     <AuthShell brand={brand}>
-      <h1 className="text-[22px] font-bold">Your account is turned off</h1>
-      <p className="text-[15px] text-muted">
+      <h1 className="heading">Your account is turned off</h1>
+      <p className="text-sm text-muted">
         You can&apos;t use the portal at the moment. If you think this is a mistake, please talk to your manager or
         the office.
       </p>

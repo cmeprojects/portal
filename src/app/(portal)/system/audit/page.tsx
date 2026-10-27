@@ -65,8 +65,8 @@ export default async function AuditPage() {
           <ol>
             {(rows ?? []).map((r) => (
               <li key={r.id} className="flex flex-wrap justify-between gap-x-6 gap-y-1 border-t border-line px-5 py-3 first:border-t-0">
-                <span className="text-[15px]">
-                  <span className="font-bold">{r.actor_id ? names.get(r.actor_id) ?? "Someone" : "System"}</span>{" "}
+                <span className="text-sm">
+                  <span className="font-semibold">{r.actor_id ? names.get(r.actor_id) ?? "Someone" : "System"}</span>{" "}
                   {describe(r.action, r.details ?? {}, r.entity_id, names).replace(/^./, (c) => c.toLowerCase())}
                 </span>
                 <time dateTime={r.created_at} className="text-sm text-muted">

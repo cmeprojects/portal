@@ -74,7 +74,7 @@ export function MfaForm() {
     <form onSubmit={submit} className="flex flex-col gap-5">
       {mode.kind === "enroll" ? (
         <>
-          <ol className="flex list-decimal flex-col gap-2 pl-5 text-[15px] leading-relaxed">
+          <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm leading-relaxed">
             <li>Open an authenticator app (Google Authenticator, Microsoft Authenticator or 1Password).</li>
             <li>Scan this code, or copy the set-up key into the app.</li>
           </ol>
@@ -85,7 +85,7 @@ export function MfaForm() {
               alt="QR code for your authenticator app"
               width={160}
               height={160}
-              className="rounded-xl border border-line bg-white p-2"
+              className="rounded-md border border-line bg-surface p-2"
             />
             <Button
               type="button"
@@ -114,10 +114,10 @@ export function MfaForm() {
           required
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          className={`${inputClass} h-14 border-2 border-brand text-2xl font-bold tracking-[0.3em]`}
+          className={`${inputClass} h-14 border-2 border-brand text-2xl font-semibold tracking-[0.3em]`}
         />
       </Field>
-      <Button className="h-[52px] text-[17px]" disabled={busy}>
+      <Button className="min-h-12 text-base" disabled={busy}>
         {busy ? "Checking…" : mode.kind === "enroll" ? "Turn on and continue" : "Continue"}
       </Button>
     </form>

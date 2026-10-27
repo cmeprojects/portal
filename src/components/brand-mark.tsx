@@ -1,21 +1,17 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Branding } from "@/lib/branding";
 
-export function BrandMark({ brand, size = 40, onDark = false }: { brand: Branding; size?: number; onDark?: boolean }) {
+// The company's small logo with its name, for the sidebar.
+export function BrandMark({ brand }: { brand: Branding }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <span
-        className="flex shrink-0 items-center justify-center rounded-xl bg-white"
-        style={{ width: size, height: size }}
-      >
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-white p-1">
         {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}
-        <img src={brand.logoMarkUrl} alt="" width={size * 0.7} height={size * 0.7} />
+        <img src={brand.logoMarkUrl} alt="" className="max-h-full max-w-full object-contain" />
       </span>
-      <span className="flex flex-col leading-tight">
-        <span className={`text-base font-extrabold ${onDark ? "text-white" : "text-brand-dark"}`}>
-          {brand.companyName}
-        </span>
-        <span className={`text-[13px] ${onDark ? "text-white/75" : "text-muted"}`}>{brand.portalName}</span>
+      <span className="min-w-0 leading-tight">
+        <span className="block truncate font-display text-base font-semibold tracking-wider text-side-fg uppercase">{brand.companyName}</span>
+        <span className="block truncate font-display text-[11px] font-light tracking-[0.25em] text-side-muted uppercase">{brand.portalName}</span>
       </span>
     </div>
   );

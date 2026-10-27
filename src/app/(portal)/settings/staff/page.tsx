@@ -47,7 +47,7 @@ export default async function StaffPage() {
       />
 
       <Card className="p-5">
-        <h2 className="mb-4 text-lg font-bold">Invite someone</h2>
+        <h2 className="mb-4 heading-sm">Invite someone</h2>
         <InviteForm roles={roles} teams={teams ?? []} />
       </Card>
 
@@ -65,11 +65,11 @@ export default async function StaffPage() {
             <Card key={p.id} className="p-0">
               <details className="group">
                 <summary className="flex min-h-16 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-extrabold text-brand" aria-hidden="true">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand" aria-hidden="true">
                     {(p.full_name || p.email).split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
                   </span>
                   <span className="min-w-48 flex-1">
-                    <span className={`block font-bold ${p.active ? "" : "text-muted"}`}>
+                    <span className={`block font-semibold ${p.active ? "" : "text-muted"}`}>
                       {p.full_name || "(no name yet)"} {row.isMe ? <span className="font-normal text-muted">(you)</span> : null}
                     </span>
                     <span className="block text-sm text-muted">{p.email}</span>
@@ -84,7 +84,7 @@ export default async function StaffPage() {
                   {row.editable ? (
                     <PersonEditor person={row} roles={roles} teams={teams ?? []} canResetMfa={me.role === "system_admin"} />
                   ) : (
-                    <p className="border-t border-line pt-4 text-[15px] text-muted">
+                    <p className="border-t border-line pt-4 text-sm text-muted">
                       Only a system admin can change a {ROLE_LABELS[row.role].toLowerCase()}.
                     </p>
                   )}
@@ -96,12 +96,12 @@ export default async function StaffPage() {
       </div>
 
       <Card className="p-5">
-        <h2 className="mb-3 text-lg font-bold">What each role can do</h2>
+        <h2 className="mb-3 heading-sm">What each role can do</h2>
         <dl className="grid gap-3 md:grid-cols-2">
           {ROLES.map((r) => (
             <div key={r}>
-              <dt className="font-bold">{ROLE_LABELS[r]}</dt>
-              <dd className="text-[15px] text-muted">{ROLE_HELP[r]}</dd>
+              <dt className="font-semibold">{ROLE_LABELS[r]}</dt>
+              <dd className="text-sm text-muted">{ROLE_HELP[r]}</dd>
             </div>
           ))}
         </dl>

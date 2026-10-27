@@ -30,9 +30,9 @@ export function FieldInput({
     const chosen = Array.isArray(value) ? value.map(String) : [];
     return (
       <fieldset className="flex flex-col gap-1">
-        <legend className="mb-1 text-[15px] font-semibold">{label}</legend>
+        <legend className="mb-1 text-sm font-semibold">{label}</legend>
         {field.options.map((o) => (
-          <label key={o} className="flex min-h-11 items-center gap-3 text-[15px]">
+          <label key={o} className="flex min-h-11 items-center gap-3 text-sm">
             <input type="checkbox" name={name} value={o} defaultChecked={chosen.includes(o)} className={check} />
             {o}
           </label>
@@ -46,7 +46,7 @@ export function FieldInput({
     const v = value === true ? "yes" : value === false ? "no" : "";
     return (
       <fieldset>
-        <legend className="mb-1.5 text-[15px] font-semibold">{label}</legend>
+        <legend className="mb-1.5 text-sm font-semibold">{label}</legend>
         <div className="flex gap-2">
           {[
             ["yes", "Yes"],
@@ -54,7 +54,7 @@ export function FieldInput({
           ].map(([val, text]) => (
             <label key={val} className="cursor-pointer">
               <input type="radio" name={name} value={val} defaultChecked={v === val} required={field.required} className="peer sr-only" />
-              <span className="inline-flex min-h-11 items-center rounded-full border border-field bg-white px-5 text-[15px] font-semibold peer-checked:border-brand peer-checked:bg-brand peer-checked:text-white peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-brand-accent">
+              <span className="inline-flex min-h-11 items-center rounded-md border border-field bg-surface px-4 text-sm font-semibold peer-checked:border-brand peer-checked:bg-brand peer-checked:text-brand-fg peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-brand-accent">
                 {text}
               </span>
             </label>

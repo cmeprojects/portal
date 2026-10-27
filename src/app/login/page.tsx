@@ -32,8 +32,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <AuthShell brand={brand}>
       <div className="flex flex-col gap-1">
-        <h1 className="text-[22px] font-bold">Welcome back</h1>
-        <p className="text-[15px] text-muted">Sign in with the email you were invited with.</p>
+        <h1 className="heading">Welcome back</h1>
+        <p className="text-sm text-muted">Sign in with the email you were invited with.</p>
       </div>
       <LoginForm
         next={next}

@@ -8,7 +8,7 @@ import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
 import { parseFilter, registerTable } from "@/lib/register-rows";
-import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
+import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
 import { DataTable } from "@/components/data-table";
 
 export const metadata: Metadata = { title: "Register" };
@@ -81,21 +81,11 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
       />
 
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
-          <nav aria-label="Filter" className="flex gap-2">
-            {tabs.map((t) => (
-              <Link
-                key={t.key}
-                href={`/registers/${id}${qs(t.key)}`}
-                aria-current={filter.status === t.key ? "page" : undefined}
-                className={`inline-flex min-h-11 items-center rounded-full px-4 text-[15px] font-semibold ${
-                  filter.status === t.key ? "bg-brand text-white" : "border border-field bg-white text-ink"
-                }`}
-              >
-                {t.label}
-              </Link>
-            ))}
-          </nav>
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 pt-2 pb-3">
+          <Tabs
+            label="Filter"
+            items={tabs.map((t) => ({ href: `/registers/${id}${qs(t.key)}`, text: t.label, current: filter.status === t.key }))}
+          />
           <form className="flex min-w-60 flex-1 gap-2 sm:max-w-sm" role="search">
             {filter.status !== "open" ? <input type="hidden" name="status" value={filter.status} /> : null}
             <label htmlFor="q" className="sr-only">

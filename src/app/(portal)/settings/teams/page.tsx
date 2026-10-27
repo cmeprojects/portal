@@ -28,7 +28,7 @@ export default async function TeamsPage() {
         <NewTeamForm />
       </Card>
       {(teams ?? []).length === 0 ? (
-        <p className="text-[15px] text-muted">No teams yet.</p>
+        <p className="text-sm text-muted">No teams yet.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {(teams ?? []).map((team) => {
@@ -36,12 +36,12 @@ export default async function TeamsPage() {
             return (
               <Card key={team.id} className="flex flex-col gap-4 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-lg font-extrabold">{team.name}</h2>
+                  <h2 className="heading-sm">{team.name}</h2>
                   {team.active ? <Badge tone="good">In use</Badge> : <Badge tone="grey">Not in use</Badge>}
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold uppercase tracking-wide text-muted">Members</p>
-                  <p className="text-[15px]">
+                  <p className="text-xs font-medium tracking-wider text-muted uppercase">Members</p>
+                  <p className="text-sm">
                     {members.length ? members.map((m) => m.full_name || m.email).join(", ") : "No one yet"}
                   </p>
                 </div>

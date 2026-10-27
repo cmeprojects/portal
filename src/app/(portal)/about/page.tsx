@@ -12,10 +12,10 @@ export default async function AboutPage() {
     <>
       <PageHeader title="About" />
       <Card className="flex max-w-2xl flex-col gap-3 p-6">
-        <h2 className="text-xl font-extrabold">
+        <h2 className="text-xl font-semibold">
           {brand.companyName} {brand.portalName}
         </h2>
-        <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-[15px]">
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
           <dt className="font-semibold">Version</dt>
           <dd>{pkg.version}</dd>
           <dt className="font-semibold">Developed by</dt>

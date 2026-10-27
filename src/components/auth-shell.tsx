@@ -3,26 +3,22 @@ import type { ReactNode } from "react";
 import type { Branding } from "@/lib/branding";
 import { Credits } from "@/components/ui";
 
-// Layout for the sign-in, invite and two-factor pages: phone-first card
-// under the company's full logo.
+// Layout for the sign-in, invite and two-factor pages: the company's logo,
+// then a single panel, centred.
 export function AuthShell({ brand, children }: { brand: Branding; children: ReactNode }) {
   return (
-    <main className="flex min-h-screen flex-col items-center bg-page">
-      <div className="flex w-full flex-col items-center gap-3 rounded-b-[28px] bg-brand-dark px-6 pb-16 pt-10">
-        <div className="flex h-32 w-44 items-center justify-center rounded-[20px] bg-white p-3">
-          {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}
-          <img src={brand.logoUrl} alt={brand.companyName} className="max-h-full max-w-full object-contain" />
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-10">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-28 w-40 items-center justify-center rounded-lg bg-white p-3 ring-1 ring-line">
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}
+            <img src={brand.logoUrl} alt={brand.companyName} className="max-h-full max-w-full object-contain" />
+          </div>
+          <p className="font-display text-xs font-light tracking-[0.3em] text-muted uppercase">{brand.portalName}</p>
         </div>
-        <p className="text-[15px] font-semibold text-white/85">{brand.portalName}</p>
+        <div className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5">{children}</div>
       </div>
-      <div className="-mt-9 w-full max-w-md px-4">
-        <div className="flex flex-col gap-5 rounded-[20px] border border-line bg-white px-5 py-6 sm:px-7">
-          {children}
-        </div>
-      </div>
-      <footer className="mt-auto py-6">
-        <Credits />
-      </footer>
+      <Credits />
     </main>
   );
 }

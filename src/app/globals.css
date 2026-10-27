@@ -1,35 +1,130 @@
 /* Staff Portal · © cmeproject. All rights reserved. */
 @import "tailwindcss";
 
-/* Brand colours are set per company (System settings) on <html>. */
+/* cmeproject theme. Each company's colours (System settings → Branding) are set
+   on <html> as --brand-primary, --brand-dark and --brand-accent; everything
+   else here follows from them, in light and dark. */
 :root {
   --brand-primary: #134f8e;
   --brand-dark: #0f2f57;
   --brand-accent: #6497c8;
+
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --line: #dfe4ec;
+  --line-strong: #c3ccd9;
+  --fg: #141a24;
+  --muted: #5a6478;
+  --accent: var(--brand-primary);
+  --accent-fg: #ffffff;
+  --accent-soft: color-mix(in srgb, var(--brand-primary) 9%, var(--surface));
+  --side-bg: var(--brand-dark);
+  --side-fg: #f2f5fa;
+  --side-muted: #b3c0d3;
+  --side-hover: color-mix(in srgb, white 9%, var(--brand-dark));
+  --side-active: color-mix(in srgb, white 17%, var(--brand-dark));
+  --good: #1d6b3a;
+  --good-soft: #e3f3e9;
+  --warn: #9a4a0b;
+  --warn-soft: #fbeedd;
+  --bad: #a11b1b;
+  --bad-soft: #fbe6e4;
+}
+
+/* Dark colours: when the device is in dark mode (unless Light was chosen), or
+   when Dark was chosen. */
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1016;
+    --surface: #151b24;
+    --line: #273141;
+    --line-strong: #39465a;
+    --fg: #eef2f7;
+    --muted: #a3afc0;
+    --accent: color-mix(in srgb, var(--brand-primary) 45%, white);
+    --accent-fg: #0c1016;
+    --accent-soft: color-mix(in srgb, var(--brand-primary) 28%, var(--surface));
+    --side-bg: color-mix(in srgb, var(--brand-dark) 55%, black);
+    --side-hover: color-mix(in srgb, white 7%, var(--side-bg));
+    --side-active: color-mix(in srgb, white 14%, var(--side-bg));
+    --good: #5cc98f;
+    --good-soft: #143326;
+    --warn: #e5a457;
+    --warn-soft: #3a2b12;
+    --bad: #f0796f;
+    --bad-soft: #3d1c1a;
+    color-scheme: dark;
+  }
+}
+@media screen {
+  :root[data-theme="dark"] {
+    --bg: #0c1016;
+    --surface: #151b24;
+    --line: #273141;
+    --line-strong: #39465a;
+    --fg: #eef2f7;
+    --muted: #a3afc0;
+    --accent: color-mix(in srgb, var(--brand-primary) 45%, white);
+    --accent-fg: #0c1016;
+    --accent-soft: color-mix(in srgb, var(--brand-primary) 28%, var(--surface));
+    --side-bg: color-mix(in srgb, var(--brand-dark) 55%, black);
+    --side-hover: color-mix(in srgb, white 7%, var(--side-bg));
+    --side-active: color-mix(in srgb, white 14%, var(--side-bg));
+    --good: #5cc98f;
+    --good-soft: #143326;
+    --warn: #e5a457;
+    --warn-soft: #3a2b12;
+    --bad: #f0796f;
+    --bad-soft: #3d1c1a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 @theme inline {
-  --color-brand: var(--brand-primary);
-  --color-brand-dark: var(--brand-dark);
+  --color-page: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-field: var(--line-strong);
+  --color-ink: var(--fg);
+  --color-muted: var(--muted);
+  --color-brand: var(--accent);
+  --color-brand-fg: var(--accent-fg);
+  --color-brand-dark: var(--side-bg);
   --color-brand-accent: var(--brand-accent);
-  --color-brand-soft: color-mix(in srgb, var(--brand-primary) 9%, white);
-  --color-page: #f6f8fb;
-  --color-line: #e3e8f0;
-  --color-field: #c9d3e1;
-  --color-ink: #1b2333;
-  --color-muted: #5a6478;
-  --color-danger: #a11b1b;
-  --color-warn: #9a3b0b;
-  --color-good: #1d6b3a;
-  --font-sans: var(--font-figtree), system-ui, sans-serif;
+  --color-brand-soft: var(--accent-soft);
+  --color-side-fg: var(--side-fg);
+  --color-side-muted: var(--side-muted);
+  --color-side-hover: var(--side-hover);
+  --color-side-active: var(--side-active);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--bad);
+  --color-danger-soft: var(--bad-soft);
+  --font-sans: var(--font-body), system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-body), system-ui, sans-serif;
 }
 
 body {
-  background: var(--color-page);
-  color: var(--color-ink);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+@layer components {
+  /* Page and section headings: geometric capitals, spaced out. */
+  .heading {
+    @apply font-display text-2xl font-semibold tracking-wide uppercase text-balance;
+  }
+  .heading-sm {
+    @apply font-display text-base font-semibold tracking-wider uppercase;
+  }
 }
 
 :focus-visible {
-  outline: 3px solid var(--brand-accent);
+  outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }

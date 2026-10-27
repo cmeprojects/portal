@@ -17,7 +17,7 @@ function Result({ state }: { state: FormState }) {
 
 function Toggle({ name, label, defaultChecked }: { name: string; label: string; defaultChecked: boolean }) {
   return (
-    <label className="flex min-h-11 items-center gap-3 text-[15px]">
+    <label className="flex min-h-11 items-center gap-3 text-sm">
       <input type="checkbox" name={name} defaultChecked={defaultChecked} className={check} />
       {label}
     </label>
@@ -37,16 +37,16 @@ export function CreateRegistryForm() {
         <input id="description" name="description" className={inputClass} />
       </Field>
       <fieldset>
-        <legend className="mb-2 text-[15px] font-semibold">What kind of register?</legend>
+        <legend className="mb-2 text-sm font-semibold">What kind of register?</legend>
         <div className="grid gap-3 md:grid-cols-2">
           {[
             ["tasks", "Tasks", "Things that need doing, with someone looking after each one, a status and due dates."],
             ["records", "A list of things", "Like an asset register: items with details, but no one assigned and no workflow."],
           ].map(([value, title, help]) => (
-            <label key={value} className={`flex cursor-pointer gap-3 rounded-2xl border p-4 ${kind === value ? "border-brand bg-brand-soft" : "border-line"}`}>
+            <label key={value} className={`flex cursor-pointer gap-3 rounded-lg border p-4 ${kind === value ? "border-brand bg-brand-soft" : "border-line"}`}>
               <input type="radio" name="kind" value={value} checked={kind === value} onChange={() => setKind(value)} className={`${check} mt-0.5`} />
               <span>
-                <span className="block font-bold">{title}</span>
+                <span className="block font-semibold">{title}</span>
                 <span className="block text-sm text-muted">{help}</span>
               </span>
             </label>
@@ -95,7 +95,7 @@ export function RegistrySettingsForm({ registry }: { registry: Registry }) {
         )}
       </div>
       {tasks ? (
-        <div className="flex flex-col gap-1 rounded-2xl border border-line p-4">
+        <div className="flex flex-col gap-1 rounded-lg border border-line p-4">
           <Toggle name="requires_approval" label="Manager approval needed to close tasks" defaultChecked={registry.requires_approval} />
           <Toggle name="show_due_date" label="Ask for a due date" defaultChecked={registry.show_due_date} />
           <Toggle name="show_review_date" label="Show a review date" defaultChecked={registry.show_review_date} />
@@ -147,7 +147,7 @@ export function ManagersForm({
         <p className="text-sm text-muted">Give someone the Manager role on the Staff &amp; roles page first.</p>
       ) : (
         candidates.map((c) => (
-          <label key={c.id} className="flex min-h-11 items-center gap-3 text-[15px]">
+          <label key={c.id} className="flex min-h-11 items-center gap-3 text-sm">
             <input type="checkbox" name="managers" value={c.id} defaultChecked={managerIds.includes(c.id)} className={check} />
             {c.label}
           </label>

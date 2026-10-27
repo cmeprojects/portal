@@ -47,7 +47,7 @@ type TaskRow = {
 };
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <dt className="text-[13px] font-bold uppercase tracking-wide text-muted">{children}</dt>;
+  return <dt className="text-xs font-medium tracking-wider text-muted uppercase">{children}</dt>;
 }
 
 export default async function TaskPage({ params, searchParams }: PageProps<"/tasks/[id]">) {
@@ -135,11 +135,11 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     <>
       {created ? <Notice tone="success">Task created. We&apos;ve emailed the people involved.</Notice> : null}
       <div className="flex flex-col gap-2">
-        <Link href={`/registers/${registry.id}`} className="text-[15px] font-semibold text-brand">
+        <Link href={`/registers/${registry.id}`} className="text-sm font-semibold text-brand">
           ← {registry.name}
         </Link>
         {parent ? (
-          <p className="text-[15px]">
+          <p className="text-sm">
             Follow-up action for{" "}
             <Link href={`/tasks/${parent.id}`} className="font-semibold text-brand">
               {refLabel(registry.prefix, parent.ref_number)} · {parent.title}
@@ -147,13 +147,13 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           </p>
         ) : null}
         <p className="text-sm font-semibold text-muted">{ref}</p>
-        <h1 className="text-[28px] font-extrabold leading-tight">{task.title}</h1>
+        <h1 className="heading">{task.title}</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Badge>{STATUS_LABELS[task.status]}</Badge>
-          <span className={`inline-flex rounded-full px-3 py-1 text-[13px] font-bold ${PRIORITY_CLASS[task.priority]}`}>
+          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${PRIORITY_CLASS[task.priority]}`}>
             {PRIORITY_LABELS[task.priority]} priority
           </span>
-          <span className={`text-[15px] font-semibold ${due === "overdue" ? "text-danger" : due === "today" ? "text-warn" : "text-muted"}`}>
+          <span className={`text-sm font-semibold ${due === "overdue" ? "text-danger" : due === "today" ? "text-warn" : "text-muted"}`}>
             {formatDue(task.due_date, today, task.status)}
           </span>
         </div>
@@ -162,26 +162,26 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_340px]">
         <div className="flex min-w-0 flex-col gap-4">
           <Card className="p-5">
-            <h2 className="mb-2 text-lg font-bold">{registry.description_label}</h2>
-            <p className="whitespace-pre-line text-[15px] leading-relaxed">
+            <h2 className="mb-2 heading-sm">{registry.description_label}</h2>
+            <p className="whitespace-pre-line text-sm leading-relaxed">
               {task.description || <span className="text-muted">Nothing written yet.</span>}
             </p>
           </Card>
 
           {!isAction && (shownFields.length || registry.show_outcome) ? (
             <Card className="p-5">
-              <h2 className="mb-3 text-lg font-bold">{registry.name} details</h2>
+              <h2 className="mb-3 heading-sm">{registry.name} details</h2>
               <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                 {shownFields.map((f) => (
                   <div key={f.id} className={f.type === "long_text" ? "sm:col-span-2" : ""}>
                     <Label>{f.label}</Label>
-                    <dd className="whitespace-pre-line text-[15px]">{display(f) || <span className="text-muted">Not filled in</span>}</dd>
+                    <dd className="whitespace-pre-line text-sm">{display(f) || <span className="text-muted">Not filled in</span>}</dd>
                   </div>
                 ))}
                 {registry.show_outcome ? (
                   <div className="sm:col-span-2">
                     <Label>{registry.outcome_label}</Label>
-                    <dd className="whitespace-pre-line text-[15px]">{task.outcome || <span className="text-muted">Not filled in yet</span>}</dd>
+                    <dd className="whitespace-pre-line text-sm">{task.outcome || <span className="text-muted">Not filled in yet</span>}</dd>
                   </div>
                 ) : null}
               </dl>
@@ -189,8 +189,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           ) : null}
 
           {canEdit && open ? (
-            <details className="rounded-[20px] border border-line bg-white">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center px-5 font-bold text-brand">Edit details</summary>
+            <details className="rounded-lg border border-line bg-surface">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center px-5 font-semibold text-brand">Edit details</summary>
               <div className="px-5 pb-5">
                 <EditDetailsForm
                   task={{ ...task, isAction }}
@@ -206,11 +206,11 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           {!isAction ? (
             <Card className="flex flex-col gap-4 p-5">
               <div>
-                <h2 className="text-lg font-bold">Follow-up actions</h2>
-                <p className="text-[15px] text-muted">Smaller jobs that need doing for this task, each with its own person and due date.</p>
+                <h2 className="heading-sm">Follow-up actions</h2>
+                <p className="text-sm text-muted">Smaller jobs that need doing for this task, each with its own person and due date.</p>
               </div>
               {(actions ?? []).length ? (
-                <ul className="flex flex-col divide-y divide-line rounded-xl border border-line">
+                <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
                   {(actions ?? []).map((a) => (
                     <li key={a.id}>
                       <Link href={`/tasks/${a.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-page">
@@ -228,7 +228,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
                   ))}
                 </ul>
               ) : (
-                <p className="text-[15px] text-muted">No actions yet.</p>
+                <p className="text-sm text-muted">No actions yet.</p>
               )}
               {canEdit && open ? (
                 <details>
@@ -242,13 +242,13 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           ) : null}
 
           <Card className="p-5">
-            <h2 className="mb-3 text-lg font-bold">Activity</h2>
+            <h2 className="mb-3 heading-sm">Activity</h2>
             <ol className="flex flex-col gap-4">
               {(events ?? []).map((e) => (
                 <li key={e.id} className="flex gap-3">
                   <span aria-hidden="true" className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand" />
                   <div>
-                    <p className="text-[15px]">
+                    <p className="text-sm">
                       <strong>{nameOf(e.actor_id)}</strong> {describe(e)}
                     </p>
                     <time dateTime={e.created_at} className="text-sm text-muted">
@@ -263,8 +263,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
         </div>
 
         <Card className="flex flex-col gap-4 p-5">
-          <h2 className="text-lg font-bold">Details</h2>
-          <dl className="flex flex-col gap-3 text-[15px]">
+          <h2 className="heading-sm">Details</h2>
+          <dl className="flex flex-col gap-3 text-sm">
             <div>
               <Label>Looked after by</Label>
               <dd className="font-semibold">{nameOf(task.assigned_to)}</dd>

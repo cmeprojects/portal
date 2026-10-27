@@ -65,7 +65,7 @@ export function LoginForm({
         </Field>
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between">
-            <label htmlFor="password" className="text-[15px] font-semibold">
+            <label htmlFor="password" className="text-sm font-semibold">
               Password
             </label>
             <Link href="/forgot-password" className="text-sm font-semibold text-brand">
@@ -74,7 +74,7 @@ export function LoginForm({
           </div>
           <input id="password" name="password" type="password" autoComplete="current-password" className={inputClass} />
         </div>
-        <Button className="h-[52px] text-[17px]" disabled={pwPending}>
+        <Button className="min-h-12 text-base" disabled={pwPending}>
           {pwPending ? "Signing in…" : "Sign in"}
         </Button>
       </form>
