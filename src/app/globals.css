@@ -23,6 +23,7 @@
   --side-muted: #b3c0d3;
   --side-hover: color-mix(in srgb, white 9%, var(--brand-dark));
   --side-active: color-mix(in srgb, white 17%, var(--brand-dark));
+  --side-edge: transparent;
   --good: #1d6b3a;
   --good-soft: #e3f3e9;
   --warn: #9a4a0b;
@@ -35,7 +36,7 @@
    when Dark was chosen. */
 @media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0c1016;
+    --bg: #0a0c10;
     --surface: #151b24;
     --line: #273141;
     --line-strong: #39465a;
@@ -44,9 +45,11 @@
     --accent: color-mix(in srgb, var(--brand-primary) 45%, white);
     --accent-fg: #0c1016;
     --accent-soft: color-mix(in srgb, var(--brand-primary) 28%, var(--surface));
-    --side-bg: color-mix(in srgb, var(--brand-dark) 55%, black);
-    --side-hover: color-mix(in srgb, white 7%, var(--side-bg));
-    --side-active: color-mix(in srgb, white 14%, var(--side-bg));
+    /* The sidebar keeps the company's own navy so it stands apart from the dark page. */
+    --side-bg: var(--brand-dark);
+    --side-edge: color-mix(in srgb, var(--brand-accent) 35%, transparent);
+    --side-hover: color-mix(in srgb, white 9%, var(--side-bg));
+    --side-active: color-mix(in srgb, white 18%, var(--side-bg));
     --good: #5cc98f;
     --good-soft: #143326;
     --warn: #e5a457;
@@ -58,7 +61,7 @@
 }
 @media screen {
   :root[data-theme="dark"] {
-    --bg: #0c1016;
+    --bg: #0a0c10;
     --surface: #151b24;
     --line: #273141;
     --line-strong: #39465a;
@@ -67,9 +70,11 @@
     --accent: color-mix(in srgb, var(--brand-primary) 45%, white);
     --accent-fg: #0c1016;
     --accent-soft: color-mix(in srgb, var(--brand-primary) 28%, var(--surface));
-    --side-bg: color-mix(in srgb, var(--brand-dark) 55%, black);
-    --side-hover: color-mix(in srgb, white 7%, var(--side-bg));
-    --side-active: color-mix(in srgb, white 14%, var(--side-bg));
+    /* The sidebar keeps the company's own navy so it stands apart from the dark page. */
+    --side-bg: var(--brand-dark);
+    --side-edge: color-mix(in srgb, var(--brand-accent) 35%, transparent);
+    --side-hover: color-mix(in srgb, white 9%, var(--side-bg));
+    --side-active: color-mix(in srgb, white 18%, var(--side-bg));
     --good: #5cc98f;
     --good-soft: #143326;
     --warn: #e5a457;
@@ -99,6 +104,7 @@
   --color-side-muted: var(--side-muted);
   --color-side-hover: var(--side-hover);
   --color-side-active: var(--side-active);
+  --color-side-edge: var(--side-edge);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
   --color-warn: var(--warn);
