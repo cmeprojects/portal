@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { getBranding } from "@/lib/branding";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
-import { BrandMark } from "@/components/brand-mark";
 import { AuthShell } from "@/components/auth-shell";
 import { LoginForm } from "./login-form";
 
@@ -31,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const errorKey = typeof params.error === "string" ? params.error : "";
 
   return (
-    <AuthShell brand={brand} hero={<BrandMark brand={brand} size={56} onDark />}>
+    <AuthShell brand={brand}>
       <div className="flex flex-col gap-1">
         <h1 className="text-[22px] font-bold">Welcome back</h1>
         <p className="text-[15px] text-muted">Sign in with the email you were invited with.</p>

@@ -15,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     authors: [{ name: "cmeproject" }],
     generator: "cmeproject",
     robots: { index: false, follow: false },
+    icons: { icon: brand.logoMarkUrl, apple: brand.logoMarkUrl },
   };
 }
 

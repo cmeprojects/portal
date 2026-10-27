@@ -9,7 +9,7 @@ export function BrandMark({ brand, size = 40, onDark = false }: { brand: Brandin
         style={{ width: size, height: size }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}
-        <img src={brand.logoUrl} alt="" width={size * 0.7} height={size * 0.7} />
+        <img src={brand.logoMarkUrl} alt="" width={size * 0.7} height={size * 0.7} />
       </span>
       <span className="flex flex-col leading-tight">
         <span className={`text-base font-extrabold ${onDark ? "text-white" : "text-brand-dark"}`}>

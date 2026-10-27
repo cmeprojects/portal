@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBranding } from "@/lib/branding";
 import { AuthShell } from "@/components/auth-shell";
-import { BrandMark } from "@/components/brand-mark";
 import { SetPasswordForm } from "./form";
 
 export const metadata: Metadata = { title: "Set a new password" };
@@ -16,7 +15,7 @@ export default async function SetPasswordPage() {
   const brand = await getBranding();
 
   return (
-    <AuthShell brand={brand} hero={<BrandMark brand={brand} size={56} onDark />}>
+    <AuthShell brand={brand}>
       <h1 className="text-[22px] font-bold">Set a new password</h1>
       <SetPasswordForm />
     </AuthShell>

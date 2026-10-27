@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getBranding } from "@/lib/branding";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { AuthShell } from "@/components/auth-shell";
-import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui";
 import { signOut } from "@/app/login/actions";
 import { MfaForm } from "./mfa-form";
@@ -25,7 +24,7 @@ export default async function MfaPage() {
   if (claims.claims.aal === "aal2") redirect("/");
 
   return (
-    <AuthShell brand={brand} hero={<BrandMark brand={brand} size={56} onDark />}>
+    <AuthShell brand={brand}>
       <div className="flex flex-col gap-1.5">
         <h1 className="text-[22px] font-bold">Two-factor login</h1>
         <p className="text-[15px] leading-relaxed text-muted">

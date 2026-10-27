@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getBranding } from "@/lib/branding";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { AuthShell } from "@/components/auth-shell";
-import { BrandMark } from "@/components/brand-mark";
 import { Badge } from "@/components/ui";
 import { WelcomeForm } from "./welcome-form";
 
@@ -26,7 +25,7 @@ export default async function WelcomePage() {
   const firstName = profile.full_name.split(" ")[0];
 
   return (
-    <AuthShell brand={brand} hero={<BrandMark brand={brand} size={56} onDark />}>
+    <AuthShell brand={brand}>
       <div className="flex flex-col gap-2">
         <span className="self-start"><Badge>You&apos;re invited</Badge></span>
         <h1 className="text-2xl font-bold leading-snug">

@@ -9,8 +9,8 @@ update public.organisation set name = 'Engaged Care Pty Ltd';
 
 update public.app_settings set value = '"Engaged Care"' where key = 'brand.company_name';
 update public.app_settings set value = '"Staff Portal"' where key = 'brand.portal_name';
--- Swap in the real logo by saving it as public/logo.png and changing this.
-update public.app_settings set value = '"/logo.svg"'    where key = 'brand.logo_url';
+update public.app_settings set value = '"/companies/engaged-care/logo.png"'      where key = 'brand.logo_url';
+update public.app_settings set value = '"/companies/engaged-care/logo-mark.png"' where key = 'brand.logo_mark_url';
 update public.app_settings set value = '"#134F8E"'      where key = 'brand.color_primary';
 update public.app_settings set value = '"#0F2F57"'      where key = 'brand.color_dark';
 update public.app_settings set value = '"#6497C8"'      where key = 'brand.color_accent';

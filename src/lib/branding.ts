@@ -7,6 +7,7 @@ export type Branding = {
   companyName: string;
   portalName: string;
   logoUrl: string;
+  logoMarkUrl: string;
   colorPrimary: string;
   colorDark: string;
   colorAccent: string;
@@ -16,6 +17,7 @@ const DEFAULTS: Branding = {
   companyName: "Staff Portal",
   portalName: "Staff Portal",
   logoUrl: "/logo.svg",
+  logoMarkUrl: "/logo.svg",
   colorPrimary: "#134F8E",
   colorDark: "#0F2F57",
   colorAccent: "#6497C8",
@@ -25,6 +27,7 @@ const KEYS: Record<string, keyof Branding> = {
   "brand.company_name": "companyName",
   "brand.portal_name": "portalName",
   "brand.logo_url": "logoUrl",
+  "brand.logo_mark_url": "logoMarkUrl",
   "brand.color_primary": "colorPrimary",
   "brand.color_dark": "colorDark",
   "brand.color_accent": "colorAccent",
