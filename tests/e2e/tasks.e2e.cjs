@@ -119,11 +119,19 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
 
   // Who can see it.
   const lead = await signIn(browser, "lead@example.com");
-  await lead.goto(`${BASE}/?tab=helping`);
+  await lead.goto(`${BASE}/my-tasks?tab=helping`);
   await lead.waitForSelector("text=Check first aid kit expiry dates");
   step("helper sees it under Helping on");
 
   const boss = await signIn(browser, "boss@example.com");
+  await boss.waitForSelector("h1:has-text('Dashboard')");
+  await boss.waitForSelector("#all a:has-text('Check first aid kit expiry dates')");
+  await boss.selectOption("#d-person", { label: "Kim Worker" });
+  await boss.click("button:has-text('Show')");
+  await boss.waitForURL(/person=/);
+  await boss.waitForSelector("#all a:has-text('Check first aid kit expiry dates')");
+  await boss.screenshot({ path: `${OUT}/m2-06-dashboard.png`, fullPage: true });
+  step("manager lands on the dashboard and sees all ongoing tasks in their register, filtered by person");
   await boss.goto(taskUrl);
   await boss.waitForSelector("h1:has-text('Check first aid kit expiry dates')");
   step("registry manager can open the task");
