@@ -35,20 +35,18 @@ export const getSession = cache(async (): Promise<Session | null> => {
   const userId = claims?.claims?.sub;
   if (!userId) return null;
 
-  const { data: access } = await supabase.rpc("my_access").maybeSingle<Access>();
-  if (!access) redirect("/deactivated");
-  if (!access.active) redirect("/deactivated");
-  if (access.mfa_required && !access.mfa_ok) redirect("/mfa");
-
-  const [{ data: profile }, { data: features }] = await Promise.all([
+  // Asked together so a page waits for one round trip, not three.
+  const [{ data: access }, { data: profile }, { data: features }] = await Promise.all([
+    supabase.rpc("my_access").maybeSingle<Access>(),
     supabase
       .from("profiles")
       .select("id, email, full_name, role, team_id, active")
       .eq("id", userId)
-      .single<Profile>(),
+      .maybeSingle<Profile>(),
     supabase.from("features").select("key, enabled"),
   ]);
-  if (!profile) redirect("/deactivated");
+  if (!access || !access.active || !profile) redirect("/deactivated");
+  if (access.mfa_required && !access.mfa_ok) redirect("/mfa");
 
   return {
     profile,
