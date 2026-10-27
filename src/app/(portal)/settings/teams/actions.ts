@@ -3,14 +3,14 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireRole, STAFF_ADMINS } from "@/lib/session";
+import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { friendlyError } from "@/lib/db-error";
 import { text, type FormState } from "@/lib/form";
 
 const PAGE = "/settings/teams";
 
 export async function createTeam(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(STAFF_ADMINS);
+  await requireRole(PEOPLE_MANAGERS);
   const name = text(form, "name");
   if (!name) return { error: "Give the team a name." };
   const supabase = await createClient();
@@ -21,7 +21,7 @@ export async function createTeam(_: FormState, form: FormData): Promise<FormStat
 }
 
 export async function saveTeam(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(STAFF_ADMINS);
+  await requireRole(PEOPLE_MANAGERS);
   const id = text(form, "id");
   const name = text(form, "name");
   const active = form.get("active") === "on";

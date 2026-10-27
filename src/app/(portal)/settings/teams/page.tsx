@@ -1,6 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import { requireRole, STAFF_ADMINS } from "@/lib/session";
+import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { NewTeamForm, TeamForm } from "./forms";
@@ -8,7 +8,7 @@ import { NewTeamForm, TeamForm } from "./forms";
 export const metadata: Metadata = { title: "Teams" };
 
 export default async function TeamsPage() {
-  await requireRole(STAFF_ADMINS);
+  await requireRole(PEOPLE_MANAGERS);
   const supabase = await createClient();
   const [{ data: teams }, { data: leaders }, { data: people }] = await Promise.all([
     supabase.from("teams").select("id, name, active").order("active", { ascending: false }).order("name"),

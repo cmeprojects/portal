@@ -23,9 +23,9 @@ export function navFor(role: Role, features: Record<string, boolean>): NavGroup[
     ],
   });
 
-  if (staffAdmin) {
+  const people = role === "manager" || staffAdmin;
+  if (people) {
     groups.push({
-      heading: "Settings",
       items: [
         { href: "/settings/staff", label: "Staff & roles" },
         { href: "/settings/teams", label: "Teams" },
@@ -35,7 +35,6 @@ export function navFor(role: Role, features: Record<string, boolean>): NavGroup[
 
   if (role === "system_admin") {
     groups.push({
-      heading: "System",
       items: [
         { href: "/system", label: "System settings" },
         { href: "/system/audit", label: "Change log" },
@@ -44,7 +43,12 @@ export function navFor(role: Role, features: Record<string, boolean>): NavGroup[
   }
 
   // Last, with no heading.
-  groups.push({ items: [{ href: "/account", label: "My account" }] });
+  groups.push({
+    items: [
+      { href: "/account", label: "My account" },
+      { href: "/about", label: "About" },
+    ],
+  });
 
   return groups;
 }

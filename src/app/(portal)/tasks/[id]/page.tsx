@@ -114,7 +114,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   const open = task.status !== "closed" && features.tasks !== false;
   const isAction = Boolean(task.parent_task_id);
   const ref = refLabel(registry.prefix, task.ref_number);
-  const activePeople = people.filter((p) => p.active).map((p) => ({ id: p.id, label: p.name }));
+  // System admins look after the portal, so they're never given tasks.
+  const activePeople = people.filter((p) => p.active && p.role !== "system_admin").map((p) => ({ id: p.id, label: p.name }));
   const helperChoices = activePeople.filter((p) => p.id !== task.assigned_to && !helperIds.includes(p.id));
   const shownFields = fields.filter((f) => f.active || task.details[f.key] !== undefined);
   const display = (f: (typeof fields)[number]) =>

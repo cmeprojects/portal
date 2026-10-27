@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireRole, STAFF_ADMINS } from "@/lib/session";
+import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { env } from "@/lib/env";
 import { assignableRoles, isRole } from "@/lib/roles";
 import { friendlyError } from "@/lib/db-error";
@@ -14,7 +14,7 @@ const PAGE = "/settings/staff";
 const BAN_FOREVER = "876000h";
 
 export async function invitePerson(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(STAFF_ADMINS);
+  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
   const fullName = text(form, "full_name");
   const email = text(form, "email").toLowerCase();
   const role = text(form, "role");
@@ -55,7 +55,7 @@ export async function invitePerson(_: FormState, form: FormData): Promise<FormSt
 }
 
 export async function updatePerson(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(STAFF_ADMINS);
+  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
   const id = text(form, "id");
   const role = text(form, "role");
   const teamId = text(form, "team_id") || null;
@@ -71,7 +71,7 @@ export async function updatePerson(_: FormState, form: FormData): Promise<FormSt
 }
 
 export async function setActive(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(STAFF_ADMINS);
+  await requireRole(PEOPLE_MANAGERS);
   const id = text(form, "id");
   const active = text(form, "active") === "true";
 
@@ -87,7 +87,7 @@ export async function setActive(_: FormState, form: FormData): Promise<FormState
 }
 
 export async function resendInvite(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(STAFF_ADMINS);
+  await requireRole(PEOPLE_MANAGERS);
   const id = text(form, "id");
   const supabase = await createClient();
   const { data: person } = await supabase.from("profiles").select("email, full_name").eq("id", id).single();

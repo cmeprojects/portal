@@ -69,3 +69,5 @@ export async function requireRole(roles: Role[]): Promise<Session> {
 }
 
 export const STAFF_ADMINS: Role[] = ["staff_admin", "system_admin"];
+// Who can use Staff & roles and Teams.
+export const PEOPLE_MANAGERS: Role[] = ["manager", "staff_admin", "system_admin"];

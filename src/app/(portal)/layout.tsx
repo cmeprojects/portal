@@ -1,5 +1,4 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
@@ -30,9 +29,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         <button className="min-h-9 text-xs text-side-muted underline hover:text-side-fg">Sign out</button>
       </form>
       <ThemeSwitch />
-      <p className="text-[11px] text-side-muted">
-        <Link href="/about" className="underline hover:text-side-fg">About</Link> · Built by cmeproject
-      </p>
+      <p className="text-[11px] text-side-muted">Built by cmeproject</p>
     </div>
   );
 

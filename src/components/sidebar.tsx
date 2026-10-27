@@ -54,7 +54,7 @@ export function Sidebar({
         <div id="main-menu" className={`${open ? "flex" : "hidden"} flex-1 flex-col gap-4 md:flex`}>
           <nav aria-label="Main" className="flex flex-col gap-0.5">
             {groups.map((group, i) => (
-              <div key={group.heading ?? i} className="flex flex-col gap-0.5">
+              <div key={group.heading ?? i} className={`flex flex-col gap-0.5 ${i > 0 && !group.heading ? "mt-2 border-t border-side-active pt-2" : ""}`}>
                 {group.heading ? (
                   <p className="px-3 pt-4 pb-1 text-[11px] font-medium tracking-[0.2em] text-side-muted uppercase">{group.heading}</p>
                 ) : null}

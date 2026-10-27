@@ -1,6 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import { requireRole, STAFF_ADMINS } from "@/lib/session";
+import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assignableRoles, ROLE_HELP, ROLE_LABELS, ROLES, type Role } from "@/lib/roles";
@@ -28,7 +28,7 @@ async function joinedIds(): Promise<Set<string> | null> {
 }
 
 export default async function StaffPage() {
-  const { profile: me } = await requireRole(STAFF_ADMINS);
+  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
   const supabase = await createClient();
   const [{ data: people }, { data: teams }, joined] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, role, team_id, active, deactivated_at").order("active", { ascending: false }).order("full_name"),
@@ -41,7 +41,6 @@ export default async function StaffPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Settings"
         title="Staff & roles"
         intro="Invite people with any email address (no Microsoft account needed). Deactivating someone stops them signing in straight away; their tasks and history stay."
       />
@@ -85,7 +84,11 @@ export default async function StaffPage() {
                     <PersonEditor person={row} roles={roles} teams={teams ?? []} canResetMfa={me.role === "system_admin"} />
                   ) : (
                     <p className="border-t border-line pt-4 text-sm text-muted">
-                      Only a system admin can change a {ROLE_LABELS[row.role].toLowerCase()}.
+                      {row.isMe
+                        ? "You can't change your own role. Ask someone above you."
+                        : row.role === "system_admin" || row.role === "staff_admin"
+                          ? `Only a system admin can change a ${ROLE_LABELS[row.role].toLowerCase()}.`
+                          : `Ask a staff admin to change a ${ROLE_LABELS[row.role].toLowerCase()}.`}
                     </p>
                   )}
                 </div>

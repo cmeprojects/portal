@@ -21,17 +21,24 @@ export const ROLE_LABELS: Record<Role, string> = {
 export const ROLE_HELP: Record<Role, string> = {
   support_worker: "Sees only tasks they're assigned to, helping on or created.",
   team_leader: "Also sees the tasks of the support workers in their team.",
-  manager: "Sees every task in the registries they manage. Approvals and reports.",
-  staff_admin: "Invites people, sets roles and manages teams and registries.",
-  system_admin: "Everything, plus System settings.",
+  manager: "Sees every task in the registries they manage. Approvals and reports. Invites support workers and team leaders.",
+  staff_admin: "Invites people (up to manager), sets roles and manages teams and registries. Can't create admins.",
+  system_admin: "Everything, plus System settings. The only role that can create staff admins and system admins. Never given tasks.",
 };
 
-// Roles a staff admin may give out. Only a system admin can create staff
-// admins or system admins (the database enforces this too).
+// Roles someone may give out: managers up to team leader, staff admins up to
+// manager, and only a system admin creates staff admins or system admins
+// (the database enforces this too).
 export function assignableRoles(myRole: Role): Role[] {
-  return myRole === "system_admin"
-    ? [...ROLES]
-    : ["support_worker", "team_leader", "manager"];
+  if (myRole === "system_admin") return [...ROLES];
+  if (myRole === "staff_admin") return ["support_worker", "team_leader", "manager"];
+  if (myRole === "manager") return ["support_worker", "team_leader"];
+  return [];
+}
+
+// System admins look after the portal itself, so they're never given tasks.
+export function canTakeTasks(role: Role): boolean {
+  return role !== "system_admin";
 }
 
 export function isRole(value: unknown): value is Role {

@@ -45,7 +45,8 @@ export function NewTaskForm({
   initialRegistryId?: string;
 }) {
   const [state, action, pending] = useActionState(createTask, null);
-  const [assignee, setAssignee] = useState(meId);
+  // System admins can't take tasks, so they start with the first person in the list.
+  const [assignee, setAssignee] = useState(people.some((p) => p.id === meId) ? meId : (people[0]?.id ?? ""));
   const [registryId, setRegistryId] = useState(
     registries.find((r) => r.id === initialRegistryId)?.id ?? registries.find((r) => r.is_default)?.id ?? registries[0]?.id ?? "",
   );
