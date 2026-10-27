@@ -9,10 +9,10 @@
   --brand-dark: #0f2f57;
   --brand-accent: #6497c8;
 
-  --bg: #f4f6f9;
+  --bg: #e8edf4;
   --surface: #ffffff;
-  --line: #dfe4ec;
-  --line-strong: #c3ccd9;
+  --line: #d3dbe6;
+  --line-strong: #b4c0d0;
   --fg: #141a24;
   --muted: #5a6478;
   --accent: var(--brand-primary);
