@@ -75,6 +75,7 @@ export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sl
   if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles"].includes(key)) return "roles";
   if (key.endsWith("_days") || key.endsWith("_years")) return "number";
   if (key === "tasks.sla_weekdays_only" || key === "tasks.sla_manager_summary" || key.startsWith("people.")) return "yesno";
+  if (key === "security.mfa_app_enabled" || key === "security.mfa_sms_enabled") return "yesno";
   if (key.startsWith("brand.color_")) return "color";
   return "text";
 }

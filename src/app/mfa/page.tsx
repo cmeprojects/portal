@@ -16,10 +16,16 @@ export default async function MfaPage() {
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims?.sub) redirect("/login");
 
-  const [brand, { data: access }] = await Promise.all([
+  const [brand, { data: access }, { data: methodRows }] = await Promise.all([
     getBranding(),
     supabase.rpc("my_access").maybeSingle<{ role: Role; active: boolean; mfa_ok: boolean }>(),
+    supabase.from("app_settings").select("key, value").in("key", ["security.mfa_app_enabled", "security.mfa_sms_enabled"]),
   ]);
+  // The system admin chooses which methods can be used (System settings → Security).
+  const methods = {
+    app: methodRows?.find((r) => r.key === "security.mfa_app_enabled")?.value !== false,
+    sms: methodRows?.find((r) => r.key === "security.mfa_sms_enabled")?.value === true,
+  };
   if (!access?.active) redirect("/deactivated");
   if (claims.claims.aal === "aal2") redirect("/");
 
@@ -32,7 +38,7 @@ export default async function MfaPage() {
           code from your phone as well as your password.
         </p>
       </div>
-      <MfaForm />
+      <MfaForm methods={methods} />
       <p className="text-sm text-muted">Lost your phone? A system admin can reset your two-factor login.</p>
       <form action={signOut}>
         <Button variant="outline" className="w-full">Sign out</Button>

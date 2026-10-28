@@ -216,3 +216,11 @@ each weekday from 7am. With "weekdays only" on, nothing is sent at weekends.
   which completes itself when they finish.
 - Uploaded files are stored privately in Supabase Storage (buckets
   `compliance-files` and `compliance-library`).
+
+## Two-factor login methods
+
+System settings → Security has a switch for each method. The authenticator
+app is on; text message (SMS) codes are off. To use SMS: in Supabase turn on
+phone multi-factor (Authentication → Multi-Factor; a paid add-on) and set up
+an SMS provider (Authentication → Sign In / Providers → Phone, e.g. Twilio),
+then switch it on in System settings. Each text costs a few cents.
