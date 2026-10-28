@@ -131,3 +131,84 @@ export async function addHelper(_: FormState, form: FormData): Promise<FormState
   revalidatePath(`/tasks/${taskId}`);
   return { message: "Helper added. We've let them know." };
 }
+
+// ---------------------------------------------------------------------------
+// Working on a task (the database checks who may do what)
+// ---------------------------------------------------------------------------
+
+async function afterChange(taskId: string) {
+  await flushOutbox();
+  revalidatePath(`/tasks/${taskId}`);
+  revalidatePath("/", "layout");
+}
+
+const STATUS_MESSAGES: Record<string, string> = {
+  in_progress: "Marked as in progress.",
+  awaiting_approval: "Sent to a manager for approval.",
+  completed: "Marked as completed.",
+  closed: "Task closed.",
+};
+
+export async function changeStatus(_: FormState, form: FormData): Promise<FormState> {
+  await requireTaskAccess();
+  const taskId = text(form, "task_id");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_task_status", {
+    p_task_id: taskId,
+    p_status: text(form, "status"),
+    p_note: text(form, "note"),
+  });
+  if (error) return { error: friendlyError(error) };
+  await afterChange(taskId);
+  return { message: STATUS_MESSAGES[String(data)] ?? "Saved." };
+}
+
+export async function addComment(_: FormState, form: FormData): Promise<FormState> {
+  await requireTaskAccess();
+  const taskId = text(form, "task_id");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_task_comment", { p_task_id: taskId, p_body: text(form, "body") });
+  if (error) return { error: friendlyError(error) };
+  await afterChange(taskId);
+  return { message: "Comment added." };
+}
+
+export async function escalateTask(_: FormState, form: FormData): Promise<FormState> {
+  await requireTaskAccess();
+  const taskId = text(form, "task_id");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("escalate_task", { p_task_id: taskId, p_reason: text(form, "reason") });
+  if (error) return { error: friendlyError(error) };
+  await afterChange(taskId);
+  return { message: "Escalated. The managers have been told." };
+}
+
+export async function reassignTask(_: FormState, form: FormData): Promise<FormState> {
+  const { profile } = await requireTaskAccess();
+  const taskId = text(form, "task_id");
+  const supabase = await createClient();
+  const takeOver = form.get("take_over") === "1";
+  const { error } = takeOver
+    ? await supabase.rpc("take_over_task", { p_task_id: taskId, p_reason: text(form, "reason") })
+    : await supabase.rpc("reassign_task", { p_task_id: taskId, p_to: text(form, "to"), p_reason: text(form, "reason") });
+  if (error) return { error: friendlyError(error) };
+  await afterChange(taskId);
+  return { message: takeOver ? `You're now looking after this task, ${profile.full_name.split(" ")[0] || "there"}.` : "Reassigned. They've been emailed." };
+}
+
+export async function addAttachment(_: FormState, form: FormData): Promise<FormState> {
+  await requireTaskAccess();
+  const taskId = text(form, "task_id");
+  const path = text(form, "file_path");
+  if (!path) return { error: "Choose a file and wait for it to upload." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_task_attachment", {
+    p_task_id: taskId,
+    p_path: path,
+    p_name: text(form, "file_name"),
+    p_size: null,
+  });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/tasks/${taskId}`);
+  return { message: "File added." };
+}

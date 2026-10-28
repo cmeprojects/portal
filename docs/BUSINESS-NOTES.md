@@ -32,3 +32,35 @@ isn't legal advice.
 `LICENSE` in this repository says the software belongs to cmeproject and
 can't be copied, changed or shared without written permission. Each
 company's agreement gives them permission to **use** it on the terms above.
+
+## Business rule: manager approval before a task is closed
+
+**Rule.** In registers set to "Manager approval needed to close", the person
+doing the work can't complete their own task. When they finish, it goes to
+*Waiting for approval*. A manager of that register (or any manager, if the
+register has none) checks it and either approves it or sends it back with a
+reason. Nobody can approve their own work.
+
+**Why.**
+1. **Separation of duties.** The person who does the work is not the person
+   who signs it off. This is a standard internal control and what auditors
+   and quality reviewers look for.
+2. **Quality and safety.** Risks, incidents, complaints and repairs affect
+   the people we support. A second person confirms the fix actually worked
+   (for example, the hazard is really gone) before the record says "done".
+3. **Accountability and evidence.** Every approval or send-back is recorded
+   with who, when and why. That trail shows the organisation acted on an
+   issue and closed it properly, which matters for audits, insurers, funding
+   bodies and any later complaint or investigation.
+4. **Continuous improvement.** Managers see how issues were resolved, spot
+   patterns, and decide whether a policy, training or follow-up is needed
+   before the issue is closed for good.
+5. **Consistency.** Everyone's work is closed to the same standard, not
+   just marked done when the person feels finished.
+
+**Which registers use it.** Set per register in its Set up page. Suggested:
+Risk, Critical Incidents, Complaints and Feedback, and Maintenance (safety
+repairs). Usually not needed for General tasks or simple admin jobs.
+
+**What staff see.** "Finished: send for approval". The manager gets a bell
+and an email. If sent back, the person gets the reason and carries on.

@@ -25,6 +25,7 @@ import { getBranding } from "@/lib/branding";
 import { AddHelperForm } from "./add-helper";
 import { EditDetailsForm } from "./edit-details";
 import { FollowUpForm } from "./follow-up";
+import { AttachmentForm, CommentForm, TaskActions, type Can } from "./workflow";
 
 export const metadata: Metadata = { title: "Task" };
 
@@ -57,7 +58,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   const { id } = await params;
   const { created } = await searchParams;
   if (!UUID.test(id)) notFound();
-  const { features } = await requireTaskAccess();
+  const { features, profile: me } = await requireTaskAccess();
   const supabase = await createClient();
 
   const { data: task } = await supabase
@@ -79,6 +80,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     { data: actions },
     { data: parent },
     { data: canEdit },
+    { data: canApprove },
+    { data: files },
     registries,
     allFields,
     people,
@@ -86,13 +89,15 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     timeZone,
   ] = await Promise.all([
     supabase.from("task_helpers").select("user_id").eq("task_id", id),
-    supabase.from("task_events").select("id, actor_id, type, to_value, comment, created_at").eq("task_id", id).order("created_at").order("id"),
+    supabase.from("task_events").select("id, actor_id, type, from_value, to_value, comment, created_at").eq("task_id", id).order("created_at").order("id"),
     supabase.from("registry_managers").select("user_id").eq("registry_id", task.registry_id),
     supabase.from("tasks").select("id, ref_number, title, status, due_date, assigned_to").eq("parent_task_id", id).order("created_at"),
     task.parent_task_id
       ? supabase.from("tasks").select("id, ref_number, title").eq("id", task.parent_task_id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.rpc("can_edit_task", { p_task_id: id }),
+    supabase.rpc("can_approve_task", { p_task_id: id }),
+    supabase.from("task_attachments").select("id, file_path, file_name, uploaded_by, created_at").eq("task_id", id).order("created_at"),
     getRegistries(),
     getFields(),
     getPeople(),
@@ -100,6 +105,14 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     getTimeZone(),
   ]);
   const brand = await getBranding();
+  // Files open through short-lived private links.
+  const fileLinks = new Map<number, string>();
+  await Promise.all(
+    (files ?? []).map(async (f) => {
+      const { data } = await supabase.storage.from("task-files").createSignedUrl(f.file_path, 3600);
+      if (data?.signedUrl) fileLinks.set(f.id, data.signedUrl);
+    }),
+  );
 
   const registry = registries.find((r) => r.id === task.registry_id);
   if (!registry) notFound();
@@ -121,8 +134,47 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   const display = (f: (typeof fields)[number]) =>
     formatValue(f, task.details[f.key], { person: (pid) => nameOf(pid), asset: (aid) => assetNames.get(aid) ?? "Unknown item" });
 
-  function describe(e: { type: string; actor_id: string | null; to_value: string | null; comment: string | null }) {
+  const mine = task.assigned_to === me.id;
+  const isHelper = helperIds.includes(me.id);
+  const working = ["assigned", "in_progress", "escalated"].includes(task.status);
+  const finished = task.status === "completed" || task.status === "closed";
+  const live = features.tasks !== false;
+  const can: Can = {
+    start: live && Boolean(canEdit) && task.status === "assigned",
+    complete: live && Boolean(canEdit) && working,
+    completeNeedsApproval: registry.requires_approval && !canApprove,
+    approve: live && task.status === "awaiting_approval" && Boolean(canApprove),
+    close: live && Boolean(canEdit) && task.status === "completed" && (!mine || task.created_by === me.id),
+    reopen: live && Boolean(canEdit) && finished && !mine,
+    resolveEscalation: live && Boolean(canEdit) && task.status === "escalated" && !mine,
+    escalate: live && (Boolean(canEdit) || isHelper) && (task.status === "assigned" || task.status === "in_progress"),
+    reassign: live && Boolean(canEdit) && !finished,
+    takeOver: live && Boolean(canEdit) && !mine && !finished && (me.role === "team_leader" || me.role === "manager"),
+  };
+  const reassignTo = activePeople.filter((p) => p.id !== task.assigned_to).map((p) => ({ id: p.id, name: p.label }));
+
+  function describe(e: { type: string; actor_id: string | null; from_value: string | null; to_value: string | null; comment: string | null }) {
     switch (e.type) {
+      case "comment":
+        return "commented";
+      case "status_changed": {
+        const to = e.to_value as Status;
+        if (to === "awaiting_approval") return "finished it and sent it for approval";
+        if (to === "escalated") return "escalated it";
+        if (to === "closed") return "closed it";
+        if (to === "completed") return e.from_value === "awaiting_approval" ? "approved it" : "marked it as completed";
+        if (to === "in_progress") {
+          if (e.from_value === "awaiting_approval") return "sent it back";
+          if (e.from_value === "completed" || e.from_value === "closed") return "reopened it";
+          if (e.from_value === "escalated") return "dealt with the escalation";
+          return "started working on it";
+        }
+        return `changed the status to ${STATUS_LABELS[to] ?? to}`;
+      }
+      case "reassigned":
+        return e.to_value === e.actor_id ? `took it over from ${nameOf(e.from_value)}` : `reassigned it from ${nameOf(e.from_value)} to ${nameOf(e.to_value)}`;
+      case "attachment_added":
+        return `added a file: ${e.comment}`;
       case "created":
         return `created the task and asked ${nameOf(e.to_value)} to look after it`;
       case "helper_added":
@@ -282,6 +334,11 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
                     <p className="text-sm">
                       <strong>{nameOf(e.actor_id)}</strong> {describe(e)}
                     </p>
+                    {e.comment && e.type !== "details_changed" && e.type !== "attachment_added" ? (
+                      <p className={`mt-1 whitespace-pre-line text-sm ${e.type === "comment" ? "rounded-md bg-page px-3 py-2" : "text-muted"}`}>
+                        {e.type === "comment" ? e.comment : `“${e.comment}”`}
+                      </p>
+                    ) : null}
                     <time dateTime={e.created_at} className="text-sm text-muted">
                       {when.format(new Date(e.created_at))}
                     </time>
@@ -289,10 +346,50 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
                 </li>
               ))}
             </ol>
-            <p className="mt-4 text-sm text-muted print:hidden">Comments, status changes and attachments are coming in the next update.</p>
+            {open ? (
+              <div className="mt-5 border-t border-line pt-4 print:hidden">
+                <CommentForm taskId={task.id} />
+              </div>
+            ) : null}
+          </Card>
+
+          <Card className="flex flex-col gap-3 p-5">
+            <h2 className="heading-sm">Files · {(files ?? []).length}</h2>
+            {(files ?? []).length ? (
+              <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
+                {(files ?? []).map((f) => (
+                  <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                    {fileLinks.has(f.id) ? (
+                      <a href={fileLinks.get(f.id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand underline">
+                        {f.file_name}
+                      </a>
+                    ) : (
+                      <span className="font-semibold">{f.file_name}</span>
+                    )}
+                    <span className="text-muted">
+                      {nameOf(f.uploaded_by)} · {when.format(new Date(f.created_at))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">No files yet.</p>
+            )}
+            {open ? (
+              <div className="print:hidden">
+                <AttachmentForm taskId={task.id} />
+              </div>
+            ) : null}
           </Card>
         </div>
 
+        <div className="flex flex-col gap-4">
+        {Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && v) ? (
+          <Card className="flex flex-col gap-3 p-5 print:hidden">
+            <h2 className="heading-sm">What&apos;s next</h2>
+            <TaskActions taskId={task.id} can={can} people={reassignTo} />
+          </Card>
+        ) : null}
         <Card className="flex flex-col gap-4 p-5">
           <h2 className="heading-sm">Details</h2>
           <dl className="flex flex-col gap-3 text-sm">
@@ -338,6 +435,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
             </div>
           ) : null}
         </Card>
+        </div>
       </div>
     </>
   );
