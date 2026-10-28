@@ -120,6 +120,16 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
   );
 }
 
+// Status colours: escalated and waiting for approval stand out.
+const STATUS_TONE: Record<Status, string> = {
+  assigned: "bg-page text-muted ring-1 ring-line ring-inset",
+  in_progress: "bg-brand-soft text-brand",
+  escalated: "bg-danger-soft text-danger",
+  awaiting_approval: "bg-warn-soft text-warn",
+  completed: "bg-good-soft text-good",
+  closed: "bg-page text-muted ring-1 ring-line ring-inset",
+};
+
 type OverviewRow = {
   ref: string;
   title: string;
@@ -159,14 +169,15 @@ async function RegisterOverview({ registry, canCreate }: { registry: Registry; c
           <p className="px-5 py-4 text-sm text-muted">Nothing open in this register.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[44rem] text-sm">
+            <table className="w-full min-w-[50rem] text-sm">
               <thead className="bg-page text-left text-xs tracking-wider text-muted uppercase">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium">Task</th>
                   <th scope="col" className="px-4 py-3 font-medium">Description</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Status</th>
                   <th scope="col" className="px-4 py-3 font-medium">Priority</th>
                   <th scope="col" className="px-4 py-3 font-medium">Due</th>
-                  <th scope="col" className="px-4 py-3 font-medium">Assigned to</th>
+                  <th scope="col" className="px-4 py-3 font-medium whitespace-nowrap">Assigned to</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -176,10 +187,13 @@ async function RegisterOverview({ registry, canCreate }: { registry: Registry; c
                     <tr key={r.ref}>
                       <td className="px-4 py-3 align-top">
                         <span className="block font-semibold">{r.title}</span>
-                        <span className="text-xs text-muted">{r.ref} · {STATUS_LABELS[r.status]}</span>
+                        <span className="text-xs text-muted">{r.ref}</span>
                       </td>
                       <td className="max-w-80 px-4 py-3 align-top text-muted">
                         {r.description.length > 160 ? `${r.description.slice(0, 160)}…` : r.description || "—"}
+                      </td>
+                      <td className="px-4 py-3 align-top whitespace-nowrap">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_TONE[r.status]}`}>{STATUS_LABELS[r.status]}</span>
                       </td>
                       <td className="px-4 py-3 align-top">
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${PRIORITY_CLASS[r.priority]}`}>{PRIORITY_LABELS[r.priority]}</span>
