@@ -6,6 +6,7 @@ import { inCoreTeam, ROLE_LABELS, type Role } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { decideChangeRequest } from "../staff/actions";
 import { NewTeamForm, TeamForm } from "./forms";
+import { getPeopleRules } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Teams" };
 
@@ -28,6 +29,7 @@ export default async function TeamsPage() {
       .eq("status", "pending")
       .order("requested_at"),
   ]);
+  const rules = await getPeopleRules();
   const everyone = (people ?? []).map((p) => ({ ...p, role: p.role as Role, name: p.full_name || p.email }));
   const nameOf = new Map(everyone.map((p) => [p.id, p.name]));
   const teamName = new Map((teams ?? []).map((t) => [t.id, t.name]));
@@ -151,7 +153,7 @@ export default async function TeamsPage() {
                       leaderId={leaderId}
                       members={members}
                       leaders={leaders}
-                      needsApproval={me.role === "staff_admin"}
+                      needsApproval={me.role === "staff_admin" && rules.staffAdminTeamApproval}
                     />
                   </div>
                 </details>

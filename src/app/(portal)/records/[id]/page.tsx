@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { STATUS_LABELS, todayIn, type Status } from "@/lib/tasks";
@@ -19,7 +19,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
   const { id } = await params;
   const { saved } = await searchParams;
   if (!UUID.test(id)) notFound();
-  await requireSession();
+  await requireTaskAccess();
   const supabase = await createClient();
   const { data: record } = await supabase
     .from("records")

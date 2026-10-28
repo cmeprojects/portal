@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
@@ -57,7 +57,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   const { id } = await params;
   const { created } = await searchParams;
   if (!UUID.test(id)) notFound();
-  const { features } = await requireSession();
+  const { features } = await requireTaskAccess();
   const supabase = await createClient();
 
   const { data: task } = await supabase

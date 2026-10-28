@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
-import { getTimeZone } from "@/lib/settings";
+import { getPeopleRules, getTimeZone } from "@/lib/settings";
 import { formatDue, todayIn } from "@/lib/tasks";
 import { Bell, type BellItem } from "@/components/bell";
 import { getBranding } from "@/lib/branding";
@@ -17,7 +17,7 @@ import { signOut } from "@/app/login/actions";
 // Frame for every page after sign-in: the company's sidebar on desktop, a top
 // bar with a drop-down menu on phones.
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
-  const [{ profile, features }, brand] = await Promise.all([requireSession(), getBranding()]);
+  const [{ profile, features }, brand, rules] = await Promise.all([requireSession(), getBranding(), getPeopleRules()]);
   const [taskItems, requestItems] = await Promise.all([
     features.tasks !== false ? newTasksForMe() : Promise.resolve([]),
     requestUpdatesForMe(),
@@ -40,7 +40,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[230px_minmax(0,1fr)] print:block">
-      <Sidebar groups={navFor(profile.role, features)} brandMark={<BrandMark brand={brand} />}
+      <Sidebar groups={navFor(profile.role, features, rules.newStarterTasks)} brandMark={<BrandMark brand={brand} />}
         bell={features.tasks !== false || requestItems.length ? <Bell items={bellItems} /> : null}
         footer={footer}
       />

@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getFields, getPeople, getRegistries } from "@/lib/register-data";
 import { FIELD_TYPE_LABELS } from "@/lib/registers";
@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Set up register" };
 export default async function SetupPage({ params, searchParams }: PageProps<"/registers/[id]/setup">) {
   const { id } = await params;
   const { created } = await searchParams;
-  await requireSession();
+  await requireTaskAccess();
   const registry = (await getRegistries()).find((r) => r.id === id);
   if (!registry) notFound();
   const supabase = await createClient();

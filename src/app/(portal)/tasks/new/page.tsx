@@ -1,9 +1,10 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { getSla, getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import { ROLE_LABELS, canTakeTasks } from "@/lib/roles";
+import { getPeopleRules } from "@/lib/settings";
 import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { NewTaskForm } from "./form";
@@ -11,7 +12,8 @@ import { NewTaskForm } from "./form";
 export const metadata: Metadata = { title: "New task" };
 
 export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/new">) {
-  const { profile, features } = await requireSession();
+  const { profile, features } = await requireTaskAccess();
+  const rules = await getPeopleRules();
   const { register } = await searchParams;
   const [registries, fields, people, assets, timeZone, sla] = await Promise.all([
     getRegistries(),
@@ -39,7 +41,7 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
         <NewTaskForm
           registries={taskRegistries}
           fields={fields}
-          people={people.filter((p) => p.active && canTakeTasks(p.role)).map((p) => ({ id: p.id, name: p.name, detail: ROLE_LABELS[p.role] }))}
+          people={people.filter((p) => p.active && canTakeTasks(p.role, rules.newStarterTasks)).map((p) => ({ id: p.id, name: p.name, detail: ROLE_LABELS[p.role] }))}
           assets={assets.filter((a) => !a.archived)}
           meId={profile.id}
           today={todayIn(timeZone)}

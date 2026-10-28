@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Add item" };
 
 export default async function NewRecordPage({ params }: PageProps<"/registers/[id]/new">) {
   const { id } = await params;
-  await requireSession();
+  await requireTaskAccess();
   const registry = (await getRegistries()).find((r) => r.id === id);
   if (!registry) notFound();
   if (registry.kind !== "records") redirect(`/tasks/new?register=${id}`);

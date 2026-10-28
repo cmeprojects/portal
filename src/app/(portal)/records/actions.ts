@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { friendlyError } from "@/lib/db-error";
 import { detailsFromForm, FIELD_COLUMNS, type RegistryField } from "@/lib/registers";
 import { text, type FormState } from "@/lib/form";
@@ -16,7 +16,7 @@ async function fieldsOf(registryId: string): Promise<RegistryField[]> {
 }
 
 export async function saveRecord(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const recordId = text(form, "record_id");
   const registryId = text(form, "registry_id");
   const title = text(form, "title");

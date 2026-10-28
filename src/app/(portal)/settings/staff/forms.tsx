@@ -18,6 +18,13 @@ function Result({ state }: { state: FormState }) {
 // Job titles grouped under their access level, then the plain access level.
 function RoleOptions({ roles, titles }: { roles: Role[]; titles: JobTitle[] }) {
   return roles.map((r) => {
+    if (r === "new_starter") {
+      return (
+        <option key={r} value={roleChoiceValue(r, null)}>
+          New starter (general invite, no role yet)
+        </option>
+      );
+    }
     const mine = titles.filter((t) => t.access_level === r && t.active);
     return (
       <optgroup key={r} label={ROLE_LABELS[r]}>
@@ -58,7 +65,7 @@ export function InviteForm({ roles, titles, teams }: { roles: Role[]; titles: Jo
           <input id="inv-email" name="email" type="email" required placeholder="name@gmail.com" className={inputClass} />
         </Field>
         <Field label="Role" htmlFor="inv-role">
-          <select id="inv-role" name="role" defaultValue={roleChoiceValue("support_worker", null)} className={inputClass}>
+          <select id="inv-role" name="role" defaultValue={roleChoiceValue("new_starter", null)} className={inputClass}>
             <RoleOptions roles={roles} titles={titles} />
           </select>
         </Field>
@@ -107,7 +114,9 @@ export function PersonEditor({
   const [activeState, activeAction, toggling] = useActionState(setActive, null);
   const [inviteState, inviteAction, resending] = useActionState(resendInvite, null);
   const [mfaState, mfaAction, resetting] = useActionState(resetTwoFactor, null);
-  const choices = roles.includes(person.role) ? roles : [person.role, ...roles];
+  // "New starter" is only for people who don't have a role yet.
+  const offered = roles.filter((r) => r !== "new_starter" || person.role === "new_starter");
+  const choices = offered.includes(person.role) ? offered : [person.role, ...offered];
 
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-4">

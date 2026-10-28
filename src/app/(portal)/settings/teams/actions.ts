@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { friendlyError } from "@/lib/db-error";
 import { text, type FormState } from "@/lib/form";
+import { getPeopleRules } from "@/lib/settings";
 
 const PAGE = "/settings/teams";
 
@@ -42,7 +43,7 @@ export async function saveTeam(_: FormState, form: FormData): Promise<FormState>
 
   if (changed) {
     // Staff admins (HR) send who's in the team to a manager to approve.
-    if (me.role === "staff_admin") {
+    if (me.role === "staff_admin" && (await getPeopleRules()).staffAdminTeamApproval) {
       const { error: requestError } = await supabase.rpc("request_team_change", {
         p_team_id: id,
         p_members: members,

@@ -9,6 +9,7 @@ import { env } from "@/lib/env";
 import { assignableRoles, parseRoleChoice } from "@/lib/roles";
 import { friendlyError } from "@/lib/db-error";
 import { EMAIL, text, type FormState } from "@/lib/form";
+import { getPeopleRules } from "@/lib/settings";
 
 const PAGE = "/settings/staff";
 const BAN_FOREVER = "876000h";
@@ -22,14 +23,18 @@ export async function invitePerson(_: FormState, form: FormData): Promise<FormSt
   const { profile: me } = await requireRole(PEOPLE_MANAGERS);
   const fullName = text(form, "full_name");
   const email = text(form, "email").toLowerCase();
-  // Staff admins put new people into teams with a manager's approval, on the Teams page.
-  const teamId = me.role === "staff_admin" ? null : text(form, "team_id") || null;
+  const teamId = text(form, "team_id") || null;
 
   if (!fullName) return { error: "Enter their full name." };
   if (!EMAIL.test(email)) return { error: "Enter a valid email address." };
 
   const supabase = await createClient();
-  const choice = parseRoleChoice(text(form, "role"), await activeTitles(supabase));
+  const rules = await getPeopleRules();
+  // With general invites only, everyone joins as a new starter (system admins can still pick).
+  const choice =
+    rules.generalInvitesOnly && me.role !== "system_admin"
+      ? { role: "new_starter" as const, titleId: null }
+      : parseRoleChoice(text(form, "role"), await activeTitles(supabase));
   if (!choice || !assignableRoles(me.role).includes(choice.role)) return { error: "Choose a role you're allowed to give." };
 
   const { data: existing } = await supabase
@@ -47,7 +52,12 @@ export async function invitePerson(_: FormState, form: FormData): Promise<FormSt
       full_name: fullName,
       role: choice.role,
       job_title_id: choice.titleId,
-      team_id: choice.role === "support_worker" || choice.role === "team_leader" ? teamId : null,
+      // Staff admins put new people into teams on the Teams page when team changes need approval.
+      team_id:
+        (choice.role === "support_worker" || choice.role === "team_leader") &&
+        !(me.role === "staff_admin" && rules.staffAdminTeamApproval)
+          ? teamId
+          : null,
     })
     .select("id")
     .single();
@@ -81,8 +91,14 @@ export async function updatePerson(_: FormState, form: FormData): Promise<FormSt
   if (!current) return { error: "Person not found." };
   if (current.role === choice.role && current.job_title_id === choice.titleId) return { message: "Nothing has changed." };
 
-  // Staff admins (HR) send role changes to a manager for approval.
-  if (me.role === "staff_admin") {
+  // Staff admins (HR) send role changes to a manager for approval (if the
+  // system admin's rules say so; a new starter's first role usually doesn't).
+  const rules = await getPeopleRules();
+  if (
+    me.role === "staff_admin" &&
+    rules.staffAdminRoleApproval &&
+    (current.role !== "new_starter" || rules.firstRoleApproval)
+  ) {
     const { error } = await supabase.rpc("request_role_change", {
       p_user_id: id,
       p_to_role: choice.role,

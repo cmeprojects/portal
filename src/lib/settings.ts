@@ -26,3 +26,28 @@ export const getTimeZone = cache(async (): Promise<string> => {
     return "Australia/Melbourne";
   }
 });
+
+// People rules the system admin switches on and off (System settings → People rules).
+export type PeopleRules = {
+  staffAdminRoleApproval: boolean;
+  staffAdminTeamApproval: boolean;
+  firstRoleApproval: boolean;
+  generalInvitesOnly: boolean;
+  newStarterTasks: boolean;
+};
+
+export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("app_settings").select("key, value").like("key", "people.%");
+  const on = (k: string, fallback: boolean) => {
+    const v = data?.find((r) => r.key === k)?.value;
+    return typeof v === "boolean" ? v : fallback;
+  };
+  return {
+    staffAdminRoleApproval: on("people.staff_admin_role_approval", true),
+    staffAdminTeamApproval: on("people.staff_admin_team_approval", true),
+    firstRoleApproval: on("people.first_role_approval", false),
+    generalInvitesOnly: on("people.general_invites_only", false),
+    newStarterTasks: on("people.new_starter_tasks", false),
+  };
+});

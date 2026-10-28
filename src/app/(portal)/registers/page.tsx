@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getRegistries } from "@/lib/register-data";
 import { DONE } from "@/lib/tasks";
@@ -10,7 +10,7 @@ import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 export const metadata: Metadata = { title: "Registers" };
 
 export default async function RegistersPage() {
-  const { profile } = await requireSession();
+  const { profile } = await requireTaskAccess();
   const supabase = await createClient();
   const registries = (await getRegistries()).filter((r) => r.active);
   const [{ data: openTasks }, { data: records }] = await Promise.all([

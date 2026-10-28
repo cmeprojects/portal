@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { flushOutbox } from "@/lib/email/outbox";
 import { friendlyError } from "@/lib/db-error";
 import { isPriority } from "@/lib/tasks";
@@ -26,7 +26,7 @@ async function fieldsOf(registryId: string): Promise<RegistryField[]> {
 }
 
 export async function createTask(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const title = text(form, "title");
   const registryId = text(form, "registry_id");
   const assignedTo = text(form, "assigned_to");
@@ -63,7 +63,7 @@ export async function createTask(_: FormState, form: FormData): Promise<FormStat
 }
 
 export async function updateTaskDetails(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const taskId = text(form, "task_id");
   const priority = text(form, "priority");
   const due = date(form, "due_date");
@@ -94,7 +94,7 @@ export async function updateTaskDetails(_: FormState, form: FormData): Promise<F
 }
 
 export async function addFollowUpAction(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const parentId = text(form, "parent_id");
   const title = text(form, "title");
   const assignedTo = text(form, "assigned_to");
@@ -118,7 +118,7 @@ export async function addFollowUpAction(_: FormState, form: FormData): Promise<F
 }
 
 export async function addHelper(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const taskId = text(form, "task_id");
   const userId = text(form, "user_id");
   if (!userId) return { error: "Choose someone to help." };

@@ -6,11 +6,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { assignableRoles, inCoreTeam, JOB_TITLE_COLUMNS, ROLE_HELP, ROLE_LABELS, ROLES, type JobTitle, type Role } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { InviteForm, PersonEditor, type PersonRow } from "./forms";
+import { getPeopleRules } from "@/lib/settings";
 import { decideChangeRequest } from "./actions";
 
 export const metadata: Metadata = { title: "Staff & roles" };
 
 const ROLE_TONE: Record<Role, "dark" | "soft" | "grey"> = {
+  new_starter: "grey",
   system_admin: "dark",
   staff_admin: "dark",
   manager: "soft",
@@ -59,6 +61,11 @@ export default async function StaffPage() {
   const canApprove = me.role === "manager" || me.role === "system_admin";
   const when = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone: "Australia/Melbourne" });
   const roles = assignableRoles(me.role);
+  const rules = await getPeopleRules();
+  const generalOnly = rules.generalInvitesOnly && me.role !== "system_admin";
+  // Staff admins send role changes for approval, if the system admin's rules say so.
+  const needsApproval = (role: Role) =>
+    me.role === "staff_admin" && rules.staffAdminRoleApproval && (role !== "new_starter" || rules.firstRoleApproval);
   const teamName = new Map((teams ?? []).map((t) => [t.id, t.name]));
   const teamsOf = (id: string) =>
     (memberships ?? [])
@@ -113,7 +120,7 @@ export default async function StaffPage() {
 
       <Card className="p-5">
         <h2 className="mb-4 heading-sm">Invite someone</h2>
-        <InviteForm roles={roles} titles={titles} teams={me.role === "staff_admin" ? null : teams ?? []} />
+        <InviteForm roles={generalOnly ? ["new_starter"] : roles} titles={titles} teams={generalOnly || (me.role === "staff_admin" && rules.staffAdminTeamApproval) ? null : teams ?? []} />
       </Card>
 
       <div className="flex flex-col gap-3">
@@ -144,7 +151,7 @@ export default async function StaffPage() {
                   <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>
                   {pending.has(p.id) ? <Badge tone="warn">→ {roleText(pending.get(p.id)!.to_value as RoleValue)} waiting</Badge> : null}
                   <span className="w-40 text-sm text-muted">
-                    {inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" ? "" : teamsOf(p.id) || "No team"}
+                    {inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team"}
                   </span>
                   <Badge tone={status === "Active" ? "good" : status === "Invite sent" ? "soft" : "grey"}>{status}</Badge>
                   <span className="text-sm font-semibold text-brand group-open:hidden">{row.editable ? "Edit" : "View"}</span>
@@ -157,7 +164,7 @@ export default async function StaffPage() {
                       roles={roles}
                       titles={titles}
                       canResetMfa={me.role === "system_admin"}
-                      needsApproval={me.role === "staff_admin"}
+                      needsApproval={needsApproval(row.role)}
                     />
                   ) : (
                     <p className="border-t border-line pt-4 text-sm text-muted">

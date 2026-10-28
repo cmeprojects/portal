@@ -7,7 +7,7 @@ import { ROLE_LABELS, ROLES, type JobTitle } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
 import { addJobTitle, saveJobTitle } from "./actions";
 
-const LEVELS = ROLES.filter((r) => r !== "system_admin");
+const LEVELS = ROLES.filter((r) => r !== "system_admin" && r !== "new_starter");
 
 function Result({ state }: { state: FormState }) {
   if (state?.error) return <Notice tone="error">{state.error}</Notice>;

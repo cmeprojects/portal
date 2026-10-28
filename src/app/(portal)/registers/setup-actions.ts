@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { friendlyError } from "@/lib/db-error";
 import { CHOICE_COLOURS, FIELD_TYPES, keyFromLabel, type ChoiceColour, type FieldType } from "@/lib/registers";
 import { text, type FormState } from "@/lib/form";
@@ -34,7 +34,7 @@ function refresh(id: string) {
 }
 
 export async function createRegistry(_: FormState, form: FormData): Promise<FormState> {
-  const { profile } = await requireSession();
+  const { profile } = await requireTaskAccess();
   if (!["manager", "staff_admin", "system_admin"].includes(profile.role)) return { error: "Only managers and admins can create registers." };
   const name = text(form, "name");
   const prefix = text(form, "prefix").toUpperCase();
@@ -62,7 +62,7 @@ export async function createRegistry(_: FormState, form: FormData): Promise<Form
 }
 
 export async function saveRegistrySettings(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const id = text(form, "id");
   const name = text(form, "name");
   const prefix = text(form, "prefix").toUpperCase();
@@ -97,7 +97,7 @@ export async function saveRegistrySettings(_: FormState, form: FormData): Promis
 }
 
 export async function saveManagers(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const id = text(form, "id");
   const managers = form.getAll("managers").map(String);
   const supabase = await createClient();
@@ -119,7 +119,7 @@ export async function saveManagers(_: FormState, form: FormData): Promise<FormSt
 }
 
 export async function addField(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const registryId = text(form, "registry_id");
   const label = text(form, "label");
   const type = text(form, "type") as FieldType;
@@ -152,7 +152,7 @@ export async function addField(_: FormState, form: FormData): Promise<FormState>
 }
 
 export async function updateField(_: FormState, form: FormData): Promise<FormState> {
-  await requireSession();
+  await requireTaskAccess();
   const id = text(form, "id");
   const registryId = text(form, "registry_id");
   const label = text(form, "label");
@@ -183,7 +183,7 @@ export async function updateField(_: FormState, form: FormData): Promise<FormSta
 }
 
 export async function moveField(form: FormData) {
-  await requireSession();
+  await requireTaskAccess();
   const id = text(form, "id");
   const registryId = text(form, "registry_id");
   const dir = text(form, "dir") === "up" ? -1 : 1;

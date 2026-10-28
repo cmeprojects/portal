@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireSession } from "@/lib/session";
+import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: "Register" };
 export default async function RegisterPage({ params, searchParams }: PageProps<"/registers/[id]">) {
   const { id } = await params;
   const filter = parseFilter(await searchParams);
-  const { features } = await requireSession();
+  const { features } = await requireTaskAccess();
   const registry = (await getRegistries()).find((r) => r.id === id);
   if (!registry) notFound();
 

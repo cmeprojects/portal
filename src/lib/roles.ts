@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 
 export const ROLES = [
+  "new_starter",
   "support_worker",
   "team_leader",
   "manager",
@@ -11,6 +12,7 @@ export const ROLES = [
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABELS: Record<Role, string> = {
+  new_starter: "New starter",
   support_worker: "Support worker",
   team_leader: "Team leader",
   manager: "Manager",
@@ -19,6 +21,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const ROLE_HELP: Record<Role, string> = {
+  new_starter: "Joined with a general invite and waiting for a role. Sees their own account only (trainings and documents are coming).",
   support_worker: "Sees only tasks they're assigned to, helping on or created. Can be in several teams.",
   team_leader: "Leads one team, and also sees the tasks of everyone in it.",
   manager: "In the core team: sees every team's tasks. Approvals, reports and due-date SLAs. Invites people, changes roles and teams, and adds job titles.",
@@ -71,8 +74,9 @@ export function inCoreTeam(role: Role): boolean {
 }
 
 // System admins look after the portal itself, so they're never given tasks.
-export function canTakeTasks(role: Role): boolean {
-  return role !== "system_admin";
+// New starters wait for a role, unless the system admin allows it.
+export function canTakeTasks(role: Role, newStarterTasks = false): boolean {
+  return role !== "system_admin" && (role !== "new_starter" || newStarterTasks);
 }
 
 export function isRole(value: unknown): value is Role {

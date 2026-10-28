@@ -2,6 +2,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { getPeopleRules } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/roles";
 
@@ -65,6 +66,14 @@ export async function requireSession(): Promise<Session> {
 export async function requireRole(roles: Role[]): Promise<Session> {
   const session = await requireSession();
   if (!roles.includes(session.profile.role)) redirect("/");
+  return session;
+}
+
+// For task, register and record pages: new starters wait for a role (unless
+// the system admin lets them use tasks).
+export async function requireTaskAccess(): Promise<Session> {
+  const session = await requireSession();
+  if (session.profile.role === "new_starter" && !(await getPeopleRules()).newStarterTasks) redirect("/");
   return session;
 }
 

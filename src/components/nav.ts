@@ -5,9 +5,22 @@ import { seesDashboard } from "@/lib/dashboard";
 export type NavItem = { href: string; label: string };
 export type NavGroup = { heading?: string; items: NavItem[] };
 
-export function navFor(role: Role, features: Record<string, boolean>): NavGroup[] {
+export function navFor(role: Role, features: Record<string, boolean>, newStarterTasks = false): NavGroup[] {
   const staffAdmin = role === "staff_admin" || role === "system_admin";
   const groups: NavGroup[] = [];
+
+  // New starters: just their welcome page and account until they have a role.
+  if (role === "new_starter" && !newStarterTasks) {
+    return [
+      { items: [{ href: "/", label: "Home" }] },
+      {
+        items: [
+          { href: "/account", label: "My account" },
+          { href: "/about", label: "About" },
+        ],
+      },
+    ];
+  }
 
   const home: NavItem[] = seesDashboard(role)
     ? [
