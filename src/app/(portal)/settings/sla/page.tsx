@@ -30,7 +30,7 @@ export default async function SlaPage() {
     <>
       <PageHeader
         title="Due dates (SLA)"
-        intro="New tasks get a due date from their priority. People can still pick another date. Each register can set its own in its Set up page. Reminders and overdue alerts go out by bell and email: a day before, on the day, to the team leader once it's overdue, and to managers (marked escalated) after a few days."
+        intro="New tasks get a due date from their priority. People can still pick another date. Each register can set its own in its Set up page. Reminders show in the bell a day before and on the day. Emails go out only when a task is overdue (to the person and their team leader) or escalated (to managers, after a few days)."
       />
       <Card className="max-w-3xl px-5 py-2">
         {ordered.map((s) => (

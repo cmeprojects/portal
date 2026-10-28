@@ -59,12 +59,16 @@ select test.ok(not exists (select 1 from public.task_alerts a join public.profil
 select test.ok((select count(*) from public.email_outbox where template = 'overdue_summary') = 1
                and (select jsonb_array_length(data -> 'tasks') from public.email_outbox where template = 'overdue_summary') = 3,
   'one morning summary to the manager, listing the three overdue tasks');
-select test.ok((select count(*) from public.email_outbox where template like 'task_%') = (select count(*) from public.task_alerts),
-  'one email per alert');
+select test.ok((select count(*) from public.email_outbox where template like 'task_%')
+               = (select count(*) from public.task_alerts where step in ('overdue', 'escalated')),
+  'one email per overdue or escalated alert');
+select test.ok(not exists (select 1 from public.email_outbox where template in ('task_reminder', 'task_due_today')),
+  'reminders and due today go to the bell only, not email');
 
 -- Running again sends nothing new.
 select set_config('request.jwt.claims', '{}', false), public.run_due_alerts(timestamptz '2026-11-04 10:00 Australia/Melbourne');
-select test.ok((select count(*) from public.email_outbox) = (select count(*) from public.task_alerts) + 1, 'running again sends nothing twice');
+select test.ok((select count(*) from public.email_outbox)
+               = (select count(*) from public.task_alerts where step in ('overdue', 'escalated')) + 1, 'running again sends nothing twice');
 
 -- The bell.
 select test.act_as('lead@example.com');

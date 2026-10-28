@@ -197,5 +197,5 @@ host.
 Rules: a reminder the day before (to the person), on the due date (them and
 helpers), overdue (them and their team leaders, or managers if there's no
 leader), and after 3 days overdue the managers are told and the task is marked
-escalated. Each step is sent once per due date. Managers get one summary email
+escalated. Reminders and due today show in the bell only; emails go out only when a task is overdue or escalated. Each step is sent once per due date. Managers get one summary email
 each weekday from 7am. With "weekdays only" on, nothing is sent at weekends.
