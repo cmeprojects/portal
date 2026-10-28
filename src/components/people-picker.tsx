@@ -11,15 +11,17 @@ export function PeopleChecklist({
   name,
   people,
   exclude = [],
+  initial = [],
   label,
 }: {
   name: string;
   people: Person[];
   exclude?: string[];
+  initial?: string[];
   label: string;
 }) {
   const [query, setQuery] = useState("");
-  const [chosen, setChosen] = useState<string[]>([]);
+  const [chosen, setChosen] = useState<string[]>(initial);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return people.filter((p) => !exclude.includes(p.id) && (!q || `${p.name} ${p.detail}`.toLowerCase().includes(q)));

@@ -3,7 +3,7 @@
 
 import { useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
-import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { ROLE_LABELS, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
 import { invitePerson, resendInvite, resetTwoFactor, setActive, updatePerson } from "./actions";
 
@@ -15,12 +15,21 @@ function Result({ state }: { state: FormState }) {
   return null;
 }
 
-function RoleOptions({ roles }: { roles: Role[] }) {
-  return roles.map((r) => (
-    <option key={r} value={r}>
-      {ROLE_LABELS[r]}
-    </option>
-  ));
+// Job titles grouped under their access level, then the plain access level.
+function RoleOptions({ roles, titles }: { roles: Role[]; titles: JobTitle[] }) {
+  return roles.map((r) => {
+    const mine = titles.filter((t) => t.access_level === r && t.active);
+    return (
+      <optgroup key={r} label={ROLE_LABELS[r]}>
+        {mine.map((t) => (
+          <option key={t.id} value={roleChoiceValue(r, t.id)}>
+            {t.name}
+          </option>
+        ))}
+        <option value={roleChoiceValue(r, null)}>{mine.length ? `${ROLE_LABELS[r]} (no job title)` : ROLE_LABELS[r]}</option>
+      </optgroup>
+    );
+  });
 }
 
 function TeamOptions({ teams }: { teams: Team[] }) {
@@ -36,12 +45,12 @@ function TeamOptions({ teams }: { teams: Team[] }) {
   );
 }
 
-export function InviteForm({ roles, teams }: { roles: Role[]; teams: Team[] }) {
+export function InviteForm({ roles, titles, teams }: { roles: Role[]; titles: JobTitle[]; teams: Team[] | null }) {
   const [state, action, pending] = useActionState(invitePerson, null);
   return (
     <form action={action} className="flex flex-col gap-4">
       <Result state={state} />
-      <div className="grid gap-4 md:grid-cols-[2fr_3fr_1.4fr_1.4fr_auto] md:items-end">
+      <div className={`grid gap-4 md:items-end ${teams ? "md:grid-cols-[2fr_3fr_1.4fr_1.4fr_auto]" : "md:grid-cols-[2fr_3fr_1.6fr_auto]"}`}>
         <Field label="Full name" htmlFor="inv-name">
           <input id="inv-name" name="full_name" required placeholder="e.g. Jordan Lee" className={inputClass} />
         </Field>
@@ -49,15 +58,17 @@ export function InviteForm({ roles, teams }: { roles: Role[]; teams: Team[] }) {
           <input id="inv-email" name="email" type="email" required placeholder="name@gmail.com" className={inputClass} />
         </Field>
         <Field label="Role" htmlFor="inv-role">
-          <select id="inv-role" name="role" defaultValue="support_worker" className={inputClass}>
-            <RoleOptions roles={roles} />
+          <select id="inv-role" name="role" defaultValue={roleChoiceValue("support_worker", null)} className={inputClass}>
+            <RoleOptions roles={roles} titles={titles} />
           </select>
         </Field>
-        <Field label="Team" htmlFor="inv-team">
-          <select id="inv-team" name="team_id" defaultValue="" className={inputClass}>
-            <TeamOptions teams={teams} />
-          </select>
-        </Field>
+        {teams ? (
+          <Field label="Team" htmlFor="inv-team" hint="For support workers and team leaders.">
+            <select id="inv-team" name="team_id" defaultValue="" className={inputClass}>
+              <TeamOptions teams={teams} />
+            </select>
+          </Field>
+        ) : null}
         <Button className="h-12" disabled={pending}>
           {pending ? "Sending…" : "Send invite"}
         </Button>
@@ -71,7 +82,7 @@ export type PersonRow = {
   full_name: string;
   email: string;
   role: Role;
-  team_id: string | null;
+  job_title_id: string | null;
   active: boolean;
   joined: boolean;
   isMe: boolean;
@@ -81,13 +92,16 @@ export type PersonRow = {
 export function PersonEditor({
   person,
   roles,
-  teams,
+  titles,
   canResetMfa,
+  needsApproval,
 }: {
   person: PersonRow;
   roles: Role[];
-  teams: Team[];
+  titles: JobTitle[];
   canResetMfa: boolean;
+  // Staff admins' role changes go to a manager for approval.
+  needsApproval: boolean;
 }) {
   const [saveState, saveAction, saving] = useActionState(updatePerson, null);
   const [activeState, activeAction, toggling] = useActionState(setActive, null);
@@ -98,27 +112,30 @@ export function PersonEditor({
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-4">
       <Result state={saveState ?? activeState ?? inviteState ?? mfaState} />
-      <form action={saveAction} className="flex flex-wrap items-end gap-3">
-        <input type="hidden" name="id" value={person.id} />
-        <div className="min-w-44 flex-1">
-          <Field label="Role" htmlFor={`role-${person.id}`}>
-            <select id={`role-${person.id}`} name="role" defaultValue={person.role} disabled={person.isMe} className={inputClass}>
-              <RoleOptions roles={choices} />
-            </select>
-          </Field>
-        </div>
-        <div className="min-w-44 flex-1">
-          <Field label="Team" htmlFor={`team-${person.id}`}>
-            <select id={`team-${person.id}`} name="team_id" defaultValue={person.team_id ?? ""} className={inputClass}>
-              <TeamOptions teams={teams} />
-            </select>
-          </Field>
-        </div>
-        {person.isMe ? <input type="hidden" name="role" value={person.role} /> : null}
-        <Button className="h-12" disabled={saving}>
-          {saving ? "Saving…" : "Save"}
-        </Button>
-      </form>
+      {person.isMe ? (
+        <p className="text-sm text-muted">You can&apos;t change your own role. Ask a manager.</p>
+      ) : (
+        <form action={saveAction} className="flex flex-wrap items-end gap-3">
+          <input type="hidden" name="id" value={person.id} />
+          <div className="min-w-56 flex-1">
+            <Field label="Role" htmlFor={`role-${person.id}`}>
+              <select id={`role-${person.id}`} name="role" defaultValue={roleChoiceValue(person.role, person.job_title_id)} className={inputClass}>
+                <RoleOptions roles={choices} titles={titles} />
+              </select>
+            </Field>
+          </div>
+          {needsApproval ? (
+            <div className="min-w-60 flex-[2]">
+              <Field label="Reason (optional)" htmlFor={`reason-${person.id}`} hint="Role changes go to a manager to approve.">
+                <input id={`reason-${person.id}`} name="reason" className={inputClass} />
+              </Field>
+            </div>
+          ) : null}
+          <Button className="h-12" disabled={saving}>
+            {saving ? "Saving…" : needsApproval ? "Send for approval" : "Save"}
+          </Button>
+        </form>
+      )}
       <div className="flex flex-wrap gap-2">
         {!person.joined && person.active ? (
           <form action={inviteAction}>

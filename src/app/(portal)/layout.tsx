@@ -69,7 +69,7 @@ async function newTasksForMe(): Promise<BellItem[]> {
           ref: refLabel(prefix, t.ref_number),
           title: t.title,
           kind: f.kind,
-          by: people.find((p) => p.id === f.actor_id)?.name ?? "someone",
+          by: people.find((p) => p.id === f.actor_id)?.name ?? "Admin",
           when: when.format(new Date(f.at)),
         },
       ];

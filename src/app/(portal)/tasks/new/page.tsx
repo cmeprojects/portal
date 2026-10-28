@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import { requireSession } from "@/lib/session";
-import { getTimeZone } from "@/lib/settings";
+import { getSla, getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import { ROLE_LABELS, canTakeTasks } from "@/lib/roles";
 import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
@@ -13,12 +13,13 @@ export const metadata: Metadata = { title: "New task" };
 export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/new">) {
   const { profile, features } = await requireSession();
   const { register } = await searchParams;
-  const [registries, fields, people, assets, timeZone] = await Promise.all([
+  const [registries, fields, people, assets, timeZone, sla] = await Promise.all([
     getRegistries(),
     getFields(),
     getPeople(),
     getAssets(),
     getTimeZone(),
+    getSla(),
   ]);
   const taskRegistries = registries.filter((r) => r.active && r.kind === "tasks");
 
@@ -43,6 +44,8 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
           meId={profile.id}
           today={todayIn(timeZone)}
           initialRegistryId={typeof register === "string" ? register : undefined}
+          sla={sla.days}
+          weekdaysOnly={sla.weekdaysOnly}
         />
       </Card>
     </>

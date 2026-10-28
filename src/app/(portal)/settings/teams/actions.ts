@@ -21,25 +21,42 @@ export async function createTeam(_: FormState, form: FormData): Promise<FormStat
 }
 
 export async function saveTeam(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
   const id = text(form, "id");
   const name = text(form, "name");
   const active = form.get("active") === "on";
-  const leaders = form.getAll("leaders").map(String);
+  const leader = text(form, "leader") || null;
+  const members = [...new Set([...form.getAll("members").map(String), ...(leader ? [leader] : [])])].sort();
   if (!name) return { error: "Give the team a name." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("teams").update({ name, active }).eq("id", id);
+  const { error } = await supabase.from("teams").update({ name, active }).eq("id", id).eq("is_core", false);
   if (error) return { error: friendlyError(error) };
 
-  const { error: clearError } = await supabase.from("team_leaders").delete().eq("team_id", id);
-  if (clearError) return { error: friendlyError(clearError) };
-  if (leaders.length) {
-    const { error: addError } = await supabase
-      .from("team_leaders")
-      .insert(leaders.map((user_id) => ({ team_id: id, user_id })));
-    if (addError) return { error: friendlyError(addError) };
+  const [{ data: current }, { data: currentLeader }] = await Promise.all([
+    supabase.from("team_members").select("user_id").eq("team_id", id),
+    supabase.from("team_leaders").select("user_id").eq("team_id", id).maybeSingle(),
+  ]);
+  const before = (current ?? []).map((m) => m.user_id).sort();
+  const changed = before.join() !== members.join() || (currentLeader?.user_id ?? null) !== leader;
+
+  if (changed) {
+    // Staff admins (HR) send who's in the team to a manager to approve.
+    if (me.role === "staff_admin") {
+      const { error: requestError } = await supabase.rpc("request_team_change", {
+        p_team_id: id,
+        p_members: members,
+        p_leader: leader,
+        p_reason: text(form, "reason"),
+      });
+      if (requestError) return { error: friendlyError(requestError) };
+      revalidatePath(PAGE);
+      return { message: "Saved. The change to who's in the team has gone to a manager for approval." };
+    }
+    const { error: setError } = await supabase.rpc("set_team", { p_team_id: id, p_members: members, p_leader: leader });
+    if (setError) return { error: friendlyError(setError) };
   }
   revalidatePath(PAGE);
+  revalidatePath("/settings/staff");
   return { message: "Saved." };
 }

@@ -5,18 +5,25 @@ import { useActionState, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { PeopleChecklist, type Person } from "@/components/people-picker";
 import { FieldInput, type Option } from "@/components/field-input";
-import { PRIORITIES, PRIORITY_LABELS } from "@/lib/tasks";
+import { PRIORITIES, PRIORITY_LABELS, parseSla, slaDueDate, type Priority, type Sla } from "@/lib/tasks";
 import type { Registry, RegistryField } from "@/lib/registers";
 import { createTask } from "../actions";
 
-export function PriorityPicker({ value = "medium" }: { value?: string }) {
+export function PriorityPicker({ value = "medium", onChange }: { value?: string; onChange?: (p: Priority) => void }) {
   return (
     <fieldset>
       <legend className="mb-1.5 text-sm font-semibold">Priority</legend>
       <div className="flex flex-wrap gap-2">
         {PRIORITIES.map((p) => (
           <label key={p} className="cursor-pointer">
-            <input type="radio" name="priority" value={p} defaultChecked={p === value} className="peer sr-only" />
+            <input
+              type="radio"
+              name="priority"
+              value={p}
+              defaultChecked={p === value}
+              onChange={() => onChange?.(p)}
+              className="peer sr-only"
+            />
             <span className="inline-flex min-h-11 items-center rounded-md border border-field bg-surface px-4 text-sm font-semibold peer-checked:border-brand peer-checked:bg-brand peer-checked:text-brand-fg peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-brand-accent">
               {PRIORITY_LABELS[p]}
             </span>
@@ -35,6 +42,8 @@ export function NewTaskForm({
   meId,
   today,
   initialRegistryId,
+  sla,
+  weekdaysOnly,
 }: {
   registries: Registry[];
   fields: RegistryField[];
@@ -43,6 +52,8 @@ export function NewTaskForm({
   meId: string;
   today: string;
   initialRegistryId?: string;
+  sla: Sla;
+  weekdaysOnly: boolean;
 }) {
   const [state, action, pending] = useActionState(createTask, null);
   // System admins can't take tasks, so they start with the first person in the list.
@@ -51,6 +62,15 @@ export function NewTaskForm({
     registries.find((r) => r.id === initialRegistryId)?.id ?? registries.find((r) => r.is_default)?.id ?? registries[0]?.id ?? "",
   );
   const registry = registries.find((r) => r.id === registryId);
+  const [priority, setPriority] = useState<Priority>("medium");
+  const [reported, setReported] = useState(today);
+  // The due date follows the SLA until someone picks a date themselves.
+  const [due, setDue] = useState("");
+  const [dueTouched, setDueTouched] = useState(false);
+  const effective: Sla = { ...sla, ...parseSla(registry?.sla_days) };
+  const slaDays = effective[priority];
+  const slaDue = slaDays !== undefined ? slaDueDate(reported || today, slaDays, weekdaysOnly) : "";
+  const dueValue = dueTouched ? due : slaDue;
   const custom = fields.filter((f) => f.registry_id === registryId && f.active);
   const personOptions = people.map((p) => ({ id: p.id, label: p.name }));
 
@@ -82,11 +102,45 @@ export function NewTaskForm({
 
       <div className="grid gap-5 md:grid-cols-3">
         <Field label="Date reported" htmlFor="date_reported">
-          <input id="date_reported" name="date_reported" type="date" defaultValue={today} max={today} className={inputClass} />
+          <input
+            id="date_reported"
+            name="date_reported"
+            type="date"
+            value={reported}
+            max={today}
+            onChange={(e) => setReported(e.target.value)}
+            className={inputClass}
+          />
         </Field>
         {registry?.show_due_date !== false ? (
-          <Field label="Due date (optional)" htmlFor="due_date">
-            <input id="due_date" name="due_date" type="date" min={today} className={inputClass} />
+          <Field
+            label="Due date (optional)"
+            htmlFor="due_date"
+            hint={
+              slaDays !== undefined ? (
+                dueTouched ? (
+                  <button type="button" onClick={() => setDueTouched(false)} className="text-brand underline">
+                    Use the SLA again ({slaDays} {weekdaysOnly ? "weekday" : "day"}
+                    {slaDays === 1 ? "" : "s"})
+                  </button>
+                ) : (
+                  `SLA for ${PRIORITY_LABELS[priority]}: ${slaDays} ${weekdaysOnly ? "weekday" : "day"}${slaDays === 1 ? "" : "s"}. You can change it.`
+                )
+              ) : undefined
+            }
+          >
+            <input
+              id="due_date"
+              name="due_date"
+              type="date"
+              min={today}
+              value={dueValue}
+              onChange={(e) => {
+                setDue(e.target.value);
+                setDueTouched(true);
+              }}
+              className={inputClass}
+            />
           </Field>
         ) : null}
         {registry?.show_review_date ? (
@@ -96,7 +150,7 @@ export function NewTaskForm({
         ) : null}
       </div>
 
-      <PriorityPicker />
+      <PriorityPicker onChange={setPriority} />
 
       {custom.length ? (
         // key resets the inputs when the register changes.

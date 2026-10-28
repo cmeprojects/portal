@@ -16,6 +16,8 @@ const SECTIONS = [
     title: "Security",
     intro: "Which roles need two-factor login while it's switched on. System admins always need it.",
   },
+  { prefix: "tasks.", title: "Tasks", intro: "Default due dates by priority. A register can set its own in its Set up page." },
+  { prefix: "region.", title: "Region", intro: "" },
   { prefix: "records.", title: "Records", intro: "Records are never deleted when a feature is switched off." },
 ];
 

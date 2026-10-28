@@ -45,7 +45,7 @@ export async function flushOutbox(taskId?: string): Promise<void> {
   const taskIds = [...new Set(rows.map((r) => r.task_id).filter((x): x is string => Boolean(x)))];
 
   const [{ data: people }, { data: tasks }, { data: events }] = await Promise.all([
-    admin.from("profiles").select("id, full_name, email, active").in("id", peopleIds),
+    admin.from("profiles").select("id, full_name, email, active, role").in("id", peopleIds),
     admin
       .from("tasks")
       .select("id, ref_number, title, description, priority, due_date, registry_id, assigned_to, created_by, registries(name, prefix)")
@@ -56,10 +56,15 @@ export async function flushOutbox(taskId?: string): Promise<void> {
   const extraIds = (tasks ?? []).flatMap((t) => [t.assigned_to, t.created_by]).concat((events ?? []).map((e) => e.actor_id));
   const missing = [...new Set(extraIds)].filter((id) => id && !people?.some((p) => p.id === id));
   const { data: more } = missing.length
-    ? await admin.from("profiles").select("id, full_name, email, active").in("id", missing)
+    ? await admin.from("profiles").select("id, full_name, email, active, role").in("id", missing)
     : { data: [] };
   const everyone = new Map([...(people ?? []), ...(more ?? [])].map((p) => [p.id, p]));
-  const nameOf = (id: string | null | undefined) => (id ? everyone.get(id)?.full_name || everyone.get(id)?.email || "Someone" : "Someone");
+  // System admins are hidden from staff, so their actions show as "Admin".
+  const nameOf = (id: string | null | undefined) => {
+    const p = id ? everyone.get(id) : undefined;
+    if (!p) return "Someone";
+    return p.role === "system_admin" ? "Admin" : p.full_name || p.email;
+  };
 
   for (const row of rows) {
     const to = everyone.get(row.to_user);

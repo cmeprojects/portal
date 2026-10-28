@@ -129,7 +129,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
               const changed = (e.details as { fields?: string[] })?.fields;
               return (
                 <li key={e.id} className="text-sm">
-                  <strong>{e.actor_id ? names.get(e.actor_id) ?? "Someone" : "System"}</strong>{" "}
+                  <strong>{e.actor_id ? names.get(e.actor_id) ?? "Admin" : "System"}</strong>{" "}
                   {e.type === "created" ? "added it" : `changed ${changed?.join(", ") ?? "it"}`}
                   <time dateTime={e.created_at} className="block text-sm text-muted">
                     {when.format(new Date(e.created_at))}

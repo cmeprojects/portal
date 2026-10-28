@@ -74,6 +74,12 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   // Sam creates a task on a phone.
   const sam = await signIn(browser, "sam@example.com", { width: 390, height: 844 });
   await sam.goto(`${BASE}/tasks/new`);
+  const plus = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString("en-CA", { timeZone: "Australia/Melbourne" }); };
+  if ((await sam.inputValue("#due_date")) !== plus(7)) throw new Error("Medium SLA due date: " + (await sam.inputValue("#due_date")));
+  await sam.click("label:has-text('Urgent') >> nth=0");
+  if ((await sam.inputValue("#due_date")) !== plus(1)) throw new Error("Urgent SLA due date: " + (await sam.inputValue("#due_date")));
+  await sam.click("label:has-text('Medium') >> nth=0");
+  step("due date fills in from the SLA (Medium 7 days, Urgent 1 day)");
   await sam.fill("#title", "Check first aid kit expiry dates");
   await sam.selectOption("#registry_id", { label: "Continuous Improvement Register" });
   await sam.click("label:has-text('High') >> nth=0");
@@ -141,6 +147,14 @@ async function signIn(browser, email, viewport = { width: 1280, height: 900 }) {
   await boss.waitForSelector("text=Invite sent to nina@example.com");
   await boss.screenshot({ path: `${OUT}/m2-07-manager-staff.png`, fullPage: true });
   step("manager can open Staff & roles and invite a support worker (only support worker / team leader offered)");
+  await boss.goto(`${BASE}/settings/sla`);
+  await boss.fill("[name=sla_high]", "2");
+  await boss.locator("form:has([name=sla_high]) button:has-text('Save')").click();
+  await boss.waitForSelector("text=Saved.");
+  await boss.goto(`${BASE}/tasks/new`);
+  await boss.click("label:has-text('High') >> nth=0");
+  if ((await boss.inputValue("#due_date")) !== plus(2)) throw new Error("High SLA after change: " + (await boss.inputValue("#due_date")));
+  step("manager changed the SLA for High to 2 days, and new tasks follow it");
   await boss.goto(`${BASE}/tasks/new`);
   const assignees = await boss.locator("#assigned_to option").allTextContents();
   if (assignees.some((t) => t.includes("System admin"))) throw new Error("system admin offered as assignee");

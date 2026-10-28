@@ -23,7 +23,7 @@ values
   ('Office@Example.com', 'Olive Office', 'staff_admin', null),
   ('boss@example.com',   'Morgan Manager', 'manager', null),
   ('lead@example.com',   'Taylor Lead', 'team_leader', null),
-  ('sam@example.com',    'Sam Worker', 'support_worker', (select id from public.teams)),
+  ('sam@example.com',    'Sam Worker', 'support_worker', (select id from public.teams where not is_core)),
   ('kim@example.com',    'Kim Worker', 'support_worker', null);
 
 insert into auth.users (email) values
@@ -31,13 +31,13 @@ insert into auth.users (email) values
   ('sam@example.com'), ('kim@example.com'), ('stranger@example.com');
 
 insert into public.team_leaders (team_id, user_id)
-select t.id, p.id from public.teams t, public.profiles p where p.email = 'lead@example.com';
+select t.id, p.id from public.teams t, public.profiles p where not t.is_core and p.email = 'lead@example.com';
 
 select test.ok((select role = 'staff_admin' and full_name = 'Olive Office' from public.profiles where email = 'office@example.com'),
   'invited person gets the invited role and name (email matched case-insensitively)');
 select test.ok((select accepted_at is not null from public.invitations where email = 'sam@example.com'),
   'invitation is marked accepted');
-select test.ok((select team_id is not null from public.profiles where email = 'sam@example.com'),
+select test.ok(exists (select 1 from public.team_members m join public.profiles p on p.id = m.user_id where p.email = 'sam@example.com'),
   'invited person joins the invited team');
 select test.ok((select not active from public.profiles where email = 'stranger@example.com'),
   'someone with no invitation starts deactivated');
@@ -63,7 +63,7 @@ reset role;
 select test.act_as('sam@example.com', 'aal1');
 set role authenticated;
 select test.ok((select count(*) from public.registries) = 8, 'support worker sees registries');
-select test.ok((select count(*) from public.profiles) = 7, 'support worker sees colleagues (for assigning tasks)');
+select test.ok((select count(*) from public.profiles) = 6, 'support worker sees colleagues (for assigning tasks), but not the system admin');
 select test.refused($$update public.profiles set role = 'manager' where email = 'sam@example.com'$$,
   'support worker cannot promote themselves');
 select test.refused($$update public.profiles set active = false where email = 'kim@example.com'$$,
@@ -94,9 +94,9 @@ select test.ok((select mfa_required and not mfa_ok from public.my_access()),
 reset role;
 select test.act_as('boss@example.com', 'aal2');
 set role authenticated;
-select test.ok((select count(*) from public.profiles) = 7, 'manager with two-factor sees colleagues');
-select test.refused($$update public.profiles set role = 'manager' where email = 'kim@example.com'$$,
-  'manager cannot change roles');
+select test.ok((select count(*) from public.profiles) = 6, 'manager with two-factor sees colleagues, but not the system admin');
+select test.refused($$update public.profiles set role = 'staff_admin' where email = 'boss@example.com'$$,
+  'manager cannot change their own role');
 select test.refused($$update public.app_settings set value = '"Hacked"' where key = 'brand.company_name'$$,
   'manager cannot change system settings');
 reset role;
@@ -113,7 +113,8 @@ reset role;
 
 select test.act_as('office@example.com');
 set role authenticated;
-update public.profiles set role = 'team_leader' where email = 'kim@example.com';
+select test.refused($$update public.profiles set role = 'team_leader' where email = 'kim@example.com'$$,
+  'a staff admin cannot change a role without a manager''s approval');
 update public.profiles set active = false where email = 'kim@example.com';
 insert into public.invitations (email, full_name, role) values ('new@example.com', 'New Person', 'manager');
 insert into public.registries (name) values ('Test registry');
@@ -137,9 +138,9 @@ select test.refused($$select public.log_admin_action('anything', (select id from
   'only known admin actions can be logged');
 reset role;
 
-select test.ok((select role = 'team_leader' and not active and deactivated_at is not null
+select test.ok((select role = 'support_worker' and not active and deactivated_at is not null
                   from public.profiles where email = 'kim@example.com'),
-  'staff admin changed a role and deactivated someone');
+  'staff admin deactivated someone (and the role stayed the same)');
 
 -- Deactivated people lose access straight away.
 select test.act_as('kim@example.com');
@@ -170,7 +171,7 @@ select test.ok((select count(*) from public.audit_log where action = 'setting_ch
   'setting change was logged');
 select test.ok((select count(*) from public.audit_log where action = 'invite_resent') = 1,
   'resent invite was logged');
-select test.ok((select count(*) from public.audit_log where action = 'role_changed') = 2,
+select test.ok((select count(*) from public.audit_log where action = 'role_changed') = 1,
   'role changes were logged');
 select test.refused($$update public.audit_log set action = 'nothing'$$, 'system admin cannot edit the audit log');
 select test.refused($$delete from public.audit_log$$, 'system admin cannot delete the audit log');

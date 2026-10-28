@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { CHOICE_COLOUR_CLASS, CHOICE_COLOUR_LABELS, CHOICE_COLOURS, FIELD_TYPE_LABELS, FIELD_TYPES, type FieldType, type Registry, type RegistryField } from "@/lib/registers";
 import type { FormState } from "@/lib/form";
+import { SlaInputs } from "../system/forms";
 import { addField, createRegistry, saveManagers, saveRegistrySettings, updateField } from "./setup-actions";
 
 const check = "h-5 w-5 accent-[var(--brand-primary)]";
@@ -65,7 +66,7 @@ export function CreateRegistryForm() {
   );
 }
 
-export function RegistrySettingsForm({ registry }: { registry: Registry }) {
+export function RegistrySettingsForm({ registry, companySla }: { registry: Registry; companySla: Record<string, number> }) {
   const [state, action, pending] = useActionState(saveRegistrySettings, null);
   const tasks = registry.kind === "tasks";
   return (
@@ -98,6 +99,11 @@ export function RegistrySettingsForm({ registry }: { registry: Registry }) {
         <div className="flex flex-col gap-1 rounded-lg border border-line p-4">
           <Toggle name="requires_approval" label="Manager approval needed to close tasks" defaultChecked={registry.requires_approval} />
           <Toggle name="show_due_date" label="Ask for a due date" defaultChecked={registry.show_due_date} />
+          <div className="flex flex-col gap-2 pb-2 pl-8">
+            <p className="text-sm font-medium">This register&apos;s SLA (optional)</p>
+            <p className="-mt-1 text-xs text-muted">Days to finish, by priority. Leave blank to use the company&apos;s (shown in grey).</p>
+            <SlaInputs value={registry.sla_days} prefix="rsla_" placeholder={companySla} />
+          </div>
           <Toggle name="show_review_date" label="Show a review date" defaultChecked={registry.show_review_date} />
           <div className="pl-8">
             <Field label="Review date label" htmlFor="s-review">

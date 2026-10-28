@@ -50,7 +50,7 @@ export async function registerTable(
   const supabase = await createClient();
   const names = new Map(people.map((p) => [p.id, p.name]));
   const assetNames = new Map(assets.map((a) => [a.id, a.label]));
-  const lookup = { person: (id: string) => names.get(id) ?? "Former staff member", asset: (id: string) => assetNames.get(id) ?? "Unknown item" };
+  const lookup = { person: (id: string) => names.get(id) ?? "Admin", asset: (id: string) => assetNames.get(id) ?? "Unknown item" };
   const shown = fields.filter((f) => f.registry_id === registry.id && f.active);
   const q = filter.q.replace(/[%_,()]/g, " ");
 

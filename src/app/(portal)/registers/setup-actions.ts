@@ -8,6 +8,7 @@ import { requireSession } from "@/lib/session";
 import { friendlyError } from "@/lib/db-error";
 import { CHOICE_COLOURS, FIELD_TYPES, keyFromLabel, type ChoiceColour, type FieldType } from "@/lib/registers";
 import { text, type FormState } from "@/lib/form";
+import { slaFromForm } from "@/lib/tasks";
 
 const PREFIX = /^[A-Z0-9]{2,6}$/;
 const on = (form: FormData, name: string) => form.get(name) === "on";
@@ -84,6 +85,8 @@ export async function saveRegistrySettings(_: FormState, form: FormData): Promis
       show_outcome: on(form, "show_outcome"),
       outcome_label: text(form, "outcome_label") || "Outcome / actions taken",
       active: on(form, "active"),
+      // Blank everywhere = use the company's SLA.
+      sla_days: Object.keys(slaFromForm(form, "rsla_")).length ? slaFromForm(form, "rsla_") : null,
     })
     .eq("id", id)
     .select("id");

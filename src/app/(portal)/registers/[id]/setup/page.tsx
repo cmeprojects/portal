@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getFields, getPeople, getRegistries } from "@/lib/register-data";
 import { FIELD_TYPE_LABELS } from "@/lib/registers";
+import { getSla } from "@/lib/settings";
 import { Badge, Card, Notice, PageHeader } from "@/components/ui";
 import { AddFieldForm, EditFieldForm, ManagersForm, RegistrySettingsForm } from "../../setup-forms";
 import { moveField } from "../../setup-actions";
@@ -22,10 +23,11 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
   const { data: manages } = await supabase.rpc("manages_registry", { p_registry_id: id });
   if (!manages) redirect(`/registers/${id}`);
 
-  const [allFields, people, { data: managers }] = await Promise.all([
+  const [allFields, people, { data: managers }, sla] = await Promise.all([
     getFields(),
     getPeople(),
     supabase.from("registry_managers").select("user_id").eq("registry_id", id),
+    getSla(),
   ]);
   const fields = allFields.filter((f) => f.registry_id === id);
   const candidates = people.filter((p) => p.active && (p.role === "manager" || p.role === "system_admin")).map((p) => ({ id: p.id, label: p.name }));
@@ -41,7 +43,7 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
       <div className="grid items-start gap-4 xl:grid-cols-2">
         <Card className="p-5">
           <h2 className="mb-4 heading-sm">Settings</h2>
-          <RegistrySettingsForm registry={registry} />
+          <RegistrySettingsForm registry={registry} companySla={sla.days as Record<string, number>} />
         </Card>
         <Card className="p-5">
           <h2 className="mb-1 heading-sm">Managers</h2>

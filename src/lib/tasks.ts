@@ -32,6 +32,50 @@ export const PRIORITY_CLASS: Record<Priority, string> = {
 
 export const DONE: Status[] = ["completed", "closed"];
 
+// Days to finish a task, by priority. Missing priorities have no default.
+export type Sla = Partial<Record<Priority, number>>;
+
+export function parseSla(value: unknown): Sla {
+  const out: Sla = {};
+  if (value && typeof value === "object") {
+    for (const p of PRIORITIES) {
+      const n = (value as Record<string, unknown>)[p];
+      if (typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 365) out[p] = n;
+    }
+  }
+  return out;
+}
+
+// Days per priority from form inputs named <prefix><priority>; blanks are left out.
+export function slaFromForm(form: FormData, prefix: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const p of PRIORITIES) {
+    const v = form.get(`${prefix}${p}`);
+    const raw = typeof v === "string" ? v.trim() : "";
+    const n = Number(raw);
+    if (raw !== "" && Number.isInteger(n) && n >= 0 && n <= 365) out[p] = n;
+  }
+  return out;
+}
+
+// The SLA due date: start + days, optionally skipping weekends.
+export function slaDueDate(start: string, days: number, weekdaysOnly: boolean): string {
+  const d = new Date(`${start}T00:00:00Z`);
+  if (!weekdaysOnly) {
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+  let left = days;
+  while (left > 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const wd = d.getUTCDay();
+    if (wd !== 0 && wd !== 6) left--;
+  }
+  // A task reported at the weekend with 0 days is still due on a weekday.
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export function isPriority(v: unknown): v is Priority {
   return typeof v === "string" && (PRIORITIES as readonly string[]).includes(v);
 }

@@ -7,8 +7,8 @@
 \o /dev/null
 
 insert into auth.users (email) values ('owner@example.com');
-insert into public.invitations (email, full_name, role) values ('boss@example.com', 'Morgan', 'manager');
-insert into auth.users (email) values ('boss@example.com');
+insert into public.invitations (email, full_name, role) values ('boss@example.com', 'Morgan', 'manager'), ('sam@example.com', 'Sam', 'support_worker');
+insert into auth.users (email) values ('boss@example.com'), ('sam@example.com');
 
 select test.act_as('boss@example.com', 'aal1');
 set role authenticated;

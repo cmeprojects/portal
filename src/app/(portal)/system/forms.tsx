@@ -4,6 +4,29 @@
 import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, ROLES } from "@/lib/roles";
+import { PRIORITIES, PRIORITY_LABELS } from "@/lib/tasks";
+
+// Days per priority (blank = no default due date for that priority).
+export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Record<string, number> | null; prefix?: string; placeholder?: Record<string, number> }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {PRIORITIES.map((p) => (
+        <label key={p} className="flex flex-col gap-1 text-xs font-medium">
+          {PRIORITY_LABELS[p]} (days)
+          <input
+            type="number"
+            name={`${prefix}${p}`}
+            min={0}
+            max={365}
+            defaultValue={value?.[p] ?? ""}
+            placeholder={placeholder?.[p] !== undefined ? String(placeholder[p]) : "None"}
+            className={`${inputClass} w-28`}
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
 import { saveSetting, setFeature } from "./actions";
 
 export function FeatureSwitch({ feature }: { feature: { key: string; label: string; description: string | null; enabled: boolean } }) {
@@ -47,7 +70,9 @@ export function FeatureSwitch({ feature }: { feature: { key: string; label: stri
 
 export type SettingRow = { key: string; label: string; description: string | null; value: unknown };
 
-export function kindOf(key: string): "color" | "number" | "roles" | "text" {
+export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sla" | "yesno" {
+  if (key === "tasks.sla_days") return "sla";
+  if (key === "tasks.sla_weekdays_only") return "yesno";
   if (key.startsWith("brand.color_")) return "color";
   if (key === "security.mfa_required_roles") return "roles";
   if (key.endsWith("_days") || key.endsWith("_years")) return "number";
@@ -68,7 +93,14 @@ export function SettingForm({ setting }: { setting: SettingRow }) {
       </label>
       {setting.description ? <p className="-mt-1 text-sm text-muted">{setting.description}</p> : null}
       <div className="flex flex-wrap items-center gap-3">
-        {kind === "roles" ? (
+        {kind === "sla" ? (
+          <SlaInputs value={setting.value as Record<string, number>} />
+        ) : kind === "yesno" ? (
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="checkbox" name="value" value="true" defaultChecked={setting.value === true} className="h-5 w-5 accent-[var(--brand-primary)]" />
+            Yes
+          </label>
+        ) : kind === "roles" ? (
           <fieldset className="flex flex-wrap gap-x-5">
             <legend className="sr-only">{setting.label}</legend>
             {ROLES.filter((r) => r !== "system_admin").map((r) => (

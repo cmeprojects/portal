@@ -100,7 +100,7 @@ select test.ok(test.visible('sam@example.com') = 1, 'support worker sees only th
 select test.ok(test.visible('ali@example.com') = 1, 'helper sees the task they help on');
 select test.ok(test.visible('kim@example.com') = 3, 'creator sees tasks they created and tasks assigned to them');
 select test.ok(test.visible('lead@example.com') = 1, 'team leader sees tasks of support workers in their team');
-select test.ok(test.visible('boss@example.com') = 2, 'manager sees every task in their registry and nothing else');
+select test.ok(test.visible('boss@example.com') = 3, 'manager sees every team''s tasks');
 select test.ok(test.visible('office@example.com') = 0, 'staff admin does not see task content');
 select test.ok(test.visible('owner@example.com') = 3, 'system admin sees every task');
 

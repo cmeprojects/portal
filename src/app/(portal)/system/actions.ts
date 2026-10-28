@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/session";
 import { friendlyError } from "@/lib/db-error";
 import { isRole } from "@/lib/roles";
+import { slaFromForm } from "@/lib/tasks";
 import { text, type FormState } from "@/lib/form";
 
 export async function setFeature(_: FormState, form: FormData): Promise<FormState> {
@@ -29,6 +30,10 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
       const n = Number(raw);
       return Number.isInteger(n) && n >= 0 && n <= 1000 ? { value: n } : { error: "Enter a whole number." };
     }
+    case "sla":
+      return { value: slaFromForm(form, "sla_") };
+    case "yesno":
+      return { value: form.get("value") === "true" };
     case "roles": {
       const roles = form.getAll("value").map(String).filter(isRole);
       return { value: roles };
@@ -39,14 +44,16 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
 }
 
 export async function saveSetting(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(["system_admin"]);
   const key = text(form, "key");
+  // Managers can change the SLA; everything else is for system admins.
+  await requireRole(key.startsWith("tasks.sla") ? ["manager", "system_admin"] : ["system_admin"]);
   const { value, error: problem } = parse(text(form, "kind"), form);
   if (problem) return { error: problem };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("app_settings").update({ value }).eq("key", key);
+  const { data, error } = await supabase.from("app_settings").update({ value }).eq("key", key).select("key");
   if (error) return { error: friendlyError(error) };
+  if (!data?.length) return { error: "You don't have permission to change this setting." };
   revalidatePath("/", "layout");
   return { message: "Saved." };
 }

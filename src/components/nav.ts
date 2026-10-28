@@ -29,6 +29,12 @@ export function navFor(role: Role, features: Record<string, boolean>): NavGroup[
       items: [
         { href: "/settings/staff", label: "Staff & roles" },
         { href: "/settings/teams", label: "Teams" },
+        ...(role === "manager" || role === "system_admin"
+          ? [
+              { href: "/settings/roles", label: "Roles" },
+              { href: "/settings/sla", label: "Due dates (SLA)" },
+            ]
+          : []),
       ],
     });
   }

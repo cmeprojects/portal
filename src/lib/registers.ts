@@ -88,10 +88,12 @@ export type Registry = {
   show_outcome: boolean;
   outcome_label: string;
   sort_order: number;
+  // The register's own SLA days by priority (null = the company's).
+  sla_days: Record<string, number> | null;
 };
 
 export const REGISTRY_COLUMNS =
-  "id, name, description, kind, prefix, requires_approval, active, is_default, title_label, description_label, show_due_date, show_review_date, review_label, show_outcome, outcome_label, sort_order";
+  "id, name, description, kind, prefix, requires_approval, active, is_default, title_label, description_label, show_due_date, show_review_date, review_label, show_outcome, outcome_label, sort_order, sla_days";
 
 export const FIELD_COLUMNS = "id, registry_id, key, label, type, required, options, help, sort_order, active, option_colors";
 

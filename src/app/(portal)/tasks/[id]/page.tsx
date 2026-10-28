@@ -106,7 +106,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   const fields = allFields.filter((f) => f.registry_id === registry.id);
   const names = new Map(people.map((p) => [p.id, p.name]));
   const assetNames = new Map(assets.map((a) => [a.id, a.label]));
-  const nameOf = (uid: string | null) => (uid ? names.get(uid) ?? "Former staff member" : "System");
+  const nameOf = (uid: string | null) => (uid ? names.get(uid) ?? "Admin" : "System");
   const helperIds = (helpers ?? []).map((h) => h.user_id);
   const today = todayIn(timeZone);
   const due = dueState(task.due_date, today, task.status);
@@ -306,7 +306,10 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
             </div>
             <div>
               <Label>Register managers</Label>
-              <dd>{(managers ?? []).length ? (managers ?? []).map((m) => nameOf(m.user_id)).join(", ") : "None yet"}</dd>
+              <dd>
+                {/* System admins are hidden from staff, so only people you can see are listed. */}
+                {(managers ?? []).filter((m) => names.has(m.user_id)).map((m) => nameOf(m.user_id)).join(", ") || "None yet"}
+              </dd>
             </div>
             <div>
               <Label>Date reported</Label>
