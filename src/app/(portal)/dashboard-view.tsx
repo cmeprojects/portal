@@ -18,6 +18,7 @@ import {
   type Status,
 } from "@/lib/tasks";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
+import { OngoingTable } from "./ongoing-table";
 
 type Row = {
   id: string;
@@ -271,43 +272,25 @@ export async function DashboardView({ params }: { params: Record<string, string 
         {sorted.length === 0 ? (
           <p className="px-5 py-5 text-sm text-muted">No ongoing tasks match.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="text-left text-xs tracking-wider text-muted uppercase">
-                  {["Ref.", "Task", "Register", "Looked after by", "Priority", "Status", "Due"].map((h) => (
-                    <th key={h} scope="col" className="px-4 py-3 font-medium whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((t) => {
-                  const due = dueState(t.due_date, today, t.status);
-                  return (
-                    <tr key={t.id} className="border-t border-line hover:bg-page">
-                      <td className="px-4 py-3 whitespace-nowrap text-muted">{ref(t)}</td>
-                      <td className="min-w-56 px-4 py-3">
-                        <Link href={`/tasks/${t.id}`} className="font-semibold hover:text-brand">
-                          {t.title}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-muted">{regOf.get(t.registry_id)?.name}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{nameOf.get(t.assigned_to)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${PRIORITY_CLASS[t.priority]}`}>{PRIORITY_LABELS[t.priority]}</span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">{STATUS_LABELS[t.status]}</td>
-                      <td className={`px-4 py-3 whitespace-nowrap ${due === "overdue" ? "font-semibold text-danger" : due === "today" ? "text-warn" : "text-muted"}`}>
-                        {formatDue(t.due_date, today, t.status)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <OngoingTable
+            rows={sorted.map((t) => {
+              const due = dueState(t.due_date, today, t.status);
+              return {
+                id: t.id,
+                ref: ref(t),
+                title: t.title,
+                register: regOf.get(t.registry_id)?.name ?? "",
+                assignedTo: t.assigned_to,
+                assignee: nameOf.get(t.assigned_to) ?? "",
+                priority: PRIORITY_LABELS[t.priority],
+                priorityClass: PRIORITY_CLASS[t.priority],
+                status: STATUS_LABELS[t.status],
+                due: formatDue(t.due_date, today, t.status),
+                dueClass: due === "overdue" ? "font-semibold text-danger" : due === "today" ? "text-warn" : "text-muted",
+              };
+            })}
+            people={people.filter((p) => p.active && p.role !== "system_admin" && p.role !== "new_starter").map((p) => ({ id: p.id, name: p.name }))}
+          />
         )}
       </Card>
     </>

@@ -26,6 +26,7 @@ import { AddHelperForm } from "./add-helper";
 import { EditDetailsForm } from "./edit-details";
 import { FollowUpForm } from "./follow-up";
 import { AttachmentForm, CommentForm, TaskActions, type Can } from "./workflow";
+import { describeEvent, type TaskEvent } from "@/lib/task-events";
 
 export const metadata: Metadata = { title: "Task" };
 
@@ -153,42 +154,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   };
   const reassignTo = activePeople.filter((p) => p.id !== task.assigned_to).map((p) => ({ id: p.id, name: p.label }));
 
-  function describe(e: { type: string; actor_id: string | null; from_value: string | null; to_value: string | null; comment: string | null }) {
-    switch (e.type) {
-      case "comment":
-        return "commented";
-      case "status_changed": {
-        const to = e.to_value as Status;
-        if (to === "awaiting_approval") return "finished it and sent it for approval";
-        if (to === "escalated") return "escalated it";
-        if (to === "closed") return "closed it";
-        if (to === "completed") return e.from_value === "awaiting_approval" ? "approved it" : "marked it as completed";
-        if (to === "in_progress") {
-          if (e.from_value === "awaiting_approval") return "sent it back";
-          if (e.from_value === "completed" || e.from_value === "closed") return "reopened it";
-          if (e.from_value === "escalated") return "dealt with the escalation";
-          return "started working on it";
-        }
-        return `changed the status to ${STATUS_LABELS[to] ?? to}`;
-      }
-      case "reassigned":
-        return e.to_value === e.actor_id ? `took it over from ${nameOf(e.from_value)}` : `reassigned it from ${nameOf(e.from_value)} to ${nameOf(e.to_value)}`;
-      case "attachment_added":
-        return `added a file: ${e.comment}`;
-      case "created":
-        return `created the task and asked ${nameOf(e.to_value)} to look after it`;
-      case "helper_added":
-        return `added ${nameOf(e.to_value)} as a helper`;
-      case "details_changed":
-        return `updated ${e.comment}`;
-      case "action_added": {
-        const a = (actions ?? []).find((x) => x.id === e.to_value);
-        return a ? `added a follow-up action: ${a.title}` : "added a follow-up action";
-      }
-      default:
-        return e.type.replace(/_/g, " ");
-    }
-  }
+  const describe = (e: TaskEvent) => describeEvent(e, nameOf, (aid) => (actions ?? []).find((x) => x.id === aid)?.title);
+
 
   return (
     <>
