@@ -257,5 +257,21 @@ set role authenticated;
 select test.ok((select count(*) from public.my_request_updates()) = 0, 'only the requester is told');
 reset role;
 
+-- The last manager stays.
+select set_config('request.jwt.claims', '{}', false);
+update public.profiles set active = false where role = 'manager' and email <> 'boss@example.com';
+select test.act_as('office@example.com');
+set role authenticated;
+select test.refused($$update public.profiles set active = false where email = 'boss@example.com'$$,
+  'a staff admin cannot deactivate the only manager');
+select test.refused($$select public.request_role_change(test.pid('boss@example.com'), 'support_worker')$$,
+  'nor ask to change their role');
+reset role;
+select test.act_as('owner@example.com');
+set role authenticated;
+update public.profiles set active = false where email = 'boss@example.com';
+reset role;
+select test.ok((select not active from public.profiles where email = 'boss@example.com'), 'the system admin can, if really needed');
+
 \o
 \echo 'All manager tests passed.'

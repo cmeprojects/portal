@@ -73,6 +73,8 @@ export type PersonRow = {
   active: boolean;
   // New starters only: what's still missing from onboarding (empty = done).
   missing: string[] | null;
+  // The only active manager: only the system admin can change or deactivate them.
+  lastManager: boolean;
   joined: boolean;
   isMe: boolean;
   editable: boolean;
@@ -110,6 +112,10 @@ export function PersonEditor({
       <Result state={saveState ?? activeState ?? inviteState ?? mfaState} />
       {person.isMe ? (
         <p className="text-sm text-muted">You can&apos;t change your own role. Ask a manager.</p>
+      ) : person.lastManager && !canResetMfa ? (
+        <p className="text-sm text-muted">
+          They&apos;re the only manager, so their role can&apos;t change and they can&apos;t be deactivated. Add another manager first.
+        </p>
       ) : person.role === "new_starter" && person.missing?.length ? (
         <ConditionalRoleForm person={person} roles={offered.filter((r) => r !== "new_starter")} titles={titles} teams={teams} isManager={isManager} />
       ) : (
@@ -147,7 +153,7 @@ export function PersonEditor({
             <Button variant="outline" disabled={resetting}>Reset two-factor login</Button>
           </form>
         ) : null}
-        {!person.isMe ? (
+        {!person.isMe && !(person.lastManager && !canResetMfa) ? (
           <form
             action={activeAction}
             onSubmit={(e) => {

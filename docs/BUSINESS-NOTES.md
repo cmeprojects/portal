@@ -64,3 +64,12 @@ repairs). Usually not needed for General tasks or simple admin jobs.
 
 **What staff see.** "Finished: send for approval". The manager gets a bell
 and an email. If sent back, the person gets the reason and carries on.
+
+## Business rule: there is always at least one manager
+
+When only one active manager is left, staff admins and managers can't
+deactivate them or change their role, and a staff admin can't even send that
+request. This stops the organisation being left with nobody who can approve
+work, change roles or handle escalations. Add another manager first. The
+system admin can still make the change if it's really needed (for example,
+the only manager has left the organisation).

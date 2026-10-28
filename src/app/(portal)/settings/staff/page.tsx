@@ -53,6 +53,7 @@ export default async function StaffPage() {
       .order("requested_at"),
   ]);
   const titles = (titleRows ?? []) as JobTitle[];
+  const activeManagers = (people ?? []).filter((p) => p.role === "manager" && p.active).length;
   // New starters: what's still missing from onboarding.
   const missingFor = new Map(
     await Promise.all(
@@ -144,6 +145,7 @@ export default async function StaffPage() {
             role: p.role as Role,
             job_title_id: p.job_title_id,
             missing: missingFor.get(p.id) ?? null,
+            lastManager: p.role === "manager" && p.active && activeManagers === 1,
             joined: joined ? joined.has(p.id) : true,
             isMe: p.id === me.id,
             editable: roles.includes(p.role as Role) || p.id === me.id,
