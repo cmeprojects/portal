@@ -40,7 +40,17 @@ export type RegistryField = {
   active: boolean;
   // Choice -> colour name, for colour-coded dropdowns.
   option_colors: Record<string, ChoiceColour>;
+  // On task forms: required, but only before completing (not when saving).
+  needed_later?: boolean;
 };
+
+export type RequiredWhen = "complete" | "create";
+
+// Task forms: with "before completing", required fields can be left for later.
+export function fieldsForTaskForm(fields: RegistryField[], when: RequiredWhen): RegistryField[] {
+  if (when === "create") return fields;
+  return fields.map((f) => (f.required ? { ...f, required: false, needed_later: true } : f));
+}
 
 export const CHOICE_COLOURS = ["green", "yellow", "orange", "red", "blue", "grey"] as const;
 export type ChoiceColour = (typeof CHOICE_COLOURS)[number];
@@ -88,12 +98,14 @@ export type Registry = {
   show_outcome: boolean;
   outcome_label: string;
   sort_order: number;
+  // The outcome box must be filled in before completing.
+  outcome_required: boolean;
   // The register's own SLA days by priority (null = the company's).
   sla_days: Record<string, number> | null;
 };
 
 export const REGISTRY_COLUMNS =
-  "id, name, description, kind, prefix, requires_approval, active, is_default, title_label, description_label, show_due_date, show_review_date, review_label, show_outcome, outcome_label, sort_order, sla_days";
+  "id, name, description, kind, prefix, requires_approval, active, is_default, title_label, description_label, show_due_date, show_review_date, review_label, show_outcome, outcome_label, sort_order, sla_days, outcome_required";
 
 export const FIELD_COLUMNS = "id, registry_id, key, label, type, required, options, help, sort_order, active, option_colors";
 

@@ -54,8 +54,8 @@ select pg_temp.field('COI', 'conflict_with', 'Person or company with conflict', 
 
 -- Risk Management
 select pg_temp.field('RSK', 'risk_rating', 'Risk rating', 'choice', true, '{Low,Medium,High,Extreme}', 10);
-select pg_temp.field('RSK', 'consequence', 'Consequence of risk', 'long_text', false, '{}', 20);
-select pg_temp.field('RSK', 'effectiveness', 'Effectiveness of controls', 'choice', false,
+select pg_temp.field('RSK', 'consequence', 'Consequence of risk', 'long_text', true, '{}', 20);
+select pg_temp.field('RSK', 'effectiveness', 'Effectiveness of controls', 'choice', true,
   '{"Effective","Partly effective","Not effective","Not yet reviewed"}', 30);
 
 -- Maintenance and Repair
@@ -101,3 +101,6 @@ update public.registry_fields f set option_colors = '{"Low": "green", "Medium": 
   from public.registries r where r.id = f.registry_id and r.prefix = 'RSK' and f.key = 'risk_rating';
 update public.registry_fields f set option_colors = '{"Effective": "green", "Partly effective": "orange", "Not effective": "red", "Not yet reviewed": "grey"}'
   from public.registries r where r.id = f.registry_id and r.prefix = 'RSK' and f.key = 'effectiveness';
+
+-- Outcome boxes (like "Risk reduction strategies") are filled in before completing.
+update public.registries set outcome_required = true where kind = 'tasks' and show_outcome and not is_default;

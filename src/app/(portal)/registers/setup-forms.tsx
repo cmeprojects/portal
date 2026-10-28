@@ -111,6 +111,7 @@ export function RegistrySettingsForm({ registry, companySla }: { registry: Regis
             </Field>
           </div>
           <Toggle name="show_outcome" label="Show an outcome / actions taken box" defaultChecked={registry.show_outcome} />
+          <Toggle name="outcome_required" label="The outcome must be filled in before completing" defaultChecked={registry.outcome_required} />
           <div className="pl-8">
             <Field label="Outcome label" htmlFor="s-outcome">
               <input id="s-outcome" name="outcome_label" defaultValue={registry.outcome_label} className={`${inputClass} max-w-sm`} />

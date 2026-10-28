@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { CHOICES } from "@/lib/setting-choices";
+
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/session";
@@ -32,6 +34,8 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
     }
     case "sla":
       return { value: slaFromForm(form, "sla_") };
+    case "choice":
+      return CHOICES[text(form, "key")]?.some((c) => c.value === raw) ? { value: raw } : { error: "Choose one of the options." };
     case "yesno":
       return { value: form.get("value") === "true" };
     case "roles": {

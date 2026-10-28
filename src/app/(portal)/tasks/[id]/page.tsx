@@ -4,9 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { getTimeZone } from "@/lib/settings";
+import { getRequiredWhen, getTimeZone } from "@/lib/settings";
 import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
-import { CHOICE_COLOUR_CLASS, choiceColour, formatDate, formatValue, refLabel, type Details } from "@/lib/registers";
+import { CHOICE_COLOUR_CLASS, choiceColour, fieldsForTaskForm, formatDate, formatValue, refLabel, type Details } from "@/lib/registers";
 import {
   DONE,
   PRIORITY_CLASS,
@@ -83,6 +83,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     { data: canEdit },
     { data: canApprove },
     { data: files },
+    { data: missingFields },
+    requiredWhen,
     registries,
     allFields,
     people,
@@ -99,6 +101,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     supabase.rpc("can_edit_task", { p_task_id: id }),
     supabase.rpc("can_approve_task", { p_task_id: id }),
     supabase.from("task_attachments").select("id, file_path, file_name, uploaded_by, created_at").eq("task_id", id).order("created_at"),
+    supabase.rpc("task_missing_fields", { p_task_id: id }),
+    getRequiredWhen(),
     getRegistries(),
     getFields(),
     getPeople(),
@@ -245,7 +249,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
                 <EditDetailsForm
                   task={{ ...task, isAction }}
                   registry={registry}
-                  fields={fields.filter((f) => f.active)}
+                  fields={fieldsForTaskForm(fields.filter((f) => f.active), requiredWhen)}
                   people={activePeople}
                   assets={assets.filter((a) => !a.archived)}
                 />
@@ -354,6 +358,17 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
         {Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && v) ? (
           <Card className="flex flex-col gap-3 p-5 print:hidden">
             <h2 className="heading-sm">What&apos;s next</h2>
+            {(can.complete || can.approve) && (missingFields ?? []).length ? (
+              <div className="rounded-md border border-warn/40 bg-warn-soft/40 p-3 text-sm">
+                <p className="font-semibold">Before {can.completeNeedsApproval ? "sending it for approval" : "completing"}, fill in:</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {(missingFields as string[]).map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+                {canEdit ? <p className="mt-1 text-muted">Use Edit details on this page.</p> : null}
+              </div>
+            ) : null}
             <TaskActions taskId={task.id} can={can} people={reassignTo} />
           </Card>
         ) : null}

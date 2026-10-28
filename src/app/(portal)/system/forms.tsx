@@ -4,6 +4,7 @@
 import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, ROLES } from "@/lib/roles";
+import { CHOICES } from "@/lib/setting-choices";
 import { PRIORITIES, PRIORITY_LABELS } from "@/lib/tasks";
 
 // Days per priority (blank = no default due date for that priority).
@@ -70,8 +71,9 @@ export function FeatureSwitch({ feature }: { feature: { key: string; label: stri
 
 export type SettingRow = { key: string; label: string; description: string | null; value: unknown };
 
-export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sla" | "yesno" {
+export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sla" | "yesno" | "choice" {
   if (key === "tasks.sla_days") return "sla";
+  if (key in CHOICES) return "choice";
   if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles"].includes(key)) return "roles";
   if (key.endsWith("_days") || key.endsWith("_years")) return "number";
   if (key === "tasks.sla_weekdays_only" || key === "tasks.sla_manager_summary" || key.startsWith("people.")) return "yesno";
@@ -117,6 +119,14 @@ export function SettingForm({ setting }: { setting: SettingRow }) {
               </label>
             ))}
           </fieldset>
+        ) : kind === "choice" ? (
+          <select id={id} name="value" defaultValue={String(setting.value)} className={`${inputClass} max-w-md`}>
+            {CHOICES[setting.key].map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         ) : kind === "color" ? (
           <input id={id} name="value" type="color" defaultValue={String(setting.value)} className="h-12 w-20 cursor-pointer rounded-md border border-field bg-surface p-1" />
         ) : (

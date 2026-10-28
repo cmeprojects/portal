@@ -64,7 +64,11 @@ export function EditDetailsForm({
         ? fields.map((f) => <FieldInput key={f.id} field={f} value={task.details[f.key]} people={people} assets={assets} />)
         : null}
       {registry.show_outcome && !task.isAction ? (
-        <Field label={registry.outcome_label} htmlFor="e-outcome" hint="What was done about it. You can fill this in as you go.">
+        <Field
+          label={registry.outcome_required ? `${registry.outcome_label} (needed before completing)` : registry.outcome_label}
+          htmlFor="e-outcome"
+          hint="What was done about it. You can fill this in as you go."
+        >
           <textarea id="e-outcome" name="outcome" rows={4} defaultValue={task.outcome} className={`${inputClass} h-auto py-3`} />
         </Field>
       ) : (

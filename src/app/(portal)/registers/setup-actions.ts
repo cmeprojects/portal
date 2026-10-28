@@ -83,6 +83,7 @@ export async function saveRegistrySettings(_: FormState, form: FormData): Promis
       show_review_date: on(form, "show_review_date"),
       review_label: text(form, "review_label") || "Next review date",
       show_outcome: on(form, "show_outcome"),
+      outcome_required: on(form, "show_outcome") && on(form, "outcome_required"),
       outcome_label: text(form, "outcome_label") || "Outcome / actions taken",
       active: on(form, "active"),
       // Blank everywhere = use the company's SLA.

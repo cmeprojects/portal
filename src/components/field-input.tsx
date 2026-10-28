@@ -22,7 +22,11 @@ export function FieldInput({
 }) {
   const id = `f-${field.registry_id.slice(0, 8)}-${field.key}`;
   const name = `f_${field.key}`;
-  const label = field.required ? field.label : `${field.label} (optional)`;
+  const label = field.required
+    ? field.label
+    : field.needed_later
+      ? `${field.label} (needed before completing)`
+      : `${field.label} (optional)`;
   const hint = field.help || undefined;
   const str = value === undefined || value === null ? "" : String(value);
 
@@ -87,7 +91,7 @@ export function FieldInput({
     case "choice":
       input = (
         <select id={id} name={name} defaultValue={str} required={field.required} className={inputClass}>
-          <option value="">{field.required ? "Choose one" : "Not set"}</option>
+          <option value="">{field.required ? "Choose one" : field.needed_later ? "Not set yet" : "Not set"}</option>
           {field.options.map((o) => (
             <option key={o} value={o}>
               {o}
@@ -101,7 +105,7 @@ export function FieldInput({
       const list = field.type === "person" ? people : assets;
       input = (
         <select id={id} name={name} defaultValue={str} required={field.required} className={inputClass}>
-          <option value="">{field.required ? "Choose one" : "Not set"}</option>
+          <option value="">{field.required ? "Choose one" : field.needed_later ? "Not set yet" : "Not set"}</option>
           {list.map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}

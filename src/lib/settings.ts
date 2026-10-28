@@ -4,6 +4,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { parseSla, type Sla } from "@/lib/tasks";
 import { isRole, type Role } from "@/lib/roles";
+import type { RequiredWhen } from "@/lib/registers";
 
 export type SlaSettings = { days: Sla; weekdaysOnly: boolean };
 
@@ -13,6 +14,13 @@ export const getSla = cache(async (): Promise<SlaSettings> => {
   const { data } = await supabase.from("app_settings").select("key, value").in("key", ["tasks.sla_days", "tasks.sla_weekdays_only"]);
   const get = (k: string) => data?.find((r) => r.key === k)?.value;
   return { days: parseSla(get("tasks.sla_days")), weekdaysOnly: get("tasks.sla_weekdays_only") === true };
+});
+
+// When required register fields must be filled in (System settings → Tasks).
+export const getRequiredWhen = cache(async (): Promise<RequiredWhen> => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "tasks.required_fields_when").maybeSingle();
+  return data?.value === "create" ? "create" : "complete";
 });
 
 // The company's time zone (System settings → Region).

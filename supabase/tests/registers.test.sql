@@ -81,10 +81,16 @@ select test.ok((select name = 'Everyday tasks' from public.registries where pref
 -- Tasks with custom fields
 -- ---------------------------------------------------------------------------
 
+-- With "when the task is created", required fields are checked straight away.
+update public.app_settings set value = '"create"' where key = 'tasks.required_fields_when';
 select test.act_as('sam@example.com');
 set role authenticated;
 select test.refused($$select public.create_task('Wet floor', test.reg('RSK'), test.pid('kim@example.com'))$$,
-  'a required custom field must be filled in');
+  'a required custom field must be filled in when the setting says so');
+reset role;
+update public.app_settings set value = '"complete"' where key = 'tasks.required_fields_when';
+select test.act_as('sam@example.com');
+set role authenticated;
 select test.refused($$select public.create_task('Wet floor', test.reg('RSK'), test.pid('kim@example.com'),
   p_details => '{"risk_rating": "Catastrophic"}')$$,
   'a dropdown only accepts its own choices');

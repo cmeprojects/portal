@@ -141,5 +141,23 @@ set role authenticated;
 select test.ok((select count(*) from public.task_attachments) = 0, 'others can''t');
 reset role;
 
+-- Required fields are filled in before completing (the default).
+select test.act_as('kim@example.com');
+set role authenticated;
+select public.create_task('Wet floor', (select id from public.registries where prefix = 'RSK'), test.pid('sam@example.com'));
+reset role;
+select test.ok(exists (select 1 from public.tasks where title = 'Wet floor'), 'a task can be created without its required fields');
+select test.ok(public.task_missing_fields(test.tid('Wet floor')) @> array['Risk rating', 'Consequence of risk', 'Effectiveness of controls'],
+  'the missing fields are listed');
+select test.act_as('sam@example.com');
+set role authenticated;
+select test.refused($$select public.set_task_status(test.tid('Wet floor'), 'completed')$$, 'it can''t be completed until they''re filled in');
+select public.update_task_details(test.tid('Wet floor'), 'Wet floor', '', 'medium', null, null, null,
+  'Signs put up and floor dried',
+  '{"risk_rating": "Medium", "consequence": "Someone could slip", "effectiveness": "Effective"}'::jsonb);
+select test.ok(cardinality(public.task_missing_fields(test.tid('Wet floor'))) = 0, 'once filled in, nothing is missing');
+select test.ok(public.set_task_status(test.tid('Wet floor'), 'completed') in ('completed', 'awaiting_approval'), 'then it can be completed (or sent for approval)');
+reset role;
+
 \o
 \echo 'All task workflow tests passed.'
