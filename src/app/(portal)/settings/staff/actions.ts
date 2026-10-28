@@ -28,20 +28,11 @@ export async function invitePerson(_: FormState, form: FormData): Promise<FormSt
   if (!canInvite(me.role, await getPeopleRules())) return { error: "You're not set up to send invites. Ask a staff admin." };
   const fullName = text(form, "full_name");
   const email = text(form, "email").toLowerCase();
-  const teamId = text(form, "team_id") || null;
 
   if (!fullName) return { error: "Enter their full name." };
   if (!EMAIL.test(email)) return { error: "Enter a valid email address." };
 
   const supabase = await createClient();
-  const rules = await getPeopleRules();
-  // With general invites only, everyone joins as a new starter (system admins
-  // can still pick). People who invite but don't manage staff always do.
-  const choice =
-    (rules.generalInvitesOnly && me.role !== "system_admin") || !PEOPLE_MANAGERS.includes(me.role)
-      ? { role: "new_starter" as const, titleId: null }
-      : parseRoleChoice(text(form, "role"), await activeTitles(supabase));
-  if (!choice || !assignableRoles(me.role).includes(choice.role)) return { error: "Choose a role you're allowed to give." };
 
   const { data: existing } = await supabase
     .from("profiles")
@@ -53,18 +44,8 @@ export async function invitePerson(_: FormState, form: FormData): Promise<FormSt
   // The database checks the invitation first (who may invite which role).
   const { data: invitation, error } = await supabase
     .from("invitations")
-    .insert({
-      email,
-      full_name: fullName,
-      role: choice.role,
-      job_title_id: choice.titleId,
-      // Staff admins put new people into teams on the Teams page when team changes need approval.
-      team_id:
-        (choice.role === "support_worker" || choice.role === "team_leader") &&
-        !(me.role === "staff_admin" && rules.staffAdminTeamApproval)
-          ? teamId
-          : null,
-    })
+    // Every invite is general: they join as a new starter with no team.
+    .insert({ email, full_name: fullName, role: "new_starter" })
     .select("id")
     .single();
   if (error) return { error: friendlyError(error, "We couldn't create the invitation.") };

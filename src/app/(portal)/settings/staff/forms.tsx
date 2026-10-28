@@ -39,47 +39,27 @@ function RoleOptions({ roles, titles }: { roles: Role[]; titles: JobTitle[] }) {
   });
 }
 
-function TeamOptions({ teams }: { teams: Team[] }) {
-  return (
-    <>
-      <option value="">No team</option>
-      {teams.map((t) => (
-        <option key={t.id} value={t.id}>
-          {t.name}
-        </option>
-      ))}
-    </>
-  );
-}
-
-export function InviteForm({ roles, titles, teams }: { roles: Role[]; titles: JobTitle[]; teams: Team[] | null }) {
+// A general invite: just their name and email. They join as a new starter,
+// do their onboarding, and get a role and team afterwards.
+export function InviteForm() {
   const [state, action, pending] = useActionState(invitePerson, null);
   return (
     <form action={action} className="flex flex-col gap-4">
       <Result state={state} />
-      <div className={`grid gap-4 md:items-end ${teams ? "md:grid-cols-[2fr_3fr_1.4fr_1.4fr_auto]" : "md:grid-cols-[2fr_3fr_1.6fr_auto]"}`}>
+      <div className="grid gap-4 md:grid-cols-[2fr_3fr_auto] md:items-end">
         <Field label="Full name" htmlFor="inv-name">
           <input id="inv-name" name="full_name" required placeholder="e.g. Jordan Lee" className={inputClass} />
         </Field>
         <Field label="Email" htmlFor="inv-email">
           <input id="inv-email" name="email" type="email" required placeholder="name@gmail.com" className={inputClass} />
         </Field>
-        <Field label="Role" htmlFor="inv-role">
-          <select id="inv-role" name="role" defaultValue={roleChoiceValue("new_starter", null)} className={inputClass}>
-            <RoleOptions roles={roles} titles={titles} />
-          </select>
-        </Field>
-        {teams ? (
-          <Field label="Team" htmlFor="inv-team" hint="For support workers and team leaders.">
-            <select id="inv-team" name="team_id" defaultValue="" className={inputClass}>
-              <TeamOptions teams={teams} />
-            </select>
-          </Field>
-        ) : null}
         <Button className="h-12" disabled={pending}>
           {pending ? "Sending…" : "Send invite"}
         </Button>
       </div>
+      <p className="text-sm text-muted">
+        They&apos;ll get a welcome email and start their onboarding. Set their role and team here once onboarding is done.
+      </p>
     </form>
   );
 }

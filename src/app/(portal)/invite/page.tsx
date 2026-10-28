@@ -21,7 +21,7 @@ export default async function InvitePage() {
         intro="They'll get a welcome email to set up their account and start onboarding. A staff admin sets their role and team afterwards."
       />
       <Card className="p-5">
-        <InviteForm roles={["new_starter"]} titles={[]} teams={null} />
+        <InviteForm />
       </Card>
     </>
   );

@@ -68,7 +68,8 @@ export default async function SystemPage() {
       </Card>
 
       {SECTIONS.map((section) => {
-        const rows = (settings ?? []).filter((s) => s.key.startsWith(section.prefix));
+        // Invites are always general now, so that switch isn't shown.
+        const rows = (settings ?? []).filter((s) => s.key.startsWith(section.prefix) && s.key !== "people.general_invites_only");
         if (!rows.length) return null;
         return (
           <Card key={section.prefix} className="px-5 py-2">

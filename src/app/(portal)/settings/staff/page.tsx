@@ -38,7 +38,7 @@ export default async function StaffPage() {
   const [{ data: people }, { data: teams }, { data: memberships }, { data: titleRows }, joined, { data: requests }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, email, role, job_title_id, active, deactivated_at")
+      .select("id, full_name, email, role, job_title_id, active, deactivated_at, onboarded_at")
       .order("active", { ascending: false })
       .order("full_name"),
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
@@ -73,7 +73,6 @@ export default async function StaffPage() {
   const when = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone: "Australia/Melbourne" });
   const roles = assignableRoles(me.role);
   const rules = await getPeopleRules();
-  const generalOnly = rules.generalInvitesOnly && me.role !== "system_admin";
   // Staff admins send role changes for approval, if the system admin's rules say so.
   const needsApproval = (role: Role) =>
     me.role === "staff_admin" && rules.staffAdminRoleApproval && (role !== "new_starter" || rules.firstRoleApproval);
@@ -134,7 +133,7 @@ export default async function StaffPage() {
       {canInvite(me.role, rules) ? (
       <Card className="p-5">
         <h2 className="mb-4 heading-sm">Invite someone</h2>
-        <InviteForm roles={generalOnly ? ["new_starter"] : roles} titles={titles} teams={generalOnly || (me.role === "staff_admin" && rules.staffAdminTeamApproval) ? null : teams ?? []} />
+        <InviteForm />
       </Card>
       ) : null}
 
@@ -166,10 +165,10 @@ export default async function StaffPage() {
                   {p.job_title_id && titleName.get(p.job_title_id) ? <span className="text-sm">{titleName.get(p.job_title_id)}</span> : null}
                   <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>
                   {pending.has(p.id) ? <Badge tone="warn">→ {roleText(pending.get(p.id)!.to_value as RoleValue)} waiting</Badge> : null}
-                  {row.missing ? (
-                    <Badge tone={row.missing.length ? "warn" : "good"}>
-                      {row.missing.length ? `Onboarding: ${row.missing.length} to do` : "Onboarding done"}
-                    </Badge>
+                  {row.missing?.length ? (
+                    <Badge tone="warn">Onboarding: {row.missing.length} to do</Badge>
+                  ) : row.missing && p.onboarded_at ? (
+                    <Badge tone="good">Onboarding done</Badge>
                   ) : null}
                   <span className="w-40 text-sm text-muted">
                     {inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team"}
