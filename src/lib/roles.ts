@@ -21,7 +21,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const ROLE_HELP: Record<Role, string> = {
-  new_starter: "Joined with a general invite and waiting for a role. Sees their own account only (trainings and documents are coming).",
+  new_starter: "Joined with a general invite. Does their onboarding (reading, trainings, documents) and gets a role once it's done, or earlier as a conditional role.",
   support_worker: "Sees only tasks they're assigned to, helping on or created. Can be in several teams.",
   team_leader: "Leads one team, and also sees the tasks of everyone in it.",
   manager: "In the core team: sees every team's tasks. Approvals, reports and due-date SLAs. Invites people, changes roles and teams, and adds job titles.",

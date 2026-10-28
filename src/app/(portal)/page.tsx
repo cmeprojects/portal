@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { seesDashboard } from "@/lib/dashboard";
 import { getPeopleRules } from "@/lib/settings";
@@ -33,7 +34,7 @@ async function Welcome({ name }: { name: string }) {
           A staff admin will set up your role and team. Once they have, your tasks will show here. You don&apos;t need to do anything
           for now.
         </p>
-        <p className="text-sm text-muted">Coming soon: your trainings, and uploading your documents (like certificates and checks).</p>
+        <p className="text-sm"><Link href="/onboarding" className="font-semibold text-brand underline">Go to My onboarding</Link> to read our policies, complete trainings and upload your documents.</p>
       </Card>
     </>
   );

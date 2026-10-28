@@ -72,9 +72,9 @@ export type SettingRow = { key: string; label: string; description: string | nul
 
 export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sla" | "yesno" {
   if (key === "tasks.sla_days") return "sla";
+  if (key === "security.mfa_required_roles" || key === "people.invite_roles" || key === "compliance.manager_roles") return "roles";
   if (key === "tasks.sla_weekdays_only" || key === "tasks.sla_manager_summary" || key.startsWith("people.")) return "yesno";
   if (key.startsWith("brand.color_")) return "color";
-  if (key === "security.mfa_required_roles") return "roles";
   if (key.endsWith("_days") || key.endsWith("_years")) return "number";
   return "text";
 }
@@ -103,7 +103,7 @@ export function SettingForm({ setting }: { setting: SettingRow }) {
         ) : kind === "roles" ? (
           <fieldset className="flex flex-wrap gap-x-5">
             <legend className="sr-only">{setting.label}</legend>
-            {ROLES.filter((r) => r !== "system_admin").map((r) => (
+            {ROLES.filter((r) => r !== "system_admin" && (r !== "new_starter" || setting.key.startsWith("security."))).map((r) => (
               <label key={r} className="flex min-h-11 items-center gap-2 text-sm">
                 <input
                   type="checkbox"

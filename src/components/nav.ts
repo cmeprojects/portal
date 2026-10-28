@@ -5,14 +5,21 @@ import { seesDashboard } from "@/lib/dashboard";
 export type NavItem = { href: string; label: string };
 export type NavGroup = { heading?: string; items: NavItem[] };
 
-export function navFor(role: Role, features: Record<string, boolean>, newStarterTasks = false): NavGroup[] {
+export type NavAccess = { newStarterTasks: boolean; canInvite: boolean; seesCompliance: boolean };
+
+export function navFor(
+  role: Role,
+  features: Record<string, boolean>,
+  access: NavAccess = { newStarterTasks: false, canInvite: false, seesCompliance: false },
+): NavGroup[] {
+  const newStarterTasks = access.newStarterTasks;
   const staffAdmin = role === "staff_admin" || role === "system_admin";
   const groups: NavGroup[] = [];
 
   // New starters: just their welcome page and account until they have a role.
   if (role === "new_starter" && !newStarterTasks) {
     return [
-      { items: [{ href: "/", label: "Home" }] },
+      { items: [{ href: "/", label: "Home" }, { href: "/onboarding", label: "My onboarding" }] },
       {
         items: [
           { href: "/account", label: "My account" },
@@ -33,24 +40,28 @@ export function navFor(role: Role, features: Record<string, boolean>, newStarter
       ...home,
       ...(features.tasks !== false ? [{ href: "/tasks/new", label: "New task" }] : []),
       { href: "/registers", label: "Registers" },
+      ...(role !== "system_admin" ? [{ href: "/onboarding", label: "My onboarding" }] : []),
     ],
   });
 
   const people = role === "manager" || staffAdmin;
-  if (people) {
-    groups.push({
-      items: [
-        { href: "/settings/staff", label: "Staff & roles" },
-        { href: "/settings/teams", label: "Teams" },
-        ...(role === "manager" || role === "system_admin"
-          ? [
-              { href: "/settings/roles", label: "Roles" },
-              { href: "/settings/sla", label: "Due dates (SLA)" },
-            ]
-          : []),
-      ],
-    });
-  }
+  const peopleItems: NavItem[] = [
+    ...(!people && access.canInvite ? [{ href: "/invite", label: "Invite staff" }] : []),
+    ...(people
+      ? [
+          { href: "/settings/staff", label: "Staff & roles" },
+          { href: "/settings/teams", label: "Teams" },
+        ]
+      : []),
+    ...(access.seesCompliance ? [{ href: "/compliance", label: "Compliance" }] : []),
+    ...(role === "manager" || role === "system_admin"
+      ? [
+          { href: "/settings/roles", label: "Roles" },
+          { href: "/settings/sla", label: "Due dates (SLA)" },
+        ]
+      : []),
+  ];
+  if (peopleItems.length) groups.push({ items: peopleItems });
 
   if (role === "system_admin") {
     groups.push({

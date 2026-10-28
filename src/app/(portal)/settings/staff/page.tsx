@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { assignableRoles, inCoreTeam, JOB_TITLE_COLUMNS, ROLE_HELP, ROLE_LABELS, ROLES, type JobTitle, type Role } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { InviteForm, PersonEditor, type PersonRow } from "./forms";
-import { getPeopleRules } from "@/lib/settings";
+import { canInvite, getPeopleRules } from "@/lib/settings";
 import { decideChangeRequest } from "./actions";
 
 export const metadata: Metadata = { title: "Staff & roles" };
@@ -47,12 +47,23 @@ export default async function StaffPage() {
     joinedIds(),
     supabase
       .from("people_change_requests")
-      .select("id, user_id, from_value, to_value, reason, requested_by, requested_at")
-      .eq("kind", "role")
+      .select("id, kind, user_id, from_value, to_value, reason, requested_by, requested_at")
+      .in("kind", ["role", "conditional"])
       .eq("status", "pending")
       .order("requested_at"),
   ]);
   const titles = (titleRows ?? []) as JobTitle[];
+  // New starters: what's still missing from onboarding.
+  const missingFor = new Map(
+    await Promise.all(
+      (people ?? [])
+        .filter((p) => p.role === "new_starter" && p.active)
+        .map(async (p) => {
+          const { data } = await supabase.rpc("onboarding_missing", { p_user: p.id });
+          return [p.id, (data ?? []) as string[]] as const;
+        }),
+    ),
+  );
   const titleName = new Map(titles.map((t) => [t.id, t.name]));
   const nameOf = new Map((people ?? []).map((p) => [p.id, p.full_name || p.email]));
   type RoleValue = { role: Role; title: string | null };
@@ -90,7 +101,9 @@ export default async function StaffPage() {
                 <div className="min-w-60 flex-1 text-sm">
                   <p>
                     <strong>{nameOf.get(q.user_id!) ?? "Someone"}</strong>: {roleText(q.from_value as RoleValue)} → <strong>{roleText(q.to_value as RoleValue)}</strong>
+                    {q.kind === "conditional" ? <> <Badge tone="warn">Conditional</Badge></> : null}
                   </p>
+                  {q.kind === "conditional" ? <ConditionalDetails value={q.to_value as ConditionalValue} teamName={teamName} /> : null}
                   <p className="text-xs text-muted">
                     Asked by {nameOf.get(q.requested_by) ?? "Admin"} · {when.format(new Date(q.requested_at))}
                     {q.reason ? ` · “${q.reason}”` : ""}
@@ -118,10 +131,12 @@ export default async function StaffPage() {
         </Card>
       ) : null}
 
+      {canInvite(me.role, rules) ? (
       <Card className="p-5">
         <h2 className="mb-4 heading-sm">Invite someone</h2>
         <InviteForm roles={generalOnly ? ["new_starter"] : roles} titles={titles} teams={generalOnly || (me.role === "staff_admin" && rules.staffAdminTeamApproval) ? null : teams ?? []} />
       </Card>
+      ) : null}
 
       <div className="flex flex-col gap-3">
         {(people ?? []).map((p) => {
@@ -129,6 +144,7 @@ export default async function StaffPage() {
             ...p,
             role: p.role as Role,
             job_title_id: p.job_title_id,
+            missing: missingFor.get(p.id) ?? null,
             joined: joined ? joined.has(p.id) : true,
             isMe: p.id === me.id,
             editable: roles.includes(p.role as Role) || p.id === me.id,
@@ -150,6 +166,11 @@ export default async function StaffPage() {
                   {p.job_title_id && titleName.get(p.job_title_id) ? <span className="text-sm">{titleName.get(p.job_title_id)}</span> : null}
                   <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>
                   {pending.has(p.id) ? <Badge tone="warn">→ {roleText(pending.get(p.id)!.to_value as RoleValue)} waiting</Badge> : null}
+                  {row.missing ? (
+                    <Badge tone={row.missing.length ? "warn" : "good"}>
+                      {row.missing.length ? `Onboarding: ${row.missing.length} to do` : "Onboarding done"}
+                    </Badge>
+                  ) : null}
                   <span className="w-40 text-sm text-muted">
                     {inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team"}
                   </span>
@@ -163,6 +184,8 @@ export default async function StaffPage() {
                       person={row}
                       roles={roles}
                       titles={titles}
+                      teams={teams ?? []}
+                      isManager={me.role === "manager" || me.role === "system_admin"}
                       canResetMfa={me.role === "system_admin"}
                       needsApproval={needsApproval(row.role)}
                     />
@@ -191,5 +214,17 @@ export default async function StaffPage() {
         </dl>
       </Card>
     </>
+  );
+}
+
+type ConditionalValue = { deadline: string; missing: string[]; teams: string[] };
+
+function ConditionalDetails({ value, teamName }: { value: ConditionalValue; teamName: Map<string, string> }) {
+  const deadline = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value.deadline}T00:00:00Z`));
+  return (
+    <div className="mt-1 text-xs text-muted">
+      <p>Finish onboarding by {deadline}. Still to do: {value.missing.join(", ")}.</p>
+      {value.teams?.length ? <p>Teams: {value.teams.map((t) => teamName.get(t) ?? "a team").join(", ")}</p> : null}
+    </div>
   );
 }

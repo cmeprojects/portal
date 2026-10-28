@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getBranding } from "@/lib/branding";
 import { env } from "@/lib/env";
 import { sendEmail } from "./send";
-import { render, renderSummary, type SummaryTask, type TaskInfo } from "./templates";
+import { render, renderNotice, renderSummary, type SummaryTask, type TaskInfo } from "./templates";
 import { refLabel } from "@/lib/registers";
 
 const MAX_ATTEMPTS = 5;
@@ -71,6 +71,25 @@ export async function flushOutbox(taskId?: string): Promise<void> {
     const to = everyone.get(row.to_user);
     const task = (tasks ?? []).find((t) => t.id === row.task_id);
     try {
+      // Notices from the bell (someone joined, an approval, an expired document).
+      if (row.template === "notice") {
+        if (!to?.active) {
+          await admin.from("email_outbox").update({ sent_at: new Date().toISOString(), last_error: "skipped" }).eq("id", row.id);
+          continue;
+        }
+        const d = (row.data ?? {}) as { title?: string; body?: string; href?: string };
+        const msg = renderNotice({
+          title: d.title ?? "Update from the staff portal",
+          body: d.body ?? "",
+          link: `${env.siteUrl}${d.href?.startsWith("/") ? d.href : "/"}`,
+          recipientName: (to.full_name || to.email).split(" ")[0],
+          companyName: brand.companyName,
+          brand: brand.colorPrimary,
+        });
+        await sendEmail({ to: { email: to.email, name: to.full_name }, cc: [], ...msg });
+        await admin.from("email_outbox").update({ sent_at: new Date().toISOString(), attempts: row.attempts + 1, last_error: null }).eq("id", row.id);
+        continue;
+      }
       // The managers' morning summary isn't about one task.
       if (row.template === "overdue_summary") {
         if (!to?.active) {

@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { parseSla, type Sla } from "@/lib/tasks";
+import { isRole, type Role } from "@/lib/roles";
 
 export type SlaSettings = { days: Sla; weekdaysOnly: boolean };
 
@@ -34,14 +35,24 @@ export type PeopleRules = {
   firstRoleApproval: boolean;
   generalInvitesOnly: boolean;
   newStarterTasks: boolean;
+  // Besides the system admin: who sends invites and who manages Compliance.
+  inviteRoles: Role[];
+  complianceRoles: Role[];
 };
 
 export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
   const supabase = await createClient();
-  const { data } = await supabase.from("app_settings").select("key, value").like("key", "people.%");
+  const { data } = await supabase
+    .from("app_settings")
+    .select("key, value")
+    .or("key.like.people.%,key.eq.compliance.manager_roles");
   const on = (k: string, fallback: boolean) => {
     const v = data?.find((r) => r.key === k)?.value;
     return typeof v === "boolean" ? v : fallback;
+  };
+  const roles = (k: string, fallback: Role[]) => {
+    const v = data?.find((r) => r.key === k)?.value;
+    return Array.isArray(v) ? v.filter(isRole) : fallback;
   };
   return {
     staffAdminRoleApproval: on("people.staff_admin_role_approval", true),
@@ -49,5 +60,14 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
     firstRoleApproval: on("people.first_role_approval", false),
     generalInvitesOnly: on("people.general_invites_only", false),
     newStarterTasks: on("people.new_starter_tasks", false),
+    inviteRoles: roles("people.invite_roles", ["staff_admin", "manager"]),
+    complianceRoles: roles("compliance.manager_roles", ["staff_admin"]),
   };
 });
+
+export const canInvite = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.inviteRoles.includes(role);
+export const canManageCompliance = (role: Role, rules: PeopleRules) =>
+  role === "system_admin" || rules.complianceRoles.includes(role);
+// Who sees onboarding progress (not the files): Compliance managers, managers and team leaders.
+export const seesCompliance = (role: Role, rules: PeopleRules) =>
+  canManageCompliance(role, rules) || role === "manager" || role === "team_leader";

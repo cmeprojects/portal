@@ -199,3 +199,20 @@ helpers), overdue (them and their team leaders, or managers if there's no
 leader), and after 3 days overdue the managers are told and the task is marked
 escalated. Reminders and due today show in the bell only; emails go out only when a task is overdue or escalated. Each step is sent once per due date. Managers get one summary email
 each weekday from 7am. With "weekdays only" on, nothing is sent at weekends.
+
+## Onboarding and Compliance
+
+- Invites: with email sending set up (Resend), the portal sends its own
+  branded welcome invite with the company logo. Until then Supabase sends the
+  invite: paste `supabase/templates/invite.html` into Supabase →
+  Authentication → Email Templates → Invite user.
+- New people join as new starters and see **My onboarding**. Staff admins (and
+  any roles the system admin adds under System settings → Compliance) manage
+  documents to read, trainings and uploads on the **Compliance** page.
+  Managers and team leaders see progress only.
+- A new starter gets a role once onboarding is finished, or earlier as a
+  conditional role (reason and deadline; staff admins need a manager's
+  approval). They then get a "Finish onboarding" task due on the deadline,
+  which completes itself when they finish.
+- Uploaded files are stored privately in Supabase Storage (buckets
+  `compliance-files` and `compliance-library`).

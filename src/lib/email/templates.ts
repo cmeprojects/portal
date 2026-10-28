@@ -150,3 +150,67 @@ export function renderSummary(ctx: {
   ].join("\n");
   return { subject: `${n} overdue task${n === 1 ? "" : "s"} · ${ctx.companyName}`, html, text };
 }
+
+// The welcome invite, with the company's logo.
+export function renderInvite(ctx: {
+  recipientName: string;
+  invitedBy: string;
+  companyName: string;
+  logo: string;
+  link: string;
+  brand: string;
+}): Rendered {
+  const steps = [
+    ["Set up your sign-in", "Choose a password (or sign in with email links)."],
+    ["Do your onboarding", "Read and confirm our policies, complete any trainings, and upload documents like your police check."],
+    ["Get your role", "Once onboarding is done, we'll set up your role and team, and your tasks will appear."],
+  ];
+  const hi = ctx.recipientName ? `Hi ${ctx.recipientName},` : "Hi,";
+  const html = `<!-- Staff Portal · © cmeproject -->
+<div style="background:#F3F5F9;padding:24px 12px;font-family:Figtree,Arial,sans-serif;color:#1B2333">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden">
+    <div style="padding:28px 28px 0;text-align:center">
+      <img src="${esc(ctx.logo)}" alt="${esc(ctx.companyName)}" style="max-height:72px;max-width:260px">
+    </div>
+    <div style="padding:20px 28px 28px">
+      <h1 style="margin:0 0 12px;font-size:24px;text-align:center">Welcome to ${esc(ctx.companyName)}</h1>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.55">${esc(hi)} ${esc(ctx.invitedBy)} has invited you to join the ${esc(ctx.companyName)} staff portal. It's where you'll do your onboarding, keep your documents up to date and see your tasks.</p>
+      <p style="margin:0 0 24px;text-align:center"><a href="${esc(ctx.link)}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:${esc(ctx.brand)};color:#ffffff;font-weight:bold;font-size:16px;text-decoration:none">Accept your invite</a></p>
+      <table style="border-collapse:collapse;width:100%;font-size:15px;line-height:1.45">
+        ${steps
+          .map(
+            ([title, text], i) => `<tr>
+          <td style="width:36px;padding:8px 12px 8px 0;vertical-align:top"><span style="display:inline-block;width:28px;height:28px;border-radius:999px;background:${esc(ctx.brand)};color:#fff;font-weight:bold;text-align:center;line-height:28px">${i + 1}</span></td>
+          <td style="padding:8px 0;vertical-align:top"><strong>${esc(title)}</strong><br><span style="color:#5A6478">${esc(text)}</span></td>
+        </tr>`,
+          )
+          .join("")}
+      </table>
+      <p style="margin:24px 0 0;color:#5A6478;font-size:13px;line-height:1.5">This link works once and expires after 24 hours. If it has expired, ask the person who invited you to send a new one.</p>
+    </div>
+  </div>
+</div>`;
+  const text = [
+    `${hi} ${ctx.invitedBy} has invited you to join the ${ctx.companyName} staff portal.`,
+    "",
+    `Accept your invite: ${ctx.link}`,
+    "",
+    ...steps.map(([title, t], i) => `${i + 1}. ${title}: ${t}`),
+    "",
+    "This link works once and expires after 24 hours.",
+  ].join("\n");
+  return { subject: `Welcome to ${ctx.companyName}: your staff portal invite`, html, text };
+}
+
+// A general notice from the bell (joined, approvals, expired documents).
+export function renderNotice(ctx: { title: string; body: string; link: string; recipientName: string; companyName: string; brand: string }): Rendered {
+  const html = `<!-- Staff Portal · © cmeproject -->
+<div style="font-family:Figtree,Arial,sans-serif;color:#1B2333;max-width:560px">
+  <p style="margin:0 0 4px;color:#5A6478;font-size:14px">${esc(ctx.companyName)}</p>
+  <h2 style="margin:0 0 12px;font-size:22px">${esc(ctx.title)}</h2>
+  <p style="margin:0 0 16px;font-size:16px;line-height:1.5">Hi ${esc(ctx.recipientName)},${ctx.body ? ` ${esc(ctx.body)}` : ""}</p>
+  <p style="margin:0 0 24px"><a href="${esc(ctx.link)}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:${esc(ctx.brand)};color:#ffffff;font-weight:bold;text-decoration:none">Open the portal</a></p>
+  <p style="margin:0;color:#5A6478;font-size:13px">From the ${esc(ctx.companyName)} staff portal.</p>
+</div>`;
+  return { subject: ctx.title, html, text: `Hi ${ctx.recipientName},${ctx.body ? ` ${ctx.body}` : ""}\n\n${ctx.link}` };
+}

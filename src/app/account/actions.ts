@@ -40,7 +40,9 @@ export async function finishWelcome(_: FormState, form: FormData): Promise<FormS
 
   const { error } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", userId);
   if (error) return { error: "We couldn't save your name. Please try again." };
-  redirect("/");
+  // Lets the staff admins know they've joined (once).
+  await supabase.rpc("mark_joined");
+  redirect("/onboarding");
 }
 
 export async function changePassword(_: FormState, form: FormData): Promise<FormState> {

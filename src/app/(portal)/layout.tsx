@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
-import { getPeopleRules, getTimeZone } from "@/lib/settings";
+import { canInvite, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
 import { formatDue, todayIn } from "@/lib/tasks";
 import { Bell, type BellItem } from "@/components/bell";
 import { getBranding } from "@/lib/branding";
@@ -18,11 +18,12 @@ import { signOut } from "@/app/login/actions";
 // bar with a drop-down menu on phones.
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
   const [{ profile, features }, brand, rules] = await Promise.all([requireSession(), getBranding(), getPeopleRules()]);
-  const [taskItems, requestItems] = await Promise.all([
+  const [taskItems, requestItems, notices] = await Promise.all([
     features.tasks !== false ? newTasksForMe() : Promise.resolve([]),
     requestUpdatesForMe(),
+    noticesForMe(),
   ]);
-  const bellItems = [...requestItems, ...taskItems];
+  const bellItems = [...notices, ...requestItems, ...taskItems];
 
   const footer = (
     <div className="flex flex-wrap items-center justify-between gap-3 md:flex-col md:items-start">
@@ -40,8 +41,13 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[230px_minmax(0,1fr)] print:block">
-      <Sidebar groups={navFor(profile.role, features, rules.newStarterTasks)} brandMark={<BrandMark brand={brand} />}
-        bell={features.tasks !== false || requestItems.length ? <Bell items={bellItems} /> : null}
+      <Sidebar
+        groups={navFor(profile.role, features, {
+          newStarterTasks: rules.newStarterTasks,
+          canInvite: canInvite(profile.role, rules),
+          seesCompliance: seesCompliance(profile.role, rules),
+        })} brandMark={<BrandMark brand={brand} />}
+        bell={<Bell items={bellItems} />}
         footer={footer}
       />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">{children}</main>
@@ -131,4 +137,32 @@ async function requestUpdatesForMe(): Promise<BellItem[]> {
       tone: r.status === "approved" ? "good" : "danger",
     };
   });
+}
+
+const NOTICE_TONE: Record<string, BellItem["tone"]> = {
+  upload_rejected: "danger",
+  document_expired: "danger",
+  approval_needed: "danger",
+  onboarded: "good",
+};
+
+// Onboarding, Compliance and people notices for the signed-in person.
+async function noticesForMe(): Promise<BellItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("notifications")
+    .select("id, kind, title, body, created_at")
+    .is("seen_at", null)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (!data?.length) return [];
+  const timeZone = await getTimeZone();
+  const when = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone });
+  return data.map((n) => ({
+    key: `notice-${n.id}`,
+    href: `/n/${n.id}`,
+    title: n.title,
+    detail: [n.body, when.format(new Date(n.created_at))].filter(Boolean).join(" · "),
+    tone: NOTICE_TONE[n.kind],
+  }));
 }

@@ -1,5 +1,18 @@
-<!-- Staff Portal · © cmeproject -->
-<h2>You're invited</h2>
-<p>You've been added to the staff portal. Tap the button to set up how you'll sign in.</p>
-<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#134F8E;color:#ffffff;font-weight:bold;text-decoration:none">Accept invite</a></p>
-<p style="color:#5A6478">This link works once. If it has expired, ask your manager to resend it.</p>
+<!-- Staff Portal · © cmeproject. Paste into Supabase → Authentication → Email Templates → Invite user.
+     Used until the portal sends its own emails (Resend). Change the logo path and colour per company. -->
+<div style="background:#F3F5F9;padding:24px 12px;font-family:Figtree,Arial,sans-serif;color:#1B2333">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden">
+    <div style="padding:28px 28px 0;text-align:center">
+      <img src="{{ .SiteURL }}/companies/engaged-care/logo.png" alt="Engaged Care" style="max-height:72px;max-width:260px">
+    </div>
+    <div style="padding:20px 28px 28px">
+      <h1 style="margin:0 0 12px;font-size:24px;text-align:center">Welcome to Engaged Care</h1>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.55">Hi, you've been invited to join the Engaged Care staff portal. It's where you'll do your onboarding, keep your documents up to date and see your tasks.</p>
+      <p style="margin:0 0 24px;text-align:center"><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#134F8E;color:#ffffff;font-weight:bold;font-size:16px;text-decoration:none">Accept your invite</a></p>
+      <p style="margin:0 0 6px;font-size:15px"><strong>1. Set up your sign-in.</strong> <span style="color:#5A6478">Choose a password.</span></p>
+      <p style="margin:0 0 6px;font-size:15px"><strong>2. Do your onboarding.</strong> <span style="color:#5A6478">Read our policies, complete any trainings, and upload your documents.</span></p>
+      <p style="margin:0 0 6px;font-size:15px"><strong>3. Get your role.</strong> <span style="color:#5A6478">We'll set up your role and team, and your tasks will appear.</span></p>
+      <p style="margin:24px 0 0;color:#5A6478;font-size:13px">This link works once and expires after 24 hours. If it has expired, ask the person who invited you to send a new one.</p>
+    </div>
+  </div>
+</div>

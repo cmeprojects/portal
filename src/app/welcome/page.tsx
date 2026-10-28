@@ -27,13 +27,19 @@ export default async function WelcomePage() {
   return (
     <AuthShell brand={brand}>
       <div className="flex flex-col gap-2">
-        <span className="self-start"><Badge>You&apos;re invited</Badge></span>
+        <span className="self-start"><Badge>Welcome aboard</Badge></span>
         <h1 className="heading">
           {firstName ? `Hi ${firstName}, welcome` : "Welcome"} to the {brand.companyName} portal
         </h1>
         <p className="text-sm text-muted">
-          You&apos;ve been added as <strong className="text-ink">{ROLE_LABELS[profile.role as Role]}</strong>. Set up how
-          you&apos;d like to sign in.
+          {profile.role === "new_starter" ? (
+            <>First, set up how you&apos;d like to sign in. Next you&apos;ll do your onboarding: reading our policies, any trainings, and uploading your documents.</>
+          ) : (
+            <>
+              You&apos;ve been added as <strong className="text-ink">{ROLE_LABELS[profile.role as Role]}</strong>. Set up how
+              you&apos;d like to sign in.
+            </>
+          )}
         </p>
       </div>
       <WelcomeForm name={profile.full_name} email={profile.email} />

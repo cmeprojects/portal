@@ -21,6 +21,11 @@ const SECTIONS = [
     title: "People rules",
     intro: "Who needs a manager's approval, how people are invited, and what new starters can do.",
   },
+  {
+    prefix: "compliance.",
+    title: "Compliance",
+    intro: "Onboarding documents, trainings and uploads. Staff admins always manage them; you can add other roles.",
+  },
   { prefix: "tasks.", title: "Tasks", intro: "Default due dates by priority. A register can set its own in its Set up page." },
   { prefix: "region.", title: "Region", intro: "" },
   { prefix: "records.", title: "Records", intro: "Records are never deleted when a feature is switched off." },
