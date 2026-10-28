@@ -14,6 +14,8 @@ type TeamValue = { members: string[]; leader: string | null };
 export default async function TeamsPage() {
   const { profile: me } = await requireRole(PEOPLE_MANAGERS);
   const supabase = await createClient();
+  // Seeing this page clears "approved / declined" alerts from your bell.
+  await supabase.rpc("mark_request_updates_seen", { p_kind: "team" });
   const [{ data: teams }, { data: leaderRows }, { data: memberRows }, { data: people }, { data: requests }] = await Promise.all([
     supabase.from("teams").select("id, name, active, is_core").order("active", { ascending: false }).order("name"),
     supabase.from("team_leaders").select("team_id, user_id"),

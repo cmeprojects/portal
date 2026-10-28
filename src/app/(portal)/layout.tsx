@@ -17,7 +17,11 @@ import { signOut } from "@/app/login/actions";
 // bar with a drop-down menu on phones.
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
   const [{ profile, features }, brand] = await Promise.all([requireSession(), getBranding()]);
-  const bellItems = await newTasksForMe();
+  const [taskItems, requestItems] = await Promise.all([
+    features.tasks !== false ? newTasksForMe() : Promise.resolve([]),
+    requestUpdatesForMe(),
+  ]);
+  const bellItems = [...requestItems, ...taskItems];
 
   const footer = (
     <div className="flex flex-wrap items-center justify-between gap-3 md:flex-col md:items-start">
@@ -36,7 +40,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="min-h-screen md:grid md:grid-cols-[230px_minmax(0,1fr)] print:block">
       <Sidebar groups={navFor(profile.role, features)} brandMark={<BrandMark brand={brand} />}
-        bell={features.tasks !== false ? <Bell items={bellItems} /> : null}
+        bell={features.tasks !== false || requestItems.length ? <Bell items={bellItems} /> : null}
         footer={footer}
       />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">{children}</main>
@@ -63,15 +67,43 @@ async function newTasksForMe(): Promise<BellItem[]> {
       const t = (tasks ?? []).find((x) => x.id === f.task_id);
       if (!t) return [];
       const prefix = registries.find((r) => r.id === t.registry_id)?.prefix;
+      const by = people.find((p) => p.id === f.actor_id)?.name ?? "Admin";
       return [
         {
-          id: t.id,
-          ref: refLabel(prefix, t.ref_number),
+          key: `task-${t.id}`,
+          href: `/tasks/${t.id}`,
           title: t.title,
-          kind: f.kind,
-          by: people.find((p) => p.id === f.actor_id)?.name ?? "Admin",
-          when: when.format(new Date(f.at)),
+          detail: `${refLabel(prefix, t.ref_number)} · ${f.kind === "helping" ? "help needed" : "for you to look after"} · from ${by} · ${when.format(new Date(f.at))}`,
         },
       ];
     });
+}
+
+// Managers' answers to role and team changes the signed-in person asked for.
+async function requestUpdatesForMe(): Promise<BellItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("my_request_updates");
+  const rows = (data ?? []) as {
+    request_id: string;
+    kind: "role" | "team";
+    status: "approved" | "declined";
+    subject: string;
+    change: string;
+    decided_by_name: string;
+    decided_at: string;
+    note: string;
+  }[];
+  if (!rows.length) return [];
+  const timeZone = await getTimeZone();
+  const when = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone });
+  return rows.map((r) => {
+    const what = r.kind === "role" ? `${r.subject} → ${r.change}` : `${r.subject}: ${r.change}`;
+    return {
+      key: `request-${r.request_id}`,
+      href: r.kind === "role" ? "/settings/staff" : "/settings/teams",
+      title: `${r.status === "approved" ? "Approved" : "Declined"}: ${what}`,
+      detail: `${r.kind === "role" ? "Role" : "Team"} change · by ${r.decided_by_name} · ${when.format(new Date(r.decided_at))}${r.note ? ` · “${r.note}”` : ""}`,
+      tone: r.status === "approved" ? "good" : "danger",
+    };
+  });
 }

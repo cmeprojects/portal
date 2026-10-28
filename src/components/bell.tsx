@@ -5,14 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { markAllSeen } from "./bell-actions";
 
-export type BellItem = { id: string; ref: string; title: string; kind: "assigned" | "helping"; by: string; when: string };
+// A task given to you, or the answer to a change you asked for.
+export type BellItem = { key: string; href: string; title: string; detail: string; tone?: "good" | "danger" };
 
-// The bell beside the logo: tasks newly given to you. Opening one clears it.
+// The bell beside the logo: tasks newly given to you, and approvals or
+// declines of your requests. Opening one clears it.
 export function Bell({ items }: { items: BellItem[] }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const count = items.length;
-  const words = count ? `${count} new task${count === 1 ? "" : "s"} for you` : "No new tasks";
+  const words = count ? `${count} new for you` : "Nothing new";
 
   useEffect(() => {
     if (!open) return;
@@ -63,12 +65,12 @@ export function Bell({ items }: { items: BellItem[] }) {
           ) : (
             <ul className="max-h-96 divide-y divide-line overflow-y-auto">
               {items.map((i) => (
-                <li key={i.id}>
-                  <Link href={`/tasks/${i.id}`} onClick={() => setOpen(false)} className="block px-4 py-3 hover:bg-page">
-                    <span className="block text-sm font-semibold">{i.title}</span>
-                    <span className="block text-xs text-muted">
-                      {i.ref} · {i.kind === "helping" ? "help needed" : "for you to look after"} · from {i.by} · {i.when}
+                <li key={i.key}>
+                  <Link href={i.href} onClick={() => setOpen(false)} className="block px-4 py-3 hover:bg-page">
+                    <span className={`block text-sm font-semibold ${i.tone === "good" ? "text-good" : i.tone === "danger" ? "text-danger" : ""}`}>
+                      {i.title}
                     </span>
+                    <span className="block text-xs text-muted">{i.detail}</span>
                   </Link>
                 </li>
               ))}

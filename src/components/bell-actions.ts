@@ -6,6 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function markAllSeen() {
   const supabase = await createClient();
-  await supabase.rpc("mark_all_tasks_seen");
+  await Promise.all([supabase.rpc("mark_all_tasks_seen"), supabase.rpc("mark_request_updates_seen", {})]);
   revalidatePath("/", "layout");
 }

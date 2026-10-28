@@ -237,5 +237,25 @@ select test.ok((select job_title_id is not null and role = 'support_worker' from
                and exists (select 1 from public.team_members where user_id = test.pid('nurse@example.com') and team_id = test.tid('Team North')),
   'an invited person gets their role and team');
 
+-- The requester hears about approvals and declines in their bell.
+select test.act_as('office@example.com');
+set role authenticated;
+select test.ok((select count(*) from public.my_request_updates()) >= 3
+               and (select bool_and(decided_by_name = 'Morgan') from public.my_request_updates()),
+  'a staff admin sees managers'' answers to their requests');
+select test.ok(exists (select 1 from public.my_request_updates() where status = 'declined' and note = 'Not yet'),
+  'a declined request shows with the manager''s note');
+select public.mark_request_updates_seen('team');
+select test.ok(not exists (select 1 from public.my_request_updates() where kind = 'team')
+               and exists (select 1 from public.my_request_updates() where kind = 'role'),
+  'opening Teams clears only team answers');
+select public.mark_request_updates_seen();
+select test.ok((select count(*) from public.my_request_updates()) = 0, 'mark all as seen clears them');
+reset role;
+select test.act_as('boss@example.com');
+set role authenticated;
+select test.ok((select count(*) from public.my_request_updates()) = 0, 'only the requester is told');
+reset role;
+
 \o
 \echo 'All manager tests passed.'

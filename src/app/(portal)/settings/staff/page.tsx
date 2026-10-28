@@ -31,6 +31,8 @@ async function joinedIds(): Promise<Set<string> | null> {
 export default async function StaffPage() {
   const { profile: me } = await requireRole(PEOPLE_MANAGERS);
   const supabase = await createClient();
+  // Seeing this page clears "approved / declined" alerts from your bell.
+  await supabase.rpc("mark_request_updates_seen", { p_kind: "role" });
   const [{ data: people }, { data: teams }, { data: memberships }, { data: titleRows }, joined, { data: requests }] = await Promise.all([
     supabase
       .from("profiles")
