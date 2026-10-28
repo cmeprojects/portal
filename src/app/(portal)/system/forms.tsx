@@ -72,10 +72,10 @@ export type SettingRow = { key: string; label: string; description: string | nul
 
 export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sla" | "yesno" {
   if (key === "tasks.sla_days") return "sla";
-  if (key === "security.mfa_required_roles" || key === "people.invite_roles" || key === "compliance.manager_roles") return "roles";
+  if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles"].includes(key)) return "roles";
+  if (key.endsWith("_days") || key.endsWith("_years")) return "number";
   if (key === "tasks.sla_weekdays_only" || key === "tasks.sla_manager_summary" || key.startsWith("people.")) return "yesno";
   if (key.startsWith("brand.color_")) return "color";
-  if (key.endsWith("_days") || key.endsWith("_years")) return "number";
   return "text";
 }
 

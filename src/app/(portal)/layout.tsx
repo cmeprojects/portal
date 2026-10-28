@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
-import { canInvite, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
+import { canInvite, canSeeScoreboard, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
 import { formatDue, todayIn } from "@/lib/tasks";
 import { Bell, type BellItem } from "@/components/bell";
 import { getBranding } from "@/lib/branding";
@@ -46,6 +46,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
           newStarterTasks: rules.newStarterTasks,
           canInvite: canInvite(profile.role, rules),
           seesCompliance: seesCompliance(profile.role, rules),
+          seesScoreboard: canSeeScoreboard(profile.role, rules),
         })} brandMark={<BrandMark brand={brand} />}
         bell={<Bell items={bellItems} />}
         footer={footer}

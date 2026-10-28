@@ -35,7 +35,7 @@ function refresh(id: string) {
 
 export async function createRegistry(_: FormState, form: FormData): Promise<FormState> {
   const { profile } = await requireTaskAccess();
-  if (!["manager", "staff_admin", "system_admin"].includes(profile.role)) return { error: "Only managers and admins can create registers." };
+  if (!["manager", "system_admin"].includes(profile.role)) return { error: "Only managers and the system admin can create registers." };
   const name = text(form, "name");
   const prefix = text(form, "prefix").toUpperCase();
   const kind = text(form, "kind") === "records" ? "records" : "tasks";

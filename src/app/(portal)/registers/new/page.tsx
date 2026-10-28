@@ -8,7 +8,7 @@ import { CreateRegistryForm } from "../setup-forms";
 export const metadata: Metadata = { title: "New register" };
 
 export default async function NewRegisterPage() {
-  await requireRole(["manager", "staff_admin", "system_admin"]);
+  await requireRole(["manager", "system_admin"]);
   return (
     <>
       <Link href="/registers" className="text-sm font-semibold text-brand">

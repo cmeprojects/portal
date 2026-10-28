@@ -13,13 +13,20 @@ export default async function RegistersPage() {
   const { profile } = await requireTaskAccess();
   const supabase = await createClient();
   const registries = (await getRegistries()).filter((r) => r.active);
-  const [{ data: openTasks }, { data: records }] = await Promise.all([
-    supabase.from("tasks").select("registry_id").is("parent_task_id", null).not("status", "in", `(${DONE.join(",")})`).limit(5000),
+  // Staff admins see every register's open tasks as an overview (counts only here).
+  const overview = profile.role === "staff_admin";
+  const [{ data: openTasks }, { data: records }, { data: counts }] = await Promise.all([
+    overview
+      ? Promise.resolve({ data: [] as { registry_id: string }[] })
+      : supabase.from("tasks").select("registry_id").is("parent_task_id", null).not("status", "in", `(${DONE.join(",")})`).limit(5000),
     supabase.from("records").select("registry_id").eq("archived", false).limit(5000),
+    overview ? supabase.rpc("register_open_counts") : Promise.resolve({ data: [] as { registry_id: string; open_tasks: number }[] }),
   ]);
   const count = (id: string) =>
-    (openTasks ?? []).filter((t) => t.registry_id === id).length + (records ?? []).filter((r) => r.registry_id === id).length;
-  const canCreate = ["manager", "staff_admin", "system_admin"].includes(profile.role);
+    (overview
+      ? Number(((counts ?? []) as { registry_id: string; open_tasks: number }[]).find((c) => c.registry_id === id)?.open_tasks ?? 0)
+      : (openTasks ?? []).filter((t) => t.registry_id === id).length) + (records ?? []).filter((r) => r.registry_id === id).length;
+  const canCreate = profile.role === "manager" || profile.role === "system_admin";
 
   return (
     <>

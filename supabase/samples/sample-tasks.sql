@@ -2,7 +2,7 @@
 --
 -- Ten sample tasks across the registers, for testing only. Run it in the
 -- Supabase SQL Editor. Tasks go round-robin to active staff (system admins
--- can't be given tasks), so invite at least one person first.
+-- and new starters can't be given tasks), so invite at least one person first.
 -- Every title starts with "[Sample]". To remove them later:
 --   delete from public.tasks where title like '[Sample]%';
 
@@ -16,7 +16,7 @@ declare
   s record;
 begin
   select array_agg(id order by created_at) into v_people
-    from public.profiles where active and role <> 'system_admin';
+    from public.profiles where active and role not in ('system_admin', 'new_starter');
   if v_people is null then
     raise exception 'Invite at least one staff member (not a system admin) first, then run this again.';
   end if;

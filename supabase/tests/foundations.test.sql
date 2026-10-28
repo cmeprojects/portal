@@ -117,7 +117,7 @@ select test.refused($$update public.profiles set role = 'team_leader' where emai
   'a staff admin cannot change a role without a manager''s approval');
 update public.profiles set active = false where email = 'kim@example.com';
 insert into public.invitations (email, full_name, role) values ('new@example.com', 'New Person', 'manager');
-insert into public.registries (name) values ('Test registry');
+select test.refused($$insert into public.registries (name) values ('Test registry')$$, 'a staff admin cannot add a register');
 select test.refused($$update public.profiles set role = 'system_admin' where email = 'boss@example.com'$$,
   'staff admin cannot make a system admin');
 select test.refused($$update public.profiles set role = 'staff_admin' where email = 'boss@example.com'$$,

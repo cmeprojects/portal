@@ -38,6 +38,7 @@ export type PeopleRules = {
   // Besides the system admin: who sends invites and who manages Compliance.
   inviteRoles: Role[];
   complianceRoles: Role[];
+  scoreboardRoles: Role[];
 };
 
 export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
@@ -62,10 +63,12 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
     newStarterTasks: on("people.new_starter_tasks", false),
     inviteRoles: roles("people.invite_roles", ["staff_admin", "manager"]),
     complianceRoles: roles("compliance.manager_roles", ["staff_admin"]),
+    scoreboardRoles: roles("people.scoreboard_roles", ["staff_admin", "manager"]),
   };
 });
 
 export const canInvite = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.inviteRoles.includes(role);
+export const canSeeScoreboard = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.scoreboardRoles.includes(role);
 export const canManageCompliance = (role: Role, rules: PeopleRules) =>
   role === "system_admin" || rules.complianceRoles.includes(role);
 // Who sees onboarding progress (not the files): Compliance managers, managers and team leaders.

@@ -5,7 +5,7 @@ import { seesDashboard } from "@/lib/dashboard";
 export type NavItem = { href: string; label: string };
 export type NavGroup = { heading?: string; items: NavItem[] };
 
-export type NavAccess = { newStarterTasks: boolean; canInvite: boolean; seesCompliance: boolean };
+export type NavAccess = { newStarterTasks: boolean; canInvite: boolean; seesCompliance: boolean; seesScoreboard?: boolean };
 
 export function navFor(
   role: Role,
@@ -54,6 +54,7 @@ export function navFor(
         ]
       : []),
     ...(access.seesCompliance ? [{ href: "/compliance", label: "Compliance" }] : []),
+    ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
     ...(role === "manager" || role === "system_admin"
       ? [
           { href: "/settings/roles", label: "Roles" },

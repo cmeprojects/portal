@@ -5,8 +5,9 @@ import { notFound } from "next/navigation";
 import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
-import { todayIn } from "@/lib/tasks";
+import { PRIORITY_CLASS, PRIORITY_LABELS, STATUS_LABELS, dueState, formatDue, todayIn, type Priority, type Status } from "@/lib/tasks";
 import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
+import type { Registry } from "@/lib/registers";
 import { parseFilter, registerTable } from "@/lib/register-rows";
 import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
 import { DataTable } from "@/components/data-table";
@@ -20,9 +21,13 @@ export const metadata: Metadata = { title: "Register" };
 export default async function RegisterPage({ params, searchParams }: PageProps<"/registers/[id]">) {
   const { id } = await params;
   const filter = parseFilter(await searchParams);
-  const { features } = await requireTaskAccess();
+  const { features, profile } = await requireTaskAccess();
   const registry = (await getRegistries()).find((r) => r.id === id);
   if (!registry) notFound();
+  // Staff admins get an overview of open tasks, without the details.
+  if (profile.role === "staff_admin" && registry.kind === "tasks") {
+    return <RegisterOverview registry={registry} canCreate={features.tasks !== false && registry.active} />;
+  }
 
   const supabase = await createClient();
   const [fields, people, assets, timeZone, { data: manages }] = await Promise.all([
@@ -111,6 +116,89 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
           Showing the tasks you&apos;re allowed to see. Follow-up actions are listed on their main task.
         </p>
       ) : null}
+    </>
+  );
+}
+
+type OverviewRow = {
+  ref: string;
+  title: string;
+  description: string;
+  priority: Priority;
+  status: Status;
+  due_date: string | null;
+  assigned_name: string;
+};
+
+// People management view: what's open in a register and who has it.
+async function RegisterOverview({ registry, canCreate }: { registry: Registry; canCreate: boolean }) {
+  const supabase = await createClient();
+  const [{ data }, timeZone] = await Promise.all([
+    supabase.rpc("register_overview", { p_registry_id: registry.id }),
+    getTimeZone(),
+  ]);
+  const rows = (data ?? []) as OverviewRow[];
+  const today = todayIn(timeZone);
+  return (
+    <>
+      <PageHeader
+        eyebrow={`Registers · ${registry.prefix}`}
+        title={registry.name}
+        intro={registry.description || undefined}
+        action={
+          canCreate ? (
+            <Link href={`/tasks/new?register=${registry.id}`} className={buttonClass("primary")}>
+              + New task
+            </Link>
+          ) : null
+        }
+      />
+      <Card className="overflow-hidden">
+        <h2 className="heading-sm border-b border-line px-5 py-3">Open tasks · {rows.length}</h2>
+        {rows.length === 0 ? (
+          <p className="px-5 py-4 text-sm text-muted">Nothing open in this register.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[44rem] text-sm">
+              <thead className="bg-page text-left text-xs tracking-wider text-muted uppercase">
+                <tr>
+                  <th scope="col" className="px-4 py-3 font-medium">Task</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Description</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Priority</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Due</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Assigned to</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {rows.map((r) => {
+                  const due = dueState(r.due_date, today, r.status);
+                  return (
+                    <tr key={r.ref}>
+                      <td className="px-4 py-3 align-top">
+                        <span className="block font-semibold">{r.title}</span>
+                        <span className="text-xs text-muted">{r.ref} · {STATUS_LABELS[r.status]}</span>
+                      </td>
+                      <td className="max-w-80 px-4 py-3 align-top text-muted">
+                        {r.description.length > 160 ? `${r.description.slice(0, 160)}…` : r.description || "—"}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${PRIORITY_CLASS[r.priority]}`}>{PRIORITY_LABELS[r.priority]}</span>
+                      </td>
+                      <td className={`px-4 py-3 align-top whitespace-nowrap ${due === "overdue" ? "font-semibold text-danger" : due === "today" ? "text-warn" : "text-muted"}`}>
+                        {formatDue(r.due_date, today, r.status)}
+                      </td>
+                      <td className="px-4 py-3 align-top">{r.assigned_name}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+      <p className="text-sm text-muted">
+        An overview for people management. Task details stay with the people working on them and their managers.
+      </p>
     </>
   );
 }
