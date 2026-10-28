@@ -80,7 +80,73 @@ export function render(template: string, ctx: Ctx): Rendered {
       const r = layout(ctx, `New task in ${t.registry}`, `${ctx.actorName} created a task in a registry you manage.`);
       return { ...r, subject: `New task in ${t.registry} · ${tag}` };
     }
+    case "task_reminder": {
+      const r = layout(ctx, "Coming up soon", `this task you're looking after is due ${dueText(t.due_date)}.`);
+      return { ...r, subject: `Due soon · ${tag}` };
+    }
+    case "task_due_today": {
+      const r = layout(ctx, "Due today", "this task is due today.");
+      return { ...r, subject: `Due today · ${tag}` };
+    }
+    case "task_overdue": {
+      const r = layout(ctx, "This task is overdue", `this task was due ${dueText(t.due_date)} and isn't finished yet.`);
+      return { ...r, subject: `Overdue · ${tag}` };
+    }
+    case "task_escalated": {
+      const r = layout(ctx, "Escalated: still overdue", `this task was due ${dueText(t.due_date)} and is still not finished, so it has been escalated to you.`);
+      return { ...r, subject: `Escalated · ${tag}` };
+    }
     default:
       throw new Error(`Unknown email template ${template}`);
   }
+}
+
+export type SummaryTask = {
+  id: string;
+  ref: string;
+  title: string;
+  registry: string;
+  assignee: string;
+  due_date: string;
+  days_late: number;
+  escalated: boolean;
+};
+
+// The managers' morning email: everything overdue, most overdue first.
+export function renderSummary(ctx: {
+  tasks: SummaryTask[];
+  recipientName: string;
+  companyName: string;
+  siteUrl: string;
+  brand: string;
+}): Rendered {
+  const n = ctx.tasks.length;
+  const intro = `${n} task${n === 1 ? " is" : "s are"} overdue this morning.`;
+  const late = (t: SummaryTask) => `${t.days_late} day${t.days_late === 1 ? "" : "s"} late${t.escalated ? " · escalated" : ""}`;
+  const rows = ctx.tasks
+    .map(
+      (t) => `<tr>
+      <td style="padding:8px 12px 8px 0;border-top:1px solid #E3E8EF;vertical-align:top"><a href="${esc(`${ctx.siteUrl}/tasks/${t.id}`)}" style="color:${esc(ctx.brand)};font-weight:600;text-decoration:none">${esc(t.ref)}</a></td>
+      <td style="padding:8px 12px 8px 0;border-top:1px solid #E3E8EF;vertical-align:top">${esc(t.title)}<br><span style="color:#5A6478;font-size:13px">${esc(t.registry)} · ${esc(t.assignee)}</span></td>
+      <td style="padding:8px 0;border-top:1px solid #E3E8EF;vertical-align:top;white-space:nowrap;color:${t.escalated ? "#B42318" : "#9A5B00"};font-weight:600">${esc(late(t))}</td>
+    </tr>`,
+    )
+    .join("");
+  const html = `<!-- Staff Portal · © cmeproject -->
+<div style="font-family:Figtree,Arial,sans-serif;color:#1B2333;max-width:640px">
+  <p style="margin:0 0 4px;color:#5A6478;font-size:14px">${esc(ctx.companyName)}</p>
+  <h2 style="margin:0 0 12px;font-size:22px">Overdue tasks</h2>
+  <p style="margin:0 0 16px;font-size:16px;line-height:1.5">Good morning ${esc(ctx.recipientName)}, ${esc(intro)}</p>
+  <table style="border-collapse:collapse;font-size:15px;margin:0 0 20px;width:100%">${rows}</table>
+  <p style="margin:0 0 24px"><a href="${esc(ctx.siteUrl)}/" style="display:inline-block;padding:12px 22px;border-radius:999px;background:${esc(ctx.brand)};color:#ffffff;font-weight:bold;text-decoration:none">Open the dashboard</a></p>
+  <p style="margin:0;color:#5A6478;font-size:13px">You're getting this each weekday morning as a manager in the ${esc(ctx.companyName)} staff portal.</p>
+</div>`;
+  const text = [
+    `Good morning ${ctx.recipientName}, ${intro}`,
+    "",
+    ...ctx.tasks.map((t) => `${t.ref} · ${t.title} (${t.assignee}) · ${late(t)}\n${ctx.siteUrl}/tasks/${t.id}`),
+    "",
+    `Open the dashboard: ${ctx.siteUrl}/`,
+  ].join("\n");
+  return { subject: `${n} overdue task${n === 1 ? "" : "s"} · ${ctx.companyName}`, html, text };
 }

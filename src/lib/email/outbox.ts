@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getBranding } from "@/lib/branding";
 import { env } from "@/lib/env";
 import { sendEmail } from "./send";
-import { render, type TaskInfo } from "./templates";
+import { render, renderSummary, type SummaryTask, type TaskInfo } from "./templates";
 import { refLabel } from "@/lib/registers";
 
 const MAX_ATTEMPTS = 5;
@@ -15,6 +15,7 @@ type Row = {
   cc_users: string[];
   template: string;
   task_id: string | null;
+  data: Record<string, unknown> | null;
   attempts: number;
   created_at: string;
 };
@@ -31,7 +32,7 @@ export async function flushOutbox(taskId?: string): Promise<void> {
 
   let query = admin
     .from("email_outbox")
-    .select("id, to_user, cc_users, template, task_id, attempts, created_at")
+    .select("id, to_user, cc_users, template, task_id, data, attempts, created_at")
     .is("sent_at", null)
     .lt("attempts", MAX_ATTEMPTS)
     .order("id")
@@ -70,6 +71,23 @@ export async function flushOutbox(taskId?: string): Promise<void> {
     const to = everyone.get(row.to_user);
     const task = (tasks ?? []).find((t) => t.id === row.task_id);
     try {
+      // The managers' morning summary isn't about one task.
+      if (row.template === "overdue_summary") {
+        if (!to?.active) {
+          await admin.from("email_outbox").update({ sent_at: new Date().toISOString(), last_error: "skipped" }).eq("id", row.id);
+          continue;
+        }
+        const msg = renderSummary({
+          tasks: ((row.data?.tasks as SummaryTask[] | undefined) ?? []),
+          recipientName: (to.full_name || to.email).split(" ")[0],
+          companyName: brand.companyName,
+          siteUrl: env.siteUrl,
+          brand: brand.colorPrimary,
+        });
+        await sendEmail({ to: { email: to.email, name: to.full_name }, cc: [], ...msg });
+        await admin.from("email_outbox").update({ sent_at: new Date().toISOString(), attempts: row.attempts + 1, last_error: null }).eq("id", row.id);
+        continue;
+      }
       if (!to?.active || !task) {
         await admin.from("email_outbox").update({ sent_at: new Date().toISOString(), last_error: "skipped" }).eq("id", row.id);
         continue;

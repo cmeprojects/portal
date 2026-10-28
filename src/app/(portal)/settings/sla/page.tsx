@@ -8,6 +8,14 @@ import { SettingForm } from "../../system/forms";
 
 export const metadata: Metadata = { title: "Due dates (SLA)" };
 
+const KEYS = [
+  "tasks.sla_days",
+  "tasks.sla_weekdays_only",
+  "tasks.sla_remind_days",
+  "tasks.sla_escalate_days",
+  "tasks.sla_manager_summary",
+];
+
 // Managers and system admins set the company's default due dates.
 export default async function SlaPage() {
   await requireRole(["manager", "system_admin"]);
@@ -15,17 +23,17 @@ export default async function SlaPage() {
   const { data: settings } = await supabase
     .from("app_settings")
     .select("key, label, description, value")
-    .in("key", ["tasks.sla_days", "tasks.sla_weekdays_only"])
-    .order("key");
+    .in("key", KEYS);
+  const ordered = KEYS.flatMap((k) => (settings ?? []).filter((s) => s.key === k));
 
   return (
     <>
       <PageHeader
         title="Due dates (SLA)"
-        intro="New tasks get a due date from their priority. People can still pick another date. Each register can set its own in its Set up page."
+        intro="New tasks get a due date from their priority. People can still pick another date. Each register can set its own in its Set up page. Reminders and overdue alerts go out by bell and email: a day before, on the day, to the team leader once it's overdue, and to managers (marked escalated) after a few days."
       />
       <Card className="max-w-3xl px-5 py-2">
-        {(settings ?? []).map((s) => (
+        {ordered.map((s) => (
           <SettingForm key={s.key} setting={s} />
         ))}
       </Card>

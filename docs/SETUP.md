@@ -180,3 +180,22 @@ update.
 - Move the Vercel project to a commercial plan.
 - Agree how long records are kept (System settings → Records).
 - Load real data only after management has approved going live.
+
+## Due date alerts (hourly timer)
+
+Reminders, overdue alerts, automatic escalation and the managers' morning
+summary run from a timer inside Supabase (pg_cron), so nothing depends on the
+host.
+
+1. Open `supabase/setup/due-alerts-timer.sql`, check the web address near the
+   top, and run it in the Supabase SQL Editor.
+2. It shows a `CRON_SECRET` once. Add it in Vercel → Settings → Environment
+   Variables as `CRON_SECRET`, then redeploy. Don't paste it anywhere else.
+3. The timer calls `/cron/due-alerts` at five past every hour. Managers change
+   the reminder, escalation and summary settings on Due dates (SLA).
+
+Rules: a reminder the day before (to the person), on the due date (them and
+helpers), overdue (them and their team leaders, or managers if there's no
+leader), and after 3 days overdue the managers are told and the task is marked
+escalated. Each step is sent once per due date. Managers get one summary email
+each weekday from 7am. With "weekdays only" on, nothing is sent at weekends.

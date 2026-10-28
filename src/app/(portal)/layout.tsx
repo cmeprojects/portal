@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
 import { getTimeZone } from "@/lib/settings";
+import { formatDue, todayIn } from "@/lib/tasks";
 import { Bell, type BellItem } from "@/components/bell";
 import { getBranding } from "@/lib/branding";
 import { ROLE_LABELS } from "@/lib/roles";
@@ -48,35 +49,59 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   );
 }
 
-// Tasks newly given to the signed-in person, newest first, for the bell.
+const ALERT_WORDS: Record<string, string> = {
+  reminder: "Due soon",
+  due_today: "Due today",
+  overdue: "Overdue",
+  escalated: "Escalated",
+};
+
+// Tasks newly given to the signed-in person, and due date alerts, newest
+// first, for the bell.
 async function newTasksForMe(): Promise<BellItem[]> {
   const supabase = await createClient();
-  const { data } = await supabase.rpc("my_new_tasks");
+  const [{ data }, { data: alertRows }] = await Promise.all([supabase.rpc("my_new_tasks"), supabase.rpc("my_due_alerts")]);
   const fresh = (data ?? []) as { task_id: string; kind: "assigned" | "helping"; actor_id: string | null; at: string }[];
-  if (!fresh.length) return [];
+  const alerts = (alertRows ?? []) as { task_id: string; step: string; at: string }[];
+  if (!fresh.length && !alerts.length) return [];
+  const ids = [...new Set([...fresh.map((f) => f.task_id), ...alerts.map((a) => a.task_id)])];
   const [{ data: tasks }, registries, people, timeZone] = await Promise.all([
-    supabase.from("tasks").select("id, ref_number, title, registry_id").in("id", fresh.map((f) => f.task_id)),
+    supabase.from("tasks").select("id, ref_number, title, registry_id, due_date").in("id", ids),
     getRegistries(),
     getPeople(),
     getTimeZone(),
   ]);
   const when = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone });
-  return fresh
-    .sort((a, b) => (a.at < b.at ? 1 : -1))
-    .flatMap((f) => {
-      const t = (tasks ?? []).find((x) => x.id === f.task_id);
-      if (!t) return [];
-      const prefix = registries.find((r) => r.id === t.registry_id)?.prefix;
-      const by = people.find((p) => p.id === f.actor_id)?.name ?? "Admin";
-      return [
-        {
-          key: `task-${t.id}`,
-          href: `/tasks/${t.id}`,
-          title: t.title,
-          detail: `${refLabel(prefix, t.ref_number)} · ${f.kind === "helping" ? "help needed" : "for you to look after"} · from ${by} · ${when.format(new Date(f.at))}`,
-        },
-      ];
+  const refOf = (t: { registry_id: string; ref_number: number }) =>
+    refLabel(registries.find((r) => r.id === t.registry_id)?.prefix, t.ref_number);
+
+  const items: (BellItem & { at: string })[] = [];
+  for (const a of alerts) {
+    const t = (tasks ?? []).find((x) => x.id === a.task_id);
+    if (!t) continue;
+    const late = a.step === "overdue" || a.step === "escalated";
+    items.push({
+      key: `due-${t.id}`,
+      href: `/tasks/${t.id}`,
+      title: `${ALERT_WORDS[a.step] ?? "Due"}: ${t.title}`,
+      detail: `${refOf(t)} · ${formatDue(t.due_date, todayIn(timeZone), "assigned")}`,
+      tone: late ? "danger" : undefined,
+      at: a.at,
     });
+  }
+  for (const f of fresh) {
+    const t = (tasks ?? []).find((x) => x.id === f.task_id);
+    if (!t || items.some((i) => i.key === `due-${t.id}`)) continue;
+    const by = people.find((p) => p.id === f.actor_id)?.name ?? "Admin";
+    items.push({
+      key: `task-${t.id}`,
+      href: `/tasks/${t.id}`,
+      title: t.title,
+      detail: `${refOf(t)} · ${f.kind === "helping" ? "help needed" : "for you to look after"} · from ${by} · ${when.format(new Date(f.at))}`,
+      at: f.at,
+    });
+  }
+  return items.sort((a, b) => (a.at < b.at ? 1 : -1));
 }
 
 // Managers' answers to role and team changes the signed-in person asked for.
