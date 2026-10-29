@@ -17,14 +17,17 @@ function Result({ state }: { state: FormState }) {
 }
 
 function useWhen(timeZone: string) {
-  const time = new Intl.DateTimeFormat("en-AU", { hour: "numeric", minute: "2-digit", timeZone });
-  const day = new Intl.DateTimeFormat("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone });
-  const today = day.format(new Date());
-  const timeOf = (iso: string) => time.format(new Date(iso)).toLowerCase();
+  // Built from parts so the server and every phone show exactly the same text.
+  const parts = new Intl.DateTimeFormat("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone });
+  const fmt = (iso: string) => {
+    const p = Object.fromEntries(parts.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+    return { day: `${p.weekday} ${p.day} ${p.month}`, time: `${p.hour}:${p.minute} ${String(p.dayPeriod ?? "").toLowerCase()}` };
+  };
+  const today = fmt(new Date().toISOString()).day;
   // "9:12 am" today, "Fri 30 Oct, 9:12 am" on other days.
   return {
-    full: (iso: string) => `${day.format(new Date(iso)).replace(",", "")}, ${timeOf(iso)}`,
-    short: (iso: string) => (day.format(new Date(iso)) === today ? timeOf(iso) : `${day.format(new Date(iso)).replace(",", "")}, ${timeOf(iso)}`),
+    full: (iso: string) => `${fmt(iso).day}, ${fmt(iso).time}`,
+    short: (iso: string) => (fmt(iso).day === today ? fmt(iso).time : `${fmt(iso).day}, ${fmt(iso).time}`),
   };
 }
 

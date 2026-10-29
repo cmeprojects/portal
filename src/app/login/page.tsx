@@ -13,6 +13,8 @@ const ERRORS: Record<string, string> = {
   google: "Google sign-in didn't work. Make sure you use the email you were invited with.",
   link: "That link has expired or was already used. Ask for a new one below.",
   idle: "You were signed out because you weren't active for a while. Please sign in again.",
+  app: "It's been a while since you last signed in to the Cars app. Please sign in again.",
+  pin: "Too many wrong PINs, so you've been signed out. Sign in, then choose a new PIN.",
 };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
