@@ -218,6 +218,7 @@ export type TaskSnapshot = {
   helpers: { id: string; name: string }[];
   history: { who: string; what: string; note: string | null; at: string }[];
   canEdit: boolean;
+  canApprove: boolean;
   files: number;
 };
 

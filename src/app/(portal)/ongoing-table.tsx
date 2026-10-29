@@ -8,7 +8,7 @@ import { Button, Field, Notice, buttonClass, inputClass } from "@/components/ui"
 import type { FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/client";
 import { describeEvent, eventNote } from "@/lib/task-events";
-import { addHelper, reassignTask, type TaskSnapshot } from "./tasks/actions";
+import { addHelper, changeStatus, reassignTask, type TaskSnapshot } from "./tasks/actions";
 
 export type OngoingRow = {
   id: string;
@@ -21,6 +21,8 @@ export type OngoingRow = {
   priority: string;
   priorityClass: string;
   status: string;
+  // The status itself (e.g. awaiting_approval), for the quick actions.
+  statusKey: string;
   due: string;
   dueClass: string;
 };
@@ -38,12 +40,13 @@ type Ctx = { names: Map<string, string>; timeZone: string };
 
 async function loadSnapshot(id: string, ctx: Ctx): Promise<TaskSnapshot | null> {
   const db = createClient();
-  const [{ data: task }, { data: helpers }, { data: events }, { data: canEdit }, { count }] = await Promise.all([
+  const [{ data: task }, { data: helpers }, { data: events }, { data: canEdit }, { count }, { data: canApprove }] = await Promise.all([
     db.from("tasks").select("id, description").eq("id", id).maybeSingle(),
     db.from("task_helpers").select("user_id").eq("task_id", id),
     db.from("task_events").select("type, actor_id, from_value, to_value, comment, created_at").eq("task_id", id).order("created_at").order("id"),
     db.rpc("can_edit_task", { p_task_id: id }),
     db.from("task_attachments").select("id", { count: "exact", head: true }).eq("task_id", id),
+    db.rpc("can_approve_task", { p_task_id: id }),
   ]);
   if (!task) return null;
   const nameOf = (uid: string | null) => (uid ? ctx.names.get(uid) ?? "Admin" : "System");
@@ -53,6 +56,7 @@ async function loadSnapshot(id: string, ctx: Ctx): Promise<TaskSnapshot | null> 
     helpers: (helpers ?? []).map((h) => ({ id: h.user_id, name: nameOf(h.user_id) })),
     history: (events ?? []).map((e) => ({ who: nameOf(e.actor_id), what: describeEvent(e, nameOf), note: eventNote(e), at: when.format(new Date(e.created_at)) })),
     canEdit: Boolean(canEdit),
+    canApprove: Boolean(canApprove),
     files: count ?? 0,
   };
 }
@@ -145,7 +149,7 @@ export function OngoingTable({
 function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string; name: string }[]; ctx: Ctx }) {
   const router = useRouter();
   const [snap, setSnap] = useState<TaskSnapshot | null | "loading">("loading");
-  const [panel, setPanel] = useState<"none" | "reassign" | "helper">("none");
+  const [panel, setPanel] = useState<"none" | "reassign" | "helper" | "sendback">("none");
   const progress = useRef<HTMLDialogElement>(null);
   const [, startTransition] = useTransition();
   const load = (fresh = false) =>
@@ -173,16 +177,29 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
     return result;
   }, null);
 
+  const [statusState, statusAction, changing] = useActionState(async (prev: FormState, form: FormData) => {
+    const result = await changeStatus(prev, form);
+    if (result?.message) {
+      setPanel("none");
+      cache.delete(row.id);
+      router.refresh();
+    }
+    return result;
+  }, null);
+
   if (snap === null) return <p className="py-3 text-sm text-muted">This task can&apos;t be shown.</p>;
   const loading = snap === "loading";
-  const data: TaskSnapshot = loading ? { description: row.description, helpers: [], history: [], canEdit: false, files: 0 } : snap;
+  const data: TaskSnapshot = loading
+    ? { description: row.description, helpers: [], history: [], canEdit: false, canApprove: false, files: 0 }
+    : snap;
+  const approving = row.statusKey === "awaiting_approval" && data.canApprove;
   const latest = data.history[data.history.length - 1];
   const helperIds = new Set(data.helpers.map((h) => h.id));
   const choices = people.filter((p) => p.id !== row.assignedTo && !helperIds.has(p.id));
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4">
-      <Result state={reassignState ?? helperState} />
+      <Result state={statusState ?? reassignState ?? helperState} />
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="flex flex-col gap-3">
           <div>
@@ -224,8 +241,22 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
         </dl>
       </div>
 
+      {approving ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-warn/40 bg-warn-soft/40 p-3">
+          <p className="mr-auto text-sm font-semibold">Waiting for your approval.</p>
+          <form action={statusAction}>
+            <input type="hidden" name="task_id" value={row.id} />
+            <input type="hidden" name="status" value="completed" />
+            <Button disabled={changing}>{changing ? "Saving…" : "Approve and complete"}</Button>
+          </form>
+          <Button type="button" variant="outline" onClick={() => setPanel(panel === "sendback" ? "none" : "sendback")}>
+            Send back
+          </Button>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
-        <Link href={`/tasks/${row.id}`} className={buttonClass("primary")}>
+        <Link href={`/tasks/${row.id}`} className={buttonClass(approving ? "outline" : "primary")}>
           Open task
         </Link>
         {data.canEdit ? (
@@ -240,6 +271,21 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
           See progress
         </Button>
       </div>
+
+      {panel === "sendback" ? (
+        <form action={statusAction} className="flex flex-wrap items-end gap-3">
+          <input type="hidden" name="task_id" value={row.id} />
+          <input type="hidden" name="status" value="in_progress" />
+          <div className="min-w-56 flex-1">
+            <Field label="What still needs doing?" htmlFor={`sb-${row.id}`}>
+              <input id={`sb-${row.id}`} name="note" required className={inputClass} />
+            </Field>
+          </div>
+          <Button className="h-12" disabled={changing}>
+            {changing ? "Sending…" : "Send back"}
+          </Button>
+        </form>
+      ) : null}
 
       {panel === "reassign" ? (
         <form action={reassignAction} className="grid gap-3 md:grid-cols-[1fr_2fr_auto] md:items-end">
@@ -334,6 +380,62 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
         </div>
       </dialog>
     </div>
+  );
+}
+
+// "Needs your attention": tap a task to expand the same quick view in place,
+// with Approve / Send back when it's waiting on you.
+export function AttentionList({
+  rows,
+  people,
+  names,
+  timeZone,
+}: {
+  rows: (OngoingRow & { flag: string | null })[];
+  people: { id: string; name: string }[];
+  names: [string, string][];
+  timeZone: string;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [ctx] = useState<Ctx>(() => ({ names: new Map(names), timeZone }));
+  return (
+    <ul className="divide-y divide-line">
+      {rows.map((t) => {
+        const open = openId === t.id;
+        return (
+          <li key={t.id} className={open ? "bg-page" : ""}>
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls={`att-${t.id}`}
+              onMouseEnter={() => prefetch(t.id, ctx)}
+              onTouchStart={() => prefetch(t.id, ctx)}
+              onClick={() => setOpenId(open ? null : t.id)}
+              className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 text-left hover:bg-page"
+            >
+              <span className="min-w-48 flex-1">
+                <span className="block text-sm font-semibold">
+                  <span aria-hidden="true" className="mr-1.5 inline-block w-3 text-muted">{open ? "▾" : "▸"}</span>
+                  {t.title}
+                </span>
+                <span className="block pl-[1.125rem] text-xs text-muted">
+                  {t.ref} · {t.assignee}
+                </span>
+              </span>
+              <span className="flex items-center gap-2 text-xs font-semibold">
+                {t.flag ? <span className="rounded-full bg-warn-soft px-2.5 py-0.5 text-warn">{t.flag}</span> : null}
+                <span className={t.dueClass}>{t.due}</span>
+              </span>
+            </button>
+            {open ? (
+              <div id={`att-${t.id}`} className="px-3 pb-4 sm:px-5">
+                <Snapshot row={t} people={people} ctx={ctx} />
+              </div>
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

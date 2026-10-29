@@ -18,7 +18,7 @@ import {
   type Status,
 } from "@/lib/tasks";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
-import { OngoingTable, TaskPeek } from "./ongoing-table";
+import { AttentionList, OngoingTable, TaskPeek, type OngoingRow } from "./ongoing-table";
 
 type Row = {
   id: string;
@@ -102,6 +102,27 @@ export async function DashboardView({ params }: { params: Record<string, string 
     .sort((a, b) => b.n - a.n);
   const most = Math.max(1, ...byRegister.map((x) => x.n));
 
+  // One shape for both quick-view lists.
+  const toRow = (t: Row): OngoingRow => {
+    const due = dueState(t.due_date, today, t.status);
+    return {
+      id: t.id,
+      description: t.description.length > 600 ? `${t.description.slice(0, 600)}…` : t.description,
+      ref: ref(t),
+      title: t.title,
+      register: regOf.get(t.registry_id)?.name ?? "",
+      assignedTo: t.assigned_to,
+      assignee: nameOf.get(t.assigned_to) ?? "",
+      priority: PRIORITY_LABELS[t.priority],
+      priorityClass: PRIORITY_CLASS[t.priority],
+      status: STATUS_LABELS[t.status],
+      statusKey: t.status,
+      due: formatDue(t.due_date, today, t.status),
+      dueClass: due === "overdue" ? "font-semibold text-danger" : due === "today" ? "text-warn" : "text-muted",
+    };
+  };
+  const pickable = people.filter((p) => p.active && p.role !== "system_admin" && p.role !== "new_starter").map((p) => ({ id: p.id, name: p.name }));
+
   const sorted = [...filtered].sort((a, b) => {
     const ad = a.due_date ?? "9999-12-31";
     const bd = b.due_date ?? "9999-12-31";
@@ -182,26 +203,15 @@ export async function DashboardView({ params }: { params: Record<string, string 
           {attention.length === 0 ? (
             <p className="px-5 py-4 text-sm text-muted">Nothing overdue, escalated or waiting on you.</p>
           ) : (
-            <ul className="divide-y divide-line">
-              {attention.map((t) => (
-                <li key={t.id}>
-                  <Link href={`/tasks/${t.id}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 hover:bg-page">
-                    <span className="min-w-48 flex-1">
-                      <span className="block text-sm font-semibold">{t.title}</span>
-                      <span className="block text-xs text-muted">
-                        {ref(t)} · {nameOf.get(t.assigned_to) ?? ""}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-2 text-xs font-semibold">
-                      {t.status === "escalated" || t.status === "awaiting_approval" ? (
-                        <span className="rounded-full bg-warn-soft px-2.5 py-0.5 text-warn">{STATUS_LABELS[t.status]}</span>
-                      ) : null}
-                      <span className={overdue(t) ? "text-danger" : "text-muted"}>{formatDue(t.due_date, today, t.status)}</span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <AttentionList
+              rows={attention.map((t) => ({
+                ...toRow(t),
+                flag: t.status === "escalated" || t.status === "awaiting_approval" ? STATUS_LABELS[t.status] : null,
+              }))}
+              people={pickable}
+              names={peekNames}
+              timeZone={timeZone}
+            />
           )}
         </Card>
 
@@ -276,25 +286,9 @@ export async function DashboardView({ params }: { params: Record<string, string 
           <p className="px-5 py-5 text-sm text-muted">No ongoing tasks match.</p>
         ) : (
           <OngoingTable
-            rows={sorted.map((t) => {
-              const due = dueState(t.due_date, today, t.status);
-              return {
-                id: t.id,
-                description: t.description.length > 600 ? `${t.description.slice(0, 600)}…` : t.description,
-                ref: ref(t),
-                title: t.title,
-                register: regOf.get(t.registry_id)?.name ?? "",
-                assignedTo: t.assigned_to,
-                assignee: nameOf.get(t.assigned_to) ?? "",
-                priority: PRIORITY_LABELS[t.priority],
-                priorityClass: PRIORITY_CLASS[t.priority],
-                status: STATUS_LABELS[t.status],
-                due: formatDue(t.due_date, today, t.status),
-                dueClass: due === "overdue" ? "font-semibold text-danger" : due === "today" ? "text-warn" : "text-muted",
-              };
-            })}
-            people={people.filter((p) => p.active && p.role !== "system_admin" && p.role !== "new_starter").map((p) => ({ id: p.id, name: p.name }))}
-            names={people.filter((p) => p.role !== "system_admin").map((p) => [p.id, p.name] as [string, string])}
+            rows={sorted.map(toRow)}
+            people={pickable}
+            names={peekNames}
             timeZone={timeZone}
           />
         )}

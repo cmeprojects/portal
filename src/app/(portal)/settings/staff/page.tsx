@@ -65,6 +65,25 @@ export default async function StaffPage() {
         }),
     ),
   );
+  // Documents that have expired or expire within 30 days, per person.
+  const expiryFor = new Map(
+    await Promise.all(
+      (people ?? [])
+        .filter((p) => p.active && p.role !== "system_admin")
+        .map(async (p) => {
+          const { data } = await supabase.rpc("compliance_status", { p_user: p.id });
+          const rows = (data ?? []) as { title: string; state: string }[];
+          return [
+            p.id,
+            {
+              expired: rows.filter((r) => r.state === "expired").map((r) => r.title),
+              expiring: rows.filter((r) => r.state === "expiring").map((r) => r.title),
+            },
+          ] as const;
+        }),
+    ),
+  );
+  const docList = (list: string[]) => (list.length <= 2 ? list.join(", ") : `${list.length} documents`);
   const titleName = new Map(titles.map((t) => [t.id, t.name]));
   const nameOf = new Map((people ?? []).map((p) => [p.id, p.full_name || p.email]));
   type RoleValue = { role: Role; title: string | null };
@@ -171,6 +190,16 @@ export default async function StaffPage() {
                     <Badge tone="warn">Onboarding: {row.missing.length} to do</Badge>
                   ) : row.missing && p.onboarded_at ? (
                     <Badge tone="good">Onboarding done</Badge>
+                  ) : null}
+                  {expiryFor.get(p.id)?.expired.length ? (
+                    <span title={expiryFor.get(p.id)!.expired.join(", ")}>
+                      <Badge tone="warn">Expired: {docList(expiryFor.get(p.id)!.expired)}</Badge>
+                    </span>
+                  ) : null}
+                  {expiryFor.get(p.id)?.expiring.length ? (
+                    <span title={expiryFor.get(p.id)!.expiring.join(", ")}>
+                      <Badge tone="warn">Expiring: {docList(expiryFor.get(p.id)!.expiring)}</Badge>
+                    </span>
                   ) : null}
                   <span className="w-40 text-sm text-muted">
                     {inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team"}
