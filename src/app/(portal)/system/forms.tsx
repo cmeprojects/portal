@@ -31,7 +31,12 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
 }
 import { saveDelegation, saveSetting, setFeature } from "./actions";
 
-export function FeatureSwitch({ feature }: { feature: { key: string; label: string; description: string | null; enabled: boolean } }) {
+export function FeatureSwitch({
+  feature,
+}: {
+  feature: { key: string; label: string; description: string | null; enabled: boolean; premium?: boolean; included?: boolean };
+}) {
+  const locked = feature.included === false;
   const [state, action, pending] = useActionState(setFeature, null);
   return (
     <form
@@ -50,10 +55,21 @@ export function FeatureSwitch({ feature }: { feature: { key: string; label: stri
       <input type="hidden" name="key" value={feature.key} />
       <input type="hidden" name="enabled" value={feature.enabled ? "false" : "true"} />
       <div className="min-w-56 flex-1">
-        <p className="font-semibold">{feature.label}</p>
+        <p className="flex flex-wrap items-center gap-2 font-semibold">
+          {feature.label}
+          {feature.premium ? (
+            <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">Premium</span>
+          ) : null}
+        </p>
         {feature.description ? <p className="text-sm text-muted">{feature.description}</p> : null}
+        {locked ? <p className="text-sm font-semibold text-warn">Not included in your plan. Contact cmeproject to add it.</p> : null}
         {state?.error ? <p className="text-sm font-semibold text-danger">{state.error}</p> : null}
       </div>
+      {locked ? (
+        <span className="flex h-10 min-w-24 items-center justify-center gap-2 rounded-md border border-field bg-page px-4 text-sm font-semibold text-muted">
+          Locked
+        </span>
+      ) : (
       <button
         role="switch"
         aria-checked={feature.enabled}
@@ -66,6 +82,7 @@ export function FeatureSwitch({ feature }: { feature: { key: string; label: stri
         <span aria-hidden="true" className={`h-3 w-3 rounded-full ${feature.enabled ? "bg-brand-fg" : "bg-muted"}`} />
         {feature.enabled ? "On" : "Off"}
       </button>
+      )}
     </form>
   );
 }

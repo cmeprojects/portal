@@ -114,13 +114,15 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   const areas = await getMyAdminAreas(profile.role);
   // Delegated managers see only the sections they were given.
   const canSee = (sec: Section) => isAdmin || (sec.area !== undefined && areas.includes(sec.area));
-  const tabs = TABS.filter((t) => (t.sections.length ? t.sections.some(canSee) : isAdmin));
+  const { features: on } = await requireSession();
+  // Car settings only while Cars is switched on (and in the plan).
+  const tabs = TABS.filter((t) => (t.key !== "cars" || on.vehicles === true) && (t.sections.length ? t.sections.some(canSee) : isAdmin));
   if (!tabs.length) redirect("/");
   const { tab: asked } = await searchParams;
   const tab = tabs.find((t) => t.key === asked) ?? tabs[0];
   const supabase = await createClient();
   const [{ data: features }, { data: settings }, { data: managers }, { data: delegations }] = await Promise.all([
-    supabase.from("features").select("key, label, description, enabled").order("sort_order"),
+    supabase.from("features").select("*").order("sort_order"),
     supabase.from("app_settings").select("key, label, description, value").order("key"),
     isAdmin ? supabase.from("profiles").select("id, full_name, email").eq("role", "manager").eq("active", true).order("full_name") : Promise.resolve({ data: [] }),
     isAdmin ? supabase.from("admin_delegations").select("user_id, areas") : Promise.resolve({ data: [] }),
@@ -166,7 +168,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
               <DelegationForm
                 key={m.id}
                 manager={{ id: m.id, name: m.full_name || m.email }}
-                areas={AREAS.map((a) => ({ key: a, label: AREA_LABELS[a] }))}
+                areas={AREAS.filter((a) => a !== "vehicles" || on.vehicles === true).map((a) => ({ key: a, label: AREA_LABELS[a] }))}
                 current={((delegations ?? []).find((d) => d.user_id === m.id)?.areas ?? []) as string[]}
               />
             ))
@@ -178,7 +180,10 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
           <p className="text-sm text-muted">Switching a feature off hides it and blocks it in the database. Its records stay and can still be read.</p>
           <div className="mt-2">
             {(features ?? []).map((f) => (
-              <FeatureSwitch key={f.key} feature={f} />
+              <FeatureSwitch
+                key={f.key}
+                feature={{ key: f.key, label: f.label, description: f.description, enabled: f.enabled, premium: f.premium === true, included: f.included !== false }}
+              />
             ))}
           </div>
         </Card>

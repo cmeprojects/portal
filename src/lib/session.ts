@@ -44,14 +44,16 @@ export const getSession = cache(async (): Promise<Session | null> => {
       .select("id, email, full_name, role, team_id, active")
       .eq("id", userId)
       .maybeSingle<Profile>(),
-    supabase.from("features").select("key, enabled"),
+    // "*" so it keeps working before the premium columns exist.
+    supabase.from("features").select("*"),
   ]);
   if (!access || !access.active || !profile) redirect("/deactivated");
   if (access.mfa_required && !access.mfa_ok) redirect("/mfa");
 
   return {
     profile,
-    features: Object.fromEntries((features ?? []).map((f) => [f.key, f.enabled])),
+    // A premium feature only counts as on if it's included in the plan.
+    features: Object.fromEntries((features ?? []).map((f) => [f.key, Boolean(f.enabled) && f.included !== false])),
     mfaRequired: access.mfa_required,
   };
 });

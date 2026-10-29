@@ -165,7 +165,7 @@ export default async function SystemHealthPage() {
           { label: "Active staff", n: h.people_active },
           { label: "Open tasks", n: h.tasks_open },
           { label: "Tasks ever", n: h.tasks_total },
-          { label: "Car trips", n: h.trips_total },
+          ...(features.vehicles === true ? [{ label: "Car trips", n: h.trips_total }] : [{ label: "Tasks done", n: h.tasks_total - h.tasks_open }]),
         ].map((s) => (
           <Card key={s.label} className="p-4">
             <p className="heading text-brand tabular-nums">{Number(s.n).toLocaleString("en-AU")}</p>
