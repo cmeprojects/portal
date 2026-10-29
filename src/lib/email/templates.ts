@@ -153,6 +153,8 @@ export function renderSummary(ctx: {
 
 // The welcome invite, with the company's logo.
 export function renderInvite(ctx: {
+  // The system admin's extra note (System settings → Messages).
+  note?: string;
   recipientName: string;
   invitedBy: string;
   companyName: string;
@@ -175,6 +177,7 @@ export function renderInvite(ctx: {
     <div style="padding:20px 28px 28px">
       <h1 style="margin:0 0 12px;font-size:24px;text-align:center">Welcome to ${esc(ctx.companyName)}</h1>
       <p style="margin:0 0 20px;font-size:16px;line-height:1.55">${esc(hi)} ${esc(ctx.invitedBy)} has invited you to join the ${esc(ctx.companyName)} staff portal. It's where you'll do your onboarding, keep your documents up to date and see your tasks.</p>
+      ${ctx.note ? `<p style="margin:0 0 20px;padding:12px 14px;background:#F6F8FB;border-radius:12px;font-size:15px;line-height:1.5;white-space:pre-line">${esc(ctx.note)}</p>` : ""}
       <p style="margin:0 0 24px;text-align:center"><a href="${esc(ctx.link)}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:${esc(ctx.brand)};color:#ffffff;font-weight:bold;font-size:16px;text-decoration:none">Accept your invite</a></p>
       <table style="border-collapse:collapse;width:100%;font-size:15px;line-height:1.45">
         ${steps
@@ -193,6 +196,7 @@ export function renderInvite(ctx: {
   const text = [
     `${hi} ${ctx.invitedBy} has invited you to join the ${ctx.companyName} staff portal.`,
     "",
+    ...(ctx.note ? [ctx.note, ""] : []),
     `Accept your invite: ${ctx.link}`,
     "",
     ...steps.map(([title, t], i) => `${i + 1}. ${title}: ${t}`),

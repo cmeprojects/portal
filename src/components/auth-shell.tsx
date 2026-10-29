@@ -17,6 +17,7 @@ export function AuthShell({ brand, children }: { brand: Branding; children: Reac
           <p className="font-display text-xs font-light tracking-[0.3em] text-muted uppercase">{brand.portalName}</p>
         </div>
         <div className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5">{children}</div>
+        {brand.supportContact ? <p className="text-center text-sm whitespace-pre-line text-muted">{brand.supportContact}</p> : null}
       </div>
       <Credits />
     </main>

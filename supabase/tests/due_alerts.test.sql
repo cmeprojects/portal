@@ -97,5 +97,19 @@ set role authenticated;
 select test.refused($$select set_config('request.jwt.claims', '{}', false), public.run_due_alerts()$$, 'staff cannot run the timer job');
 reset role;
 
+-- The summary time and the Auto-escalation switch.
+delete from public.daily_runs;
+delete from public.email_outbox;
+update public.app_settings set value = '10' where key = 'tasks.summary_hour';
+select set_config('request.jwt.claims', '{}', false), public.run_due_alerts(timestamptz '2026-11-05 09:00 Australia/Melbourne');
+select test.ok(not exists (select 1 from public.email_outbox where template = 'overdue_summary'), 'no summary before the chosen time');
+select set_config('request.jwt.claims', '{}', false), public.run_due_alerts(timestamptz '2026-11-05 10:30 Australia/Melbourne');
+select test.ok(exists (select 1 from public.email_outbox where template = 'overdue_summary'), 'the summary goes out at the chosen time');
+update public.features set enabled = false where key = 'auto_escalation';
+update public.tasks set status = 'in_progress', escalated = false where title = 'Very late';
+update public.tasks set due_date = date '2026-10-20' where title = 'Very late';
+select set_config('request.jwt.claims', '{}', false), public.run_due_alerts(timestamptz '2026-11-05 11:00 Australia/Melbourne');
+select test.ok((select status = 'in_progress' from public.tasks where title = 'Very late'), 'with Auto-escalation off, nothing is escalated');
+
 \o
 \echo 'All due date alert tests passed.'

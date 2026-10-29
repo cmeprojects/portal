@@ -324,6 +324,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
             ) : null}
           </Card>
 
+          {features.attachments !== false || (files ?? []).length ? (
           <Card className="flex flex-col gap-3 p-5">
             <h2 className="heading-sm">Files · {(files ?? []).length}</h2>
             {(files ?? []).length ? (
@@ -346,12 +347,13 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
             ) : (
               <p className="text-sm text-muted">No files yet.</p>
             )}
-            {open ? (
+            {open && features.attachments !== false ? (
               <div className="print:hidden">
                 <AttachmentForm taskId={task.id} />
               </div>
             ) : null}
           </Card>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-4">

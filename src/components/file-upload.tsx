@@ -47,6 +47,7 @@ export function FileUpload({
   accept = "application/pdf,image/*,.doc,.docx",
   required = false,
   maxMb = MAX_MB,
+  shrink = true,
   onReady,
 }: {
   id: string;
@@ -56,6 +57,8 @@ export function FileUpload({
   accept?: string;
   required?: boolean;
   maxMb?: number;
+  // Logos keep their exact file (and transparency).
+  shrink?: boolean;
   onReady?: (ready: boolean) => void;
 }) {
   const [state, setState] = useState<{ path: string; file: string } | null>(null);
@@ -67,7 +70,7 @@ export function FileUpload({
     onReady?.(false);
     if (!picked) return setStatus("idle");
     setStatus("uploading");
-    const file = await shrinkPhoto(picked);
+    const file = shrink ? await shrinkPhoto(picked) : picked;
     const shrunk = file !== picked ? ` (shrunk from ${kb(picked.size)} to ${kb(file.size)})` : "";
     if (file.size > maxMb * 1024 * 1024) {
       setStatus("error");
@@ -110,7 +113,9 @@ export function FileUpload({
             ? `Ready: ${state?.file}${message}`
             : status === "error"
               ? message
-              : `Photos are made smaller automatically. Up to ${maxMb} MB.`}
+              : shrink
+                ? `Photos are made smaller automatically. Up to ${maxMb} MB.`
+                : `Up to ${maxMb} MB.`}
       </p>
     </div>
   );

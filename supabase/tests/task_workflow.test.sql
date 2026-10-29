@@ -159,5 +159,14 @@ select test.ok(cardinality(public.task_missing_fields(test.tid('Wet floor'))) = 
 select test.ok(public.set_task_status(test.tid('Wet floor'), 'completed') in ('completed', 'awaiting_approval'), 'then it can be completed (or sent for approval)');
 reset role;
 
+-- The Attachments switch.
+update public.features set enabled = false where key = 'attachments';
+select test.act_as('kim@example.com');
+set role authenticated;
+select test.refused($$select public.add_task_attachment(test.tid('Fix tap'), test.tid('Fix tap')::text || '/b.jpg', 'b.jpg')$$,
+  'no files while Attachments is switched off');
+reset role;
+update public.features set enabled = true where key = 'attachments';
+
 \o
 \echo 'All task workflow tests passed.'

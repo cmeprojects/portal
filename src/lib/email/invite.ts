@@ -37,7 +37,9 @@ export async function sendInvite(opts: { email: string; fullName: string; invite
   const brand = await getBranding();
   const url = `${env.siteUrl}/auth/confirm?token_hash=${encodeURIComponent(link.data.properties.hashed_token)}&type=${type}&next=/welcome`;
   const logo = /^https?:\/\//.test(brand.logoUrl) ? brand.logoUrl : `${env.siteUrl}${brand.logoUrl}`;
+  const { data: note } = await admin.from("app_settings").select("value").eq("key", "people.invite_message").maybeSingle();
   const msg = renderInvite({
+    note: typeof note?.value === "string" ? note.value.trim() : "",
     recipientName: opts.fullName.split(" ")[0],
     invitedBy: opts.invitedBy,
     companyName: brand.companyName,

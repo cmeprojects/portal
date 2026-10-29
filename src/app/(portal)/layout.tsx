@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
-import { canInvite, canSeeScoreboard, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
+import { canInvite, canSeeReports, canSeeScoreboard, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
 import { formatDue, todayIn } from "@/lib/tasks";
 import { Bell, type BellItem } from "@/components/bell";
 import { getBranding } from "@/lib/branding";
@@ -47,11 +47,19 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
           canInvite: canInvite(profile.role, rules),
           seesCompliance: seesCompliance(profile.role, rules),
           seesScoreboard: canSeeScoreboard(profile.role, rules),
+          seesReports: canSeeReports(profile.role, rules),
         })} brandMark={<BrandMark brand={brand} />}
         bell={<Bell items={bellItems} />}
         footer={footer}
       />
-      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">{children}</main>
+      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
+        {brand.announcement ? (
+          <div role="status" className="rounded-lg border border-brand/30 bg-brand-soft px-4 py-3 text-sm whitespace-pre-line text-ink print:hidden">
+            {brand.announcement}
+          </div>
+        ) : null}
+        {children}
+      </main>
     </div>
   );
 }

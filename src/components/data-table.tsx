@@ -25,14 +25,14 @@ export function DataTable({ table, empty }: { table: Table; empty: string }) {
                 const tone = cell?.tone === "danger" ? "font-semibold text-danger" : cell?.tone === "muted" ? "text-muted" : "";
                 return (
                   <td key={c.key} className={`px-4 py-3 ${c.wide ? "max-w-md" : "whitespace-nowrap"} ${tone}`}>
-                    {i <= 1 ? (
+                    {i <= 1 && row.href ? (
                       <Link href={row.href} className={`${i === 1 ? "font-semibold text-ink" : "text-muted"} hover:text-brand`}>
                         {cell?.text}
                       </Link>
                     ) : cell?.badge && cell.text ? (
                       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHOICE_COLOUR_CLASS[cell.badge]}`}>{cell.text}</span>
                     ) : (
-                      <span className={c.wide ? "line-clamp-3" : ""}>{cell?.text}</span>
+                      <span className={`${c.wide ? "line-clamp-3" : ""} ${i === 0 && !row.href ? "font-semibold" : ""}`}>{cell?.text}</span>
                     )}
                   </td>
                 );

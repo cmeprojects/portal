@@ -11,6 +11,9 @@ export type Branding = {
   colorPrimary: string;
   colorDark: string;
   colorAccent: string;
+  // Optional messages (blank = hidden).
+  supportContact: string;
+  announcement: string;
 };
 
 const DEFAULTS: Branding = {
@@ -21,6 +24,8 @@ const DEFAULTS: Branding = {
   colorPrimary: "#134F8E",
   colorDark: "#0F2F57",
   colorAccent: "#6497C8",
+  supportContact: "",
+  announcement: "",
 };
 
 const KEYS: Record<string, keyof Branding> = {
@@ -31,6 +36,8 @@ const KEYS: Record<string, keyof Branding> = {
   "brand.color_primary": "colorPrimary",
   "brand.color_dark": "colorDark",
   "brand.color_accent": "colorAccent",
+  "brand.support_contact": "supportContact",
+  "brand.announcement": "announcement",
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
