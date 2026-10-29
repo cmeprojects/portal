@@ -11,7 +11,8 @@ export function BrandMark({ brand }: { brand: Branding }) {
       </span>
       <span className="min-w-0 leading-tight">
         <span className="block font-display text-sm leading-tight font-semibold tracking-wider text-balance text-side-fg uppercase">{brand.companyName}</span>
-        <span className="block truncate font-display text-[11px] font-light tracking-[0.25em] text-side-muted uppercase">{brand.portalName}</span>
+        {/* Wraps rather than cutting off on narrow screens or zoomed-in browsers. */}
+        <span className="block font-display text-[11px] leading-snug font-light tracking-[0.15em] text-balance text-side-muted uppercase">{brand.portalName}</span>
       </span>
     </div>
   );
