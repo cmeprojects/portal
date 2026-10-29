@@ -18,7 +18,7 @@ import {
   type Status,
 } from "@/lib/tasks";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
-import { OngoingTable } from "./ongoing-table";
+import { OngoingTable, TaskPeek } from "./ongoing-table";
 
 type Row = {
   id: string;
@@ -73,6 +73,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
   );
 
   const regOf = new Map(registries.map((r) => [r.id, r]));
+  const peekNames = people.filter((p) => p.role !== "system_admin").map((p) => [p.id, p.name] as [string, string]);
   const nameOf = new Map(people.map((p) => [p.id, p.name]));
   const ref = (t: Row) => refLabel(regOf.get(t.registry_id)?.prefix, t.ref_number);
   const overdue = (t: Row) => Boolean(t.due_date && t.due_date < today);
@@ -138,7 +139,8 @@ export async function DashboardView({ params }: { params: Record<string, string 
         ))}
       </div>
 
-      <Card className="overflow-hidden">
+      {/* Not overflow-hidden, so the hover preview can show over what's below. */}
+      <Card>
         <div className="flex items-center justify-between gap-2 border-b border-line px-5 py-3">
           <h2 className="heading-sm">My tasks · {mine.length}</h2>
           <Link href="/my-tasks" className="text-sm font-medium text-brand underline">
@@ -153,11 +155,11 @@ export async function DashboardView({ params }: { params: Record<string, string 
               const due = dueState(t.due_date, today, t.status);
               return (
                 <li key={t.id}>
-                  <Link href={`/tasks/${t.id}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 hover:bg-page">
+                  <TaskPeek id={t.id} href={`/tasks/${t.id}`} names={peekNames} timeZone={timeZone}>
                     <span className="min-w-48 flex-1">
                       <span className="block text-sm font-semibold">{t.title}</span>
                       <span className="block text-xs text-muted">
-                        {ref(t)} · {t.assigned_to === profile.id ? "you're looking after it" : "you're helping"}
+                        {ref(t)} · {t.assigned_to === profile.id ? "you're looking after it" : "you are asked to help"}
                       </span>
                     </span>
                     <span className="flex items-center gap-2 text-xs font-semibold">
@@ -166,7 +168,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
                         {formatDue(t.due_date, today, t.status)}
                       </span>
                     </span>
-                  </Link>
+                  </TaskPeek>
                 </li>
               );
             })}

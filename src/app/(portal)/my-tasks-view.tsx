@@ -32,7 +32,7 @@ type Row = {
 
 const TABS = [
   { key: "assigned", label: "Assigned to me" },
-  { key: "helping", label: "Helping on" },
+  { key: "helping", label: "Asked to help" },
   { key: "created", label: "Created by me" },
   { key: "completed", label: "Completed" },
 ] as const;

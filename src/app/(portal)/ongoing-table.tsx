@@ -336,3 +336,72 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
     </div>
   );
 }
+
+// A task link with a preview card on hover (or keyboard focus): what it's
+// about and the latest update. Clicking still opens the task.
+export function TaskPeek({
+  id,
+  href,
+  names,
+  timeZone,
+  children,
+}: {
+  id: string;
+  href: string;
+  names: [string, string][];
+  timeZone: string;
+  children: React.ReactNode;
+}) {
+  const [ctx] = useState<Ctx>(() => ({ names: new Map(names), timeZone }));
+  const [show, setShow] = useState(false);
+  const [snap, setSnap] = useState<TaskSnapshot | null | "loading">("loading");
+  const timer = useRef<number | null>(null);
+
+  function enter() {
+    void prefetch(id, ctx).then(setSnap);
+    timer.current = window.setTimeout(() => setShow(true), 350);
+  }
+  function leave() {
+    if (timer.current) window.clearTimeout(timer.current);
+    setShow(false);
+  }
+  const latest = snap && snap !== "loading" ? snap.history[snap.history.length - 1] : undefined;
+
+  return (
+    <div className="relative" onMouseEnter={enter} onMouseLeave={leave} onFocus={enter} onBlur={leave}>
+      <Link href={href} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 hover:bg-page">
+        {children}
+      </Link>
+      {show ? (
+        <div
+          role="tooltip"
+          className="pointer-events-none absolute top-full left-5 z-40 mt-1 hidden w-[min(26rem,calc(100%-2.5rem))] flex-col gap-2 rounded-lg border border-line bg-surface p-4 text-ink shadow-xl md:flex print:hidden"
+        >
+          {snap === "loading" ? (
+            <p className="text-sm text-muted">Loading…</p>
+          ) : snap === null ? (
+            <p className="text-sm text-muted">This task can&apos;t be shown.</p>
+          ) : (
+            <>
+              <p className="text-xs font-medium tracking-wider text-muted uppercase">About this task</p>
+              <p className="line-clamp-4 text-sm whitespace-pre-line">{snap.description || "Nothing written yet."}</p>
+              {latest ? (
+                <>
+                  <p className="text-xs font-medium tracking-wider text-muted uppercase">Latest update</p>
+                  <p className="text-sm">
+                    <strong>{latest.who}</strong> {latest.what} · <span className="text-muted">{latest.at}</span>
+                  </p>
+                  {latest.note ? <p className="line-clamp-3 rounded-md bg-page px-3 py-2 text-sm whitespace-pre-line">{latest.note}</p> : null}
+                </>
+              ) : null}
+              <p className="text-xs text-muted">
+                {snap.helpers.length ? `Helpers: ${snap.helpers.map((h) => h.name).join(", ")} · ` : ""}
+                {snap.history.length} update{snap.history.length === 1 ? "" : "s"} · {snap.files} file{snap.files === 1 ? "" : "s"} · Click to open
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
