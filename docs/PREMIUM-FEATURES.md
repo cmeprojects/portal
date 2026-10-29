@@ -2,27 +2,14 @@
 
 Staff Portal · © cmeproject
 
-Some features are add-ons that cmeproject includes in a company's plan.
-Once a feature is included, the company's system admin switches it on or
-off under **System settings → Features**. A feature that isn't included shows
-as **Locked** ("Not included in your plan"), and the database blocks it.
+Some features are paid add-ons, marked **Premium** in System settings →
+Features. Only the system admin (cmeproject) can switch them on or off; no
+one else in a company can, and the database refuses it if they try.
 
 | Feature | Key | Premium |
 |---|---|---|
 | Cars (company cars, trips, mileage, Cars app) | `vehicles` | Yes |
 
-## Including or removing a feature for a company
-
-Run in that company's Supabase SQL Editor (only cmeproject does this; the
-portal itself can't change a company's plan):
-
-```sql
--- Include Cars in the plan (the system admin can then switch it on)
-update public.features set included = true where key = 'vehicles';
-
--- Take Cars out of the plan (switches it off and locks it)
-update public.features set included = false, enabled = false where key = 'vehicles';
-```
-
-Records are never deleted: trips and cars stay in the database and come back
-if the feature is included again.
+- **On:** the feature shows for everyone it applies to.
+- **Off:** it's hidden everywhere (menu, pages, reports, settings, reminders).
+  Records are never deleted, and come back if it's switched on again.

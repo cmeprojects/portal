@@ -19,7 +19,10 @@ export async function setFeature(_: FormState, form: FormData): Promise<FormStat
   const key = text(form, "key");
   const enabled = text(form, "enabled") === "true";
   const supabase = await createClient();
-  const { data, error } = await supabase.from("features").update({ enabled }).eq("key", key).select("label").single();
+  // Switching on a premium add-on also includes it in this company's plan.
+  const { data: current } = await supabase.from("features").select("*").eq("key", key).maybeSingle();
+  const values = enabled && current?.premium === true ? { enabled, included: true } : { enabled };
+  const { data, error } = await supabase.from("features").update(values).eq("key", key).select("label").single();
   if (error) return { error: friendlyError(error) };
   revalidatePath("/", "layout");
   return { message: `${data.label} is now ${enabled ? "on" : "off"}.` };

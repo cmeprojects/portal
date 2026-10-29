@@ -1,6 +1,6 @@
 -- Staff Portal · © cmeproject. All rights reserved.
 --
--- Premium features: the system admin switches them, cmeproject decides what's included.
+-- Premium features: only the system admin decides what's included and switches them.
 
 \set ON_ERROR_STOP 1
 \set QUIET 1
@@ -12,13 +12,22 @@ insert into auth.users (email) values ('sam@example.com');
 
 select test.ok((select premium from public.features where key = 'vehicles'), 'Cars is a premium feature');
 
+insert into public.invitations (email, full_name, role) values ('boss@example.com', 'Morgan', 'manager');
+insert into auth.users (email) values ('boss@example.com');
+select test.act_as('boss@example.com');
+set role authenticated;
+select test.refused($$update public.features set included = false where key = 'vehicles'$$, 'a manager can''t change the plan');
+reset role;
 select test.act_as('owner@example.com');
 set role authenticated;
-select test.refused($$update public.features set included = false where key = 'vehicles'$$, 'the system admin can''t change the plan');
-update public.features set enabled = false where key = 'vehicles';
-update public.features set enabled = true where key = 'vehicles';
+update public.features set included = false, enabled = false where key = 'vehicles';
 reset role;
-select test.ok(public.feature_enabled('vehicles'), 'but can switch an included feature off and on');
+select test.ok(not public.feature_enabled('vehicles'), 'the system admin can take Cars out of the plan');
+select test.act_as('owner@example.com');
+set role authenticated;
+update public.features set included = true, enabled = true where key = 'vehicles';
+reset role;
+select test.ok(public.feature_enabled('vehicles'), 'and put it back in');
 
 -- Not in the plan (set by cmeproject in the database, not signed in as anyone).
 select set_config('request.jwt.claims', '', false);
@@ -32,7 +41,7 @@ select set_config('request.jwt.claims', '', false);
 update public.features set enabled = false where key = 'vehicles';
 select test.act_as('owner@example.com');
 set role authenticated;
-select test.refused($$update public.features set enabled = true where key = 'vehicles'$$, 'and the system admin can''t switch it on');
+select test.refused($$update public.features set enabled = true where key = 'vehicles'$$, 'switching it on alone isn''t enough while it''s out of the plan');
 reset role;
 
 \o

@@ -36,8 +36,9 @@ export function FeatureSwitch({
 }: {
   feature: { key: string; label: string; description: string | null; enabled: boolean; premium?: boolean; included?: boolean };
 }) {
-  const locked = feature.included === false;
   const [state, action, pending] = useActionState(setFeature, null);
+  // A premium add-on that isn't in the plan counts as off.
+  const on = feature.enabled && feature.included !== false;
   return (
     <form
       action={action}
@@ -53,7 +54,7 @@ export function FeatureSwitch({
       className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-4 first:border-t-0"
     >
       <input type="hidden" name="key" value={feature.key} />
-      <input type="hidden" name="enabled" value={feature.enabled ? "false" : "true"} />
+      <input type="hidden" name="enabled" value={on ? "false" : "true"} />
       <div className="min-w-56 flex-1">
         <p className="flex flex-wrap items-center gap-2 font-semibold">
           {feature.label}
@@ -62,27 +63,23 @@ export function FeatureSwitch({
           ) : null}
         </p>
         {feature.description ? <p className="text-sm text-muted">{feature.description}</p> : null}
-        {locked ? <p className="text-sm font-semibold text-warn">Not included in your plan. Contact cmeproject to add it.</p> : null}
+        {feature.premium ? (
+          <p className="text-sm text-muted">Paid add-on: switch it on only for companies that have it in their plan. Off hides it everywhere; records are kept.</p>
+        ) : null}
         {state?.error ? <p className="text-sm font-semibold text-danger">{state.error}</p> : null}
       </div>
-      {locked ? (
-        <span className="flex h-10 min-w-24 items-center justify-center gap-2 rounded-md border border-field bg-page px-4 text-sm font-semibold text-muted">
-          Locked
-        </span>
-      ) : (
       <button
         role="switch"
-        aria-checked={feature.enabled}
-        aria-label={`${feature.label}: ${feature.enabled ? "on" : "off"}`}
+        aria-checked={on}
+        aria-label={`${feature.label}: ${on ? "on" : "off"}`}
         disabled={pending}
         className={`flex h-10 min-w-24 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
-          feature.enabled ? "bg-brand text-brand-fg" : "border border-field bg-surface text-muted"
+          on ? "bg-brand text-brand-fg" : "border border-field bg-surface text-muted"
         }`}
       >
-        <span aria-hidden="true" className={`h-3 w-3 rounded-full ${feature.enabled ? "bg-brand-fg" : "bg-muted"}`} />
-        {feature.enabled ? "On" : "Off"}
+        <span aria-hidden="true" className={`h-3 w-3 rounded-full ${on ? "bg-brand-fg" : "bg-muted"}`} />
+        {on ? "On" : "Off"}
       </button>
-      )}
     </form>
   );
 }
