@@ -28,18 +28,32 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
 
   // Only Compliance managers can open the files (the database checks too).
   const { data: records } = manages
-    ? await supabase.from("compliance_records").select("id, file_path, file_name, created_at").eq("user_id", id)
+    ? await supabase.from("compliance_records").select("id, file_path, file_name, created_at, status, reviewed_by, reviewed_at").eq("user_id", id)
     : { data: [] };
-  const fileLinks = new Map<number, { url: string; name: string; at: string }>();
+  const fileLinks = new Map<number, { url: string; name: string; at: string; status: string; reviewedBy: string | null; reviewedAt: string | null }>();
   await Promise.all(
     (records ?? [])
       .filter((r) => r.file_path)
       .map(async (r) => {
         const { data: signed } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(r.file_path!, 600);
-        if (signed?.signedUrl) fileLinks.set(r.id, { url: signed.signedUrl, name: r.file_name ?? "file", at: r.created_at });
+        if (signed?.signedUrl)
+          fileLinks.set(r.id, {
+            url: signed.signedUrl,
+            name: r.file_name ?? "file",
+            at: r.created_at,
+            status: r.status,
+            reviewedBy: r.reviewed_by,
+            reviewedAt: r.reviewed_at,
+          });
       }),
   );
   const done = status.filter((s) => isDone(s.state)).length;
+  const reviewerIds = [...new Set([...fileLinks.values()].map((f) => f.reviewedBy).filter((x): x is string => Boolean(x)))];
+  const { data: reviewers } = reviewerIds.length
+    ? await supabase.from("profiles").select("id, full_name, email, role").in("id", reviewerIds)
+    : { data: [] as { id: string; full_name: string; email: string; role: string }[] };
+  // System admins stay hidden from staff.
+  const reviewerName = new Map((reviewers ?? []).map((r) => [r.id, r.role === "system_admin" ? "Admin" : r.full_name || r.email]));
 
   return (
     <>
@@ -72,7 +86,17 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
                         <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-brand underline">
                           Open {file.name} (uploaded {formatDate(file.at)})
                         </a>
-                        {s.record_id && person.id !== me.id ? <ReviewForm recordId={s.record_id} /> : null}
+                        {/* Only uploads waiting to be checked get the buttons. */}
+                        {file.status === "submitted" && s.record_id && person.id !== me.id ? (
+                          <ReviewForm recordId={s.record_id} />
+                        ) : file.status === "accepted" ? (
+                          <p className="text-sm text-good">
+                            Checked{file.reviewedBy ? ` by ${reviewerName.get(file.reviewedBy) ?? "Admin"}` : ""}
+                            {file.reviewedAt ? ` on ${formatDate(file.reviewedAt)}` : ""}.
+                          </p>
+                        ) : file.status === "rejected" ? (
+                          <p className="text-sm text-muted">Sent back. Waiting for them to upload a new copy.</p>
+                        ) : null}
                       </div>
                     ) : null}
                   </li>
