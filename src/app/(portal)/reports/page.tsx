@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireTaskAccess } from "@/lib/session";
@@ -6,8 +7,6 @@ import { canManageCompliance, canSeeReports, getPeopleRules, getTimeZone } from 
 import { todayIn } from "@/lib/tasks";
 import { buildReports, parsePeriod } from "@/lib/reports";
 import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
-import Link from "next/link";
-import { canSeeCarReports, canUseCars, getCarRules } from "@/lib/cars";
 import { DataTable } from "@/components/data-table";
 
 export const metadata: Metadata = { title: "Reports" };
@@ -30,20 +29,13 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
   const { summary, months, tables } = await buildReports(period, today, timeZone, withCompliance);
   const qs = period.key === "custom" ? `from=${period.from}&to=${period.to}` : `range=${period.key}`;
   const max = Math.max(1, ...months.flatMap((m) => [m.opened, m.completed]));
-  const carReports = canUseCars(profile.role, features) && canSeeCarReports(profile.role, await getCarRules());
 
   return (
     <>
+      <SectionTabs section="reports" current="/reports" />
       <PageHeader
         title="Reports"
         intro={`${period.label}${profile.role === "team_leader" ? " · your team's tasks" : ""}. Download any table as an Excel file.`}
-        action={
-          carReports ? (
-            <Link href="/reports/cars" className={buttonClass("outline", "print:hidden")}>
-              Car reports
-            </Link>
-          ) : undefined
-        }
       />
       <div className="flex flex-col gap-3 print:hidden">
         <Tabs label="Period" items={RANGES.map((r) => ({ href: `/reports?range=${r.key}`, text: r.label, current: period.key === r.key }))} />

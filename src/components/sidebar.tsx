@@ -26,8 +26,9 @@ export function Sidebar({
   const path = usePathname();
   const [open, setOpen] = useState(false);
   // The longest matching address wins, so /registers/new highlights "Registers" only once.
-  const all = groups.flatMap((g) => g.items.map((i) => i.href));
-  const current = all.filter((h) => isActive(path, h)).sort((a, b) => b.length - a.length)[0];
+  // A section's item also lights up on any of its tabs.
+  const all = groups.flatMap((g) => g.items.flatMap((i) => (i.match ?? [i.href]).map((m) => ({ m, href: i.href }))));
+  const current = all.filter((x) => isActive(path, x.m)).sort((a, b) => b.m.length - a.m.length)[0]?.href;
 
   return (
     <div className="border-side-edge bg-brand-dark max-md:border-b md:border-r print:hidden">
@@ -62,7 +63,7 @@ export function Sidebar({
                   const active = item.href === current;
                   return (
                     <Link
-                      key={item.href}
+                      key={item.label}
                       href={item.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? "page" : undefined}

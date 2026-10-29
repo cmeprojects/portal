@@ -1,9 +1,10 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
-import { canInvite, canSeeReports, canSeeScoreboard, getIdleMinutes, getMyAdminAreas, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
+import { getIdleMinutes, getTimeZone } from "@/lib/settings";
 import { IdleLogout } from "@/components/idle-logout";
 import { formatDue, todayIn } from "@/lib/tasks";
 import { Bell, type BellItem } from "@/components/bell";
@@ -13,13 +14,13 @@ import { BrandMark } from "@/components/brand-mark";
 import { Sidebar } from "@/components/sidebar";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { navFor } from "@/components/nav";
+import { getNavAccess } from "@/lib/nav-access";
 import { signOut } from "@/app/login/actions";
 
 // Frame for every page after sign-in: the company's sidebar on desktop, a top
 // bar with a drop-down menu on phones.
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
-  const [{ profile, features }, brand, rules, idleMinutes] = await Promise.all([requireSession(), getBranding(), getPeopleRules(), getIdleMinutes()]);
-  const adminAreas = await getMyAdminAreas(profile.role);
+  const [{ profile, features }, brand, idleMinutes] = await Promise.all([requireSession(), getBranding(), getIdleMinutes()]);
   const [taskItems, requestItems, notices] = await Promise.all([
     features.tasks !== false ? newTasksForMe() : Promise.resolve([]),
     requestUpdatesForMe(),
@@ -37,21 +38,20 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         <button className="min-h-9 text-xs text-side-muted underline hover:text-side-fg">Sign out</button>
       </form>
       <ThemeSwitch />
-      <p className="text-[11px] text-side-muted">Built by cmeproject</p>
+      <p className="text-[11px] text-side-muted">
+        Built by cmeproject ·{" "}
+        <Link href="/about" className="underline hover:text-side-fg">
+          About
+        </Link>
+      </p>
     </div>
   );
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[230px_minmax(0,1fr)] print:block">
       <Sidebar
-        groups={navFor(profile.role, features, {
-          newStarterTasks: rules.newStarterTasks,
-          canInvite: canInvite(profile.role, rules),
-          seesCompliance: seesCompliance(profile.role, rules),
-          seesScoreboard: canSeeScoreboard(profile.role, rules),
-          seesReports: canSeeReports(profile.role, rules),
-          adminAreas,
-        })} brandMark={<BrandMark brand={brand} />}
+        groups={navFor(profile.role, features, await getNavAccess(profile.role))}
+        brandMark={<BrandMark brand={brand} />}
         bell={<Bell items={bellItems} />}
         footer={footer}
       />

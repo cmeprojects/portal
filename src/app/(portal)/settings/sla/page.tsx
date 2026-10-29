@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireRole } from "@/lib/session";
@@ -28,6 +29,7 @@ export default async function SlaPage() {
 
   return (
     <>
+      <SectionTabs section="settings" current="/settings/sla" />
       <PageHeader
         title="Due dates (SLA)"
         intro="New tasks get a due date from their priority. People can still pick another date. Each register can set its own in its Set up page. Reminders show in the bell a day before and on the day. Emails go out only when a task is overdue (to the person and their team leader) or escalated (to managers, after a few days)."

@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -106,6 +107,7 @@ export default async function StaffPage() {
 
   return (
     <>
+      <SectionTabs section="people" current="/settings/staff" />
       <PageHeader
         title="Staff & roles"
         intro="Invite people with any email address (no Microsoft account needed). Put people into teams on the Teams page. Deactivating someone stops them signing in straight away; their tasks and history stay."

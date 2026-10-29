@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
@@ -31,6 +32,7 @@ export default async function InstallCarsAppPage({ searchParams }: PageProps<"/c
   return (
     <>
       <div className="print:hidden">
+        <SectionTabs section="cars" current="/cars/install" />
         <PageHeader
           eyebrow="Cars"
           title="Get the Cars app"

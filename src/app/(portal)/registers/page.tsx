@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getRegistries } from "@/lib/register-data";
@@ -11,6 +12,8 @@ export const metadata: Metadata = { title: "Registers" };
 
 export default async function RegistersPage() {
   const { profile } = await requireTaskAccess();
+  // Support workers find their tasks under My tasks; registers are for overseeing.
+  if (profile.role === "support_worker") redirect("/");
   const supabase = await createClient();
   const registries = (await getRegistries()).filter((r) => r.active);
   // Staff admins see every register's open tasks as an overview (counts only here).

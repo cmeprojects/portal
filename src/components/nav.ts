@@ -2,7 +2,11 @@
 import type { Role } from "@/lib/roles";
 import { seesDashboard } from "@/lib/dashboard";
 
-export type NavItem = { href: string; label: string };
+// cmeprojects: the menu is a short list of sections. Pages in the same
+// section share a row of tabs at the top (see SectionTabs), so the menu
+// stays short and each person only sees what they can use.
+
+export type NavItem = { href: string; label: string; match?: string[] };
 export type NavGroup = { heading?: string; items: NavItem[] };
 
 export type NavAccess = {
@@ -11,96 +15,92 @@ export type NavAccess = {
   seesCompliance: boolean;
   seesScoreboard?: boolean;
   seesReports?: boolean;
+  carManager?: boolean;
+  carReports?: boolean;
   // Areas of System settings delegated to this manager.
   adminAreas?: string[];
 };
+
+export type Section = "tasks" | "cars" | "people" | "reports" | "settings";
+export type Tab = { href: string; text: string };
+
+// The tabs in each section that this person can open, in order.
+export function sectionTabs(section: Section, role: Role, features: Record<string, boolean>, access: NavAccess): Tab[] {
+  const admin = role === "system_admin";
+  const peopleManager = role === "manager" || role === "staff_admin" || admin;
+  const cars = features.vehicles === true && role !== "new_starter";
+  const settingsAreas = (access.adminAreas ?? []).filter((a) => a !== "audit");
+  const tabs: (Tab | false)[] = {
+    tasks: [
+      { href: seesDashboard(role) ? "/my-tasks" : "/", text: "My tasks" },
+      features.tasks !== false && { href: "/tasks/new", text: "New task" },
+    ],
+    cars: cars
+      ? [
+          { href: "/cars", text: "Use a car" },
+          Boolean(access.carManager) && { href: "/cars/manage", text: "Manage cars" },
+          { href: "/cars/install", text: "Get the app" },
+        ]
+      : [],
+    people: [
+      peopleManager && { href: "/settings/staff", text: "Staff" },
+      peopleManager && { href: "/settings/teams", text: "Teams" },
+      (role === "manager" || admin) && { href: "/settings/roles", text: "Roles" },
+      access.seesCompliance && { href: "/compliance", text: "Compliance" },
+      !peopleManager && access.canInvite && { href: "/invite", text: "Invite staff" },
+    ],
+    reports: [
+      Boolean(access.seesReports) && features.reports !== false && { href: "/reports", text: "Tasks" },
+      cars && Boolean(access.carReports) && { href: "/reports/cars", text: "Cars" },
+    ],
+    settings: [
+      (role === "manager" || admin) && { href: "/settings/sla", text: "Due dates (SLA)" },
+      (admin || settingsAreas.length > 0) && { href: "/system", text: "System settings" },
+      (admin || (access.adminAreas ?? []).includes("audit")) && { href: "/system/audit", text: "Change log" },
+      admin && { href: "/system/health", text: "System health" },
+    ],
+  }[section];
+  return tabs.filter((t): t is Tab => Boolean(t));
+}
+
+const SECTION_LABELS: Record<Section, string> = { tasks: "Tasks", cars: "Cars", people: "People", reports: "Reports", settings: "Settings" };
+
+function sectionItem(section: Section, role: Role, features: Record<string, boolean>, access: NavAccess, label?: string): NavItem[] {
+  const tabs = sectionTabs(section, role, features, access);
+  if (!tabs.length) return [];
+  return [{ href: tabs[0].href, label: label ?? SECTION_LABELS[section], match: tabs.map((t) => t.href) }];
+}
 
 export function navFor(
   role: Role,
   features: Record<string, boolean>,
   access: NavAccess = { newStarterTasks: false, canInvite: false, seesCompliance: false },
 ): NavGroup[] {
-  const newStarterTasks = access.newStarterTasks;
-  const staffAdmin = role === "staff_admin" || role === "system_admin";
-  const groups: NavGroup[] = [];
-
-  // New starters: just their welcome page and account until they have a role.
-  if (role === "new_starter" && !newStarterTasks) {
-    return [
-      { items: [{ href: "/", label: "Home" }, { href: "/onboarding", label: "My onboarding" }] },
-      {
-        items: [
-          { href: "/account", label: "My account" },
-          { href: "/about", label: "About" },
-        ],
-      },
-    ];
-  }
-
-  const home: NavItem[] = seesDashboard(role)
-    ? [
-        { href: "/", label: "Dashboard" },
-        { href: "/my-tasks", label: "My tasks" },
-      ]
-    : [{ href: "/", label: "My tasks" }];
-  groups.push({
-    items: [
-      ...home,
-      ...(features.tasks !== false ? [{ href: "/tasks/new", label: "New task" }] : []),
-      { href: "/registers", label: "Registers" },
-      ...(features.vehicles === true && role !== "new_starter" ? [{ href: "/cars", label: "Cars" }] : []),
-      ...(role !== "system_admin" ? [{ href: "/onboarding", label: "My onboarding" }] : []),
-    ],
-  });
-
-  const people = role === "manager" || staffAdmin;
-  const peopleItems: NavItem[] = [
-    ...(!people && access.canInvite ? [{ href: "/invite", label: "Invite staff" }] : []),
-    ...(people
-      ? [
-          { href: "/settings/staff", label: "Staff & roles" },
-          { href: "/settings/teams", label: "Teams" },
-        ]
-      : []),
-    ...(access.seesCompliance ? [{ href: "/compliance", label: "Compliance" }] : []),
-    ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
-    ...(access.seesReports && features.reports !== false ? [{ href: "/reports", label: "Reports" }] : []),
-    ...(role === "manager" || role === "system_admin"
-      ? [
-          { href: "/settings/roles", label: "Roles" },
-          { href: "/settings/sla", label: "Due dates (SLA)" },
-        ]
-      : []),
+  const mine: NavItem[] = [
+    ...(role !== "system_admin" ? [{ href: "/onboarding", label: "My onboarding" }] : []),
+    { href: "/account", label: "My account" },
   ];
-  if (peopleItems.length) groups.push({ items: peopleItems });
 
-  const delegated = role === "manager" ? access.adminAreas ?? [] : [];
-  if (delegated.length) {
-    const settingsAreas = delegated.filter((a) => a !== "audit");
-    groups.push({
-      items: [
-        ...(settingsAreas.length ? [{ href: "/system", label: "System settings" }] : []),
-        ...(delegated.includes("audit") ? [{ href: "/system/audit", label: "Change log" }] : []),
-      ],
-    });
+  // New starters: just their welcome page and onboarding until they have a role.
+  if (role === "new_starter" && !access.newStarterTasks) {
+    return [{ items: [{ href: "/", label: "Home" }] }, { items: mine }];
   }
 
-  if (role === "system_admin") {
-    groups.push({
+  const dashboard = seesDashboard(role);
+  return [
+    {
       items: [
-        { href: "/system", label: "System settings" },
-        { href: "/system/audit", label: "Change log" },
+        ...(dashboard ? [{ href: "/", label: "Dashboard" }] : []),
+        ...sectionItem("tasks", role, features, access, dashboard ? "Tasks" : "My tasks"),
+        // Support workers find their tasks under My tasks; registers are for overseeing.
+        ...(role !== "support_worker" && role !== "new_starter" ? [{ href: "/registers", label: "Registers" }] : []),
+        ...sectionItem("cars", role, features, access),
+        ...sectionItem("people", role, features, access),
+        ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
+        ...sectionItem("reports", role, features, access),
+        ...sectionItem("settings", role, features, access),
       ],
-    });
-  }
-
-  // Last, with no heading.
-  groups.push({
-    items: [
-      { href: "/account", label: "My account" },
-      { href: "/about", label: "About" },
-    ],
-  });
-
-  return groups;
+    },
+    { items: mine },
+  ];
 }

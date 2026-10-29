@@ -11,6 +11,10 @@ export const CHOICES: Record<string, { value: string; label: string }[]> = {
     { value: "optional", label: "Optional" },
     { value: "required", label: "Required" },
   ],
+  "system.hosting_plan": [
+    { value: "free", label: "Free" },
+    { value: "pro", label: "Pro" },
+  ],
   "vehicles.odo_photo": [
     { value: "off", label: "Off" },
     { value: "optional", label: "Optional" },

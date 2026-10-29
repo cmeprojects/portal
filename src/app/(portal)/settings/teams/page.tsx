@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -53,6 +54,7 @@ export default async function TeamsPage() {
 
   return (
     <>
+      <SectionTabs section="people" current="/settings/teams" />
       <PageHeader
         title="Teams"
         intro="Support workers can be in several teams. A team leader leads one team and sees everyone's tasks in it. Managers and staff admins are the core team, which works across every team."

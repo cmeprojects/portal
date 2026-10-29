@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { canManageCars, canUseCars, getCarRules } from "@/lib/cars";
@@ -57,11 +58,12 @@ export async function ManageCars({ base, tabParam }: { base: string; tabParam: s
 
   return (
     <>
+      {base === "/cars" ? <SectionTabs section="cars" current="/cars/manage" /> : null}
       <PageHeader
         eyebrow="Cars"
         title="Manage cars"
         intro="Add cars, clients and purposes of use, return a car for someone, or fix a trip. Every change goes in the change log."
-        action={<Link href={base} className="text-sm font-semibold text-brand underline">Back to Cars</Link>}
+        action={base === "/cars" ? undefined : <Link href={base} className="text-sm font-semibold text-brand underline">Back to Cars</Link>}
       />
       <Tabs label="Manage cars" items={TABS.map((t) => ({ href: `${base}/manage?tab=${t.key}`, text: t.text, current: t.key === tab }))} />
 

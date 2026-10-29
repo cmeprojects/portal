@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -20,6 +21,7 @@ export default async function RolesPage() {
 
   return (
     <>
+      <SectionTabs section="people" current="/settings/roles" />
       <PageHeader
         title="Roles"
         intro="Add the roles your organisation uses, like Nurse or House coordinator. Each role is linked to an access level, which decides what the person can see and do."

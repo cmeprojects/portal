@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireSession, PEOPLE_MANAGERS } from "@/lib/session";
@@ -16,6 +17,7 @@ export default async function InvitePage() {
   if (!canInvite(me.role, await getPeopleRules())) redirect("/");
   return (
     <>
+      <SectionTabs section="people" current="/invite" />
       <PageHeader
         title="Invite staff"
         intro="They'll get a welcome email to set up their account and start onboarding. A staff admin sets their role and team afterwards."

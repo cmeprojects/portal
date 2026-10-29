@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -42,6 +43,7 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
   return (
     <>
       <PrintHeader brand={brand} title={view === "log" ? "Car use log" : "Mileage report"} subtitle={period.label} printedAt={printedAt} />
+      <SectionTabs section="reports" current="/reports/cars" />
       <PageHeader
         eyebrow="Reports"
         title="Car reports"

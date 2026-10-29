@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -94,6 +95,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
 
   return (
     <>
+      <SectionTabs section="tasks" current={basePath} />
       <PageHeader
         title="My tasks"
         intro={firstName ? `Hi ${firstName}. Everything you're looking after or helping with.` : undefined}

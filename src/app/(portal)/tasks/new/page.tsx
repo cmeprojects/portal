@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireTaskAccess } from "@/lib/session";
 import { getSla, getTimeZone, getRequiredWhen } from "@/lib/settings";
@@ -30,6 +31,7 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
   if (features.tasks === false) {
     return (
       <>
+        <SectionTabs section="tasks" current="/tasks/new" />
         <PageHeader title="New task" />
         <Notice>Tasks are switched off at the moment.</Notice>
       </>
@@ -38,6 +40,7 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
 
   return (
     <>
+      <SectionTabs section="tasks" current="/tasks/new" />
       <PageHeader title="New task" intro="Choose a register, fill in the details and pick who will look after it." />
       <Card className="max-w-4xl p-5 sm:p-7">
         <NewTaskForm
