@@ -16,6 +16,18 @@ export const AREA_LABELS: Record<Area, string> = {
   audit: "Read the change log",
 };
 
+// What each area lets the manager do, shown under it on the Delegation tab.
+export const AREA_HINTS: Record<Area, string> = {
+  branding: "Change the company name, portal name, logos, colours, and the words the portal uses (for example Client or Participant).",
+  messages: "Edit the support contact on the sign-in page, the announcement banner for all staff, and the note in welcome invites.",
+  people: "Which staff admin changes need a manager's approval, who can send invites, what new starters can do, who sees the Scoreboard, and when a task counts as stuck.",
+  compliance: "Who manages Compliance (onboarding documents, trainings and uploads), and how many days before expiry reminders start.",
+  tasks: "Default due dates, reminders, escalation, weekdays only, when required fields must be filled in, the morning summary, and who sees Registers.",
+  reports: "Choose who sees Reports (tasks) and the Compliance report.",
+  vehicles: "Odometer photo, undo time, the car-still-out reminder, Cars app sign-in days, and who manages or reports on cars.",
+  audit: "Read the change log: who changed what in System settings, and when. They can't change anything with this alone.",
+};
+
 const MESSAGES = ["brand.support_contact", "brand.announcement", "people.invite_message"];
 
 // Which area a setting belongs to (null = system admin only). Matches

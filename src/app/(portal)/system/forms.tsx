@@ -190,7 +190,7 @@ export function DelegationForm({
   current,
 }: {
   manager: { id: string; name: string };
-  areas: { key: string; label: string }[];
+  areas: { key: string; label: string; hint?: string }[];
   current: string[];
 }) {
   const [state, action, pending] = useActionState(saveDelegation, null);
@@ -199,11 +199,14 @@ export function DelegationForm({
       <input type="hidden" name="user_id" value={manager.id} />
       <fieldset className="flex flex-col gap-1">
         <legend className="mb-1 font-semibold">{manager.name}</legend>
-        <div className="grid gap-x-5 sm:grid-cols-2">
+        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
           {areas.map((a) => (
-            <label key={a.key} className="flex min-h-11 items-center gap-2 text-sm">
-              <input type="checkbox" name="areas" value={a.key} defaultChecked={current.includes(a.key)} className="h-5 w-5 accent-[var(--brand-primary)]" />
-              {a.label}
+            <label key={a.key} className="flex items-start gap-3 py-1 text-sm">
+              <input type="checkbox" name="areas" value={a.key} defaultChecked={current.includes(a.key)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-primary)]" />
+              <span>
+                <span className="block font-medium">{a.label}</span>
+                {a.hint ? <span className="block text-muted">{a.hint}</span> : null}
+              </span>
             </label>
           ))}
         </div>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { getMyAdminAreas } from "@/lib/settings";
-import { AREAS, AREA_LABELS, type Area } from "@/lib/delegation";
+import { AREAS, AREA_HINTS, AREA_LABELS, type Area } from "@/lib/delegation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader, Tabs } from "@/components/ui";
 import { DelegationForm, FeatureSwitch, SettingForm, type SettingRow } from "./forms";
@@ -168,7 +168,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
               <DelegationForm
                 key={m.id}
                 manager={{ id: m.id, name: m.full_name || m.email }}
-                areas={AREAS.filter((a) => a !== "vehicles" || on.vehicles === true).map((a) => ({ key: a, label: AREA_LABELS[a] }))}
+                areas={AREAS.filter((a) => a !== "vehicles" || on.vehicles === true).map((a) => ({ key: a, label: AREA_LABELS[a], hint: AREA_HINTS[a] }))}
                 current={((delegations ?? []).find((d) => d.user_id === m.id)?.areas ?? []) as string[]}
               />
             ))
