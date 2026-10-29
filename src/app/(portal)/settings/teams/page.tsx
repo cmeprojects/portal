@@ -110,9 +110,7 @@ export default async function TeamsPage() {
           Managers and staff admins are in this team automatically. Managers see every team&apos;s tasks; staff admins look after people in
           any team but don&apos;t see their tasks.
         </p>
-        <p className="text-sm">
-          {core.length ? core.map((p) => `${p.name} (${ROLE_LABELS[p.role]})`).join(", ") : "No one yet"}
-        </p>
+        <WhoIsIn people={core.map((p) => ({ id: p.id, name: p.name, email: p.email, detail: ROLE_LABELS[p.role] }))} />
       </Card>
 
       {others.length === 0 ? (
@@ -143,9 +141,25 @@ export default async function TeamsPage() {
                 <p className="text-sm">
                   <span className="text-muted">Leader: </span>
                   {leaderId ? nameOf.get(leaderId) ?? "—" : "None"}
-                  <span className="text-muted"> · Members: </span>
-                  {memberIds.length ? memberIds.map((id) => nameOf.get(id) ?? "—").join(", ") : "No one yet"}
                 </p>
+                <WhoIsIn
+                  people={[
+                    ...(leaderId ? [leaderId] : []),
+                    ...memberIds.filter((id) => id !== leaderId),
+                  ].map((id) => {
+                    const p = everyone.find((x) => x.id === id);
+                    const otherTeams = teamsOf(id).filter((t) => t !== team.id).map((t) => teamName.get(t)).filter(Boolean);
+                    return {
+                      id,
+                      name: p?.name ?? "Someone",
+                      email: p?.email ?? "",
+                      detail: [id === leaderId ? "Team leader" : p ? ROLE_LABELS[p.role] : "", otherTeams.length ? `also in ${otherTeams.join(", ")}` : ""]
+                        .filter(Boolean)
+                        .join(" · "),
+                      leader: id === leaderId,
+                    };
+                  })}
+                />
                 <details>
                   <summary className="cursor-pointer text-sm font-semibold text-brand">Change team</summary>
                   <div className="mt-4">
@@ -165,5 +179,45 @@ export default async function TeamsPage() {
         </div>
       )}
     </>
+  );
+}
+
+// "See who's in the team": tap to open the list of people.
+function WhoIsIn({ people }: { people: { id: string; name: string; email: string; detail: string; leader?: boolean }[] }) {
+  if (!people.length) return <p className="text-sm text-muted">No one in this team yet.</p>;
+  return (
+    <details className="group rounded-md border border-line">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-semibold">
+        <span>
+          {people.length} {people.length === 1 ? "person" : "people"} in this team
+        </span>
+        <span className="text-brand group-open:hidden">See who ▾</span>
+        <span className="hidden text-brand group-open:inline">Hide ▴</span>
+      </summary>
+      <ul className="divide-y divide-line border-t border-line">
+        {people.map((p) => (
+          <li key={p.id} className="flex items-center gap-3 px-3 py-2">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand" aria-hidden="true">
+              {p.name
+                .split(" ")
+                .map((w) => w[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">
+                {p.name}
+                {p.leader ? <span className="ml-2 align-middle"><Badge tone="soft">Leader</Badge></span> : null}
+              </span>
+              <span className="block truncate text-xs text-muted">
+                {p.detail}
+                {p.email ? ` · ${p.email}` : ""}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
