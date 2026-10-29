@@ -143,8 +143,16 @@ select test.ok((select count(*) from public.notifications where user_id = test.p
 select test.ok((select count(*) from public.notifications where user_id = test.pid('boss@example.com') and kind = 'car_service') = 1,
   'and a service coming up');
 
--- Settings: client required; a delegated manager can change car settings.
+-- Settings: car managers set the client field; the rest is for the system admin (or a delegate).
+select test.act_as('boss@example.com');
+set role authenticated;
 update public.app_settings set value = '"required"' where key = 'vehicles.client_field';
+select test.refused($$update public.app_settings set value = '"nonsense"' where key = 'vehicles.client_field'$$, 'only off, optional or required');
+select test.refused($$update public.app_settings set value = '60' where key = 'vehicles.undo_minutes'$$,
+  'a car manager can''t change the other car settings without being given Cars');
+reset role;
+select test.ok((select value #>> '{}' from public.app_settings where key = 'vehicles.client_field') = 'required',
+  'a car manager can make the client required');
 select test.act_as('sam@example.com');
 set role authenticated;
 select test.refused($$select public.start_car_trip(test.car('XYZ 789'), test.purpose('Office errand'), null, 31540)$$,

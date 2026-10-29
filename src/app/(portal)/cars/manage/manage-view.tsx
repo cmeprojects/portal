@@ -7,7 +7,7 @@ import { getTimeZone } from "@/lib/settings";
 import { km } from "@/lib/car-types";
 import { Badge, Card, PageHeader, Tabs } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { CarForm, ClientForm, CorrectTripForm, PurposeForm, ReturnForSomeoneForm, type CarRow } from "./forms";
+import { CarForm, ClientFieldForm, ClientForm, CorrectTripForm, PurposeForm, ReturnForSomeoneForm, type CarRow } from "./forms";
 
 const TABS = [
   { key: "out", text: "Cars out now" },
@@ -157,10 +157,10 @@ async function Clients() {
   return (
     <>
       <Card className="p-5">
-        <h2 className="mb-1 heading-sm">Add a client</h2>
-        <p className="mb-4 text-sm text-muted">
-          The client field on trips is {rules.clientField === "off" ? "switched off" : rules.clientField}. Change it in System settings → Cars.
-        </p>
+        <ClientFieldForm current={rules.clientField} />
+      </Card>
+      <Card className="p-5">
+        <h2 className="mb-4 heading-sm">Add a client</h2>
         <ClientForm />
       </Card>
       {(data ?? []).length ? (

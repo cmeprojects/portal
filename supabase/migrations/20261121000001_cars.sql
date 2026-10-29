@@ -24,7 +24,7 @@ insert into public.app_settings (key, value, label, description, is_public) valu
   ('vehicles.report_roles', '["manager"]', 'Who sees car reports',
    'The car use log and mileage reports, for all cars and staff. Everyone sees their own trips.', false),
   ('vehicles.client_field', '"optional"', 'Client on each trip',
-   'Off hides the client list, Optional lets staff leave it blank, Required makes them choose one.', false),
+   'Off hides the client list, Optional lets staff leave it blank, Required makes them choose one. Car managers can change this on Manage cars → Clients.', false),
   ('vehicles.odo_photo', '"optional"', 'Odometer photo when returning',
    'Off, Optional or Required.', false),
   ('vehicles.undo_minutes', '10', 'Time to undo a start or return (minutes)',
@@ -165,6 +165,14 @@ create policy "car managers see clients" on public.car_clients for select to aut
 create policy "car managers add clients" on public.car_clients for insert to authenticated with check (public.can_manage_cars());
 create policy "car managers change clients" on public.car_clients for update to authenticated
   using (public.can_manage_cars()) with check (public.can_manage_cars());
+
+-- Car managers set whether trips have a client (the other car settings stay
+-- with the system admin, or a manager they delegate Cars to).
+create policy "car managers set the client field" on public.app_settings
+  for update to authenticated
+  using (key = 'vehicles.client_field' and public.can_manage_cars())
+  with check (key = 'vehicles.client_field' and public.can_manage_cars()
+              and value #>> '{}' in ('off', 'optional', 'required'));
 
 create policy "staff see purposes" on public.car_purposes for select to authenticated using (public.cars_on());
 create policy "car managers add purposes" on public.car_purposes for insert to authenticated with check (public.can_manage_cars());

@@ -81,7 +81,7 @@ const TABS: Tab[] = [
     sections: [
       {
         title: "Cars",
-        intro: "Company cars and trips. Car managers add cars, clients and purposes of use on the Cars page. Switch Cars on or off under Features.",
+        intro: "Company cars and trips. Car managers add cars, clients and purposes of use, and choose whether trips have a client, on Manage cars. You can give these settings to a manager on the Delegation tab.",
         area: "vehicles",
         keys: (k) => k.startsWith("vehicles."),
       },

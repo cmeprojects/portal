@@ -135,6 +135,18 @@ export async function saveCar(_: FormState, form: FormData): Promise<FormState> 
   return { message: id ? "Saved." : `${name} added. Staff can use it now.` };
 }
 
+// Whether trips have a client: car managers decide (System settings → Cars has it too).
+export async function saveClientField(_: FormState, form: FormData): Promise<FormState> {
+  await requireCarManager();
+  const value = text(form, "value");
+  if (!["off", "optional", "required"].includes(value)) return { error: "Choose Off, Optional or Required." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("app_settings").update({ value }).eq("key", "vehicles.client_field").select("key");
+  if (error || !data?.length) return { error: friendlyError(error, "That didn't save. Please try again.") };
+  revalidatePath("/", "layout");
+  return { message: value === "off" ? "Saved. Staff won't see a client field." : value === "optional" ? "Saved. Staff can choose a client or leave it blank." : "Saved. Staff must choose a client to start a trip." };
+}
+
 export async function saveClient(_: FormState, form: FormData): Promise<FormState> {
   await requireCarManager();
   const id = text(form, "id");

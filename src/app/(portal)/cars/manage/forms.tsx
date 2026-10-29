@@ -4,7 +4,7 @@
 import { useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
-import { correctTrip, returnForSomeone, saveCar, saveClient, savePurpose } from "../actions";
+import { correctTrip, returnForSomeone, saveCar, saveClient, saveClientField, savePurpose } from "../actions";
 import { CAR_FILES } from "@/lib/car-types";
 import type { FormState } from "@/lib/form";
 
@@ -86,6 +86,38 @@ export function CarForm({ car }: { car?: CarRow }) {
       {car ? <ActiveSwitch active={car.active} label="In use (untick to retire the car; its trips stay in the reports)" /> : null}
       <div>
         <Button disabled={pending}>{pending ? "Saving…" : car ? "Save" : "Add car"}</Button>
+      </div>
+    </form>
+  );
+}
+
+const CLIENT_FIELD = [
+  { value: "off", label: "Off", hint: "No client on trips" },
+  { value: "optional", label: "Optional", hint: "Staff can leave it blank" },
+  { value: "required", label: "Required", hint: "Staff must choose one" },
+];
+
+export function ClientFieldForm({ current }: { current: string }) {
+  const [state, action, pending] = useActionState(saveClientField, null);
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <Result state={state} />
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 font-semibold">Client on each trip</legend>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {CLIENT_FIELD.map((c) => (
+            <label key={c.value} className="flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-line px-3 py-2 has-[:checked]:border-brand has-[:checked]:bg-brand-soft">
+              <input type="radio" name="value" value={c.value} defaultChecked={current === c.value} className="h-5 w-5 accent-[var(--brand-primary)]" />
+              <span>
+                <span className="block text-sm font-semibold">{c.label}</span>
+                <span className="block text-xs text-muted">{c.hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div>
+        <Button disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
       </div>
     </form>
   );
