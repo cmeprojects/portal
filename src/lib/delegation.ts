@@ -2,7 +2,7 @@
 
 // Areas of System settings the system admin can hand to a named manager.
 // Security, Features, General and Delegation always stay with the system admin.
-export const AREAS = ["branding", "messages", "people", "compliance", "tasks", "reports", "audit"] as const;
+export const AREAS = ["branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "audit"] as const;
 export type Area = (typeof AREAS)[number];
 
 export const AREA_LABELS: Record<Area, string> = {
@@ -12,6 +12,7 @@ export const AREA_LABELS: Record<Area, string> = {
   compliance: "Compliance settings",
   tasks: "Task settings",
   reports: "Who can see Reports",
+  vehicles: "Car settings",
   audit: "Read the change log",
 };
 
@@ -26,6 +27,7 @@ export function areaOf(key: string): Area | null {
   if (key.startsWith("compliance.")) return "compliance";
   if (key.startsWith("tasks.")) return "tasks";
   if (key.startsWith("reports.")) return "reports";
+  if (key.startsWith("vehicles.")) return "vehicles";
   return null;
 }
 

@@ -34,6 +34,13 @@ const ORDER = [
   "security.mfa_app_enabled",
   "security.mfa_sms_enabled",
   "security.idle_minutes",
+  "vehicles.manager_roles",
+  "vehicles.report_roles",
+  "vehicles.client_field",
+  "vehicles.odo_photo",
+  "vehicles.undo_minutes",
+  "vehicles.reminder_hour",
+  "vehicles.app_days",
 ];
 const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
 
@@ -66,6 +73,18 @@ const TABS: Tab[] = [
     sections: [
       { title: "Tasks", intro: "Due dates, reminders, escalation and required fields. Managers can also change due dates on the Due dates (SLA) page.", area: "tasks", keys: (k) => k.startsWith("tasks.") },
       { title: "Reports", area: "reports", keys: (k) => k.startsWith("reports.") },
+    ],
+  },
+  {
+    key: "cars",
+    label: "Cars",
+    sections: [
+      {
+        title: "Cars",
+        intro: "Company cars and trips. Car managers add cars, clients and purposes of use on the Cars page. Switch Cars on or off under Features.",
+        area: "vehicles",
+        keys: (k) => k.startsWith("vehicles."),
+      },
     ],
   },
   {

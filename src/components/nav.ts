@@ -48,6 +48,7 @@ export function navFor(
       ...home,
       ...(features.tasks !== false ? [{ href: "/tasks/new", label: "New task" }] : []),
       { href: "/registers", label: "Registers" },
+      ...(features.vehicles === true && role !== "new_starter" ? [{ href: "/cars", label: "Cars" }] : []),
       ...(role !== "system_admin" ? [{ href: "/onboarding", label: "My onboarding" }] : []),
     ],
   });

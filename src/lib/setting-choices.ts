@@ -6,4 +6,14 @@ export const CHOICES: Record<string, { value: string; label: string }[]> = {
     { value: "complete", label: "Before completing or sending for approval (recommended)" },
     { value: "create", label: "When the task is created and assigned" },
   ],
+  "vehicles.client_field": [
+    { value: "off", label: "Off (no client on trips)" },
+    { value: "optional", label: "Optional" },
+    { value: "required", label: "Required" },
+  ],
+  "vehicles.odo_photo": [
+    { value: "off", label: "Off" },
+    { value: "optional", label: "Optional" },
+    { value: "required", label: "Required" },
+  ],
 };
