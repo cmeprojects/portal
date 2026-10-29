@@ -106,7 +106,10 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
                         {file.uploadedBy && file.uploadedBy !== person.id
                           ? ` by ${reviewerName.get(file.uploadedBy) ?? "Admin"} on their behalf`
                           : ""}
-                        {file.status === "accepted"
+                        {/* Uploaded and checked by the same person on their behalf: no need to say it twice. */}
+                        {file.status === "accepted" && file.uploadedBy !== person.id && file.reviewedBy === file.uploadedBy
+                          ? ""
+                          : file.status === "accepted"
                           ? ` · checked${file.reviewedBy ? ` by ${reviewerName.get(file.reviewedBy) ?? "Admin"}` : ""}${file.reviewedAt ? ` ${formatDate(file.reviewedAt)}` : ""}`
                           : file.status === "rejected"
                             ? " · sent back, waiting for a new copy"
