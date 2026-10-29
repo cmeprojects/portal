@@ -152,7 +152,7 @@ export async function saveClient(_: FormState, form: FormData): Promise<FormStat
   const id = text(form, "id");
   const name = text(form, "name");
   if (!name) return { error: "Enter the client's name." };
-  const values = { name: name.slice(0, 80), reference: text(form, "reference").slice(0, 60), active: id ? form.get("active") === "true" : true };
+  const values = { name: name.slice(0, 80), reference: text(form, "reference").slice(0, 60) };
   const supabase = await createClient();
   const { error } = id ? await supabase.from("car_clients").update(values).eq("id", id) : await supabase.from("car_clients").insert(values);
   if (error) return { error: friendlyError(error) };
@@ -165,12 +165,52 @@ export async function savePurpose(_: FormState, form: FormData): Promise<FormSta
   const id = text(form, "id");
   const name = text(form, "name");
   if (!name) return { error: "Enter the purpose, for example Community access." };
-  const values = { name: name.slice(0, 60), sort_order: Number(text(form, "sort_order")) || 50, active: id ? form.get("active") === "true" : true };
   const supabase = await createClient();
-  const { error } = id ? await supabase.from("car_purposes").update(values).eq("id", id) : await supabase.from("car_purposes").insert(values);
+  let error;
+  if (id) {
+    ({ error } = await supabase.from("car_purposes").update({ name: name.slice(0, 60) }).eq("id", id));
+  } else {
+    // New purposes go to the bottom of the list ("Other" stays last).
+    const { data: list } = await supabase.from("car_purposes").select("name, sort_order").order("sort_order", { ascending: false });
+    const top = (list ?? []).filter((p) => p.name !== "Other")[0]?.sort_order ?? 0;
+    ({ error } = await supabase.from("car_purposes").insert({ name: name.slice(0, 60), sort_order: top + 1, active: true }));
+  }
   if (error) return { error: error.code === "23505" ? "That purpose is already on the list." : friendlyError(error) };
   refresh();
-  return { message: id ? "Saved." : `${name} added.` };
+  return { message: id ? "Renamed." : `${name} added.` };
+}
+
+// Move a purpose up or down the list staff see.
+export async function movePurpose(form: FormData) {
+  await requireCarManager();
+  const id = text(form, "id");
+  const up = text(form, "dir") === "up";
+  const supabase = await createClient();
+  const { data } = await supabase.from("car_purposes").select("id, sort_order").order("sort_order").order("name");
+  const list = data ?? [];
+  const i = list.findIndex((p) => p.id === id);
+  const j = up ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  // Number them 10, 20, 30… in the new order.
+  await Promise.all(
+    list.map((p, n) => ((n + 1) * 10 !== p.sort_order ? supabase.from("car_purposes").update({ sort_order: (n + 1) * 10 }).eq("id", p.id) : null)),
+  );
+  refresh();
+}
+
+export async function setPurposeShown(form: FormData) {
+  await requireCarManager();
+  const supabase = await createClient();
+  await supabase.from("car_purposes").update({ active: text(form, "active") === "true" }).eq("id", text(form, "id"));
+  refresh();
+}
+
+export async function setClientShown(form: FormData) {
+  await requireCarManager();
+  const supabase = await createClient();
+  await supabase.from("car_clients").update({ active: text(form, "active") === "true" }).eq("id", text(form, "id"));
+  refresh();
 }
 
 export async function returnForSomeone(_: FormState, form: FormData): Promise<FormState> {

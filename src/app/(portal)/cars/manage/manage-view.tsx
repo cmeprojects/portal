@@ -8,7 +8,7 @@ import { getTimeZone } from "@/lib/settings";
 import { km } from "@/lib/car-types";
 import { Badge, Card, PageHeader, Tabs } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { CarForm, ClientFieldForm, ClientForm, CorrectTripForm, PurposeForm, ReturnForSomeoneForm, type CarRow } from "./forms";
+import { AddClientForm, AddPurposeForm, CarForm, ClientFieldForm, ClientRow, CorrectTripForm, PurposeRow, ReturnForSomeoneForm, type CarRow } from "./forms";
 
 const TABS = [
   { key: "out", text: "Cars out now" },
@@ -156,6 +156,7 @@ async function CarsOut({ carName, nameOf, when }: { carName: Map<string, string>
 async function Clients() {
   const supabase = await createClient();
   const [{ data }, rules] = await Promise.all([supabase.from("car_clients").select("id, name, reference, active").order("active", { ascending: false }).order("name"), getCarRules()]);
+  const clients = data ?? [];
   return (
     <>
       <Card className="p-5">
@@ -163,15 +164,16 @@ async function Clients() {
       </Card>
       <Card className="p-5">
         <h2 className="mb-4 heading-sm">Add a client</h2>
-        <ClientForm />
+        <AddClientForm />
       </Card>
-      {(data ?? []).length ? (
-        <Card className="divide-y divide-line">
-          {(data ?? []).map((c) => (
-            <div key={c.id} className="px-5 py-4">
-              <ClientForm client={c} />
-            </div>
-          ))}
+      {clients.length ? (
+        <Card className="overflow-hidden">
+          <h2 className="heading-sm border-b border-line px-5 py-3">Clients · {clients.length}</h2>
+          <ul className="divide-y divide-line">
+            {clients.map((c) => (
+              <ClientRow key={c.id} client={c} />
+            ))}
+          </ul>
         </Card>
       ) : null}
     </>
@@ -180,22 +182,26 @@ async function Clients() {
 
 async function Purposes() {
   const supabase = await createClient();
-  const { data } = await supabase.from("car_purposes").select("id, name, sort_order, active").order("active", { ascending: false }).order("sort_order").order("name");
+  const { data } = await supabase.from("car_purposes").select("id, name, sort_order, active").order("sort_order").order("name");
+  const purposes = data ?? [];
   return (
-    <>
-      <Card className="p-5">
-        <h2 className="mb-1 heading-sm">Add a purpose of use</h2>
-        <p className="mb-4 text-sm text-muted">Staff choose one when they start a trip. Lower numbers show first. &quot;Other&quot; asks staff to write a few words.</p>
-        <PurposeForm />
-      </Card>
-      <Card className="divide-y divide-line">
-        {(data ?? []).map((p) => (
-          <div key={p.id} className="px-5 py-4">
-            <PurposeForm purpose={p} />
-          </div>
+    <Card className="overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-line px-5 py-4">
+        <div>
+          <h2 className="heading-sm">Purposes of use</h2>
+          <p className="text-sm text-muted">
+            Staff choose one when they start a trip, in this order. Use the arrows to reorder. Hidden ones stay on old trips but can&apos;t be
+            chosen. &quot;Other&quot; asks staff to write a few words.
+          </p>
+        </div>
+        <AddPurposeForm />
+      </div>
+      <ul className="divide-y divide-line">
+        {purposes.map((p, i) => (
+          <PurposeRow key={p.id} purpose={p} first={i === 0} last={i === purposes.length - 1} />
         ))}
-      </Card>
-    </>
+      </ul>
+    </Card>
   );
 }
 
