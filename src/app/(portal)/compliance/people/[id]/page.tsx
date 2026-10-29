@@ -28,9 +28,12 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
 
   // Only Compliance managers can open the files (the database checks too).
   const { data: records } = manages
-    ? await supabase.from("compliance_records").select("id, file_path, file_name, created_at, status, reviewed_by, reviewed_at").eq("user_id", id)
+    ? await supabase.from("compliance_records").select("id, file_path, file_name, created_at, status, reviewed_by, reviewed_at, uploaded_by").eq("user_id", id)
     : { data: [] };
-  const fileLinks = new Map<number, { url: string; name: string; at: string; status: string; reviewedBy: string | null; reviewedAt: string | null }>();
+  const fileLinks = new Map<
+    number,
+    { url: string; name: string; at: string; status: string; reviewedBy: string | null; reviewedAt: string | null; uploadedBy: string | null }
+  >();
   await Promise.all(
     (records ?? [])
       .filter((r) => r.file_path)
@@ -44,6 +47,7 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
             status: r.status,
             reviewedBy: r.reviewed_by,
             reviewedAt: r.reviewed_at,
+            uploadedBy: r.uploaded_by,
           });
       }),
   );
@@ -54,7 +58,9 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
   const { data: needsExpiry } = uploadItems.length
     ? await supabase.from("compliance_items").select("id, needs_expiry").in("id", uploadItems)
     : { data: [] as { id: string; needs_expiry: boolean }[] };
-  const reviewerIds = [...new Set([...fileLinks.values()].map((f) => f.reviewedBy).filter((x): x is string => Boolean(x)))];
+  const reviewerIds = [
+    ...new Set([...fileLinks.values()].flatMap((f) => [f.reviewedBy, f.uploadedBy]).filter((x): x is string => Boolean(x))),
+  ];
   const { data: reviewers } = reviewerIds.length
     ? await supabase.from("profiles").select("id, full_name, email, role").in("id", reviewerIds)
     : { data: [] as { id: string; full_name: string; email: string; role: string }[] };
@@ -80,18 +86,45 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
               {list.map((s) => {
                 const file = s.record_id ? fileLinks.get(s.record_id) : undefined;
                 return (
-                  <li key={s.item_id} className="flex flex-col gap-3 px-5 py-3">
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                      <span className="min-w-48 flex-1 font-medium">{s.title}</span>
+                  <li key={s.item_id} className="flex flex-col gap-1.5 px-5 py-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                      <span className="min-w-40 flex-1 font-medium">{s.title}</span>
                       {s.expires_on ? <span className="text-sm text-muted">Expires {formatDate(s.expires_on)}</span> : null}
-                      {stateBadges(s.state, s.record_id ? fileLinks.get(s.record_id)?.status : null).map((b) => (
+                      {stateBadges(s.state, file?.status).map((b) => (
                         <Badge key={b.label} tone={b.tone}>{b.label}</Badge>
                       ))}
+                      {manages && file ? (
+                        <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-brand underline">
+                          Open file
+                        </a>
+                      ) : null}
                     </div>
-                    {s.state === "rejected" && s.note ? <p className="text-sm text-warn">Sent back: {s.note}</p> : null}
+                    {/* One short line: what was uploaded, by whom, and who checked it. */}
+                    {manages && file ? (
+                      <p className="text-xs text-muted">
+                        {file.name} · uploaded {formatDate(file.at)}
+                        {file.uploadedBy && file.uploadedBy !== person.id
+                          ? ` by ${reviewerName.get(file.uploadedBy) ?? "Admin"} on their behalf`
+                          : ""}
+                        {file.status === "accepted"
+                          ? ` · checked${file.reviewedBy ? ` by ${reviewerName.get(file.reviewedBy) ?? "Admin"}` : ""}${file.reviewedAt ? ` ${formatDate(file.reviewedAt)}` : ""}`
+                          : file.status === "rejected"
+                            ? " · sent back, waiting for a new copy"
+                            : " · waiting to be checked"}
+                      </p>
+                    ) : null}
+                    {s.state === "rejected" && s.note ? <p className="text-xs text-warn">Sent back: {s.note}</p> : null}
+                    {/* Only uploads waiting to be checked get the buttons. */}
+                    {manages && file?.status === "submitted" && s.record_id && person.id !== me.id ? (
+                      <div className="mt-1 rounded-md bg-page p-3">
+                        <ReviewForm recordId={s.record_id} />
+                      </div>
+                    ) : null}
                     {canUploadFor && kind === "upload" ? (
                       <details className="text-sm">
-                        <summary className="cursor-pointer font-semibold text-brand">Upload for {person.full_name?.split(" ")[0] || "them"}</summary>
+                        <summary className="cursor-pointer text-xs font-semibold text-brand">
+                          {s.record_id ? "Upload a new copy" : "Upload"} for {person.full_name?.split(" ")[0] || "them"}
+                        </summary>
                         <div className="pt-3">
                           <UploadForPersonForm
                             userId={person.id}
@@ -101,24 +134,6 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
                           />
                         </div>
                       </details>
-                    ) : null}
-                    {manages && file ? (
-                      <div className="flex flex-col gap-3 rounded-md bg-page p-3">
-                        <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-brand underline">
-                          Open {file.name} (uploaded {formatDate(file.at)})
-                        </a>
-                        {/* Only uploads waiting to be checked get the buttons. */}
-                        {file.status === "submitted" && s.record_id && person.id !== me.id ? (
-                          <ReviewForm recordId={s.record_id} />
-                        ) : file.status === "accepted" ? (
-                          <p className="text-sm text-good">
-                            Checked{file.reviewedBy ? ` by ${reviewerName.get(file.reviewedBy) ?? "Admin"}` : ""}
-                            {file.reviewedAt ? ` on ${formatDate(file.reviewedAt)}` : ""}.
-                          </p>
-                        ) : file.status === "rejected" ? (
-                          <p className="text-sm text-muted">Sent back. Waiting for them to upload a new copy.</p>
-                        ) : null}
-                      </div>
                     ) : null}
                   </li>
                 );

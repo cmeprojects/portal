@@ -30,9 +30,15 @@ export default async function MyOnboardingPage() {
     ids.length ? supabase.from("compliance_items").select(ITEM_COLUMNS).in("id", ids) : Promise.resolve({ data: [] }),
     supabase
       .from("compliance_records")
-      .select("id, file_name, created_at, status")
+      .select("id, file_name, created_at, status, uploaded_by")
       .eq("user_id", profile.id),
   ]);
+  // Who uploaded things for this person (staff admins or managers).
+  const uploaderIds = [...new Set((records ?? []).map((r) => r.uploaded_by).filter((x): x is string => Boolean(x) && x !== profile.id))];
+  const { data: uploaders } = uploaderIds.length
+    ? await supabase.from("profiles").select("id, full_name, email, role").in("id", uploaderIds)
+    : { data: [] as { id: string; full_name: string; email: string; role: string }[] };
+  const uploaderName = new Map((uploaders ?? []).map((u) => [u.id, u.role === "system_admin" ? "Admin" : u.full_name || u.email]));
   const items = new Map(((itemRows ?? []) as ComplianceItem[]).map((i) => [i.id, i]));
   // Library files (policies, training material) open through short-lived links.
   const links = new Map<string, string>();
@@ -108,11 +114,18 @@ export default async function MyOnboardingPage() {
                       {s.state === "rejected" && s.note ? <p className="text-sm text-warn">Staff admin&apos;s note: {s.note}</p> : null}
                       {kind === "upload" ? (
                         <>
-                          {s.record_id ? (
-                            <p className="text-sm text-muted">
-                              Last upload: {(records ?? []).find((r) => r.id === s.record_id)?.file_name ?? "a file"}
-                            </p>
-                          ) : null}
+                          {s.record_id
+                            ? (() => {
+                                const r = (records ?? []).find((x) => x.id === s.record_id);
+                                const by = r?.uploaded_by && r.uploaded_by !== profile.id ? uploaderName.get(r.uploaded_by) ?? "a staff admin" : null;
+                                return (
+                                  <p className="text-sm text-muted">
+                                    Last upload: {r?.file_name ?? "a file"}
+                                    {by ? ` · uploaded for you by ${by}` : ""}
+                                  </p>
+                                );
+                              })()
+                            : null}
                           <UploadForm itemId={item.id} userId={profile.id} needsExpiry={item.needs_expiry} again={Boolean(s.record_id)} />
                         </>
                       ) : finished ? (
