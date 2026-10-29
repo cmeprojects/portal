@@ -3,7 +3,7 @@ import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireTaskAccess } from "@/lib/session";
-import { canManageCompliance, canSeeReports, getPeopleRules, getTimeZone } from "@/lib/settings";
+import { canSeeReports, getPeopleRules, getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import { buildReports, parsePeriod } from "@/lib/reports";
 import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
@@ -25,8 +25,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
   const today = todayIn(timeZone);
   const params = await searchParams;
   const period = parsePeriod(params, today);
-  const withCompliance = canManageCompliance(profile.role, rules) || profile.role === "manager";
-  const { summary, months, tables } = await buildReports(period, today, timeZone, withCompliance);
+  const { summary, months, tables } = await buildReports(period, today, timeZone);
   const qs = period.key === "custom" ? `from=${period.from}&to=${period.to}` : `range=${period.key}`;
   const max = Math.max(1, ...months.flatMap((m) => [m.opened, m.completed]));
 

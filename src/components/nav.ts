@@ -15,6 +15,7 @@ export type NavAccess = {
   seesCompliance: boolean;
   seesScoreboard?: boolean;
   seesReports?: boolean;
+  complianceReport?: boolean;
   carManager?: boolean;
   carReports?: boolean;
   // Areas of System settings delegated to this manager.
@@ -52,6 +53,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
     reports: [
       Boolean(access.seesReports) && features.reports !== false && { href: "/reports", text: "Tasks" },
       cars && Boolean(access.carReports) && { href: "/reports/cars", text: "Cars" },
+      Boolean(access.complianceReport) && features.reports !== false && { href: "/reports/compliance", text: "Compliance" },
     ],
     settings: [
       (role === "manager" || admin) && { href: "/settings/sla", text: "Due dates (SLA)" },

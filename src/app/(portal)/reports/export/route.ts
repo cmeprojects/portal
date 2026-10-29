@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSession } from "@/lib/session";
 import { getBranding } from "@/lib/branding";
-import { canManageCompliance, canSeeReports, getPeopleRules, getTimeZone } from "@/lib/settings";
+import { canSeeReports, getPeopleRules, getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import { buildReports, parsePeriod } from "@/lib/reports";
 import { pngSize, tableToXlsx, type ExcelHeader } from "@/lib/excel";
@@ -34,8 +34,7 @@ export async function GET(request: NextRequest) {
   const today = todayIn(timeZone);
   const params = Object.fromEntries(request.nextUrl.searchParams);
   const period = parsePeriod(params, today);
-  const withCompliance = canManageCompliance(session.profile.role, rules) || session.profile.role === "manager";
-  const { tables } = await buildReports(period, today, timeZone, withCompliance);
+  const { tables } = await buildReports(period, today, timeZone);
   const section = tables.find((t) => t.key === params.section);
   if (!section) return new NextResponse("Not found", { status: 404 });
 

@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { formatDate } from "@/lib/registers";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
-import { isDone, type StatusRow } from "@/lib/compliance";
 import type { Table } from "@/lib/register-rows";
 
 export type Period = { key: string; from: string; to: string; label: string };
@@ -52,7 +51,7 @@ export type Reports = {
 };
 
 // Everything on the Reports page, from the tasks the signed-in person can see.
-export async function buildReports(period: Period, today: string, timeZone: string, withCompliance: boolean): Promise<Reports> {
+export async function buildReports(period: Period, today: string, timeZone: string): Promise<Reports> {
   const supabase = await createClient();
   const [{ data }, registries, people] = await Promise.all([
     supabase
@@ -162,43 +161,6 @@ export async function buildReports(period: Period, today: string, timeZone: stri
     { key: "registers", title: "By register", intro: "Opened and completed in the period; open and overdue right now.", table: byRegister },
     { key: "people", title: "By person", intro: "Tasks each person looks after.", table: byPerson },
   ];
-
-  if (withCompliance) {
-    const staff = people.filter((p) => p.active && p.role !== "system_admin");
-    const rows = await Promise.all(
-      staff.map(async (p) => {
-        const { data: st } = await supabase.rpc("compliance_status", { p_user: p.id });
-        const list = (st ?? []) as StatusRow[];
-        const done = list.filter((s) => isDone(s.state)).length;
-        const expired = list.filter((s) => s.state === "expired").length;
-        const expiring = list.filter((s) => s.state === "expiring").length;
-        return { p, list, cells: {
-          name: cell(p.name),
-          role: cell(ROLE_LABELS[p.role as Role] ?? ""),
-          done: cell(list.length ? `${done} of ${list.length}` : "—"),
-          missing: cell(list.length - done, list.length - done ? "danger" : undefined),
-          expired: cell(expired, expired ? "danger" : undefined),
-          expiring: cell(expiring),
-        } };
-      }),
-    );
-    tables.push({
-      key: "compliance",
-      title: "Onboarding and compliance",
-      intro: "Where everyone is up to right now, including expired and soon-to-expire documents.",
-      table: {
-        columns: [
-          { key: "name", label: "Person", wide: true },
-          { key: "role", label: "Role" },
-          { key: "done", label: "Done" },
-          { key: "missing", label: "Still to do" },
-          { key: "expired", label: "Expired" },
-          { key: "expiring", label: "Expiring soon" },
-        ],
-        rows: rows.filter((r) => r.list.length).map((r) => row(r.p.id, r.cells)),
-      },
-    });
-  }
 
   return { summary, months, tables };
 }
