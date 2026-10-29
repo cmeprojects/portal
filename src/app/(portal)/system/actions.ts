@@ -6,7 +6,9 @@ import { env } from "@/lib/env";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireRole } from "@/lib/session";
+import { requireRole, requireSession } from "@/lib/session";
+import { getMyAdminAreas } from "@/lib/settings";
+import { areaOf, isArea } from "@/lib/delegation";
 import { friendlyError } from "@/lib/db-error";
 import { isRole } from "@/lib/roles";
 import { slaFromForm } from "@/lib/tasks";
@@ -58,7 +60,14 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
 export async function saveSetting(_: FormState, form: FormData): Promise<FormState> {
   const key = text(form, "key");
   // Managers can change the SLA; everything else is for system admins.
-  await requireRole(key.startsWith("tasks.sla") ? ["manager", "system_admin"] : ["system_admin"]);
+  // The system admin, managers for due dates, or a manager given this area.
+  const { profile } = await requireSession();
+  const area = areaOf(key);
+  const allowed =
+    profile.role === "system_admin" ||
+    (key.startsWith("tasks.sla") && profile.role === "manager") ||
+    (area !== null && (await getMyAdminAreas(profile.role)).includes(area));
+  if (!allowed) return { error: "You don't have permission to change this setting." };
   const { value, error: problem } = parse(text(form, "kind"), form);
   if (problem) return { error: problem };
 
@@ -67,5 +76,18 @@ export async function saveSetting(_: FormState, form: FormData): Promise<FormSta
   if (error) return { error: friendlyError(error) };
   if (!data?.length) return { error: "You don't have permission to change this setting." };
   revalidatePath("/", "layout");
+  return { message: "Saved." };
+}
+
+// The system admin hands areas of System settings to a named manager.
+export async function saveDelegation(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(["system_admin"]);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_delegation", {
+    p_user_id: text(form, "user_id"),
+    p_areas: form.getAll("areas").map(String).filter(isArea),
+  });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/system");
   return { message: "Saved." };
 }

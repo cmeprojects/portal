@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { parseSla, type Sla } from "@/lib/tasks";
 import { isRole, type Role } from "@/lib/roles";
 import type { RequiredWhen } from "@/lib/registers";
+import { AREAS, isArea, type Area } from "@/lib/delegation";
 
 export type SlaSettings = { days: Sla; weekdaysOnly: boolean };
 
@@ -21,6 +22,17 @@ export const getRequiredWhen = cache(async (): Promise<RequiredWhen> => {
   const supabase = await createClient();
   const { data } = await supabase.from("app_settings").select("value").eq("key", "tasks.required_fields_when").maybeSingle();
   return data?.value === "create" ? "create" : "complete";
+});
+
+// The System settings areas the signed-in person looks after: everything for
+// the system admin, the delegated ones for a manager, none for anyone else.
+export const getMyAdminAreas = cache(async (role: Role): Promise<Area[]> => {
+  if (role === "system_admin") return [...AREAS];
+  if (role !== "manager") return [];
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  const { data } = await supabase.from("admin_delegations").select("areas").eq("user_id", claims?.claims?.sub ?? "").maybeSingle();
+  return ((data?.areas ?? []) as string[]).filter(isArea);
 });
 
 // Minutes without activity before people are signed out (0 = never).

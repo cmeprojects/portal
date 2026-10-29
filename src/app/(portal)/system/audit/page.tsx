@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import { requireRole } from "@/lib/session";
+import { redirect } from "next/navigation";
+import { requireSession } from "@/lib/session";
+import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABELS, isRole } from "@/lib/roles";
 import { Card, PageHeader } from "@/components/ui";
@@ -43,7 +45,8 @@ function describe(action: string, details: Record<string, unknown>, entityId: st
 }
 
 export default async function AuditPage() {
-  await requireRole(["system_admin"]);
+  const { profile } = await requireSession();
+  if (!(await getMyAdminAreas(profile.role)).includes("audit")) redirect("/");
   const supabase = await createClient();
   const [{ data: rows }, { data: people }] = await Promise.all([
     supabase.from("audit_log").select("id, actor_id, action, entity_id, details, created_at").order("created_at", { ascending: false }).limit(300),

@@ -5,7 +5,15 @@ import { seesDashboard } from "@/lib/dashboard";
 export type NavItem = { href: string; label: string };
 export type NavGroup = { heading?: string; items: NavItem[] };
 
-export type NavAccess = { newStarterTasks: boolean; canInvite: boolean; seesCompliance: boolean; seesScoreboard?: boolean; seesReports?: boolean };
+export type NavAccess = {
+  newStarterTasks: boolean;
+  canInvite: boolean;
+  seesCompliance: boolean;
+  seesScoreboard?: boolean;
+  seesReports?: boolean;
+  // Areas of System settings delegated to this manager.
+  adminAreas?: string[];
+};
 
 export function navFor(
   role: Role,
@@ -64,6 +72,17 @@ export function navFor(
       : []),
   ];
   if (peopleItems.length) groups.push({ items: peopleItems });
+
+  const delegated = role === "manager" ? access.adminAreas ?? [] : [];
+  if (delegated.length) {
+    const settingsAreas = delegated.filter((a) => a !== "audit");
+    groups.push({
+      items: [
+        ...(settingsAreas.length ? [{ href: "/system", label: "System settings" }] : []),
+        ...(delegated.includes("audit") ? [{ href: "/system/audit", label: "Change log" }] : []),
+      ],
+    });
+  }
 
   if (role === "system_admin") {
     groups.push({

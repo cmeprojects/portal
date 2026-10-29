@@ -29,7 +29,7 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
     </div>
   );
 }
-import { saveSetting, setFeature } from "./actions";
+import { saveDelegation, saveSetting, setFeature } from "./actions";
 
 export function FeatureSwitch({ feature }: { feature: { key: string; label: string; description: string | null; enabled: boolean } }) {
   const [state, action, pending] = useActionState(setFeature, null);
@@ -165,6 +165,40 @@ export function SettingForm({ setting }: { setting: SettingRow }) {
       </div>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <p className="text-sm font-semibold text-good">{state.message}</p> : null}
+    </form>
+  );
+}
+
+// One manager's delegated areas of System settings.
+export function DelegationForm({
+  manager,
+  areas,
+  current,
+}: {
+  manager: { id: string; name: string };
+  areas: { key: string; label: string }[];
+  current: string[];
+}) {
+  const [state, action, pending] = useActionState(saveDelegation, null);
+  return (
+    <form action={action} className="flex flex-col gap-2 border-t border-line pt-4 first:border-t-0 first:pt-0">
+      <input type="hidden" name="user_id" value={manager.id} />
+      <fieldset className="flex flex-col gap-1">
+        <legend className="mb-1 font-semibold">{manager.name}</legend>
+        <div className="grid gap-x-5 sm:grid-cols-2">
+          {areas.map((a) => (
+            <label key={a.key} className="flex min-h-11 items-center gap-2 text-sm">
+              <input type="checkbox" name="areas" value={a.key} defaultChecked={current.includes(a.key)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+              {a.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="outline" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+        {state?.error ? <span className="text-sm text-danger">{state.error}</span> : null}
+        {state?.message ? <span className="text-sm text-good">{state.message}</span> : null}
+      </div>
     </form>
   );
 }

@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
-import { canInvite, canSeeReports, canSeeScoreboard, getIdleMinutes, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
+import { canInvite, canSeeReports, canSeeScoreboard, getIdleMinutes, getMyAdminAreas, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
 import { IdleLogout } from "@/components/idle-logout";
 import { formatDue, todayIn } from "@/lib/tasks";
 import { Bell, type BellItem } from "@/components/bell";
@@ -19,6 +19,7 @@ import { signOut } from "@/app/login/actions";
 // bar with a drop-down menu on phones.
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
   const [{ profile, features }, brand, rules, idleMinutes] = await Promise.all([requireSession(), getBranding(), getPeopleRules(), getIdleMinutes()]);
+  const adminAreas = await getMyAdminAreas(profile.role);
   const [taskItems, requestItems, notices] = await Promise.all([
     features.tasks !== false ? newTasksForMe() : Promise.resolve([]),
     requestUpdatesForMe(),
@@ -49,6 +50,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
           seesCompliance: seesCompliance(profile.role, rules),
           seesScoreboard: canSeeScoreboard(profile.role, rules),
           seesReports: canSeeReports(profile.role, rules),
+          adminAreas,
         })} brandMark={<BrandMark brand={brand} />}
         bell={<Bell items={bellItems} />}
         footer={footer}
