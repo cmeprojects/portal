@@ -6,7 +6,7 @@ import { DONE, PRIORITY_LABELS, STATUS_LABELS, type Priority, type Status } from
 import type { AssetOption, PersonOption } from "@/lib/register-data";
 
 export type Column = { key: string; label: string; wide?: boolean };
-export type Cell = { text: string; href?: string; tone?: "danger" | "muted"; badge?: ChoiceColour };
+export type Cell = { text: string; href?: string; tone?: "danger" | "muted"; badge?: ChoiceColour; num?: number };
 export type Table = { columns: Column[]; rows: { id: string; href: string; cells: Record<string, Cell> }[] };
 
 // from / to: dates (YYYY-MM-DD) on the date reported (tasks) or date added (lists).

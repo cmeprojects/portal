@@ -35,10 +35,20 @@ export function pngSize(buf: ArrayBuffer): { width: number; height: number } | n
 // to print: A4 landscape, fitted to the page width, the column headings
 // repeated on every page and page numbers in the footer.
 export async function tableToXlsx(table: Table, header: ExcelHeader): Promise<ArrayBuffer> {
+  return tablesToXlsx([{ table, header }]);
+}
+
+// Several tables, one sheet each (for example the weekly mileage report).
+export async function tablesToXlsx(sheets: { table: Table; header: ExcelHeader; sheetName?: string }[]): Promise<ArrayBuffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "cmeproject Staff Portal";
   wb.created = new Date();
-  const ws = wb.addWorksheet(header.title.replace(/[\\/?*[\]:]/g, " ").slice(0, 31) || "Register", {
+  for (const s of sheets) addSheet(wb, s.table, s.header, s.sheetName);
+  return wb.xlsx.writeBuffer();
+}
+
+function addSheet(wb: ExcelJS.Workbook, table: Table, header: ExcelHeader, sheetName?: string) {
+  const ws = wb.addWorksheet((sheetName ?? header.title).replace(/[\\/?*[\]:]/g, " ").slice(0, 31) || "Register", {
     views: [{ state: "frozen", ySplit: 6 }],
     pageSetup: {
       paperSize: 9,
@@ -92,8 +102,15 @@ export async function tableToXlsx(table: Table, header: ExcelHeader): Promise<Ar
     table.columns.forEach((c, i) => {
       const cellData = row.cells[c.key];
       const cell = xr.getCell(i + 1);
-      cell.value = cellData?.text ?? "";
-      cell.alignment = { vertical: "top", wrapText: Boolean(c.wide) };
+      // Numbers stay numbers in Excel, so they can be added up.
+      if (cellData?.num != null) {
+        cell.value = cellData.num;
+        cell.numFmt = "#,##0";
+        cell.alignment = { vertical: "top", horizontal: "right" };
+      } else {
+        cell.value = cellData?.text ?? "";
+        cell.alignment = { vertical: "top", wrapText: Boolean(c.wide) };
+      }
       cell.border = { bottom: { style: "hair", color: { argb: "FFD3DBE6" } } };
       if (cellData?.badge && cellData.text) {
         const [fill, font] = FILL[cellData.badge];
@@ -113,6 +130,4 @@ export async function tableToXlsx(table: Table, header: ExcelHeader): Promise<Ar
   if (table.rows.length) {
     ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6 + table.rows.length, column: cols } };
   }
-
-  return wb.xlsx.writeBuffer();
 }
