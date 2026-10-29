@@ -36,6 +36,27 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
+  // Too long without activity (even with the browser closed): sign out.
+  const idleMinutes = Number(request.cookies.get("portal_idle_minutes")?.value ?? 0);
+  const lastActive = Number(request.cookies.get("portal_last_active")?.value ?? 0);
+  // Only page visits are checked here; inside an open page the browser signs out itself.
+  const pageVisit = request.headers.get("sec-fetch-dest") === "document";
+  if (signedIn && pageVisit && idleMinutes > 0 && lastActive > 0 && Date.now() - lastActive > idleMinutes * 60_000) {
+    await supabase.auth.signOut();
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "?error=idle";
+    const out = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((c) => out.cookies.set(c));
+    out.cookies.delete("portal_last_active");
+    return out;
+  }
+  // Opening a page counts as activity (background requests don't; clicks and
+  // typing are counted in the browser).
+  if (signedIn && idleMinutes > 0 && pageVisit) {
+    response.cookies.set("portal_last_active", String(Date.now()), { path: "/", maxAge: 31536000, sameSite: "lax" });
+  }
+
   if (!signedIn && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

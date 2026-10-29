@@ -168,5 +168,27 @@ select test.refused($$select public.add_task_attachment(test.tid('Fix tap'), tes
 reset role;
 update public.features set enabled = true where key = 'attachments';
 
+-- A manager's own task in an approval register completes without approval.
+select test.act_as('kim@example.com');
+set role authenticated;
+select public.create_task('Check smoke alarms', (select id from public.registries where prefix = 'MNT'), test.pid('boss2@example.com'));
+reset role;
+select test.act_as('boss2@example.com');
+set role authenticated;
+select test.ok(public.set_task_status(test.tid('Check smoke alarms'), 'completed') = 'completed', 'a manager completes their own task without approval');
+reset role;
+
+-- If the register's only manager sends something for approval, other managers are asked.
+delete from public.notifications;
+select test.act_as('kim@example.com');
+set role authenticated;
+select public.create_task('Fix gate latch', (select id from public.registries where prefix = 'MNT'), test.pid('sam@example.com'));
+reset role;
+select test.act_as('sam@example.com');
+set role authenticated;
+select public.set_task_status(test.tid('Fix gate latch'), 'completed');
+reset role;
+select test.ok(test.notes('boss@example.com', 'approval_needed') = 1, 'the register manager is asked');
+
 \o
 \echo 'All task workflow tests passed.'

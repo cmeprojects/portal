@@ -10,6 +10,7 @@ import { addHelper, getTaskSnapshot, reassignTask, type TaskSnapshot } from "./t
 
 export type OngoingRow = {
   id: string;
+  description: string;
   ref: string;
   title: string;
   register: string;
@@ -26,6 +27,13 @@ function Result({ state }: { state: FormState }) {
   if (state?.error) return <Notice tone="error">{state.error}</Notice>;
   if (state?.message) return <Notice tone="success">{state.message}</Notice>;
   return null;
+}
+
+// Quick views load once and are kept, starting as soon as you point at a row.
+const cache = new Map<string, Promise<TaskSnapshot | null>>();
+function prefetch(id: string) {
+  if (!cache.has(id)) cache.set(id, getTaskSnapshot(id));
+  return cache.get(id)!;
 }
 
 // "All ongoing tasks": click a row for a quick view instead of opening it.
@@ -50,6 +58,8 @@ export function OngoingTable({ rows, people }: { rows: OngoingRow[]; people: { i
               <Fragment key={t.id}>
                 <tr
                   className={`cursor-pointer border-t border-line hover:bg-page ${open ? "bg-page" : ""}`}
+                  onMouseEnter={() => prefetch(t.id)}
+                  onTouchStart={() => prefetch(t.id)}
                   onClick={() => setOpenId(open ? null : t.id)}
                 >
                   <td className="px-4 py-3 whitespace-nowrap text-muted">{t.ref}</td>
@@ -98,16 +108,18 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
   const [panel, setPanel] = useState<"none" | "reassign" | "helper">("none");
   const progress = useRef<HTMLDialogElement>(null);
   const [, startTransition] = useTransition();
-  const load = () =>
+  const load = (fresh = false) =>
     startTransition(async () => {
-      setSnap(await getTaskSnapshot(row.id));
+      if (fresh) cache.delete(row.id);
+      setSnap(await prefetch(row.id));
     });
-  useEffect(load, [row.id]);
+  useEffect(() => load(), [row.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [reassignState, reassignAction, reassigning] = useActionState(async (prev: FormState, form: FormData) => {
     const result = await reassignTask(prev, form);
     if (result?.message) {
       setPanel("none");
+      cache.delete(row.id);
       router.refresh();
     }
     return result;
@@ -116,15 +128,16 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
     const result = await addHelper(prev, form);
     if (result?.message) {
       setPanel("none");
-      load();
+      load(true);
     }
     return result;
   }, null);
 
-  if (snap === "loading") return <p className="py-3 text-sm text-muted">Loading…</p>;
-  if (!snap) return <p className="py-3 text-sm text-muted">This task can&apos;t be shown.</p>;
-  const latest = snap.history[snap.history.length - 1];
-  const helperIds = new Set(snap.helpers.map((h) => h.id));
+  if (snap === null) return <p className="py-3 text-sm text-muted">This task can&apos;t be shown.</p>;
+  const loading = snap === "loading";
+  const data: TaskSnapshot = loading ? { description: row.description, helpers: [], history: [], canEdit: false, files: 0 } : snap;
+  const latest = data.history[data.history.length - 1];
+  const helperIds = new Set(data.helpers.map((h) => h.id));
   const choices = people.filter((p) => p.id !== row.assignedTo && !helperIds.has(p.id));
 
   return (
@@ -134,8 +147,9 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
         <div className="flex flex-col gap-3">
           <div>
             <p className="text-xs font-medium tracking-wider text-muted uppercase">About this task</p>
-            <p className="text-sm whitespace-pre-line">{snap.description || "Nothing written yet."}</p>
+            <p className="text-sm whitespace-pre-line">{data.description || "Nothing written yet."}</p>
           </div>
+          {loading ? <p className="text-sm text-muted">Loading the latest update…</p> : null}
           {latest ? (
             <div>
               <p className="text-xs font-medium tracking-wider text-muted uppercase">Latest update</p>
@@ -153,7 +167,7 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
           </div>
           <div>
             <dt className="text-xs font-medium tracking-wider text-muted uppercase">Helpers</dt>
-            <dd>{snap.helpers.length ? snap.helpers.map((h) => h.name).join(", ") : "None"}</dd>
+            <dd>{loading ? "…" : data.helpers.length ? data.helpers.map((h) => h.name).join(", ") : "None"}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium tracking-wider text-muted uppercase">Status · due</dt>
@@ -164,7 +178,7 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
           <div>
             <dt className="text-xs font-medium tracking-wider text-muted uppercase">Updates · files</dt>
             <dd>
-              {snap.history.length} · {snap.files}
+              {loading ? "…" : `${data.history.length} · ${data.files}`}
             </dd>
           </div>
         </dl>
@@ -174,7 +188,7 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
         <Link href={`/tasks/${row.id}`} className={buttonClass("primary")}>
           Open task
         </Link>
-        {snap.canEdit ? (
+        {data.canEdit ? (
           <Button type="button" variant="outline" onClick={() => setPanel(panel === "reassign" ? "none" : "reassign")}>
             Reassign
           </Button>
@@ -182,7 +196,7 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
         <Button type="button" variant="outline" onClick={() => setPanel(panel === "helper" ? "none" : "helper")}>
           Add someone to help
         </Button>
-        <Button type="button" variant="outline" aria-haspopup="dialog" onClick={() => progress.current?.showModal()}>
+        <Button type="button" variant="outline" aria-haspopup="dialog" disabled={loading} onClick={() => progress.current?.showModal()}>
           See progress
         </Button>
       </div>
@@ -256,7 +270,7 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
             </button>
           </div>
           <ol className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
-            {snap.history.map((h, i) => (
+            {data.history.map((h, i) => (
               <li key={i} className="flex gap-3">
                 <span aria-hidden="true" className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand" />
                 <div className="min-w-0">

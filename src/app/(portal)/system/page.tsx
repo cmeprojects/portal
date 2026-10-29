@@ -29,6 +29,7 @@ const ORDER = [
   "security.mfa_required_roles",
   "security.mfa_app_enabled",
   "security.mfa_sms_enabled",
+  "security.idle_minutes",
 ];
 const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
 
@@ -66,7 +67,10 @@ const TABS: Tab[] = [
   {
     key: "security",
     label: "Security",
-    sections: [{ title: "Two-factor login", intro: "Which roles need it while it's switched on (system admins always do), and which methods people can use.", keys: (k) => k.startsWith("security.") }],
+    sections: [
+      { title: "Two-factor login", intro: "Which roles need it while it's switched on (system admins always do), and which methods people can use.", keys: (k) => k.startsWith("security.mfa") },
+      { title: "Signing out", keys: (k) => k === "security.idle_minutes" },
+    ],
   },
   { key: "features", label: "Features", sections: [] },
   {

@@ -228,9 +228,9 @@ export type TaskSnapshot = {
 export async function getTaskSnapshot(taskId: string): Promise<TaskSnapshot | null> {
   await requireTaskAccess();
   const supabase = await createClient();
-  const { data: task } = await supabase.from("tasks").select("id, description").eq("id", taskId).maybeSingle();
-  if (!task) return null;
-  const [{ data: helpers }, { data: events }, { data: canEdit }, { count }, people, timeZone] = await Promise.all([
+  // Everything at once: the page waits for one round trip, not several.
+  const [{ data: task }, { data: helpers }, { data: events }, { data: canEdit }, { count }, people, timeZone] = await Promise.all([
+    supabase.from("tasks").select("id, description").eq("id", taskId).maybeSingle(),
     supabase.from("task_helpers").select("user_id").eq("task_id", taskId),
     supabase.from("task_events").select("type, actor_id, from_value, to_value, comment, created_at").eq("task_id", taskId).order("created_at").order("id"),
     supabase.rpc("can_edit_task", { p_task_id: taskId }),
@@ -238,6 +238,7 @@ export async function getTaskSnapshot(taskId: string): Promise<TaskSnapshot | nu
     getPeople(),
     getTimeZone(),
   ]);
+  if (!task) return null;
   const names = new Map(people.map((p) => [p.id, p.name]));
   const nameOf = (id: string | null) => (id ? names.get(id) ?? "Admin" : "System");
   const when = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone });

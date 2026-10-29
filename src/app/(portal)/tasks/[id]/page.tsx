@@ -147,7 +147,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   const can: Can = {
     start: live && Boolean(canEdit) && task.status === "assigned",
     complete: live && Boolean(canEdit) && working,
-    completeNeedsApproval: registry.requires_approval && !canApprove,
+    completeNeedsApproval: registry.requires_approval && !canApprove && !(mine && me.role === "manager"),
+    managerOwn: registry.requires_approval && mine && me.role === "manager",
     approve: live && task.status === "awaiting_approval" && Boolean(canApprove),
     close: live && Boolean(canEdit) && task.status === "completed" && (!mine || task.created_by === me.id),
     reopen: live && Boolean(canEdit) && finished && !mine,
@@ -357,7 +358,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
         </div>
 
         <div className="flex flex-col gap-4">
-        {Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && v) ? (
+        {Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && k !== "managerOwn" && v) ? (
           <Card className="flex flex-col gap-3 p-5 print:hidden">
             <h2 className="heading-sm">What&apos;s next</h2>
             {(can.complete || can.approve) && (missingFields ?? []).length ? (

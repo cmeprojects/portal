@@ -64,6 +64,13 @@ export async function signInWithGoogle(form: FormData) {
   redirect(data.url);
 }
 
+// Signed out after too long without activity.
+export async function signOutIdle() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login?error=idle");
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

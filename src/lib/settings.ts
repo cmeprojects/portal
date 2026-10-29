@@ -23,6 +23,14 @@ export const getRequiredWhen = cache(async (): Promise<RequiredWhen> => {
   return data?.value === "create" ? "create" : "complete";
 });
 
+// Minutes without activity before people are signed out (0 = never).
+export const getIdleMinutes = cache(async (): Promise<number> => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "security.idle_minutes").maybeSingle();
+  const n = Number(data?.value ?? 30);
+  return Number.isFinite(n) && n >= 0 ? Math.min(Math.round(n), 1440) : 30;
+});
+
 // The company's time zone (System settings → Region).
 export const getTimeZone = cache(async (): Promise<string> => {
   const supabase = await createClient();

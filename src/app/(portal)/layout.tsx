@@ -3,7 +3,8 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
-import { canInvite, canSeeReports, canSeeScoreboard, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
+import { canInvite, canSeeReports, canSeeScoreboard, getIdleMinutes, getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
+import { IdleLogout } from "@/components/idle-logout";
 import { formatDue, todayIn } from "@/lib/tasks";
 import { Bell, type BellItem } from "@/components/bell";
 import { getBranding } from "@/lib/branding";
@@ -17,7 +18,7 @@ import { signOut } from "@/app/login/actions";
 // Frame for every page after sign-in: the company's sidebar on desktop, a top
 // bar with a drop-down menu on phones.
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
-  const [{ profile, features }, brand, rules] = await Promise.all([requireSession(), getBranding(), getPeopleRules()]);
+  const [{ profile, features }, brand, rules, idleMinutes] = await Promise.all([requireSession(), getBranding(), getPeopleRules(), getIdleMinutes()]);
   const [taskItems, requestItems, notices] = await Promise.all([
     features.tasks !== false ? newTasksForMe() : Promise.resolve([]),
     requestUpdatesForMe(),
@@ -52,6 +53,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         bell={<Bell items={bellItems} />}
         footer={footer}
       />
+      <IdleLogout minutes={idleMinutes} />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
         {brand.announcement ? (
           <div role="status" className="rounded-lg border border-brand/30 bg-brand-soft px-4 py-3 text-sm whitespace-pre-line text-ink print:hidden">

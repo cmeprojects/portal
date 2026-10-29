@@ -30,6 +30,7 @@ type Row = {
   assigned_to: string;
   registry_id: string;
   created_at: string;
+  description: string;
 };
 
 const PRIORITY_ORDER: Record<Priority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
@@ -49,7 +50,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
 
   const { data } = await supabase
     .from("tasks")
-    .select("id, ref_number, title, status, priority, due_date, assigned_to, registry_id, created_at")
+    .select("id, ref_number, title, description, status, priority, due_date, assigned_to, registry_id, created_at")
     .not("status", "in", `(${DONE.join(",")})`)
     .order("created_at", { ascending: false })
     .limit(3000)
@@ -277,6 +278,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
               const due = dueState(t.due_date, today, t.status);
               return {
                 id: t.id,
+                description: t.description.length > 600 ? `${t.description.slice(0, 600)}…` : t.description,
                 ref: ref(t),
                 title: t.title,
                 register: regOf.get(t.registry_id)?.name ?? "",

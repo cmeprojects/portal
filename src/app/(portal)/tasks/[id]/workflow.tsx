@@ -19,6 +19,8 @@ export type Can = {
   complete: boolean;
   // Completing goes to a manager first.
   completeNeedsApproval: boolean;
+  // A manager's own task in an approval register: no approval, just confirm.
+  managerOwn: boolean;
   approve: boolean;
   close: boolean;
   reopen: boolean;
@@ -35,12 +37,14 @@ function StatusButton({
   label,
   variant = "primary",
   note,
+  confirmText,
 }: {
   taskId: string;
   status: Status;
   label: string;
   variant?: "primary" | "outline" | "danger";
   note?: { label: string; required: boolean; placeholder?: string };
+  confirmText?: string;
 }) {
   const [state, action, pending] = useActionState(changeStatus, null);
   const [open, setOpen] = useState(false);
@@ -52,10 +56,17 @@ function StatusButton({
     );
   }
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (confirmText && !confirm(confirmText)) e.preventDefault();
+      }}
+      className="flex flex-col gap-2"
+    >
       <Result state={state} />
       <input type="hidden" name="task_id" value={taskId} />
       <input type="hidden" name="status" value={status} />
+      {confirmText ? <p className="text-sm text-muted">{confirmText}</p> : null}
       {note ? (
         <Field label={note.label} htmlFor={`note-${status}`}>
           <textarea id={`note-${status}`} name="note" rows={2} required={note.required} placeholder={note.placeholder} className={`${inputClass} min-h-20 py-3`} />
@@ -129,7 +140,7 @@ function ReasonForm({
 }
 
 export function TaskActions({ taskId, can, people }: { taskId: string; can: Can; people: { id: string; name: string }[] }) {
-  const any = Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && v);
+  const any = Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && k !== "managerOwn" && v);
   if (!any) return null;
   return (
     <div className="flex flex-col gap-2">
@@ -153,6 +164,7 @@ export function TaskActions({ taskId, can, people }: { taskId: string; can: Can;
           status="completed"
           label={can.completeNeedsApproval ? "Finished: send for approval" : "Mark as completed"}
           note={{ label: "Note (optional)", required: false, placeholder: "What was done" }}
+          confirmText={can.managerOwn ? "You're completing this as a manager, so no approval is needed." : undefined}
         />
       ) : null}
       {can.resolveEscalation ? <StatusButton taskId={taskId} status="in_progress" label="Escalation dealt with" variant="outline" /> : null}
