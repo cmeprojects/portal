@@ -203,8 +203,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
         </div>
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_340px] print:grid-cols-[1fr_240px]">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_340px] print:flex print:flex-col print:gap-3">
+        <div className="flex min-w-0 flex-col gap-4 print:gap-3">
           <Card className="p-5">
             <h2 className="mb-2 heading-sm">{registry.description_label}</h2>
             <p className="whitespace-pre-line text-sm leading-relaxed">
@@ -215,7 +215,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           {!isAction && (shownFields.length || registry.show_outcome) ? (
             <Card className="p-5">
               <h2 className="mb-3 heading-sm">{registry.name} details</h2>
-              <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+              <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 print:grid-cols-3 print:gap-y-2">
                 {shownFields.map((f) => (
                   <div key={f.id} className={f.type === "long_text" ? "sm:col-span-2" : ""}>
                     <Label>{f.label}</Label>
@@ -298,7 +298,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
 
           <Card className="p-5">
             <h2 className="mb-3 heading-sm">Activity</h2>
-            <ol className="flex flex-col gap-4">
+            <ol className="flex flex-col gap-4 print:gap-2">
               {(events ?? []).map((e) => (
                 <li key={e.id} className="flex gap-3">
                   <span aria-hidden="true" className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand" />
@@ -357,7 +357,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 print:order-first print:gap-3">
         {Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && k !== "managerOwn" && v) ? (
           <Card className="flex flex-col gap-3 p-5 print:hidden">
             <h2 className="heading-sm">What&apos;s next</h2>
@@ -375,9 +375,9 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
             <TaskActions taskId={task.id} can={can} people={reassignTo} />
           </Card>
         ) : null}
-        <Card className="flex flex-col gap-4 p-5">
+        <Card className="flex flex-col gap-4 p-5 print:gap-2">
           <h2 className="heading-sm">Details</h2>
-          <dl className="flex flex-col gap-3 text-sm">
+          <dl className="flex flex-col gap-3 text-sm print:grid print:grid-cols-4 print:gap-x-4 print:gap-y-2">
             <div>
               <Label>Looked after by</Label>
               <dd className="font-semibold">{nameOf(task.assigned_to)}</dd>

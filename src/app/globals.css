@@ -152,10 +152,20 @@ body {
   body {
     background: #fff;
     color: #000;
-    font-size: 11pt;
+    font-size: 10pt;
   }
+  /* Boxes split across pages (a long Activity list used to jump to the next
+     page and leave a blank one); single entries and headings stay together. */
   .rounded-lg {
+    break-inside: auto;
+    padding: 10px 12px !important;
+  }
+  li,
+  dl > div {
     break-inside: avoid;
+  }
+  h2 {
+    break-after: avoid;
   }
   a {
     color: inherit;
