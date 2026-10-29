@@ -7,9 +7,8 @@ import {
   ITEM_COLUMNS,
   KIND_LABELS,
   LIBRARY_BUCKET,
-  STATE_LABELS,
-  STATE_TONE,
   isDone,
+  stateBadges,
   type ComplianceItem,
   type ItemKind,
   type StatusRow,
@@ -31,7 +30,7 @@ export default async function MyOnboardingPage() {
     ids.length ? supabase.from("compliance_items").select(ITEM_COLUMNS).in("id", ids) : Promise.resolve({ data: [] }),
     supabase
       .from("compliance_records")
-      .select("id, file_name, created_at")
+      .select("id, file_name, created_at, status")
       .eq("user_id", profile.id),
   ]);
   const items = new Map(((itemRows ?? []) as ComplianceItem[]).map((i) => [i.id, i]));
@@ -84,7 +83,9 @@ export default async function MyOnboardingPage() {
                     <>
                       <span className="min-w-48 flex-1 font-semibold">{item.title}</span>
                       {s.expires_on ? <span className="text-sm text-muted">Expires {formatDate(s.expires_on)}</span> : null}
-                      <Badge tone={STATE_TONE[s.state]}>{STATE_LABELS[s.state]}</Badge>
+                      {stateBadges(s.state, (records ?? []).find((r) => r.id === s.record_id)?.status).map((b) => (
+                        <Badge key={b.label} tone={b.tone}>{b.label}</Badge>
+                      ))}
                     </>
                   }>
                     <div className="flex flex-col gap-4 border-t border-line px-5 py-4">

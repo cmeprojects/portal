@@ -76,3 +76,19 @@ export function safeFileName(name: string): string {
   const clean = name.normalize("NFKD").replace(/[^\w.-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   return (clean || "file").slice(-80);
 }
+
+// Badges for an item: the upload's own status, plus "Expiring" or "Expired"
+// beside it (so a checked document about to expire shows both).
+export function stateBadges(state: ItemState, recordStatus?: string | null): { label: string; tone: "good" | "warn" | "grey" | "soft" }[] {
+  if (state === "expired") return [{ label: "Expired", tone: "warn" }];
+  if (state === "expiring") {
+    const base =
+      recordStatus === "accepted"
+        ? [{ label: "Checked", tone: "good" as const }]
+        : recordStatus === "submitted"
+          ? [{ label: "Uploaded, being checked", tone: "soft" as const }]
+          : [];
+    return [...base, { label: "Expiring", tone: "warn" }];
+  }
+  return [{ label: STATE_LABELS[state], tone: STATE_TONE[state] }];
+}

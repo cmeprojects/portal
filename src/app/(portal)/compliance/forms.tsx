@@ -1,13 +1,13 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
-import { LIBRARY_BUCKET, type ComplianceItem, type ItemKind } from "@/lib/compliance";
+import { FILES_BUCKET, LIBRARY_BUCKET, type ComplianceItem, type ItemKind } from "@/lib/compliance";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
-import { reviewUpload, saveItem } from "./actions";
+import { reviewUpload, saveItem, uploadForPerson } from "./actions";
 
 function Result({ state }: { state: FormState }) {
   if (state?.error) return <Notice tone="error">{state.error}</Notice>;
@@ -125,6 +125,43 @@ export function ReviewForm({ recordId }: { recordId: number }) {
         <Button name="decision" value="accept" className="h-12" disabled={pending}>Looks good</Button>
         <Button name="decision" value="reject" variant="outline" className="h-12" disabled={pending}>Send back</Button>
       </div>
+    </form>
+  );
+}
+
+export function UploadForPersonForm({
+  userId,
+  itemId,
+  needsExpiry,
+  checksItself,
+}: {
+  userId: string;
+  itemId: string;
+  needsExpiry: boolean;
+  // A staff admin's upload counts as checked; a manager's gets checked.
+  checksItself: boolean;
+}) {
+  const [state, action, pending] = useActionState(uploadForPerson, null);
+  const [ready, setReady] = useState(false);
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <Result state={state} />
+      <input type="hidden" name="user_id" value={userId} />
+      <input type="hidden" name="item_id" value={itemId} />
+      <div className="grid gap-3 md:grid-cols-[2fr_1fr] md:items-start">
+        <Field label="File" htmlFor={`for-${itemId}`}>
+          <FileUpload id={`for-${itemId}`} bucket={FILES_BUCKET} folder={userId} name="file" required onReady={setReady} />
+        </Field>
+        {needsExpiry ? (
+          <Field label="Expiry date" htmlFor={`for-exp-${itemId}`}>
+            <input id={`for-exp-${itemId}`} name="expires_on" type="date" required className={inputClass} />
+          </Field>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted">
+        {checksItself ? "It counts as checked, since you're the one checking." : "A staff admin will check it."}
+      </p>
+      <Button className="self-start" disabled={pending || !ready}>{pending ? "Saving…" : "Upload for them"}</Button>
     </form>
   );
 }

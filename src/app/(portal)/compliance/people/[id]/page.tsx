@@ -7,9 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 import { canManageCompliance, getPeopleRules, seesCompliance } from "@/lib/settings";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { formatDate } from "@/lib/registers";
-import { FILES_BUCKET, KIND_LABELS, STATE_LABELS, STATE_TONE, isDone, type ItemKind, type StatusRow } from "@/lib/compliance";
+import { FILES_BUCKET, KIND_LABELS, isDone, stateBadges, type ItemKind, type StatusRow } from "@/lib/compliance";
 import { Badge, Card, PageHeader } from "@/components/ui";
-import { ReviewForm } from "../../forms";
+import { ReviewForm, UploadForPersonForm } from "../../forms";
 
 export const metadata: Metadata = { title: "Onboarding progress" };
 
@@ -48,6 +48,12 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
       }),
   );
   const done = status.filter((s) => isDone(s.state)).length;
+  // Staff admins (Compliance managers) and managers can upload for someone.
+  const canUploadFor = (manages || me.role === "manager") && person.id !== me.id;
+  const uploadItems = status.filter((s) => s.kind === "upload").map((s) => s.item_id);
+  const { data: needsExpiry } = uploadItems.length
+    ? await supabase.from("compliance_items").select("id, needs_expiry").in("id", uploadItems)
+    : { data: [] as { id: string; needs_expiry: boolean }[] };
   const reviewerIds = [...new Set([...fileLinks.values()].map((f) => f.reviewedBy).filter((x): x is string => Boolean(x)))];
   const { data: reviewers } = reviewerIds.length
     ? await supabase.from("profiles").select("id, full_name, email, role").in("id", reviewerIds)
@@ -78,9 +84,24 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       <span className="min-w-48 flex-1 font-medium">{s.title}</span>
                       {s.expires_on ? <span className="text-sm text-muted">Expires {formatDate(s.expires_on)}</span> : null}
-                      <Badge tone={STATE_TONE[s.state]}>{STATE_LABELS[s.state]}</Badge>
+                      {stateBadges(s.state, s.record_id ? fileLinks.get(s.record_id)?.status : null).map((b) => (
+                        <Badge key={b.label} tone={b.tone}>{b.label}</Badge>
+                      ))}
                     </div>
                     {s.state === "rejected" && s.note ? <p className="text-sm text-warn">Sent back: {s.note}</p> : null}
+                    {canUploadFor && kind === "upload" ? (
+                      <details className="text-sm">
+                        <summary className="cursor-pointer font-semibold text-brand">Upload for {person.full_name?.split(" ")[0] || "them"}</summary>
+                        <div className="pt-3">
+                          <UploadForPersonForm
+                            userId={person.id}
+                            itemId={s.item_id}
+                            needsExpiry={(needsExpiry ?? []).find((n) => n.id === s.item_id)?.needs_expiry ?? false}
+                            checksItself={manages}
+                          />
+                        </div>
+                      </details>
+                    ) : null}
                     {manages && file ? (
                       <div className="flex flex-col gap-3 rounded-md bg-page p-3">
                         <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-brand underline">

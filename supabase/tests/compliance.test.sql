@@ -164,5 +164,32 @@ insert into public.compliance_items (kind, title) values ('read', 'Privacy polic
 reset role;
 select test.ok(test.item('Privacy policy') is not null, 'with the setting on, a manager manages Compliance');
 
+-- Uploading for someone.
+select test.act_as('sam@example.com');
+set role authenticated;
+select test.refused($$select public.submit_compliance_upload_for(test.pid('nico@example.com'), test.item('Police check'), test.pid('nico@example.com')::text || '/x.pdf', 'x.pdf', current_date + 300)$$,
+  'a support worker can''t upload for someone');
+reset role;
+select test.act_as('office@example.com');
+set role authenticated;
+select public.submit_compliance_upload_for(test.pid('nico@example.com'), test.item('Police check'), test.pid('nico@example.com')::text || '/pc2.pdf', 'pc2.pdf', current_date + 300);
+reset role;
+select test.ok((select status = 'accepted' and uploaded_by = test.pid('office@example.com') from public.compliance_records where file_name = 'pc2.pdf'),
+  'a staff admin''s upload for someone counts as checked');
+select test.ok(test.notes('nico@example.com', 'uploaded_for_you') = 1, 'the person is told');
+update public.app_settings set value = '["staff_admin"]' where key = 'compliance.manager_roles';
+select test.act_as('boss@example.com');
+set role authenticated;
+select public.submit_compliance_upload_for(test.pid('nico@example.com'), test.item('Driver''s licence'), test.pid('nico@example.com')::text || '/dl2.jpg', 'dl2.jpg');
+reset role;
+select test.ok((select status = 'submitted' from public.compliance_records where file_name = 'dl2.jpg'), 'a manager''s upload still gets checked');
+
+-- Expiring: bell and email for the person.
+update public.compliance_records set expires_on = current_date + 5 where file_name = 'pc2.pdf';
+delete from public.email_outbox;
+select public.run_compliance_alerts();
+select test.ok(exists (select 1 from public.email_outbox where template = 'notice' and to_user = test.pid('nico@example.com')
+                         and data ->> 'title' like 'Police check expires soon'), 'an expiring document is emailed to the person');
+
 \o
 \echo 'All compliance tests passed.'

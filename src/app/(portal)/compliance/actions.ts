@@ -80,3 +80,21 @@ export async function reviewUpload(_: FormState, form: FormData): Promise<FormSt
   revalidatePath("/compliance", "layout");
   return { message: accept ? "Marked as checked." : "Sent back. They've been asked to upload it again." };
 }
+
+// A staff admin or manager uploads a document for someone.
+export async function uploadForPerson(_: FormState, form: FormData): Promise<FormState> {
+  await requireSession();
+  const path = text(form, "file_path");
+  if (!path) return { error: "Choose a file and wait for it to upload." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("submit_compliance_upload_for", {
+    p_user_id: text(form, "user_id"),
+    p_item_id: text(form, "item_id"),
+    p_path: path,
+    p_name: text(form, "file_name"),
+    p_expires: text(form, "expires_on") || null,
+  });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/compliance", "layout");
+  return { message: "Uploaded. They've been told." };
+}
