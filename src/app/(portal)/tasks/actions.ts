@@ -10,9 +10,6 @@ import { friendlyError } from "@/lib/db-error";
 import { isPriority } from "@/lib/tasks";
 import { detailsFromForm, FIELD_COLUMNS, type RegistryField } from "@/lib/registers";
 import { text, type FormState } from "@/lib/form";
-import { getPeople } from "@/lib/register-data";
-import { getTimeZone } from "@/lib/settings";
-import { describeEvent, eventNote } from "@/lib/task-events";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -224,34 +221,3 @@ export type TaskSnapshot = {
   files: number;
 };
 
-// The quick view on the dashboard: what the task is about and what's happened.
-export async function getTaskSnapshot(taskId: string): Promise<TaskSnapshot | null> {
-  await requireTaskAccess();
-  const supabase = await createClient();
-  // Everything at once: the page waits for one round trip, not several.
-  const [{ data: task }, { data: helpers }, { data: events }, { data: canEdit }, { count }, people, timeZone] = await Promise.all([
-    supabase.from("tasks").select("id, description").eq("id", taskId).maybeSingle(),
-    supabase.from("task_helpers").select("user_id").eq("task_id", taskId),
-    supabase.from("task_events").select("type, actor_id, from_value, to_value, comment, created_at").eq("task_id", taskId).order("created_at").order("id"),
-    supabase.rpc("can_edit_task", { p_task_id: taskId }),
-    supabase.from("task_attachments").select("id", { count: "exact", head: true }).eq("task_id", taskId),
-    getPeople(),
-    getTimeZone(),
-  ]);
-  if (!task) return null;
-  const names = new Map(people.map((p) => [p.id, p.name]));
-  const nameOf = (id: string | null) => (id ? names.get(id) ?? "Admin" : "System");
-  const when = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone });
-  return {
-    description: task.description,
-    helpers: (helpers ?? []).map((h) => ({ id: h.user_id, name: nameOf(h.user_id) })),
-    history: (events ?? []).map((e) => ({
-      who: nameOf(e.actor_id),
-      what: describeEvent(e, nameOf),
-      note: eventNote(e),
-      at: when.format(new Date(e.created_at)),
-    })),
-    canEdit: Boolean(canEdit),
-    files: count ?? 0,
-  };
-}

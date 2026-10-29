@@ -6,7 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Field, Notice, buttonClass, inputClass } from "@/components/ui";
 import type { FormState } from "@/lib/form";
-import { addHelper, getTaskSnapshot, reassignTask, type TaskSnapshot } from "./tasks/actions";
+import { createClient } from "@/lib/supabase/client";
+import { describeEvent, eventNote } from "@/lib/task-events";
+import { addHelper, reassignTask, type TaskSnapshot } from "./tasks/actions";
 
 export type OngoingRow = {
   id: string;
@@ -29,16 +31,54 @@ function Result({ state }: { state: FormState }) {
   return null;
 }
 
+// The quick view reads straight from the database in the browser (the
+// database's own rules decide what each person can see), so it doesn't wait
+// on a round trip through the website server.
+type Ctx = { names: Map<string, string>; timeZone: string };
+
+async function loadSnapshot(id: string, ctx: Ctx): Promise<TaskSnapshot | null> {
+  const db = createClient();
+  const [{ data: task }, { data: helpers }, { data: events }, { data: canEdit }, { count }] = await Promise.all([
+    db.from("tasks").select("id, description").eq("id", id).maybeSingle(),
+    db.from("task_helpers").select("user_id").eq("task_id", id),
+    db.from("task_events").select("type, actor_id, from_value, to_value, comment, created_at").eq("task_id", id).order("created_at").order("id"),
+    db.rpc("can_edit_task", { p_task_id: id }),
+    db.from("task_attachments").select("id", { count: "exact", head: true }).eq("task_id", id),
+  ]);
+  if (!task) return null;
+  const nameOf = (uid: string | null) => (uid ? ctx.names.get(uid) ?? "Admin" : "System");
+  const when = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone: ctx.timeZone });
+  return {
+    description: task.description,
+    helpers: (helpers ?? []).map((h) => ({ id: h.user_id, name: nameOf(h.user_id) })),
+    history: (events ?? []).map((e) => ({ who: nameOf(e.actor_id), what: describeEvent(e, nameOf), note: eventNote(e), at: when.format(new Date(e.created_at)) })),
+    canEdit: Boolean(canEdit),
+    files: count ?? 0,
+  };
+}
+
 // Quick views load once and are kept, starting as soon as you point at a row.
 const cache = new Map<string, Promise<TaskSnapshot | null>>();
-function prefetch(id: string) {
-  if (!cache.has(id)) cache.set(id, getTaskSnapshot(id));
+function prefetch(id: string, ctx: Ctx) {
+  if (!cache.has(id)) cache.set(id, loadSnapshot(id, ctx).catch(() => null));
   return cache.get(id)!;
 }
 
 // "All ongoing tasks": click a row for a quick view instead of opening it.
-export function OngoingTable({ rows, people }: { rows: OngoingRow[]; people: { id: string; name: string }[] }) {
+export function OngoingTable({
+  rows,
+  people,
+  names,
+  timeZone,
+}: {
+  rows: OngoingRow[];
+  people: { id: string; name: string }[];
+  // Everyone's names (for the history), and the company's time zone.
+  names: [string, string][];
+  timeZone: string;
+}) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [ctx] = useState<Ctx>(() => ({ names: new Map(names), timeZone }));
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
@@ -58,8 +98,8 @@ export function OngoingTable({ rows, people }: { rows: OngoingRow[]; people: { i
               <Fragment key={t.id}>
                 <tr
                   className={`cursor-pointer border-t border-line hover:bg-page ${open ? "bg-page" : ""}`}
-                  onMouseEnter={() => prefetch(t.id)}
-                  onTouchStart={() => prefetch(t.id)}
+                  onMouseEnter={() => prefetch(t.id, ctx)}
+                  onTouchStart={() => prefetch(t.id, ctx)}
                   onClick={() => setOpenId(open ? null : t.id)}
                 >
                   <td className="px-4 py-3 whitespace-nowrap text-muted">{t.ref}</td>
@@ -89,7 +129,7 @@ export function OngoingTable({ rows, people }: { rows: OngoingRow[]; people: { i
                 {open ? (
                   <tr id={`snap-${t.id}`} className="bg-page">
                     <td colSpan={7} className="px-4 pt-1 pb-5">
-                      <Snapshot row={t} people={people} />
+                      <Snapshot row={t} people={people} ctx={ctx} />
                     </td>
                   </tr>
                 ) : null}
@@ -102,7 +142,7 @@ export function OngoingTable({ rows, people }: { rows: OngoingRow[]; people: { i
   );
 }
 
-function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name: string }[] }) {
+function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string; name: string }[]; ctx: Ctx }) {
   const router = useRouter();
   const [snap, setSnap] = useState<TaskSnapshot | null | "loading">("loading");
   const [panel, setPanel] = useState<"none" | "reassign" | "helper">("none");
@@ -111,7 +151,7 @@ function Snapshot({ row, people }: { row: OngoingRow; people: { id: string; name
   const load = (fresh = false) =>
     startTransition(async () => {
       if (fresh) cache.delete(row.id);
-      setSnap(await prefetch(row.id));
+      setSnap(await prefetch(row.id, ctx));
     });
   useEffect(() => load(), [row.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -292,6 +292,8 @@ export async function DashboardView({ params }: { params: Record<string, string 
               };
             })}
             people={people.filter((p) => p.active && p.role !== "system_admin" && p.role !== "new_starter").map((p) => ({ id: p.id, name: p.name }))}
+            names={people.filter((p) => p.role !== "system_admin").map((p) => [p.id, p.name] as [string, string])}
+            timeZone={timeZone}
           />
         )}
       </Card>
