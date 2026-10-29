@@ -80,7 +80,7 @@ export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sl
   if (key === "brand.logo_url" || key === "brand.logo_mark_url") return "logo";
   if (OPTIONAL_TEXT.includes(key)) return "note";
   if (key in CHOICES) return "choice";
-  if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "vehicles.manager_roles", "vehicles.report_roles"].includes(key)) return "roles";
+  if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "tasks.registers_roles", "vehicles.manager_roles", "vehicles.report_roles"].includes(key)) return "roles";
   if (key.endsWith("_days") || key.endsWith("_years") || key.endsWith("_minutes") || key.endsWith("_hour")) return "number";
   if (key === "tasks.sla_weekdays_only" || key === "tasks.sla_manager_summary" || key.startsWith("people.")) return "yesno";
   if (key === "security.mfa_app_enabled" || key === "security.mfa_sms_enabled") return "yesno";

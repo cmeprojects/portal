@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import type { NavAccess } from "@/components/nav";
 import type { Role } from "@/lib/roles";
-import { canInvite, canSeeComplianceReport, canSeeReports, canSeeScoreboard, getMyAdminAreas, getPeopleRules, seesCompliance } from "@/lib/settings";
+import { canInvite, canSeeComplianceReport, canSeeRegisters, canSeeReports, canSeeScoreboard, getMyAdminAreas, getPeopleRules, seesCompliance } from "@/lib/settings";
 import { canManageCars, canSeeCarReports, getCarRules } from "@/lib/cars";
 
 // What the menu and the section tabs show this person (worked out once per page).
@@ -16,6 +16,7 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     seesScoreboard: canSeeScoreboard(role, rules),
     seesReports: canSeeReports(role, rules),
     complianceReport: canSeeComplianceReport(role, rules),
+    seesRegisters: role !== "new_starter" && canSeeRegisters(role, rules),
     carManager: canManageCars(role, carRules),
     carReports: canSeeCarReports(role, carRules),
     adminAreas,

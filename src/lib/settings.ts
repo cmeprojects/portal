@@ -69,6 +69,7 @@ export type PeopleRules = {
   scoreboardRoles: Role[];
   reportRoles: Role[];
   complianceReportRoles: Role[];
+  registersRoles: Role[];
 };
 
 export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
@@ -76,7 +77,7 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
   const { data } = await supabase
     .from("app_settings")
     .select("key, value")
-    .or("key.like.people.%,key.eq.compliance.manager_roles,key.eq.reports.roles,key.eq.reports.compliance_roles");
+    .or("key.like.people.%,key.eq.compliance.manager_roles,key.eq.reports.roles,key.eq.reports.compliance_roles,key.eq.tasks.registers_roles");
   const on = (k: string, fallback: boolean) => {
     const v = data?.find((r) => r.key === k)?.value;
     return typeof v === "boolean" ? v : fallback;
@@ -96,11 +97,13 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
     scoreboardRoles: roles("people.scoreboard_roles", ["staff_admin", "manager"]),
     reportRoles: roles("reports.roles", ["manager"]),
     complianceReportRoles: roles("reports.compliance_roles", ["staff_admin"]),
+    registersRoles: roles("tasks.registers_roles", ["team_leader", "manager", "staff_admin"]),
   };
 });
 
 export const canInvite = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.inviteRoles.includes(role);
 export const canSeeReports = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.reportRoles.includes(role);
+export const canSeeRegisters = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.registersRoles.includes(role);
 export const canSeeComplianceReport = (role: Role, rules: PeopleRules) =>
   role === "system_admin" || rules.complianceReportRoles.includes(role);
 export const canSeeScoreboard = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.scoreboardRoles.includes(role);

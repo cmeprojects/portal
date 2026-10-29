@@ -16,6 +16,7 @@ export type NavAccess = {
   seesScoreboard?: boolean;
   seesReports?: boolean;
   complianceReport?: boolean;
+  seesRegisters?: boolean;
   carManager?: boolean;
   carReports?: boolean;
   // Areas of System settings delegated to this manager.
@@ -94,8 +95,8 @@ export function navFor(
       items: [
         ...(dashboard ? [{ href: "/", label: "Dashboard" }] : []),
         ...sectionItem("tasks", role, features, access, dashboard ? "Tasks" : "My tasks"),
-        // Support workers find their tasks under My tasks; registers are for overseeing.
-        ...(role !== "support_worker" && role !== "new_starter" ? [{ href: "/registers", label: "Registers" }] : []),
+        // Who sees Registers is set by the system admin (System settings → Tasks).
+        ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),
         ...sectionItem("cars", role, features, access),
         ...sectionItem("people", role, features, access),
         ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
