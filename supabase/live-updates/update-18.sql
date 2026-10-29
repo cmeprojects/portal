@@ -1,8 +1,8 @@
 -- Staff Portal · © cmeproject. All rights reserved.
 -- Update 18: company cars, the Cars app PIN, System health, and the
--- Compliance report setting. Run once.
+-- Compliance report setting. Safe to run again: if you already ran an
+-- earlier update 18 or 19, this only adds what's missing.
 begin;
-
 -- ===== 20261121000001_cars.sql =====
 --
 -- Company cars (cmeprojects): staff start a trip (car, purpose, client, start
@@ -20,7 +20,8 @@ begin;
 -- ---------------------------------------------------------------------------
 
 update public.features
-   set label = 'Cars', description = 'Company cars: staff start and return trips, with mileage reports.', enabled = true
+   set label = 'Cars', description = 'Company cars: staff start and return trips, with mileage reports.',
+       enabled = enabled or to_regclass('public.cars') is null
  where key = 'vehicles';
 
 insert into public.app_settings (key, value, label, description, is_public) values
@@ -62,7 +63,7 @@ as $$
   end
 $$;
 
-create function public.cars_on()
+create or replace function public.cars_on()
 returns boolean
 language sql
 stable
@@ -72,7 +73,7 @@ as $$
   select public.feature_enabled('vehicles') and public.is_member() and public.my_role() <> 'new_starter'
 $$;
 
-create function public.can_manage_cars()
+create or replace function public.can_manage_cars()
 returns boolean
 language sql
 stable
@@ -83,7 +84,7 @@ as $$
      and (public.my_role() = 'system_admin' or public.my_role() = any (public.setting_roles('vehicles.manager_roles')))
 $$;
 
-create function public.can_see_car_reports()
+create or replace function public.can_see_car_reports()
 returns boolean
 language sql
 stable
@@ -94,7 +95,7 @@ as $$
       or (public.cars_on() and public.my_role() = any (public.setting_roles('vehicles.report_roles')))
 $$;
 
-create function public.car_setting(p_key text, p_default text)
+create or replace function public.car_setting(p_key text, p_default text)
 returns text
 language sql
 stable
@@ -108,7 +109,7 @@ $$;
 -- Cars, clients and purposes
 -- ---------------------------------------------------------------------------
 
-create table public.cars (
+create table if not exists public.cars (
   id               uuid primary key default gen_random_uuid(),
   org_id           uuid not null default public.default_org_id() references public.organisation (id),
   name             text not null check (length(trim(name)) between 1 and 80),
@@ -130,9 +131,9 @@ create table public.cars (
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
 );
-create unique index cars_rego_unique on public.cars (org_id, upper(replace(rego, ' ', '')));
+create unique index if not exists cars_rego_unique on public.cars (org_id, upper(replace(rego, ' ', '')));
 
-create table public.car_clients (
+create table if not exists public.car_clients (
   id         uuid primary key default gen_random_uuid(),
   org_id     uuid not null default public.default_org_id() references public.organisation (id),
   name       text not null check (length(trim(name)) between 1 and 80),
@@ -142,7 +143,7 @@ create table public.car_clients (
   created_at timestamptz not null default now()
 );
 
-create table public.car_purposes (
+create table if not exists public.car_purposes (
   id         uuid primary key default gen_random_uuid(),
   org_id     uuid not null default public.default_org_id() references public.organisation (id),
   name       text not null check (length(trim(name)) between 1 and 60),
@@ -150,37 +151,50 @@ create table public.car_purposes (
   sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
-create unique index car_purposes_name_unique on public.car_purposes (org_id, lower(trim(name)));
+create unique index if not exists car_purposes_name_unique on public.car_purposes (org_id, lower(trim(name)));
 
 insert into public.car_purposes (name, sort_order) values
   ('Client transport', 10), ('Community access', 20), ('Shopping with a client', 30),
-  ('Medical appointment', 40), ('Office errand', 50), ('Other', 90);
+  ('Medical appointment', 40), ('Office errand', 50), ('Other', 90)
+on conflict do nothing;
 
 alter table public.cars enable row level security;
 alter table public.car_clients enable row level security;
 alter table public.car_purposes enable row level security;
 
+drop policy if exists "staff see cars" on public.cars;
+
 create policy "staff see cars" on public.cars for select to authenticated using (public.cars_on());
+drop policy if exists "car managers add cars" on public.cars;
 create policy "car managers add cars" on public.cars for insert to authenticated with check (public.can_manage_cars());
+drop policy if exists "car managers change cars" on public.cars;
 create policy "car managers change cars" on public.cars for update to authenticated
   using (public.can_manage_cars()) with check (public.can_manage_cars());
 
 -- Staff choose clients through car_client_options(), which shows names only.
+drop policy if exists "car managers see clients" on public.car_clients;
 create policy "car managers see clients" on public.car_clients for select to authenticated using (public.can_manage_cars());
+drop policy if exists "car managers add clients" on public.car_clients;
 create policy "car managers add clients" on public.car_clients for insert to authenticated with check (public.can_manage_cars());
+drop policy if exists "car managers change clients" on public.car_clients;
 create policy "car managers change clients" on public.car_clients for update to authenticated
   using (public.can_manage_cars()) with check (public.can_manage_cars());
 
 -- Car managers set whether trips have a client (the other car settings stay
 -- with the system admin, or a manager they delegate Cars to).
+drop policy if exists "car managers set the client field" on public.app_settings;
 create policy "car managers set the client field" on public.app_settings
   for update to authenticated
   using (key = 'vehicles.client_field' and public.can_manage_cars())
   with check (key = 'vehicles.client_field' and public.can_manage_cars()
               and value #>> '{}' in ('off', 'optional', 'required'));
 
+drop policy if exists "staff see purposes" on public.car_purposes;
+
 create policy "staff see purposes" on public.car_purposes for select to authenticated using (public.cars_on());
+drop policy if exists "car managers add purposes" on public.car_purposes;
 create policy "car managers add purposes" on public.car_purposes for insert to authenticated with check (public.can_manage_cars());
+drop policy if exists "car managers change purposes" on public.car_purposes;
 create policy "car managers change purposes" on public.car_purposes for update to authenticated
   using (public.can_manage_cars()) with check (public.can_manage_cars());
 
@@ -188,7 +202,7 @@ create policy "car managers change purposes" on public.car_purposes for update t
 revoke delete, truncate on public.cars, public.car_clients, public.car_purposes from anon, authenticated;
 
 -- Changes to cars, clients and purposes go in the change log.
-create function public.log_car_setup()
+create or replace function public.log_car_setup()
 returns trigger
 language plpgsql
 security definer
@@ -203,7 +217,7 @@ begin
 end;
 $$;
 
-create function public.touch_car()
+create or replace function public.touch_car()
 returns trigger
 language plpgsql
 set search_path = ''
@@ -214,17 +228,21 @@ begin
 end;
 $$;
 
+drop trigger if exists cars_touch on public.cars;
 create trigger cars_touch before update on public.cars for each row execute function public.touch_car();
+drop trigger if exists cars_log on public.cars;
 create trigger cars_log after insert or update of name, rego, car_type, colour, rego_expires, service_due_date,
   service_due_km, notes, active on public.cars for each row execute function public.log_car_setup('car');
+drop trigger if exists car_clients_log on public.car_clients;
 create trigger car_clients_log after insert or update on public.car_clients for each row execute function public.log_car_setup('car_client');
+drop trigger if exists car_purposes_log on public.car_purposes;
 create trigger car_purposes_log after insert or update on public.car_purposes for each row execute function public.log_car_setup('car_purpose');
 
 -- ---------------------------------------------------------------------------
 -- Trips
 -- ---------------------------------------------------------------------------
 
-create table public.car_trips (
+create table if not exists public.car_trips (
   id              bigint generated always as identity primary key,
   org_id          uuid not null default public.default_org_id() references public.organisation (id),
   car_id          uuid not null references public.cars (id),
@@ -251,18 +269,19 @@ create table public.car_trips (
   check ((returned_at is null) = (end_odo is null))
 );
 -- One trip at a time per car, and per driver.
-create unique index car_trips_one_per_car on public.car_trips (car_id) where returned_at is null;
-create unique index car_trips_one_per_driver on public.car_trips (driver_id) where returned_at is null;
-create index car_trips_started on public.car_trips (started_at desc);
+create unique index if not exists car_trips_one_per_car on public.car_trips (car_id) where returned_at is null;
+create unique index if not exists car_trips_one_per_driver on public.car_trips (driver_id) where returned_at is null;
+create index if not exists car_trips_started on public.car_trips (started_at desc);
 
 alter table public.car_trips enable row level security;
+drop policy if exists "drivers see their trips, reports see all" on public.car_trips;
 create policy "drivers see their trips, reports see all" on public.car_trips for select to authenticated
   using (public.cars_on() and (driver_id = auth.uid() or public.can_see_car_reports()));
 -- Trips change only through the functions below.
 revoke insert, update, delete, truncate on public.car_trips from anon, authenticated;
 
 -- Which cars are free, who has the others, and the suggested start reading.
-create function public.car_board()
+create or replace function public.car_board()
 returns table (id uuid, name text, rego text, car_type text, colour text, odometer int,
                trip_id bigint, driver_id uuid, driver_name text, started_at timestamptz)
 language sql
@@ -282,7 +301,7 @@ as $$
 $$;
 
 -- Client names for the list on Start (no reference numbers).
-create function public.car_client_options()
+create or replace function public.car_client_options()
 returns table (id uuid, name text)
 language sql
 stable
@@ -294,7 +313,7 @@ as $$
    order by lower(name)
 $$;
 
-create function public.start_car_trip(p_car_id uuid, p_purpose_id uuid, p_client_id uuid, p_start_odo int, p_details text default '')
+create or replace function public.start_car_trip(p_car_id uuid, p_purpose_id uuid, p_client_id uuid, p_start_odo int, p_details text default '')
 returns bigint
 language plpgsql
 security definer
@@ -355,7 +374,7 @@ end;
 $$;
 
 -- Undo a start (wrong car, pressed too early): the trip is removed.
-create function public.undo_car_start(p_trip_id bigint)
+create or replace function public.undo_car_start(p_trip_id bigint)
 returns void
 language plpgsql
 security definer
@@ -380,7 +399,7 @@ end;
 $$;
 
 -- Return a car. A car manager can return it for the driver, with a reason.
-create function public.return_car_trip(p_trip_id bigint, p_end_odo int, p_photo_path text default null, p_note text default '')
+create or replace function public.return_car_trip(p_trip_id bigint, p_end_odo int, p_photo_path text default null, p_note text default '')
 returns int
 language plpgsql
 security definer
@@ -440,7 +459,7 @@ end;
 $$;
 
 -- Undo a return (wrong reading, pressed too early): the trip is open again.
-create function public.undo_car_return(p_trip_id bigint)
+create or replace function public.undo_car_return(p_trip_id bigint)
 returns void
 language plpgsql
 security definer
@@ -476,7 +495,7 @@ end;
 $$;
 
 -- A car manager fixes a trip after the undo time, with a reason.
-create function public.correct_car_trip(p_trip_id bigint, p_start_odo int, p_end_odo int, p_purpose text, p_client_id uuid, p_reason text)
+create or replace function public.correct_car_trip(p_trip_id bigint, p_start_odo int, p_end_odo int, p_purpose text, p_client_id uuid, p_reason text)
 returns void
 language plpgsql
 security definer
@@ -543,7 +562,7 @@ grant execute on function public.cars_on(), public.can_manage_cars(), public.can
 -- Cars app PIN (checked by the website; never readable from the browser)
 -- ---------------------------------------------------------------------------
 
-create table public.car_app_pins (
+create table if not exists public.car_app_pins (
   user_id     uuid primary key references public.profiles (id) on delete cascade,
   pin_hash    text not null,
   failed      int not null default 0,
@@ -556,7 +575,7 @@ revoke all on public.car_app_pins from anon, authenticated;
 -- Reminders and the weekly mileage report (run every hour with the others)
 -- ---------------------------------------------------------------------------
 
-create function public.car_managers()
+create or replace function public.car_managers()
 returns setof uuid
 language sql
 stable
@@ -567,7 +586,7 @@ as $$
    where active and (role = 'system_admin' or role = any (public.setting_roles('vehicles.manager_roles')))
 $$;
 
-create function public.run_car_alerts(p_now timestamptz default now())
+create or replace function public.run_car_alerts(p_now timestamptz default now())
 returns jsonb
 language plpgsql
 security definer
@@ -698,12 +717,15 @@ begin
     return;
   end if;
   insert into storage.buckets (id, name, public) values ('car-files', 'car-files', false) on conflict (id) do nothing;
+  drop policy if exists "drivers upload odometer photos" on storage.objects;
   create policy "drivers upload odometer photos" on storage.objects
     for insert to authenticated
     with check (bucket_id = 'car-files' and public.cars_on() and (storage.foldername(name))[1] = auth.uid()::text);
+  drop policy if exists "car managers upload car photos" on storage.objects;
   create policy "car managers upload car photos" on storage.objects
     for insert to authenticated
     with check (bucket_id = 'car-files' and public.can_manage_cars() and (storage.foldername(name))[1] = 'cars');
+  drop policy if exists "car files are seen by the driver and car reports" on storage.objects;
   create policy "car files are seen by the driver and car reports" on storage.objects
     for select to authenticated
     using (bucket_id = 'car-files' and public.cars_on()
@@ -723,7 +745,7 @@ insert into public.app_settings (key, value, label, description, is_public) valu
 on conflict (key) do nothing;
 
 -- The hourly timer writes here each time it runs (with the service key).
-create table public.system_heartbeat (
+create table if not exists public.system_heartbeat (
   job      text primary key,
   ran_at   timestamptz not null default now(),
   ok       boolean not null default true,
@@ -732,7 +754,7 @@ create table public.system_heartbeat (
 alter table public.system_heartbeat enable row level security;
 revoke all on public.system_heartbeat from anon, authenticated;
 
-create function public.system_health()
+create or replace function public.system_health()
 returns jsonb
 language plpgsql
 stable
@@ -782,4 +804,8 @@ insert into public.app_settings (key, value, label, description, is_public) valu
   ('reports.compliance_roles', '["staff_admin"]', 'Who sees the Compliance report',
    'Besides the system admin. Tick Manager to let managers see it too.', false)
 on conflict (key) do nothing;
+
+update public.app_settings
+   set description = 'Off hides the client list, Optional lets staff leave it blank, Required makes them choose one. Car managers can change this on Manage cars → Clients.'
+ where key = 'vehicles.client_field';
 commit;
