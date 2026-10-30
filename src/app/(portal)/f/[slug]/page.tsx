@@ -8,6 +8,7 @@ import { formContext, loadFeature } from "@/lib/custom-features";
 import { getTimeZone } from "@/lib/settings";
 import { FeatureForm } from "@/components/feature-form";
 import { Card } from "@/components/ui";
+import { LiveRefresh } from "@/components/live-refresh";
 
 export async function generateMetadata({ params }: PageProps<"/f/[slug]">): Promise<Metadata> {
   const def = await loadFeature({ slug: (await params).slug });
@@ -38,6 +39,7 @@ export default async function FeaturePage({ params }: PageProps<"/f/[slug]">) {
 
   return (
     <div className="flex w-full max-w-xl flex-col gap-5">
+      <LiveRefresh tables={["custom_entries"]} />
       {canManage ? (
         <Link href={`/f/${feature.slug}/manage`} className="self-end text-sm font-semibold text-brand underline">
           Manage: fix entries, targets and lists

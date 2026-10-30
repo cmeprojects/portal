@@ -9,6 +9,7 @@ import { km } from "@/lib/car-types";
 import { Badge, Card, PageHeader, Tabs } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { AddClientForm, AddPurposeForm, CarForm, ClientFieldForm, ClientRow, CorrectTripForm, PurposeRow, ReturnForSomeoneForm, type CarRow } from "./forms";
+import { LiveRefresh } from "@/components/live-refresh";
 
 const TABS = [
   { key: "out", text: "Cars out now" },
@@ -59,6 +60,7 @@ export async function ManageCars({ base, tabParam }: { base: string; tabParam: s
 
   return (
     <>
+      <LiveRefresh tables={["cars", "car_trips"]} />
       {base === "/cars" ? <SectionTabs section="cars" current="/cars/manage" /> : null}
       <PageHeader
         eyebrow="Cars"

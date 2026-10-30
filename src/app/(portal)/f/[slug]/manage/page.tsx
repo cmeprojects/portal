@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { formContext, loadFeature } from "@/lib/custom-features";
 import { Manage, type ManageEntry } from "./manage";
+import { LiveRefresh } from "@/components/live-refresh";
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
 
@@ -55,6 +56,7 @@ export default async function ManageFeaturePage({ params }: PageProps<"/f/[slug]
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-4">
+      <LiveRefresh tables={["custom_entries", "custom_fields"]} />
       <div>
         <p className="text-xs text-muted">
           <Link href={`/f/${feature.slug}`} className="underline">

@@ -7,6 +7,7 @@ import { canUseCars, loadCarScreen } from "@/lib/cars";
 import { getTimeZone } from "@/lib/settings";
 import { CarsDesk } from "@/components/cars-desk";
 import { PageHeader } from "@/components/ui";
+import { LiveRefresh } from "@/components/live-refresh";
 
 export const metadata: Metadata = { title: "Cars" };
 
@@ -19,6 +20,7 @@ export default async function CarsPage({ searchParams }: PageProps<"/cars">) {
   return (
     <>
       <SectionTabs section="cars" current="/cars" />
+      <LiveRefresh tables={["cars"]} />
       <PageHeader
         title="Cars"
         intro="Pick a company car and press Start. Press Return when you bring it back. You're recorded as the driver, with the times."

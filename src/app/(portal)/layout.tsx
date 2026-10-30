@@ -16,6 +16,7 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { navFor } from "@/components/nav";
 import { getNavAccess } from "@/lib/nav-access";
 import { signOut } from "@/app/login/actions";
+import { LiveRefresh } from "@/components/live-refresh";
 
 // Frame for every page after sign-in: the company's sidebar on desktop, a top
 // bar with a drop-down menu on phones.
@@ -56,6 +57,8 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         footer={footer}
       />
       <IdleLogout minutes={idleMinutes} />
+      {/* Menus, settings and the bell stay current; pages refresh when you come back to them. */}
+      <LiveRefresh tables={["app_settings", "features", "live_signals", "notifications"]} onShow />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
         {brand.announcement ? (
           <div role="status" className="rounded-lg border border-brand/30 bg-brand-soft px-4 py-3 text-sm whitespace-pre-line text-ink print:hidden">
