@@ -51,6 +51,7 @@ export async function createFeature(_: FormState, form: FormData): Promise<FormS
           max_value: f.max_value,
           options: f.options,
           allow_other: f.allow_other,
+          add_typed: f.add_typed,
           sort_order: f.sort_order,
         })),
       )
@@ -94,6 +95,7 @@ export async function saveFeature(featureId: string, draft: Draft): Promise<{ er
       max_value: x.max_value,
       options: [...new Set(x.options.map((o) => o.trim()).filter(Boolean))].slice(0, 60),
       allow_other: x.allow_other,
+      add_typed: x.allow_other && x.add_typed,
       quick: x.quick.filter((q) => Number.isFinite(q)).slice(0, 8),
       sort_order: i + 1,
       archived: false,
@@ -129,6 +131,9 @@ export async function saveFeature(featureId: string, draft: Draft): Promise<{ er
       total_field: mapId(f.total_field),
       group_field: mapId(f.group_field),
       default_target: f.default_target == null || Number.isNaN(Number(f.default_target)) ? null : Number(f.default_target),
+      managers_fix: f.managers_fix,
+      managers_targets: f.managers_targets,
+      managers_options: f.managers_options,
       updated_at: new Date().toISOString(),
     })
     .eq("id", featureId);
@@ -154,24 +159,6 @@ export async function setFeatureIncluded(form: FormData) {
   const supabase = await createClient();
   await supabase.from("custom_features").update({ enabled: text(form, "enabled") === "true" }).eq("id", text(form, "id"));
   refresh();
-}
-
-export async function saveTargets(featureId: string, defaultTarget: number | null, targets: Record<string, number | null>): Promise<{ error?: string; message?: string }> {
-  await requireBuilder();
-  const supabase = await createClient();
-  const { error } = await supabase.from("custom_features").update({ default_target: defaultTarget }).eq("id", featureId);
-  if (error) return { error: friendlyError(error) };
-  const set = Object.entries(targets).filter(([, t]) => t != null && t >= 0);
-  const clear = Object.entries(targets).filter(([, t]) => t == null).map(([c]) => c);
-  if (set.length) {
-    const { error: e } = await supabase
-      .from("custom_client_targets")
-      .upsert(set.map(([client_id, target]) => ({ feature_id: featureId, client_id, target })));
-    if (e) return { error: friendlyError(e) };
-  }
-  if (clear.length) await supabase.from("custom_client_targets").delete().eq("feature_id", featureId).in("client_id", clear);
-  refresh();
-  return { message: "Targets saved." };
 }
 
 export async function deleteDraft(form: FormData) {

@@ -8,7 +8,8 @@ import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { FeatureForm } from "@/components/feature-form";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { FIELD_TYPES, blankField, quickValues, type Feature, type FeatureField, type FieldType, type Option } from "@/lib/feature-types";
-import { deleteDraft, publishFeature, saveFeature, saveTargets, setFeatureIncluded } from "../actions";
+import { TargetsEditor } from "@/components/feature-targets";
+import { deleteDraft, publishFeature, saveFeature, setFeatureIncluded } from "../actions";
 
 type Ctx = { clients: Option[]; staff: Option[]; targets: Record<string, number>; me: { id: string; name: string; teams: string }; timeZone: string };
 
@@ -159,7 +160,7 @@ export function Builder({
                 onChange={(v) => set("see_roles", v)}
               />
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Time to undo an entry (minutes)" htmlFor="b-undo" hint="After this, only a manager can fix it.">
+                <Field label="Time to undo an entry (minutes)" htmlFor="b-undo" hint="After this, only a manager can fix it (if you allow it below).">
                   <input id="b-undo" inputMode="numeric" value={String(feature.undo_minutes)} onChange={(e) => set("undo_minutes", Number(e.target.value.replace(/\D/g, "")) || 0)} className={inputClass} />
                 </Field>
                 <label className="flex items-center gap-3 self-end pb-2 text-sm">
@@ -168,6 +169,25 @@ export function Builder({
                 </label>
               </div>
               <p className="text-xs text-muted">The date, time and the signed-in staff member&apos;s name are always recorded.</p>
+              <fieldset className="border-t border-line pt-4">
+                <legend className="text-sm font-semibold">Managers can also</legend>
+                <p className="text-xs text-muted">You can always do these. Managers find them under Manage on the feature&apos;s page.</p>
+                {(
+                  [
+                    ["managers_fix", "Fix entries", "Change the answers after the undo time, with a reason. The change log keeps what it was."],
+                    ["managers_targets", "Set client targets", "The daily target for everyone and each client's own."],
+                    ["managers_options", "Change drop-down options", "Add or remove options. Not the rest of the form."],
+                  ] as const
+                ).map(([k, label, hint]) => (
+                  <label key={k} className="mt-2 flex items-start gap-3 text-sm">
+                    <input type="checkbox" checked={feature[k]} onChange={(e) => set(k, e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-primary)]" />
+                    <span>
+                      <span className="block font-medium">{label}</span>
+                      <span className="block text-xs text-muted">{hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
               {feature.status === "published" ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
                   <span>
@@ -207,7 +227,7 @@ export function Builder({
                           {FIELD_TYPES[f.type].label}
                           {f.unit ? ` · ${f.unit}` : ""}
                           {f.type === "choice" || f.type === "multi" ? ` · ${f.options.length} options` : ""}
-                          {f.allow_other ? " · staff can type their own" : ""}
+                          {f.allow_other ? (f.add_typed ? " · typed answers join the list" : " · staff can type their own") : ""}
                         </span>
                       </button>
                       <button type="button" className="text-sm font-semibold text-brand underline" onClick={() => setEditing(editing === f.id ? null : f.id)}>
@@ -434,6 +454,12 @@ function FieldEditor({ f, typed, onChange, onRemove }: { f: FeatureField; typed:
               Staff can type their own answer if it&apos;s not in the list
             </label>
           ) : null}
+          {f.allow_other ? (
+            <label className="flex items-center gap-2 pl-7 text-sm">
+              <input type="checkbox" checked={f.add_typed} onChange={(e) => onChange({ add_typed: e.target.checked })} className="h-5 w-5 accent-[var(--brand-primary)]" />
+              Add their answer to the list for everyone next time
+            </label>
+          ) : null}
           {f.allow_other && typed.length ? (
             <div className="rounded-md border border-line bg-surface p-3 text-sm">
               <p className="mb-2">
@@ -487,10 +513,6 @@ function Totals({
   const numbers = fields.filter((f) => f.type === "number");
   const groups = fields.filter((f) => f.type === "client");
   const total = numbers.find((f) => f.id === feature.total_field);
-  const [targets, setTargets] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(ctx.targets).map(([k, v]) => [k, String(v)])));
-  const [def, setDef] = useState(feature.default_target == null ? "" : String(feature.default_target));
-  const [result, setResult] = useState<{ error?: string; message?: string } | null>(null);
-  const [pending, start] = useTransition();
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
@@ -523,54 +545,8 @@ function Totals({
         dirty ? (
           <p className="text-sm text-warn">Save your changes first, then set the targets.</p>
         ) : (
-          <div className="flex flex-col gap-3 border-t border-line pt-4">
-            {result?.error ? <Notice tone="error">{result.error}</Notice> : result?.message ? <Notice tone="success">{result.message}</Notice> : null}
-            <Field label={`Daily target for everyone${total?.unit ? ` (${total.unit})` : ""}`} htmlFor="tt-def" hint="Used for any client without their own target. Leave blank for no target.">
-              <input id="tt-def" inputMode="decimal" value={def} onChange={(e) => setDef(e.target.value)} className={`${inputClass} max-w-48`} />
-            </Field>
-            <div>
-              <p className="text-sm font-semibold">Each client&apos;s own target</p>
-              <p className="text-xs text-muted">For example a fluid restriction, or a higher goal. Blank uses the target for everyone.</p>
-              {ctx.clients.length === 0 ? <p className="mt-2 text-sm text-muted">No clients yet. Add them under People → Clients.</p> : null}
-              <ul className="mt-2 divide-y divide-line rounded-md border border-line">
-                {ctx.clients.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                    <label htmlFor={`tg-${c.id}`} className="text-sm font-medium">
-                      {c.name}
-                    </label>
-                    <span className="flex items-center gap-2 text-sm">
-                      <input
-                        id={`tg-${c.id}`}
-                        inputMode="decimal"
-                        value={targets[c.id] ?? ""}
-                        placeholder={def || "—"}
-                        onChange={(e) => setTargets((t) => ({ ...t, [c.id]: e.target.value }))}
-                        className={`${inputClass} w-28 text-right tabular-nums`}
-                      />
-                      <span className="w-8 text-muted">{total?.unit}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <Button
-              type="button"
-              disabled={pending}
-              className="self-start"
-              onClick={() =>
-                start(async () => {
-                  setResult(
-                    await saveTargets(
-                      feature.id,
-                      numOrNull(def),
-                      Object.fromEntries(ctx.clients.map((c) => [c.id, numOrNull(targets[c.id] ?? "")])),
-                    ),
-                  );
-                })
-              }
-            >
-              {pending ? "Saving…" : "Save targets"}
-            </Button>
+          <div className="border-t border-line pt-4">
+            <TargetsEditor featureId={feature.id} unit={total?.unit ?? ""} clients={ctx.clients} targets={ctx.targets} defaultTarget={feature.default_target} />
           </div>
         )
       ) : null}

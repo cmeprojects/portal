@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -20,18 +21,28 @@ export default async function FeaturePage({ params }: PageProps<"/f/[slug]">) {
   if (!def || def.feature.status !== "published" || !def.feature.enabled) notFound();
   const { feature, fields } = def;
   const supabase = await createClient();
-  const [{ data: canFill }, ctx, timeZone, { data: mine }] = await Promise.all([
+  const can = (what: string) => supabase.rpc("can_manage_feature", { p_feature: feature.id, p_what: what });
+  const [{ data: canFill }, ctx, timeZone, { data: mine }, ...rights] = await Promise.all([
     supabase.rpc("can_fill_feature", { p_feature: feature.id }),
     formContext(feature.id, profile.id),
     getTimeZone(),
     supabase.from("custom_entries").select("id, created_at, client_name, data").eq("feature_id", feature.id).eq("created_by", profile.id).order("created_at", { ascending: false }).limit(8),
+    can("fix"),
+    can("targets"),
+    can("options"),
   ]);
+  const canManage = rights.some((r) => r.data);
   const when = new Intl.DateTimeFormat("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone });
   const total = fields.find((f) => f.id === feature.total_field);
   const choice = fields.find((f) => f.type === "choice" && !f.archived);
 
   return (
     <div className="flex w-full max-w-xl flex-col gap-5">
+      {canManage ? (
+        <Link href={`/f/${feature.slug}/manage`} className="self-end text-sm font-semibold text-brand underline">
+          Manage: fix entries, targets and lists
+        </Link>
+      ) : null}
       {canFill ? (
         <Card className="p-4 sm:p-5">
           <FeatureForm feature={feature} fields={fields} clients={ctx.clients} staff={ctx.staff} me={ctx.me} targets={ctx.targets} timeZone={ctx.timeZone} mode="live" />

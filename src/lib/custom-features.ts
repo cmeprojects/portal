@@ -13,6 +13,7 @@ const asField = (f: Record<string, unknown>): FeatureField => ({
   min_value: f.min_value == null ? null : Number(f.min_value),
   max_value: f.max_value == null ? null : Number(f.max_value),
   options: Array.isArray(f.options) ? (f.options as string[]) : [],
+  add_typed: Boolean(f.add_typed),
   quick: Array.isArray(f.quick) ? (f.quick as number[]).map(Number) : [],
 });
 const asFeature = (f: Record<string, unknown>): Feature => ({
@@ -60,12 +61,18 @@ export const getMenuFeatures = cache(async (role: Role): Promise<{ slug: string;
   const supabase = await createClient();
   const { data } = await supabase
     .from("custom_features")
-    .select("slug, menu_label, fill_roles, see_roles, status, enabled, sort_order")
+    .select("slug, menu_label, fill_roles, see_roles, status, enabled, sort_order, managers_fix, managers_targets, managers_options")
     .eq("status", "published")
     .eq("enabled", true)
     .order("sort_order")
     .order("menu_label");
   return (data ?? [])
-    .filter((f) => role === "system_admin" || (f.fill_roles as Role[]).includes(role) || (f.see_roles as Role[]).includes(role))
+    .filter(
+      (f) =>
+        role === "system_admin" ||
+        (f.fill_roles as Role[]).includes(role) ||
+        (f.see_roles as Role[]).includes(role) ||
+        (role === "manager" && (f.managers_fix || f.managers_targets || f.managers_options)),
+    )
     .map((f) => ({ slug: f.slug, label: f.menu_label }));
 });

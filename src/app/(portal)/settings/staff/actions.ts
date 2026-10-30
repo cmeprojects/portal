@@ -192,7 +192,7 @@ export async function clearCarPin(_: FormState, form: FormData): Promise<FormSta
 // A role before onboarding is finished: reason, deadline, and a "Finish
 // onboarding" task. Staff admins send it to a manager; managers give it.
 export async function giveConditionalRole(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  await requireRole(PEOPLE_MANAGERS);
   const supabase = await createClient();
   const choice = parseRoleChoice(text(form, "role"), await activeTitles(supabase));
   if (!choice || choice.role === "new_starter") return { error: "Choose the role they'll have." };
@@ -200,7 +200,7 @@ export async function giveConditionalRole(_: FormState, form: FormData): Promise
   if (!reason) return { error: "Give a reason for the conditional role." };
   const deadline = text(form, "deadline");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return { error: "Choose a deadline to finish onboarding." };
-  const { error } = await supabase.rpc("give_conditional_role", {
+  const { data: requestId, error } = await supabase.rpc("give_conditional_role", {
     p_user_id: text(form, "id"),
     p_role: choice.role,
     p_title_id: choice.titleId,
@@ -211,10 +211,12 @@ export async function giveConditionalRole(_: FormState, form: FormData): Promise
   if (error) return { error: friendlyError(error) };
   revalidatePath(PAGE);
   revalidatePath("/settings/teams");
+  // Given straight away (managers, or nothing left for that role), or sent for approval.
+  const { data: request } = await supabase.from("people_change_requests").select("status, task_id").eq("id", requestId).maybeSingle();
+  if (request?.status === "pending") return { message: "Sent to a manager for approval. They'll get the role once it's approved." };
   return {
-    message:
-      me.role === "staff_admin"
-        ? "Sent to a manager for approval. They'll get the role once it's approved."
-        : "Done. They have the role, and a \"Finish onboarding\" task due on the deadline.",
+    message: request?.task_id
+      ? "Done. They have the role, and a \"Finish onboarding\" task due on the deadline."
+      : "Done. They have the role. Nothing is left to do for that role, so there's no onboarding task.",
   };
 }

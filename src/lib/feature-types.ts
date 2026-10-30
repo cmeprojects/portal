@@ -31,6 +31,8 @@ export type FeatureField = {
   max_value: number | null;
   options: string[];
   allow_other: boolean;
+  // A typed answer joins the list for everyone next time.
+  add_typed: boolean;
   quick: number[];
   sort_order: number;
   archived: boolean;
@@ -51,11 +53,15 @@ export type Feature = {
   total_field: string | null;
   group_field: string | null;
   default_target: number | null;
+  // What managers may change (the system admin always can).
+  managers_fix: boolean;
+  managers_targets: boolean;
+  managers_options: boolean;
 };
 
 export const FEATURE_COLUMNS =
-  "id, slug, name, menu_label, description, status, enabled, fill_roles, see_roles, undo_minutes, record_team, total_field, group_field, default_target";
-export const FIELD_COLUMNS = "id, label, type, required, help, unit, min_value, max_value, options, allow_other, quick, sort_order, archived";
+  "id, slug, name, menu_label, description, status, enabled, fill_roles, see_roles, undo_minutes, record_team, total_field, group_field, default_target, managers_fix, managers_targets, managers_options";
+export const FIELD_COLUMNS = "id, label, type, required, help, unit, min_value, max_value, options, allow_other, add_typed, quick, sort_order, archived";
 
 export type Option = { id: string; name: string };
 
@@ -82,6 +88,7 @@ export function blankField(type: FieldType, sort: number): FeatureField {
     max_value: null,
     options: type === "choice" || type === "multi" ? ["Option 1", "Option 2"] : [],
     allow_other: false,
+    add_typed: false,
     quick: [],
     sort_order: sort,
     archived: false,
@@ -95,7 +102,7 @@ export function fluidIntakeTemplate(): { fields: FeatureField[]; description: st
     description: "Record every drink offered, so each client's daily total is clear.",
     fields: [
       f("client", "Client", { required: true }, 1),
-      f("choice", "Drink", { required: true, options: ["Water", "Juice", "Tea / coffee", "Milk", "Soup"], allow_other: true }, 2),
+      f("choice", "Drink", { required: true, options: ["Water", "Juice", "Tea / coffee", "Milk", "Soup"], allow_other: true, add_typed: true }, 2),
       f("number", "Amount", { required: true, unit: "ml", min_value: 0, max_value: 2000 }, 3),
       f("choice", "Thickness", { options: ["Regular", "Mildly thick (IDDSI 2)", "Moderately thick (IDDSI 3)", "Extremely thick (IDDSI 4)"] }, 4),
       f("yesno", "Offered but refused", {}, 5),

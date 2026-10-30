@@ -41,3 +41,37 @@ export async function undoEntry(id: number): Promise<{ error: string | null }> {
   revalidatePath("/f", "layout");
   return { error: error ? friendlyError(error) : null };
 }
+
+type Result = { error?: string; message?: string };
+
+// Fix an entry after the undo time (managers when the feature allows it, and
+// the system admin). The database checks the answers and keeps the old ones.
+export async function fixEntry(id: number, data: Answers, reason: string): Promise<Result> {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("correct_custom_entry", { p_id: id, p_data: data, p_reason: reason });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/f", "layout");
+  return { message: "Entry fixed. The change log keeps what it was." };
+}
+
+// The daily target for everyone and each client's own (blank = none).
+export async function saveTargets(featureId: string, defaultTarget: number | null, targets: Record<string, number | null>): Promise<Result> {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_custom_targets", { p_feature: featureId, p_default: defaultTarget, p_targets: targets });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/f", "layout");
+  revalidatePath("/system/builder", "layout");
+  return { message: "Targets saved." };
+}
+
+export async function saveOptions(fieldId: string, options: string[]): Promise<Result> {
+  await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_custom_field_options", { p_field: fieldId, p_options: options });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/f", "layout");
+  revalidatePath("/system/builder", "layout");
+  return { message: "List saved." };
+}
