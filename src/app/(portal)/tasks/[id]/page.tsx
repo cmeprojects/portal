@@ -155,6 +155,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     reopen: live && Boolean(canEdit) && finished && !mine,
     resolveEscalation: live && Boolean(canEdit) && task.status === "escalated" && !mine,
     escalate: live && (Boolean(canEdit) || isHelper) && (task.status === "assigned" || task.status === "in_progress"),
+    escalateChoice: me.role === "support_worker",
     reassign: live && Boolean(canEdit) && !finished,
     takeOver: live && Boolean(canEdit) && !mine && !finished && (me.role === "team_leader" || me.role === "manager"),
   };

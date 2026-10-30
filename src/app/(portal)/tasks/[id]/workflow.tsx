@@ -26,6 +26,8 @@ export type Can = {
   reopen: boolean;
   resolveEscalation: boolean;
   escalate: boolean;
+  // Support workers choose their team leader or a manager.
+  escalateChoice: boolean;
   reassign: boolean;
   takeOver: boolean;
 };
@@ -86,6 +88,7 @@ function ReasonForm({
   action: run,
   people,
   takeOver,
+  escalateTo,
   variant = "outline",
 }: {
   taskId: string;
@@ -94,6 +97,8 @@ function ReasonForm({
   action: typeof escalateTask;
   people?: { id: string; name: string }[];
   takeOver?: boolean;
+  // Support workers choose who looks at an escalation.
+  escalateTo?: boolean;
   variant?: "primary" | "outline" | "danger";
 }) {
   const [state, action, pending] = useActionState(run, null);
@@ -124,6 +129,19 @@ function ReasonForm({
           </select>
         </Field>
       ) : null}
+      {escalateTo ? (
+        <fieldset className="flex flex-col gap-1">
+          <legend className="mb-1 text-sm font-semibold">Who should look at it?</legend>
+          <label className="flex min-h-10 items-center gap-2 text-sm">
+            <input type="radio" name="to" value="team_leader" defaultChecked className="h-5 w-5 accent-[var(--brand-primary)]" />
+            My team leader
+          </label>
+          <label className="flex min-h-10 items-center gap-2 text-sm">
+            <input type="radio" name="to" value="manager" className="h-5 w-5 accent-[var(--brand-primary)]" />
+            A manager
+          </label>
+        </fieldset>
+      ) : null}
       <Field label={reasonLabel} htmlFor={`reason-${label}`}>
         <textarea id={`reason-${label}`} name="reason" required rows={2} className={`${inputClass} min-h-20 py-3`} />
       </Field>
@@ -140,7 +158,7 @@ function ReasonForm({
 }
 
 export function TaskActions({ taskId, can, people }: { taskId: string; can: Can; people: { id: string; name: string }[] }) {
-  const any = Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && k !== "managerOwn" && v);
+  const any = Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && k !== "managerOwn" && k !== "escalateChoice" && v);
   if (!any) return null;
   return (
     <div className="flex flex-col gap-2">
@@ -175,7 +193,14 @@ export function TaskActions({ taskId, can, people }: { taskId: string; can: Can;
       {can.takeOver ? <ReasonForm taskId={taskId} label="Take it over" reasonLabel="Reason" action={reassignTask} takeOver /> : null}
       {can.reassign ? <ReasonForm taskId={taskId} label="Reassign" reasonLabel="Reason" action={reassignTask} people={people} /> : null}
       {can.escalate ? (
-        <ReasonForm taskId={taskId} label="Escalate" reasonLabel="Why does it need escalating?" action={escalateTask} variant="danger" />
+        <ReasonForm
+          taskId={taskId}
+          label="Escalate"
+          reasonLabel="Why does it need escalating?"
+          action={escalateTask}
+          escalateTo={can.escalateChoice}
+          variant="danger"
+        />
       ) : null}
     </div>
   );

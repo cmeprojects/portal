@@ -149,7 +149,7 @@ export function OngoingTable({
 function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string; name: string }[]; ctx: Ctx }) {
   const router = useRouter();
   const [snap, setSnap] = useState<TaskSnapshot | null | "loading">("loading");
-  const [panel, setPanel] = useState<"none" | "reassign" | "helper" | "sendback">("none");
+  const [panel, setPanel] = useState<"none" | "reassign" | "helper" | "sendback" | "takeover">("none");
   const progress = useRef<HTMLDialogElement>(null);
   const [, startTransition] = useTransition();
   const load = (fresh = false) =>
@@ -193,6 +193,8 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
     ? { description: row.description, helpers: [], history: [], canEdit: false, canApprove: false, files: 0 }
     : snap;
   const approving = row.statusKey === "awaiting_approval" && data.canApprove;
+  // Escalated to them: look into it, then take it over, reassign, add a helper or mark it dealt with.
+  const escalation = row.statusKey === "escalated" && data.canEdit;
   const latest = data.history[data.history.length - 1];
   const helperIds = new Set(data.helpers.map((h) => h.id));
   const choices = people.filter((p) => p.id !== row.assignedTo && !helperIds.has(p.id));
@@ -255,8 +257,39 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
         </div>
       ) : null}
 
+      {escalation ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-warn/40 bg-warn-soft/40 p-3">
+          <p className="mr-auto text-sm font-semibold">Escalated to you. Take it over, reassign it or add someone to help.</p>
+          <Button type="button" onClick={() => setPanel(panel === "takeover" ? "none" : "takeover")}>
+            Take it over
+          </Button>
+          <form action={statusAction}>
+            <input type="hidden" name="task_id" value={row.id} />
+            <input type="hidden" name="status" value="in_progress" />
+            <Button variant="outline" disabled={changing}>
+              {changing ? "Saving…" : "Dealt with"}
+            </Button>
+          </form>
+        </div>
+      ) : null}
+
+      {panel === "takeover" ? (
+        <form action={reassignAction} className="flex flex-wrap items-end gap-3">
+          <input type="hidden" name="task_id" value={row.id} />
+          <input type="hidden" name="take_over" value="1" />
+          <div className="min-w-56 flex-1">
+            <Field label="Reason" htmlFor={`to-${row.id}`}>
+              <input id={`to-${row.id}`} name="reason" required placeholder="e.g. I'll sort this out with the family" className={inputClass} />
+            </Field>
+          </div>
+          <Button className="h-12" disabled={reassigning}>
+            {reassigning ? "Saving…" : "Take it over"}
+          </Button>
+        </form>
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
-        <Link href={`/tasks/${row.id}`} className={buttonClass(approving ? "outline" : "primary")}>
+        <Link href={`/tasks/${row.id}`} className={buttonClass(approving || escalation ? "outline" : "primary")}>
           Open task
         </Link>
         {data.canEdit ? (

@@ -106,7 +106,7 @@ reset role;
 select test.ok(test.status('Fix tap') = 'escalated' and test.notes('boss@example.com', 'task_escalated') = 1,
   'a helper escalates; the register manager is told');
 select test.ok(exists (select 1 from public.email_outbox where template = 'notice' and to_user = test.pid('boss@example.com')
-                         and data ->> 'title' like 'Escalated:%'), 'and emailed');
+                         and data ->> 'title' like 'Escalated to you:%'), 'and emailed');
 
 -- Reassigning and taking over.
 select test.act_as('kim@example.com');

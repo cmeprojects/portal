@@ -31,6 +31,7 @@ type Row = {
   registry_id: string;
   created_at: string;
   description: string;
+  escalated_to: "team_leader" | "manager" | null;
 };
 
 const PRIORITY_ORDER: Record<Priority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
@@ -50,7 +51,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
 
   const { data } = await supabase
     .from("tasks")
-    .select("id, ref_number, title, description, status, priority, due_date, assigned_to, registry_id, created_at")
+    .select("id, ref_number, title, description, status, priority, due_date, assigned_to, registry_id, created_at, escalated_to")
     .not("status", "in", `(${DONE.join(",")})`)
     .order("created_at", { ascending: false })
     .limit(3000)
@@ -78,19 +79,30 @@ export async function DashboardView({ params }: { params: Record<string, string 
   const ref = (t: Row) => refLabel(regOf.get(t.registry_id)?.prefix, t.ref_number);
   const overdue = (t: Row) => Boolean(t.due_date && t.due_date < today);
 
+  // Escalations sent to them (team leaders: from their team; managers: the
+  // rest), approvals for those who approve, then overdue and urgent ones not started.
+  const approves = profile.role === "manager" || profile.role === "system_admin";
+  const escalatedToMe = (t: Row) =>
+    t.status === "escalated" && (profile.role === "team_leader" ? t.escalated_to === "team_leader" : approves && t.escalated_to !== "team_leader");
   const counts = [
     { label: "Open", n: open.length, tone: "text-brand" },
     { label: "Overdue", n: open.filter(overdue).length, tone: "text-danger" },
     { label: "Due this week", n: open.filter((t) => t.due_date && t.due_date >= today && t.due_date <= weekEnd).length, tone: "text-brand" },
-    { label: "Escalated", n: open.filter((t) => t.status === "escalated").length, tone: "text-warn" },
-    { label: "Awaiting approval", n: open.filter((t) => t.status === "awaiting_approval").length, tone: "text-brand" },
+    { label: "Escalated to you", n: open.filter(escalatedToMe).length, tone: "text-warn" },
+    approves
+      ? { label: "Awaiting approval", n: open.filter((t) => t.status === "awaiting_approval").length, tone: "text-brand" }
+      : { label: "Escalated by your team", n: open.filter((t) => t.status === "escalated").length, tone: "text-warn" },
   ];
 
-  // Escalated and waiting for approval first, then overdue, then urgent ones not started.
   const attention = open
-    .filter((t) => t.status === "escalated" || t.status === "awaiting_approval" || overdue(t) || (t.priority === "urgent" && t.status === "assigned"))
+    .filter(
+      (t) =>
+        escalatedToMe(t) ||
+        (approves && t.status === "awaiting_approval") ||
+        (t.status !== "escalated" && t.status !== "awaiting_approval" && (overdue(t) || (t.priority === "urgent" && t.status === "assigned"))),
+    )
     .sort((a, b) => {
-      const rank = (t: Row) => (t.status === "escalated" ? 0 : t.status === "awaiting_approval" ? 1 : overdue(t) ? 2 : 3);
+      const rank = (t: Row) => (escalatedToMe(t) ? 0 : t.status === "awaiting_approval" ? 1 : overdue(t) ? 2 : 3);
       return rank(a) - rank(b) || (a.due_date ?? "9999") .localeCompare(b.due_date ?? "9999");
     })
     .slice(0, 8);
@@ -206,7 +218,14 @@ export async function DashboardView({ params }: { params: Record<string, string 
             <AttentionList
               rows={attention.map((t) => ({
                 ...toRow(t),
-                flag: t.status === "escalated" || t.status === "awaiting_approval" ? STATUS_LABELS[t.status] : null,
+                flag:
+                  t.status === "escalated"
+                    ? t.escalated_to === "team_leader"
+                      ? "Escalated to team leader"
+                      : "Escalated to managers"
+                    : t.status === "awaiting_approval"
+                      ? STATUS_LABELS[t.status]
+                      : null,
               }))}
               people={pickable}
               names={peekNames}

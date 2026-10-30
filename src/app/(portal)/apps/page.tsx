@@ -21,8 +21,10 @@ const qr = (url: string) => QRCode.toString(url, { type: "svg", margin: 1, error
 
 // cmeprojects: the company's phone apps (the Cars app and the Staff app),
 // with how to put each on a phone, and QR stickers for those who print them.
-export default async function AppsPage() {
+export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
   const { profile, features } = await requireSession();
+  // ?sticker=car-<id> or f-<slug>: just that one sticker, to print.
+  const only = typeof (await searchParams).sticker === "string" ? String((await searchParams).sticker) : "";
   const [brand, carsLook, staffLook, rules, tiles, carsOffered] = await Promise.all([
     getBranding(),
     getCarsAppLook(),
@@ -45,11 +47,67 @@ export default async function AppsPage() {
     staffApp && prints
       ? await supabase.from("custom_features").select("slug, name, menu_label, app_icon, app_colour").eq("status", "published").eq("enabled", true).eq("in_app", true).order("sort_order")
       : { data: [] };
-  const [carsQr, staffQr, ...featureQrs] = await Promise.all([
+  // Dashboard stickers for each car (car managers): open that car in whichever app has Cars.
+  const carManager = canUseCars(profile.role, features) && canManageCars(profile.role, rules);
+  const { data: cars } = carManager ? await supabase.from("cars").select("id, name, rego").eq("active", true).order("name") : { data: [] };
+  const carBase = carsOffered ? carsUrl : `${staffUrl}/cars`;
+  const [carsQr, staffQr, ...rest] = await Promise.all([
     qr(carsUrl),
     qr(staffUrl),
     ...(inApp ?? []).map((f) => qr(`${staffUrl}/f/${f.slug}`)),
+    ...(cars ?? []).map((c) => qr(`${carBase}?car=${c.id}`)),
   ]);
+  const featureQrs = rest.slice(0, (inApp ?? []).length);
+  const carQrs = rest.slice((inApp ?? []).length);
+  type Sticker = { key: string; title: string; sub: string; line: string; svg: string; icon?: { icon: string; colour: string } };
+  const stickers: Sticker[] = [
+    ...(inApp ?? []).map((f, i) => ({
+      key: `f-${f.slug}`,
+      title: f.name,
+      sub: brand.companyName,
+      line: `Scan to open ${f.menu_label} in ${staffLook.name}`,
+      svg: featureQrs[i],
+      icon: { icon: f.app_icon, colour: f.app_colour },
+    })),
+    ...(cars ?? []).map((c, i) => ({
+      key: `car-${c.id}`,
+      title: c.name,
+      sub: c.rego,
+      line: "Scan to start or return this car",
+      svg: carQrs[i],
+      icon: { icon: "car", colour: "#134f8e" },
+    })),
+  ];
+  const single = only ? stickers.find((x) => x.key === only) : undefined;
+
+  const stickerCard = (x: Sticker) => (
+    <div key={x.key} className="flex break-inside-avoid flex-col items-center gap-2 rounded-xl border-2 border-dashed border-black/40 bg-white p-4 text-center text-black">
+      <div className="flex items-center gap-2">
+        {x.icon ? <AppSquare icon={x.icon.icon} colour={x.icon.colour} size="size-10" /> : null}
+        <span className="text-left">
+          <span className="block text-lg leading-tight font-semibold">{x.title}</span>
+          <span className="block text-xs">{x.sub}</span>
+        </span>
+      </div>
+      <div className="w-40" dangerouslySetInnerHTML={{ __html: x.svg }} />
+      <p className="text-xs">{x.line}</p>
+    </div>
+  );
+
+  // One sticker on its own, ready to print.
+  if (single) {
+    return (
+      <>
+        <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <Link href="/apps" className="text-sm font-semibold text-brand underline">
+            ‹ Back to {`${initialsOf(brand.companyName) || "Our"} Apps`}
+          </Link>
+          <PrintButton label="Print this sticker" />
+        </div>
+        <div className="mx-auto w-72 max-w-full">{stickerCard(single)}</div>
+      </>
+    );
+  }
 
   const apps = [
     carsApp && {
@@ -143,33 +201,23 @@ export default async function AppsPage() {
               <p className="text-sm">{a.url}</p>
             </section>
           ))}
-          {(inApp ?? []).length ? (
+          {stickers.length ? (
             <section className="flex flex-col gap-3">
               <p className="text-sm text-muted print:hidden">
-                Stick these where the job happens (the fridge, a client&apos;s room). Scanning one opens {staffLook.name} straight on that feature.
+                Stick these where the job happens: on the fridge, in a client&apos;s room, on each car&apos;s dashboard. Scanning one opens the app
+                straight on it. Print them all with the button at the top, or one at a time.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
-                {(inApp ?? []).map((f, i) => (
-                  <div key={f.slug} className="flex break-inside-avoid flex-col items-center gap-2 rounded-xl border-2 border-dashed border-black/40 bg-white p-4 text-center text-black">
-                    <div className="flex items-center gap-2">
-                      <AppSquare icon={f.app_icon} colour={f.app_colour} size="size-10" />
-                      <p className="text-lg font-semibold">{f.name}</p>
-                    </div>
-                    <div className="w-40" dangerouslySetInnerHTML={{ __html: featureQrs[i] }} />
-                    <p className="text-xs">Scan to open {f.menu_label} in {staffLook.name}</p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
+                {stickers.map((x) => (
+                  <div key={x.key} className="flex flex-col gap-1">
+                    {stickerCard(x)}
+                    <Link href={`/apps?sticker=${x.key}`} className="self-center text-sm font-semibold text-brand underline print:hidden">
+                      Print just this one
+                    </Link>
                   </div>
                 ))}
               </div>
             </section>
-          ) : null}
-          {carsApp && canManageCars(profile.role, rules) ? (
-            <p className="text-sm text-muted print:hidden">
-              Dashboard stickers for each car are on{" "}
-              <Link href="/cars/install" className="font-semibold text-brand underline">
-                Cars → Get the app
-              </Link>
-              .
-            </p>
           ) : null}
         </>
       ) : null}

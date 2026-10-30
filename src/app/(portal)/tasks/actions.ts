@@ -177,10 +177,14 @@ export async function escalateTask(_: FormState, form: FormData): Promise<FormSt
   await requireTaskAccess();
   const taskId = text(form, "task_id");
   const supabase = await createClient();
-  const { error } = await supabase.rpc("escalate_task", { p_task_id: taskId, p_reason: text(form, "reason") });
+  const { data: to, error } = await supabase.rpc("escalate_task", {
+    p_task_id: taskId,
+    p_reason: text(form, "reason"),
+    p_to: text(form, "to") === "team_leader" ? "team_leader" : "manager",
+  });
   if (error) return { error: friendlyError(error) };
   await afterChange(taskId);
-  return { message: "Escalated. The managers have been told." };
+  return { message: to === "team_leader" ? "Escalated. Your team leader has been told." : "Escalated. The managers have been told." };
 }
 
 export async function reassignTask(_: FormState, form: FormData): Promise<FormState> {
