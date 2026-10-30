@@ -58,6 +58,7 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
     case "people":
       return { value: form.getAll("value").map(String).filter((v) => /^[0-9a-f-]{36}$/.test(v)) };
     default:
+      if (text(form, "key") === "vehicles.app_name" && raw.length > 20) return { error: "Keep the name to 20 letters or fewer, so it fits under the icon." };
       return raw ? { value: raw } : { error: "This can't be empty." };
   }
 }

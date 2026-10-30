@@ -92,7 +92,7 @@ const OPTIONAL_TEXT = ["brand.support_contact", "brand.announcement", "people.in
 export function kindOf(key: string): "color" | "number" | "roles" | "people" | "text" | "sla" | "yesno" | "choice" | "logo" | "note" {
   if (key === "tasks.sla_days") return "sla";
   if (key === "vehicles.weekly_recipients") return "people";
-  if (key === "brand.logo_url" || key === "brand.logo_mark_url") return "logo";
+  if (key === "brand.logo_url" || key === "brand.logo_mark_url" || key === "vehicles.app_icon_url") return "logo";
   if (OPTIONAL_TEXT.includes(key)) return "note";
   if (key in CHOICES) return "choice";
   if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "tasks.registers_roles", "people.access_reset_roles", "vehicles.manager_roles", "vehicles.report_roles"].includes(key)) return "roles";
@@ -168,14 +168,20 @@ export function SettingForm({ setting, people = [] }: { setting: SettingRow; peo
         ) : kind === "logo" ? (
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start">
             <span className="flex h-20 w-40 shrink-0 items-center justify-center rounded-md border border-line bg-white p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- the company's own uploaded logo */}
-              <img src={String(setting.value)} alt="Current logo" className="max-h-full max-w-full object-contain" />
+              {setting.value ? (
+                // eslint-disable-next-line @next/next/no-img-element -- the company's own uploaded logo
+                <img src={String(setting.value)} alt="Current picture" className="max-h-full max-w-full object-contain" />
+              ) : (
+                <span className="text-xs text-muted">None yet</span>
+              )}
             </span>
             <div className="min-w-0 flex-1">
               <FileUpload id={id} bucket="branding" folder="logo" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" maxMb={2} shrink={false} />
               <p className="mt-1 text-xs text-muted">
                 {setting.key === "brand.logo_mark_url"
                   ? "A square version for the menu and phone icon. PNG or SVG with a see-through background works best."
+                  : setting.key === "vehicles.app_icon_url"
+                  ? "A square PNG, at least 512 × 512. It fills the icon, so leave a little space around the edges."
                   : "PNG or SVG with a see-through background works best."}
               </p>
             </div>

@@ -1,16 +1,16 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata, Viewport } from "next";
-import { getBranding } from "@/lib/branding";
+import { getBranding, getCarsAppLook } from "@/lib/branding";
 import { getSession } from "@/lib/session";
 
 // The Cars app (cmeprojects): installed on staff phones from the portal link.
 // A plain, full-screen frame: the company's bar on top, big buttons below.
 export async function generateMetadata(): Promise<Metadata> {
-  const brand = await getBranding();
+  const [brand, look] = await Promise.all([getBranding(), getCarsAppLook()]);
   return {
     title: { default: `${brand.companyName} Cars`, template: `%s · ${brand.companyName} Cars` },
     manifest: "/cars-app/manifest.webmanifest",
-    appleWebApp: { capable: true, title: "Cars", statusBarStyle: "black-translucent" },
+    appleWebApp: { capable: true, title: look.name, statusBarStyle: "black-translucent" },
     icons: { icon: "/cars-app/icon/192", apple: "/cars-app/icon/180" },
   };
 }
@@ -21,7 +21,7 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export default async function CarsAppLayout({ children }: LayoutProps<"/cars-app">) {
-  const [brand, session] = await Promise.all([getBranding(), getSession()]);
+  const [brand, session, look] = await Promise.all([getBranding(), getSession(), getCarsAppLook()]);
   const name = session?.profile.full_name || session?.profile.email || "";
   return (
     <div className="flex min-h-dvh flex-col bg-page">
@@ -31,7 +31,7 @@ export default async function CarsAppLayout({ children }: LayoutProps<"/cars-app
           <img src={brand.logoMarkUrl} alt="" className="size-9 shrink-0 rounded-md bg-white object-contain p-0.5" />
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate font-display text-sm font-semibold tracking-wider uppercase">{brand.companyName}</p>
-            <p className="text-[11px] tracking-[0.2em] text-side-muted uppercase">Cars</p>
+            <p className="text-[11px] tracking-[0.2em] text-side-muted uppercase">{look.name}</p>
           </div>
           {name ? <p className="max-w-[40%] truncate text-right text-xs text-side-muted">{name}</p> : null}
         </div>

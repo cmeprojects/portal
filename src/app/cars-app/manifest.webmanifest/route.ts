@@ -1,15 +1,15 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { NextResponse } from "next/server";
-import { getBranding } from "@/lib/branding";
+import { getBranding, getCarsAppLook } from "@/lib/branding";
 
 // What a phone needs to install the Cars app: its name, icon and colours.
 export async function GET() {
-  const brand = await getBranding();
+  const [brand, look] = await Promise.all([getBranding(), getCarsAppLook()]);
   return NextResponse.json(
     {
       id: "/cars-app",
-      name: `${brand.companyName} Cars`,
-      short_name: "Cars",
+      name: look.name === "Cars" ? `${brand.companyName} Cars` : look.name,
+      short_name: look.name,
       description: "Start and return company cars.",
       start_url: "/cars-app",
       scope: "/cars-app",

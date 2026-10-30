@@ -62,3 +62,25 @@ export const getBranding = cache(async (): Promise<Branding> => {
   }
   return branding;
 });
+
+export type CarsAppLook = { name: string; icon: "car" | "mark" | "logo" | "own"; iconUrl: string };
+
+// The Cars app on staff phones (cmeprojects): its name and icon, from
+// System settings → Cars. Public, so phones can read them while installing.
+export const getCarsAppLook = cache(async (): Promise<CarsAppLook> => {
+  const look: CarsAppLook = { name: "Cars", icon: "car", iconUrl: "" };
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("app_settings").select("key, value").in("key", ["vehicles.app_name", "vehicles.app_icon", "vehicles.app_icon_url"]);
+    for (const row of data ?? []) {
+      if (typeof row.value !== "string") continue;
+      if (row.key === "vehicles.app_name" && row.value.trim()) look.name = row.value.trim().slice(0, 20);
+      if (row.key === "vehicles.app_icon" && ["car", "mark", "logo", "own"].includes(row.value)) look.icon = row.value as CarsAppLook["icon"];
+      if (row.key === "vehicles.app_icon_url") look.iconUrl = row.value;
+    }
+  } catch {
+    // Not connected yet: the defaults.
+  }
+  if (look.icon === "own" && !look.iconUrl) look.icon = "car";
+  return look;
+});

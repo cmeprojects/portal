@@ -43,6 +43,9 @@ const ORDER = [
   "vehicles.undo_minutes",
   "vehicles.reminder_hour",
   "vehicles.app_days",
+  "vehicles.app_name",
+  "vehicles.app_icon",
+  "vehicles.app_icon_url",
 ];
 const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
 
@@ -85,7 +88,13 @@ const TABS: Tab[] = [
         title: "Cars",
         intro: "Company cars and trips. Car managers add cars, clients and purposes of use, and choose whether trips have a client, on Manage cars. You can give these settings to a manager on the Delegation tab.",
         area: "vehicles",
-        keys: (k) => k.startsWith("vehicles."),
+        keys: (k) => k.startsWith("vehicles.") && !k.startsWith("vehicles.app_"),
+      },
+      {
+        title: "Cars app on the phone",
+        intro: "What staff see on their home screen after adding the Cars app. Changes show on phones that add the app from now on.",
+        area: "vehicles",
+        keys: (k) => k.startsWith("vehicles.app_"),
       },
     ],
   },
