@@ -49,14 +49,13 @@ export async function DashboardView({ params }: { params: Record<string, string 
   const today = todayIn(timeZone);
   const weekEnd = endOfWeek(today);
 
-  const { data } = await supabase
-    .from("tasks")
-    .select("id, ref_number, title, description, status, priority, due_date, assigned_to, registry_id, created_at, escalated_to")
-    .not("status", "in", `(${DONE.join(",")})`)
-    .order("created_at", { ascending: false })
-    .limit(3000)
-    .returns<Row[]>();
-  const open = data ?? [];
+  const load = (columns: string) =>
+    supabase.from("tasks").select(columns).not("status", "in", `(${DONE.join(",")})`).order("created_at", { ascending: false }).limit(3000).returns<Row[]>();
+  const base = "id, ref_number, title, description, status, priority, due_date, assigned_to, registry_id, created_at";
+  // Who an escalation went to comes with live update 31; without it, treat escalations as for managers.
+  const first = await load(`${base}, escalated_to`);
+  const data = first.error ? (await load(base)).data : first.data;
+  const open = (data ?? []).map((t) => ({ ...t, escalated_to: t.escalated_to ?? null }));
   const { data: helping } = await supabase.from("task_helpers").select("task_id").eq("user_id", profile.id);
   const helpingIds = new Set((helping ?? []).map((h) => h.task_id));
   const mine = open

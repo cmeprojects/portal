@@ -177,11 +177,13 @@ export async function escalateTask(_: FormState, form: FormData): Promise<FormSt
   await requireTaskAccess();
   const taskId = text(form, "task_id");
   const supabase = await createClient();
-  const { data: to, error } = await supabase.rpc("escalate_task", {
+  let { data: to, error } = await supabase.rpc("escalate_task", {
     p_task_id: taskId,
     p_reason: text(form, "reason"),
     p_to: text(form, "to") === "team_leader" ? "team_leader" : "manager",
   });
+  // Before live update 31 there's no choice yet: it goes to the managers.
+  if (error?.code === "PGRST202") ({ data: to, error } = await supabase.rpc("escalate_task", { p_task_id: taskId, p_reason: text(form, "reason") }));
   if (error) return { error: friendlyError(error) };
   await afterChange(taskId);
   return { message: to === "team_leader" ? "Escalated. Your team leader has been told." : "Escalated. The managers have been told." };

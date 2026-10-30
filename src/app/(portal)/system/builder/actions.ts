@@ -125,9 +125,7 @@ export async function saveFeature(featureId: string, draft: Draft): Promise<{ er
   }
   const roles = (list: unknown[]) => list.map(String).filter(isRole).filter((r) => r !== "system_admin" && r !== "new_starter");
   const mapId = (id: string | null) => (id ? ids.get(id) ?? null : null);
-  const { error } = await supabase
-    .from("custom_features")
-    .update({
+  const update = {
       name: f.name.trim().slice(0, 60),
       menu_label: f.menu_label.trim().slice(0, 30),
       description: f.description.trim().slice(0, 300),
@@ -145,8 +143,16 @@ export async function saveFeature(featureId: string, draft: Draft): Promise<{ er
       app_icon: f.app_icon in APP_ICONS ? f.app_icon : "clipboard",
       app_colour: /^#[0-9a-fA-F]{6}$/.test(f.app_colour) ? f.app_colour : "#134f8e",
       updated_at: new Date().toISOString(),
-    })
-    .eq("id", featureId);
+  };
+  let { error } = await supabase.from("custom_features").update(update).eq("id", featureId);
+  // Before live update 30 there are no Staff app columns yet: save the rest.
+  if (error && /in_app|app_icon|app_colour/.test(error.message)) {
+    const { in_app: _a, app_icon: _b, app_colour: _c, ...rest } = update;
+    void _a;
+    void _b;
+    void _c;
+    ({ error } = await supabase.from("custom_features").update(rest).eq("id", featureId));
+  }
   if (error) return { error: friendlyError(error) };
   refresh();
   return { message: "Saved.", ids: Object.fromEntries(ids) };

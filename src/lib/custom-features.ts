@@ -4,7 +4,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import type { Role } from "@/lib/roles";
-import { FEATURE_COLUMNS, FIELD_COLUMNS, type Feature, type FeatureField, type Option } from "@/lib/feature-types";
+import { type Feature, type FeatureField, type Option } from "@/lib/feature-types";
 
 // Features built with the Feature builder (cmeprojects).
 
@@ -13,21 +13,30 @@ const asField = (f: Record<string, unknown>): FeatureField => ({
   min_value: f.min_value == null ? null : Number(f.min_value),
   max_value: f.max_value == null ? null : Number(f.max_value),
   options: Array.isArray(f.options) ? (f.options as string[]) : [],
-  add_typed: Boolean(f.add_typed),
+  add_typed: f.add_typed === true,
   quick: Array.isArray(f.quick) ? (f.quick as number[]).map(Number) : [],
 });
+// Columns added by later live updates get their defaults until the update has
+// been run, so a page never breaks while an update is waiting.
 const asFeature = (f: Record<string, unknown>): Feature => ({
   ...(f as unknown as Feature),
   default_target: f.default_target == null ? null : Number(f.default_target),
+  managers_fix: f.managers_fix === true,
+  managers_targets: f.managers_targets === true,
+  managers_options: f.managers_options === true,
+  in_app: f.in_app !== false,
+  app_icon: typeof f.app_icon === "string" ? f.app_icon : "clipboard",
+  app_colour: typeof f.app_colour === "string" ? f.app_colour : "#134f8e",
 });
 
 export async function loadFeature(by: { slug?: string; id?: string }): Promise<{ feature: Feature; fields: FeatureField[] } | null> {
   const supabase = await createClient();
-  let q = supabase.from("custom_features").select(FEATURE_COLUMNS);
+  // "*" so it keeps working whether or not the latest live update has been run.
+  let q = supabase.from("custom_features").select("*");
   q = by.id ? q.eq("id", by.id) : q.eq("slug", by.slug ?? "");
   const { data } = await q.maybeSingle();
   if (!data) return null;
-  const { data: fields } = await supabase.from("custom_fields").select(FIELD_COLUMNS).eq("feature_id", data.id).order("sort_order");
+  const { data: fields } = await supabase.from("custom_fields").select("*").eq("feature_id", data.id).order("sort_order");
   return { feature: asFeature(data), fields: (fields ?? []).map(asField) };
 }
 
