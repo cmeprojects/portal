@@ -14,14 +14,16 @@ function setCookie(name: string, value: string) {
   document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
 }
 
-function lastActive(): number {
+// The last activity, never earlier than when they signed in (so an old time
+// left over from before can't sign them straight back out).
+function lastActive(signedInAt: number): number {
   const m = document.cookie.match(new RegExp(`(?:^|; )${LAST_ACTIVE}=(\\d+)`));
-  return m ? Number(m[1]) : Date.now();
+  return Math.max(m ? Number(m[1]) : Date.now(), signedInAt);
 }
 
 // Signs people out after a set time without activity, with a one-minute
 // warning. Activity in any tab counts.
-export function IdleLogout({ minutes }: { minutes: number }) {
+export function IdleLogout({ minutes, signedInAt = 0 }: { minutes: number; signedInAt?: number }) {
   const [warning, setWarning] = useState(false);
   const limit = minutes * 60_000;
 
@@ -33,7 +35,7 @@ export function IdleLogout({ minutes }: { minutes: number }) {
   useEffect(() => {
     setCookie(IDLE_MINUTES, String(minutes));
     if (!minutes) return;
-    if (Date.now() - lastActive() > limit) {
+    if (Date.now() - lastActive(signedInAt) > limit) {
       void signOutIdle();
       return;
     }
@@ -47,7 +49,7 @@ export function IdleLogout({ minutes }: { minutes: number }) {
     const events = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
     events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
     const timer = window.setInterval(() => {
-      const idle = Date.now() - lastActive();
+      const idle = Date.now() - lastActive(signedInAt);
       if (idle > limit) void signOutIdle();
       else setWarning(idle > limit - 60_000);
     }, 15_000);
@@ -55,7 +57,7 @@ export function IdleLogout({ minutes }: { minutes: number }) {
       events.forEach((e) => window.removeEventListener(e, onActivity));
       window.clearInterval(timer);
     };
-  }, [minutes, limit]);
+  }, [minutes, limit, signedInAt]);
 
   if (!warning) return null;
   return (

@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
@@ -27,6 +28,13 @@ function signInProblem(code: string | undefined, status: number | undefined): st
   }
 }
 
+// The inactivity timer starts again from now (and a stale time from before
+// can't sign them straight back out).
+async function freshActivity() {
+  const jar = await cookies();
+  jar.set("portal_last_active", String(Date.now()), { path: "/", maxAge: 31536000, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
+}
+
 export async function signInWithPassword(_: FormState, form: FormData): Promise<FormState> {
   const email = text(form, "email").toLowerCase();
   const password = String(form.get("password") ?? "");
@@ -35,6 +43,7 @@ export async function signInWithPassword(_: FormState, form: FormData): Promise<
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: signInProblem(error.code, error.status) };
+  await freshActivity();
   redirect(safeNext(text(form, "next")));
 }
 
@@ -63,11 +72,13 @@ export async function signInWithGoogle(form: FormData) {
 export async function signOutIdle() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  (await cookies()).delete("portal_last_active");
   redirect("/login?error=idle");
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  (await cookies()).delete("portal_last_active");
   redirect("/login");
 }

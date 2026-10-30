@@ -21,7 +21,14 @@ import { LiveRefresh } from "@/components/live-refresh";
 // Frame for every page after sign-in: the company's sidebar on desktop, a top
 // bar with a drop-down menu on phones.
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
-  const [{ profile, features }, brand, idleMinutes] = await Promise.all([requireSession(), getBranding(), getIdleMinutes()]);
+  const [{ profile, features }, brand, idleMinutes, { data: claims }] = await Promise.all([
+    requireSession(),
+    getBranding(),
+    getIdleMinutes(),
+    (await createClient()).auth.getClaims(),
+  ]);
+  // When they last signed in (password, link or code): the inactivity timer never starts earlier than this.
+  const signedInAt = Math.max(0, ...((claims?.claims?.amr ?? []) as { timestamp?: number }[]).map((a) => (a.timestamp ?? 0) * 1000));
   const [taskItems, requestItems, notices] = await Promise.all([
     features.tasks !== false ? newTasksForMe() : Promise.resolve([]),
     requestUpdatesForMe(),
@@ -56,7 +63,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         bell={<Bell items={bellItems} />}
         footer={footer}
       />
-      <IdleLogout minutes={idleMinutes} />
+      <IdleLogout minutes={idleMinutes} signedInAt={signedInAt} />
       {/* Menus, settings, the bell and task lists stay current; pages refresh when you come back to them. */}
       <LiveRefresh tables={["app_settings", "features", "live_signals", "notifications", "tasks", "people_change_requests"]} onShow />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
