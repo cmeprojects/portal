@@ -8,7 +8,6 @@ import { getTimeZone } from "@/lib/settings";
 import { CarsDesk } from "@/components/cars-desk";
 import { InstallHint } from "./install-hint";
 import { AppNav } from "./app-nav";
-import { carsAppOffered } from "@/lib/staff-app";
 
 export default async function CarsAppHome({ searchParams }: PageProps<"/cars-app">) {
   const { profile, features } = await requireSession();
@@ -19,8 +18,6 @@ export default async function CarsAppHome({ searchParams }: PageProps<"/cars-app
       </p>
     );
   }
-  // The system admin moved Cars into the Staff app: open it there.
-  if (!(await carsAppOffered(features))) redirect("/app/cars");
   // First time on this phone: choose a PIN.
   if (!(await hasPin(profile.id))) redirect("/cars-app/unlock");
   const [rules, timeZone, data, params] = await Promise.all([getCarRules(), getTimeZone(), loadCarScreen(profile.id), searchParams]);

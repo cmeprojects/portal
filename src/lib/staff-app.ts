@@ -49,9 +49,10 @@ export const getStaffAppTiles = cache(async (userId: string, role: Role, feature
   return tiles;
 });
 
-// The separate Cars app is offered unless the system admin turned it off
-// because Cars is in the Staff app.
+// The separate Cars app is offered for download unless Cars is inside the
+// Staff app; then staff are only offered the one app. (Phones that already
+// have the Cars app keep using it.)
 export async function carsAppOffered(features: Record<string, boolean>): Promise<boolean> {
   const look = await getStaffAppLook();
-  return look.separateCars || !(staffAppOn(features) && look.cars);
+  return !(staffAppOn(features) && look.cars);
 }

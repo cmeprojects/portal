@@ -18,7 +18,7 @@ type Section = { title: string; intro?: string; area?: Area; keys: (key: string)
 type Tab = { key: string; label: string; sections: Section[] };
 
 // Invites are always general now, so that switch isn't shown.
-const HIDDEN = ["people.general_invites_only", "vehicles.app_icon_uploads", "staff_app.icon_uploads"];
+const HIDDEN = ["people.general_invites_only", "vehicles.app_icon_uploads", "staff_app.icon_uploads", "vehicles.separate_app"];
 const MESSAGES = ["brand.support_contact", "brand.announcement", "people.invite_message"];
 // Settings that read best in a set order (others follow, A to Z).
 const ORDER = [
@@ -134,7 +134,7 @@ const TABS: Tab[] = [
     sections: [
       {
         title: "Staff app",
-        intro: "One phone app for staff with the features you choose. Tick Show in the staff app on each feature in the Feature builder. Staff get it from the Apps page in the menu.",
+        intro: "One phone app for staff with the features you choose. Tick Show in the staff app on each feature in the Feature builder. Staff get it from the Apps page in the menu. With Cars in the Staff app, staff are only offered this one app (phones that already have the Cars app keep it working).",
         keys: (k) => k.startsWith("staff_app."),
       },
     ],

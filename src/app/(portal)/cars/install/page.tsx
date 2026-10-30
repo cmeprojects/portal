@@ -6,8 +6,8 @@ import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
 import { canManageCars, canUseCars, getCarRules } from "@/lib/cars";
-import { getBranding, getStaffAppLook } from "@/lib/branding";
-import { carsAppOffered, staffAppOn } from "@/lib/staff-app";
+import { getBranding } from "@/lib/branding";
+import { carsAppOffered } from "@/lib/staff-app";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
@@ -22,12 +22,9 @@ const qr = (url: string) => QRCode.toString(url, { type: "svg", margin: 1, error
 export default async function InstallCarsAppPage({ searchParams }: PageProps<"/cars/install">) {
   const { profile, features } = await requireSession();
   if (!canUseCars(profile.role, features)) redirect("/");
-  const [brand, rules, params, staffLook, offered] = await Promise.all([getBranding(), getCarRules(), searchParams, getStaffAppLook(), carsAppOffered(features)]);
-  // The separate Cars app is switched off: Cars is in the Staff app instead.
+  const [brand, rules, params, offered] = await Promise.all([getBranding(), getCarRules(), searchParams, carsAppOffered(features)]);
+  // Cars is inside the Staff app: that's the one app staff get (EC Apps).
   if (!offered) redirect("/apps");
-  // Cars is also inside the Staff app: offer that download here too.
-  const alsoInStaffApp = staffAppOn(features) && staffLook.cars;
-  const staffQr = alsoInStaffApp ? await qr(`${env.siteUrl}/app`) : "";
   const manages = canManageCars(profile.role, rules);
   const appUrl = `${env.siteUrl}/cars-app`;
   const onlyCar = typeof params.car === "string" ? params.car : "";
@@ -47,32 +44,6 @@ export default async function InstallCarsAppPage({ searchParams }: PageProps<"/c
           action={<PrintButton label={onlyCar ? "Print the sticker" : "Print poster and stickers"} />}
         />
       </div>
-
-      {alsoInStaffApp && !onlyCar ? (
-        <Card className="flex flex-wrap items-center gap-5 p-5 print:hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element -- the app's own icon */}
-          <img src="/app/icon/192" alt="" className="size-16 rounded-2xl shadow-md" />
-          <div className="min-w-56 flex-1">
-            <h2 className="heading-sm">Cars is also in {staffLook.name}</h2>
-            <p className="text-sm text-muted">
-              {staffLook.name} has Cars plus your other things to fill in, in one app. Use whichever suits you; it&apos;s the same cars and trips, and
-              the same PIN.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-3 text-sm">
-              <a href="/app/cars" className="rounded-md bg-brand px-4 py-2 font-semibold text-brand-fg">
-                Open {staffLook.name}
-              </a>
-              <Link href="/apps" className="self-center font-semibold text-brand underline">
-                How to put it on your phone
-              </Link>
-            </div>
-          </div>
-          <div className="flex w-28 flex-col items-center gap-1 text-center">
-            <div className="w-28 rounded-lg border border-line bg-white p-1" dangerouslySetInnerHTML={{ __html: staffQr }} />
-            <span className="text-xs text-muted">Scan from a computer</span>
-          </div>
-        </Card>
-      ) : null}
 
       {!onlyCar ? (
         <div className="grid gap-4 md:grid-cols-2 print:hidden">
