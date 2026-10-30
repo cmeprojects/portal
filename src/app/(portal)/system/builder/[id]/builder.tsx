@@ -9,6 +9,8 @@ import { FeatureForm } from "@/components/feature-form";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { FIELD_TYPES, blankField, quickValues, type Feature, type FeatureField, type FieldType, type Option } from "@/lib/feature-types";
 import { TargetsEditor } from "@/components/feature-targets";
+import { Alerts } from "./alerts";
+import type { AlertDraft } from "../actions";
 import { deleteDraft, publishFeature, saveFeature, setFeatureIncluded } from "../actions";
 
 type Ctx = { clients: Option[]; staff: Option[]; targets: Record<string, number>; me: { id: string; name: string; teams: string }; timeZone: string };
@@ -25,19 +27,21 @@ export function Builder({
   ctx,
   typed,
   entryCount,
+  alerts,
 }: {
   feature: Feature;
   fields: FeatureField[];
   ctx: Ctx;
   typed: Record<string, [string, number][]>;
   entryCount: number;
+  alerts: AlertDraft[];
 }) {
   const router = useRouter();
   const [feature, setFeature] = useState(initialFeature);
   const [fields, setFields] = useState(initialFields);
   // What was last saved, to show "Unsaved changes".
   const [baseline, setBaseline] = useState(() => JSON.stringify({ feature: initialFeature, fields: initialFields }));
-  const [tab, setTab] = useState<"details" | "fields" | "totals">("fields");
+  const [tab, setTab] = useState<"details" | "fields" | "totals" | "alerts">("fields");
   const [previewTab, setPreviewTab] = useState<"phone" | "report">("phone");
   const [showPreview, setShowPreview] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -138,6 +142,7 @@ export function Builder({
             {tabBtn("fields", "Fields")}
             {tabBtn("details", "Details and who")}
             {tabBtn("totals", "Daily totals and targets")}
+            {tabBtn("alerts", `Alerts${alerts.length ? ` (${alerts.length})` : ""}`)}
           </nav>
 
           {tab === "details" ? (
@@ -274,6 +279,8 @@ export function Builder({
               ) : null}
             </div>
           ) : null}
+
+          {tab === "alerts" ? <Alerts feature={feature} fields={fields} staff={ctx.staff} alerts={alerts} dirty={dirty} /> : null}
 
           {tab === "totals" ? <Totals feature={feature} fields={fields} ctx={ctx} set={set} dirty={dirty} /> : null}
         </div>

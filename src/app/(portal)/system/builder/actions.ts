@@ -168,3 +168,66 @@ export async function deleteDraft(form: FormData) {
   refresh();
   redirect("/system/builder");
 }
+
+// ---------------------------------------------------------------------------
+// Alerts: who's told when an entry matches, by bell and/or email
+// ---------------------------------------------------------------------------
+
+export type AlertDraft = {
+  id: string;
+  name: string;
+  when_kind: "any" | "choice" | "above" | "below" | "total_over" | "total_met";
+  field_id: string | null;
+  match_text: string;
+  limit_value: number | null;
+  notify_roles: string[];
+  notify_leader: boolean;
+  notify_people: string[];
+  by_bell: boolean;
+  by_email: boolean;
+  on_fix: boolean;
+  message: string;
+  active: boolean;
+};
+
+export async function saveAlert(featureId: string, a: AlertDraft): Promise<{ error?: string; message?: string; id?: string }> {
+  await requireBuilder();
+  if (!a.by_bell && !a.by_email) return { error: "Tick the bell, email, or both." };
+  if (!a.notify_roles.length && !a.notify_leader && !a.notify_people.length) return { error: "Choose who's told." };
+  if ((a.when_kind === "choice" || a.when_kind === "above" || a.when_kind === "below") && !a.field_id) return { error: "Choose the question it looks at." };
+  if (a.when_kind === "choice" && !a.match_text.trim()) return { error: "Choose the answer that sets it off." };
+  if ((a.when_kind === "above" || a.when_kind === "below") && (a.limit_value == null || Number.isNaN(a.limit_value))) return { error: "Enter the limit." };
+  const row = {
+    feature_id: featureId,
+    name: a.name.trim().slice(0, 80),
+    when_kind: a.when_kind,
+    field_id: a.when_kind === "choice" || a.when_kind === "above" || a.when_kind === "below" ? a.field_id : null,
+    match_text: a.when_kind === "choice" ? a.match_text.trim().slice(0, 80) : "",
+    limit_value: a.when_kind === "above" || a.when_kind === "below" ? a.limit_value : null,
+    notify_roles: a.notify_roles.filter(isRole).filter((r) => r !== "system_admin" && r !== "new_starter"),
+    notify_leader: a.notify_leader,
+    notify_people: a.notify_people.filter((p) => /^[0-9a-f-]{36}$/.test(p)),
+    by_bell: a.by_bell,
+    by_email: a.by_email,
+    on_fix: a.on_fix,
+    message: a.message.trim().slice(0, 200),
+    active: a.active,
+  };
+  const supabase = await createClient();
+  const q = a.id.startsWith("new-")
+    ? supabase.from("custom_alerts").insert(row).select("id").single()
+    : supabase.from("custom_alerts").update(row).eq("id", a.id).eq("feature_id", featureId).select("id").single();
+  const { data, error } = await q;
+  if (error || !data) return { error: friendlyError(error) };
+  revalidatePath("/system/builder", "layout");
+  return { message: "Alert saved.", id: data.id };
+}
+
+export async function deleteAlert(id: string): Promise<{ error?: string; message?: string }> {
+  await requireBuilder();
+  const supabase = await createClient();
+  const { error } = await supabase.from("custom_alerts").delete().eq("id", id);
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/system/builder", "layout");
+  return { message: "Alert deleted." };
+}
