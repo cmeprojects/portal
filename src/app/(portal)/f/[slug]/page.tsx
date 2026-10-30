@@ -33,6 +33,7 @@ export default async function FeaturePage({ params }: PageProps<"/f/[slug]">) {
     can("options"),
   ]);
   const canManage = rights.some((r) => r.data);
+  const { data: canReport } = await supabase.rpc("can_see_feature", { p_feature: feature.id });
   const when = new Intl.DateTimeFormat("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone });
   const total = fields.find((f) => f.id === feature.total_field);
   const choice = fields.find((f) => f.type === "choice" && !f.archived);
@@ -40,10 +41,19 @@ export default async function FeaturePage({ params }: PageProps<"/f/[slug]">) {
   return (
     <div className="flex w-full max-w-xl flex-col gap-5">
       <LiveRefresh tables={["custom_entries"]} />
-      {canManage ? (
-        <Link href={`/f/${feature.slug}/manage`} className="self-end text-sm font-semibold text-brand underline">
-          Manage: fix entries, targets and lists
-        </Link>
+      {canManage || canReport ? (
+        <div className="flex flex-wrap justify-end gap-x-5 gap-y-1 text-sm font-semibold">
+          {canReport ? (
+            <Link href={`/reports/f/${feature.slug}`} className="text-brand underline">
+              See the report
+            </Link>
+          ) : null}
+          {canManage ? (
+            <Link href={`/f/${feature.slug}/manage`} className="text-brand underline">
+              Manage: fix entries, targets and lists
+            </Link>
+          ) : null}
+        </div>
       ) : null}
       {canFill ? (
         <Card className="p-4 sm:p-5">

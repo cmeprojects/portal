@@ -71,7 +71,12 @@ const TABS: Tab[] = [
     label: "People",
     sections: [
       { title: "People rules", intro: "Who needs a manager's approval, who can invite, and what new starters can do.", area: "people", keys: (k) => k.startsWith("people.") && !MESSAGES.includes(k) },
-      { title: "Compliance", intro: "Onboarding documents, trainings and uploads. Staff admins always manage them; you can add other roles.", area: "compliance", keys: (k) => k.startsWith("compliance.") },
+      {
+        title: "Compliance",
+        intro: "Onboarding documents, trainings and uploads. Staff admins always manage them; you can add other roles. Who sees the Compliance report is here too (and on the Reports tab).",
+        area: "compliance",
+        keys: (k) => k.startsWith("compliance.") || k === "reports.compliance_roles",
+      },
     ],
   },
   {

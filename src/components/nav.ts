@@ -21,6 +21,8 @@ export type NavAccess = {
   carReports?: boolean;
   // Live features built in the Feature builder that this person uses.
   customFeatures?: { slug: string; label: string }[];
+  // Their reports, for those ticked under "Who sees every entry".
+  featureReports?: { slug: string; label: string }[];
   // Areas of System settings delegated to this manager.
   adminAreas?: string[];
 };
@@ -58,6 +60,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       Boolean(access.seesReports) && features.reports !== false && { href: "/reports", text: "Tasks" },
       cars && Boolean(access.carReports) && { href: "/reports/cars", text: "Cars" },
       Boolean(access.complianceReport) && features.reports !== false && { href: "/reports/compliance", text: "Compliance" },
+      ...(access.featureReports ?? []).map((f) => ({ href: `/reports/f/${f.slug}`, text: f.label })),
     ],
     settings: [
       (role === "manager" || admin) && { href: "/settings/sla", text: "Due dates (SLA)" },

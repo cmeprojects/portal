@@ -76,3 +76,17 @@ export const getMenuFeatures = cache(async (role: Role): Promise<{ slug: string;
     )
     .map((f) => ({ slug: f.slug, label: f.menu_label }));
 });
+
+// Live features whose report this person sees (Reports → the feature's tab).
+export const getReportFeatures = cache(async (role: Role): Promise<{ slug: string; label: string }[]> => {
+  if (role === "new_starter") return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("custom_features")
+    .select("slug, menu_label, see_roles, sort_order")
+    .eq("status", "published")
+    .eq("enabled", true)
+    .order("sort_order")
+    .order("menu_label");
+  return (data ?? []).filter((f) => role === "system_admin" || (f.see_roles as Role[]).includes(role)).map((f) => ({ slug: f.slug, label: f.menu_label }));
+});

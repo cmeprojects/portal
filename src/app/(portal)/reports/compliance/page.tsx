@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
@@ -21,7 +22,8 @@ export const metadata: Metadata = { title: "Compliance report" };
 
 export default async function ComplianceReportPage({ searchParams }: PageProps<"/reports/compliance">) {
   const { profile, features } = await requireSession();
-  if (!canSeeComplianceReport(profile.role, await getPeopleRules()) || features.reports === false) redirect("/");
+  const rules = await getPeopleRules();
+  if (!canSeeComplianceReport(profile.role, rules) || features.reports === false) redirect("/");
   const params = await searchParams;
   // No choices in the address: open their saved view, if they have one.
   const saved = (await cookies()).get(DEFAULT_COOKIE)?.value;
@@ -62,6 +64,15 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
       />
       </div>
       {params.saved ? <Notice tone="success">Saved. The report opens like this for you next time.</Notice> : null}
+      {profile.role === "system_admin" ? (
+        <p className="-mt-2 text-sm text-muted print:hidden">
+          Who sees this report: you
+          {rules.complianceReportRoles.map((r) => `, ${ROLE_LABELS[r]}s`).join("")}.{" "}
+          <Link href="/system?tab=reports" className="font-semibold text-brand underline">
+            Change who sees it
+          </Link>
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {[
