@@ -7,7 +7,8 @@ import { hasPin } from "@/lib/car-pin";
 import { getTimeZone } from "@/lib/settings";
 import { CarsDesk } from "@/components/cars-desk";
 import { InstallHint } from "./install-hint";
-import { lockApp, signOutApp } from "./actions";
+import { AppNav } from "./app-nav";
+import { carsAppOffered } from "@/lib/staff-app";
 
 export default async function CarsAppHome({ searchParams }: PageProps<"/cars-app">) {
   const { profile, features } = await requireSession();
@@ -18,6 +19,8 @@ export default async function CarsAppHome({ searchParams }: PageProps<"/cars-app
       </p>
     );
   }
+  // The system admin moved Cars into the Staff app: open it there.
+  if (!(await carsAppOffered(features))) redirect("/app/cars");
   // First time on this phone: choose a PIN.
   if (!(await hasPin(profile.id))) redirect("/cars-app/unlock");
   const [rules, timeZone, data, params] = await Promise.all([getCarRules(), getTimeZone(), loadCarScreen(profile.id), searchParams]);
@@ -26,22 +29,13 @@ export default async function CarsAppHome({ searchParams }: PageProps<"/cars-app
     <>
       <InstallHint />
       <CarsDesk data={data} userId={profile.id} timeZone={timeZone} preselect={typeof params.car === "string" ? params.car : undefined} />
-      <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-t border-line pt-4 text-sm">
+      <AppNav base="/cars-app">
         {canManageCars(profile.role, rules) ? (
           <Link href="/cars-app/manage" className="font-semibold text-brand underline">
             Manage cars
           </Link>
         ) : null}
-        <Link href="/cars-app/unlock?change=1" className="text-brand underline">
-          Change PIN
-        </Link>
-        <form action={lockApp}>
-          <button className="min-h-11 text-brand underline">Lock</button>
-        </form>
-        <form action={signOutApp}>
-          <button className="min-h-11 text-muted underline">Sign out</button>
-        </form>
-      </nav>
+      </AppNav>
     </>
   );
 }

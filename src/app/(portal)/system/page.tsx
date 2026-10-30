@@ -18,7 +18,7 @@ type Section = { title: string; intro?: string; area?: Area; keys: (key: string)
 type Tab = { key: string; label: string; sections: Section[] };
 
 // Invites are always general now, so that switch isn't shown.
-const HIDDEN = ["people.general_invites_only", "vehicles.app_icon_uploads"];
+const HIDDEN = ["people.general_invites_only", "vehicles.app_icon_uploads", "staff_app.icon_uploads"];
 const MESSAGES = ["brand.support_contact", "brand.announcement", "people.invite_message"];
 // Settings that read best in a set order (others follow, A to Z).
 const ORDER = [
@@ -48,6 +48,10 @@ const ORDER = [
   "vehicles.app_days",
   "vehicles.app_name",
   "vehicles.app_icon",
+  "vehicles.separate_app",
+  "staff_app.name",
+  "staff_app.icon",
+  "staff_app.cars",
 ];
 const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
 
@@ -112,7 +116,7 @@ const TABS: Tab[] = [
         title: "Cars app on the phone",
         intro: "What staff see on their home screen after adding the Cars app. Changes show on phones that add the app from now on.",
         area: "vehicles",
-        keys: (k) => k.startsWith("vehicles.app_"),
+        keys: (k) => k.startsWith("vehicles.app_") || k === "vehicles.separate_app",
       },
     ],
   },
@@ -122,6 +126,17 @@ const TABS: Tab[] = [
     sections: [
       { title: "Two-factor login", intro: "Which roles need it while it's switched on (system admins always do), and which methods people can use.", keys: (k) => k.startsWith("security.mfa") },
       { title: "Signing out", keys: (k) => k === "security.idle_minutes" },
+    ],
+  },
+  {
+    key: "staff-app",
+    label: "Staff app",
+    sections: [
+      {
+        title: "Staff app",
+        intro: "One phone app for staff with the features you choose. Tick Show in the staff app on each feature in the Feature builder. Staff get it from the Apps page in the menu.",
+        keys: (k) => k.startsWith("staff_app."),
+      },
     ],
   },
   { key: "features", label: "Features", sections: [] },
@@ -144,7 +159,9 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   const canSee = (sec: Section) => isAdmin || (sec.area !== undefined && areas.includes(sec.area));
   const { features: on } = await requireSession();
   // Car settings only while Cars is switched on (and in the plan).
-  const tabs = TABS.filter((t) => (t.key !== "cars" || on.vehicles === true) && (t.sections.length ? t.sections.some(canSee) : isAdmin));
+  const tabs = TABS.filter(
+    (t) => (t.key !== "cars" || on.vehicles === true) && (t.key !== "staff-app" || on.staff_app === true) && (t.sections.length ? t.sections.some(canSee) : isAdmin),
+  );
   if (!tabs.length) redirect("/");
   const { tab: asked } = await searchParams;
   const tab = tabs.find((t) => t.key === asked) ?? tabs[0];
@@ -157,8 +174,10 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
     isAdmin ? supabase.from("custom_features").select("id, name, status, enabled").order("sort_order").order("name") : Promise.resolve({ data: [] }),
   ]);
   const rows = ((settings ?? []) as SettingRow[]).filter((s) => !HIDDEN.includes(s.key));
-  const uploadsValue = (settings ?? []).find((s) => s.key === "vehicles.app_icon_uploads")?.value;
-  const iconUploads = Array.isArray(uploadsValue) ? (uploadsValue as string[]) : [];
+  const uploadsOf = (key: string) => {
+    const v = (settings ?? []).find((s) => s.key === key)?.value;
+    return Array.isArray(v) ? (v as string[]) : [];
+  };
 
   return (
     <>
@@ -254,8 +273,13 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
               {section.intro ? <p className="text-sm text-muted">{section.intro}</p> : null}
               <div className="mt-2">
                 {list.map((s) =>
-                  s.key === "vehicles.app_icon" ? (
-                    <AppIconPicker key={s.key} setting={s} uploads={iconUploads} />
+                  s.key === "vehicles.app_icon" || s.key === "staff_app.icon" ? (
+                    <AppIconPicker
+                      key={s.key}
+                      setting={s}
+                      which={s.key === "staff_app.icon" ? "staff" : "cars"}
+                      uploads={uploadsOf(s.key === "staff_app.icon" ? "staff_app.icon_uploads" : "vehicles.app_icon_uploads")}
+                    />
                   ) : (
                     <SettingForm key={s.key} setting={s} people={(managers ?? []).map((m) => ({ id: m.id, name: m.full_name || m.email }))} />
                   ),

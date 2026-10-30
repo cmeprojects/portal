@@ -6,6 +6,10 @@ import type { Role } from "@/lib/roles";
 import { canInvite, canSeeComplianceReport, canSeeRegisters, canSeeReports, canSeeScoreboard, getMyAdminAreas, getPeopleRules, seesCompliance } from "@/lib/settings";
 import { canManageCars, canSeeCarReports, getCarRules } from "@/lib/cars";
 import { getMenuFeatures, getReportFeatures } from "@/lib/custom-features";
+import { requireSession } from "@/lib/session";
+import { getBranding, initialsOf } from "@/lib/branding";
+import { canUseCars } from "@/lib/cars";
+import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
 
 // What the menu and the section tabs show this person (worked out once per page).
 export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
@@ -16,6 +20,10 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     getMenuFeatures(role),
     getReportFeatures(role),
   ]);
+  // The company's phone apps: the Cars app and/or the Staff app.
+  const { profile, features } = await requireSession();
+  const [brand, tiles, carsOffered] = await Promise.all([getBranding(), getStaffAppTiles(profile.id, role, features), carsAppOffered(features)]);
+  const hasApps = (canUseCars(role, features) && carsOffered) || (staffAppOn(features) && (tiles.length > 0 || role === "system_admin"));
   return {
     newStarterTasks: rules.newStarterTasks,
     canInvite: canInvite(role, rules),
@@ -29,5 +37,6 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     adminAreas,
     customFeatures,
     featureReports,
+    appsLabel: hasApps ? `${initialsOf(brand.companyName) || "Our"} Apps` : undefined,
   };
 });

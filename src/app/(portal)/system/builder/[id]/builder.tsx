@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { FeatureForm } from "@/components/feature-form";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
-import { FIELD_TYPES, blankField, quickValues, type Feature, type FeatureField, type FieldType, type Option } from "@/lib/feature-types";
+import { APP_COLOURS, APP_ICONS, FIELD_TYPES, blankField, quickValues, type Feature, type FeatureField, type FieldType, type Option } from "@/lib/feature-types";
+import { AppGlyph, AppSquare } from "@/components/app-glyph";
 import { TargetsEditor } from "@/components/feature-targets";
 import { Alerts } from "./alerts";
 import type { AlertDraft } from "../actions";
@@ -186,6 +187,50 @@ export function Builder({
                 ).map(([k, label, hint]) => (
                   <Tick key={k} checked={feature[k]} onChange={(v) => set(k, v)} label={label} hint={hint} />
                 ))}
+              </Section>
+              <Section title="Staff app" hint="The phone app with the features you choose (a premium add-on, switched on in System settings → Features).">
+                <Tick checked={feature.in_app} onChange={(v) => set("in_app", v)} label="Show in the staff app" hint="An icon in the app for everyone who can fill it in." />
+                {feature.in_app ? (
+                  <div className="flex flex-col gap-3 pl-8">
+                    <div className="flex items-center gap-4">
+                      <AppSquare icon={feature.app_icon} colour={feature.app_colour} />
+                      <span className="text-sm">
+                        <span className="block font-semibold">{feature.menu_label || feature.name}</span>
+                        <span className="block text-xs text-muted">How it looks in the app</span>
+                      </span>
+                    </div>
+                    <div role="radiogroup" aria-label="Icon" className="grid grid-cols-6 gap-2 sm:grid-cols-12">
+                      {Object.entries(APP_ICONS).map(([k, v]) => (
+                        <button
+                          key={k}
+                          type="button"
+                          role="radio"
+                          aria-checked={feature.app_icon === k}
+                          title={v.label}
+                          aria-label={v.label}
+                          onClick={() => set("app_icon", k)}
+                          className={`grid aspect-square place-items-center rounded-lg border text-ink ${feature.app_icon === k ? "border-brand bg-brand-soft" : "border-line bg-surface"}`}
+                        >
+                          <AppGlyph icon={k} className="size-5" />
+                        </button>
+                      ))}
+                    </div>
+                    <div role="radiogroup" aria-label="Colour" className="flex flex-wrap gap-2">
+                      {APP_COLOURS.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          role="radio"
+                          aria-checked={feature.app_colour === c}
+                          aria-label={`Colour ${c}`}
+                          onClick={() => set("app_colour", c)}
+                          className={`size-8 rounded-full ${feature.app_colour === c ? "ring-2 ring-brand ring-offset-2" : ""}`}
+                          style={{ background: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </Section>
               {feature.status === "published" ? (
                 <Section title="Package">

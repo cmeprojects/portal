@@ -30,7 +30,7 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
     </div>
   );
 }
-import { addAppIcon, chooseAppIcon, deleteAppIcon, saveDelegation, saveSetting, setFeature } from "./actions";
+import { addAppIcon, chooseAppIcon, deleteAppIcon, saveDelegation, saveSetting, setFeature, type WhichApp } from "./actions";
 
 export function FeatureSwitch({
   feature,
@@ -99,6 +99,7 @@ export function kindOf(key: string): "color" | "number" | "roles" | "people" | "
   if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "tasks.registers_roles", "people.access_reset_roles", "vehicles.manager_roles", "vehicles.report_roles"].includes(key)) return "roles";
   if (key.endsWith("_days") || key.endsWith("_years") || key.endsWith("_minutes") || key.endsWith("_hour")) return "number";
   if (key === "tasks.sla_weekdays_only" || key === "tasks.sla_manager_summary" || key.startsWith("people.")) return "yesno";
+  if (key === "staff_app.cars" || key === "vehicles.separate_app") return "yesno";
   if (key === "security.mfa_app_enabled" || key === "security.mfa_sms_enabled") return "yesno";
   if (key.startsWith("brand.color_")) return "color";
   return "text";
@@ -246,7 +247,8 @@ export function DelegationForm({
 
 // cmeprojects: the Cars app icon. Tap one to use it; uploaded pictures stay as
 // choices until deleted.
-export function AppIconPicker({ setting, uploads }: { setting: SettingRow; uploads: string[] }) {
+export function AppIconPicker({ setting, uploads, which = "cars" }: { setting: SettingRow; uploads: string[]; which?: WhichApp }) {
+  const base = which === "staff" ? "/app" : "/cars-app";
   const router = useRouter();
   const [result, setResult] = useState<{ error?: string; message?: string } | null>(null);
   const [pending, start] = useTransition();
@@ -259,7 +261,7 @@ export function AppIconPicker({ setting, uploads }: { setting: SettingRow; uploa
       if (!r.error) router.refresh();
     });
   const tiles = [
-    { value: "car", label: "Car and initials" },
+    { value: "car", label: which === "staff" ? "Checklist and initials" : "Car and initials" },
     { value: "mark", label: "Small logo" },
     { value: "logo", label: "Main logo" },
     ...uploads.map((u, i) => ({ value: u, label: `Your picture ${i + 1}` })),
@@ -279,11 +281,11 @@ export function AppIconPicker({ setting, uploads }: { setting: SettingRow; uploa
                 type="button"
                 disabled={pending}
                 aria-pressed={chosen}
-                onClick={() => !chosen && run(() => chooseAppIcon(t.value))}
+                onClick={() => !chosen && run(() => chooseAppIcon(t.value, which))}
                 className={`flex w-full flex-col items-center gap-2 rounded-lg border-2 p-3 text-xs font-semibold ${chosen ? "border-brand bg-brand-soft text-ink" : "border-line bg-surface text-muted hover:border-muted"}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- the icon as phones will show it */}
-                <img src={`/cars-app/icon/192?as=${encodeURIComponent(t.value)}`} alt="" className="size-16 rounded-2xl shadow-sm" />
+                <img src={`${base}/icon/192?as=${encodeURIComponent(t.value)}`} alt="" className="size-16 rounded-2xl shadow-sm" />
                 <span className="text-center leading-tight">{chosen ? `${t.label} (in use)` : t.label}</span>
               </button>
               {uploaded ? (
@@ -291,7 +293,7 @@ export function AppIconPicker({ setting, uploads }: { setting: SettingRow; uploa
                   type="button"
                   disabled={pending}
                   aria-label={`Delete ${t.label}`}
-                  onClick={() => confirm(`Delete ${t.label}?`) && run(() => deleteAppIcon(t.value))}
+                  onClick={() => confirm(`Delete ${t.label}?`) && run(() => deleteAppIcon(t.value, which))}
                   className="absolute -top-2 -right-2 flex size-8 items-center justify-center rounded-full border border-line bg-surface text-danger shadow-sm hover:bg-danger-soft"
                 >
                   ×
@@ -305,7 +307,7 @@ export function AppIconPicker({ setting, uploads }: { setting: SettingRow; uploa
         <p className="mb-1 text-sm font-semibold">Upload a new icon</p>
         <FileUpload
           key={uploadKey}
-          id="app-icon-upload"
+          id={`app-icon-upload-${which}`}
           bucket="branding"
           folder="logo"
           name="icon"
@@ -314,7 +316,7 @@ export function AppIconPicker({ setting, uploads }: { setting: SettingRow; uploa
           shrink={false}
           onUploaded={(path) =>
             run(async () => {
-              const r = await addAppIcon(path);
+              const r = await addAppIcon(path, which);
               if (!r.error) setUploadKey((k) => k + 1);
               return r;
             })

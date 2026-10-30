@@ -82,3 +82,10 @@ export async function signOut() {
   (await cookies()).delete("portal_last_active");
   redirect("/login");
 }
+
+// The account was turned off: sign out of this browser without any questions.
+export async function signOutDeactivated() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  (await cookies()).delete("portal_last_active");
+}

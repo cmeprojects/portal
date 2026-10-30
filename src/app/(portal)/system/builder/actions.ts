@@ -8,7 +8,7 @@ import { requireRole } from "@/lib/session";
 import { friendlyError } from "@/lib/db-error";
 import { isRole } from "@/lib/roles";
 import { text, type FormState } from "@/lib/form";
-import { FIELD_TYPES, fluidIntakeTemplate, slugify, type Feature, type FeatureField } from "@/lib/feature-types";
+import { APP_ICONS, FIELD_TYPES, fluidIntakeTemplate, slugify, type Feature, type FeatureField } from "@/lib/feature-types";
 
 // Only the system admin builds features.
 const requireBuilder = () => requireRole(["system_admin"]);
@@ -33,7 +33,14 @@ export async function createFeature(_: FormState, form: FormData): Promise<FormS
   const template = text(form, "template") === "fluid" ? fluidIntakeTemplate() : null;
   const { data: feature, error } = await supabase
     .from("custom_features")
-    .insert({ slug, name, menu_label: name.slice(0, 30), description: template?.description ?? "", default_target: template ? 1500 : null })
+    .insert({
+      slug,
+      name,
+      menu_label: name.slice(0, 30),
+      description: template?.description ?? "",
+      default_target: template ? 1500 : null,
+      ...(template ? { app_icon: "drop", app_colour: "#1f8ab8" } : {}),
+    })
     .select("id")
     .single();
   if (error || !feature) return { error: friendlyError(error) };
@@ -134,6 +141,9 @@ export async function saveFeature(featureId: string, draft: Draft): Promise<{ er
       managers_fix: f.managers_fix,
       managers_targets: f.managers_targets,
       managers_options: f.managers_options,
+      in_app: f.in_app,
+      app_icon: f.app_icon in APP_ICONS ? f.app_icon : "clipboard",
+      app_colour: /^#[0-9a-fA-F]{6}$/.test(f.app_colour) ? f.app_colour : "#134f8e",
       updated_at: new Date().toISOString(),
     })
     .eq("id", featureId);

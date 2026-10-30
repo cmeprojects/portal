@@ -8,7 +8,7 @@ import { savePin, unlockWithPin } from "../actions";
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"];
 
 // A phone-style keypad; it unlocks as soon as the fourth number is tapped.
-export function PinPad() {
+export function PinPad({ base }: { base: string }) {
   const [state, action, pending] = useActionState(unlockWithPin, null);
   const [pin, setPin] = useState("");
   const form = useRef<HTMLFormElement>(null);
@@ -31,6 +31,7 @@ export function PinPad() {
   return (
     <form ref={form} action={action} className="flex flex-col items-center gap-5">
       <input type="hidden" name="pin" value={pin} />
+      <input type="hidden" name="base" value={base} />
       <div className="flex gap-4" aria-label={`${pin.length} of 4 numbers entered`} role="status">
         {[0, 1, 2, 3].map((i) => (
           <span key={i} className={`size-4 rounded-full border-2 border-brand ${i < pin.length ? "bg-brand" : ""}`} />
@@ -61,11 +62,12 @@ export function PinPad() {
   );
 }
 
-export function SetPinForm() {
+export function SetPinForm({ base }: { base: string }) {
   const [state, action, pending] = useActionState(savePin, null);
   const pinInput = `${inputClass} h-14 text-center text-2xl tracking-[0.6em]`;
   return (
     <form action={action} className="flex flex-col gap-4">
+      <input type="hidden" name="base" value={base} />
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <Field label="New PIN (4 numbers)" htmlFor="pin">
         <input id="pin" name="pin" type="password" inputMode="numeric" pattern="\d{4}" maxLength={4} autoComplete="new-password" required className={pinInput} />

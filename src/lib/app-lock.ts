@@ -1,11 +1,15 @@
 // Staff Portal · © cmeproject. All rights reserved.
 
-// The Cars app's lock (cmeprojects). After a full sign-in, the app stays
+// The phone apps' lock (cmeprojects): the Cars app and the Staff app share it. After a full sign-in, the app stays
 // signed in for the set number of days; each time it's opened, the PIN
 // unlocks it for a few minutes. The unlock is a signed cookie, so it can't be
 // made up in the browser. Used by the proxy and the unlock page.
 
 export const APP_PATH = "/cars-app";
+// The Staff app (premium): one app for the features the system admin chooses.
+export const STAFF_APP_PATH = "/app";
+export const APP_PATHS = [APP_PATH, STAFF_APP_PATH] as const;
+export type AppPath = (typeof APP_PATHS)[number];
 export const UNLOCK_COOKIE = "cars_unlock";
 // Marks a browser (or installed app) that has used the Cars app.
 export const APP_COOKIE = "cars_app";
@@ -46,4 +50,7 @@ export async function isUnlocked(value: string | undefined, userId: string, now 
   return diff === 0;
 }
 
-export const isAppPath = (path: string) => path === APP_PATH || path.startsWith(`${APP_PATH}/`);
+// Which app a page belongs to (both share one PIN and one lock), or null for the portal.
+export const appPathOf = (path: string): AppPath | null => APP_PATHS.find((a) => path === a || path.startsWith(`${a}/`)) ?? null;
+export const isAppPath = (path: string) => appPathOf(path) !== null;
+export const asAppPath = (v: unknown): AppPath => (APP_PATHS as readonly string[]).includes(String(v)) ? (v as AppPath) : APP_PATH;

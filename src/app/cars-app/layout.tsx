@@ -37,7 +37,7 @@ export default async function CarsAppLayout({ children }: LayoutProps<"/cars-app
           {name ? <p className="max-w-[40%] truncate text-right text-xs text-side-muted">{name}</p> : null}
         </div>
       </header>
-      <LiveRefresh tables={["app_settings", "features", "cars"]} onShow />
+      <LiveRefresh tables={["app_settings", "features", "live_signals", "cars"]} onShow />
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">{children}</main>
     </div>
   );

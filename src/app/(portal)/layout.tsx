@@ -35,6 +35,8 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
     noticesForMe(),
   ]);
   const bellItems = [...notices, ...requestItems, ...taskItems];
+  // Their role changed (while signed in): a banner until they've seen it.
+  const roleChange = notices.find((n) => n.kind === "role_changed");
 
   const footer = (
     <div className="flex flex-wrap items-center justify-between gap-3 md:flex-col md:items-start">
@@ -67,6 +69,16 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
       {/* Menus, settings, the bell and task lists stay current; pages refresh when you come back to them. */}
       <LiveRefresh tables={["app_settings", "features", "live_signals", "notifications", "tasks", "people_change_requests"]} onShow />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
+        {roleChange ? (
+          <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-good/40 bg-good-soft px-4 py-3 text-sm text-ink print:hidden">
+            <span className="min-w-0 flex-1">
+              <strong>{roleChange.title}.</strong> Your menu has been updated to show what you can use now.
+            </span>
+            <Link href={roleChange.href} className="font-semibold text-brand underline">
+              Got it
+            </Link>
+          </div>
+        ) : null}
         {brand.announcement ? (
           <div role="status" className="rounded-lg border border-brand/30 bg-brand-soft px-4 py-3 text-sm whitespace-pre-line text-ink print:hidden">
             {brand.announcement}
@@ -170,7 +182,7 @@ const NOTICE_TONE: Record<string, BellItem["tone"]> = {
 };
 
 // Onboarding, Compliance and people notices for the signed-in person.
-async function noticesForMe(): Promise<BellItem[]> {
+async function noticesForMe(): Promise<(BellItem & { kind?: string })[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("notifications")
@@ -182,6 +194,7 @@ async function noticesForMe(): Promise<BellItem[]> {
   const timeZone = await getTimeZone();
   const when = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone });
   return data.map((n) => ({
+    kind: n.kind,
     key: `notice-${n.id}`,
     href: `/n/${n.id}`,
     title: n.title,

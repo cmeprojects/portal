@@ -57,10 +57,14 @@ export type Feature = {
   managers_fix: boolean;
   managers_targets: boolean;
   managers_options: boolean;
+  // The Staff app: shown there or not, and its icon and colour.
+  in_app: boolean;
+  app_icon: string;
+  app_colour: string;
 };
 
 export const FEATURE_COLUMNS =
-  "id, slug, name, menu_label, description, status, enabled, fill_roles, see_roles, undo_minutes, record_team, total_field, group_field, default_target, managers_fix, managers_targets, managers_options";
+  "id, slug, name, menu_label, description, status, enabled, fill_roles, see_roles, undo_minutes, record_team, total_field, group_field, default_target, managers_fix, managers_targets, managers_options, in_app, app_icon, app_colour";
 export const FIELD_COLUMNS = "id, label, type, required, help, unit, min_value, max_value, options, allow_other, add_typed, quick, sort_order, archived";
 
 export type Option = { id: string; name: string };
@@ -117,3 +121,20 @@ export const slugify = (name: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40) || "feature";
+
+// Icons a feature can have in the Staff app (24 × 24 line drawings).
+export const APP_ICONS: Record<string, { label: string; path: string }> = {
+  clipboard: { label: "Checklist", path: "M9 4h6v3H9zM6 5h3M15 5h3v15H6V5M9 11h6M9 15h4" },
+  drop: { label: "Drop", path: "M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" },
+  cup: { label: "Cup", path: "M6 3h12l-1.5 18h-9zM7 9h10" },
+  thermometer: { label: "Temperature", path: "M10 14V5a2 2 0 1 1 4 0v9a4 4 0 1 1-4 0zM12 9v6" },
+  pulse: { label: "Health", path: "M3 12h4l2-5 4 10 2-5h6" },
+  pill: { label: "Medication", path: "M7.5 16.5l9-9a3.5 3.5 0 0 0-5-5l-9 9a3.5 3.5 0 0 0 5 5zM7 7l5 5" },
+  person: { label: "Person", path: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4-6 8-6s7 2 8 6" },
+  home: { label: "House", path: "M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6" },
+  food: { label: "Meals", path: "M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 21V3c-2 1-3 4-3 8h3" },
+  note: { label: "Notes", path: "M5 4h14v16H5zM9 9h6M9 13h6M9 17h3" },
+  alert: { label: "Incident", path: "M12 4l9 16H3zM12 10v4M12 17h.01" },
+  star: { label: "Star", path: "M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z" },
+};
+export const APP_COLOURS = ["#134f8e", "#1f8ab8", "#2f8f6a", "#c46a1b", "#8a4fb3", "#b3261e", "#0f2f57", "#5b6b80"];

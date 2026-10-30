@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSession } from "@/lib/session";
 import { getCarRules } from "@/lib/cars";
-import { APP_DAYS_COOKIE, APP_PATH, LOCKED_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, isUnlocked, unlockValue } from "@/lib/app-lock";
+import { APP_DAYS_COOKIE, LOCKED_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, asAppPath, isUnlocked, unlockValue } from "@/lib/app-lock";
 import { text, type FormState } from "@/lib/form";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
@@ -49,8 +49,10 @@ async function openApp(userId: string) {
 
 const validPin = (pin: string) => /^\d{4}$/.test(pin);
 
+// The Cars app and the Staff app share these; each form says which app it's in.
 export async function savePin(_: FormState, form: FormData): Promise<FormState> {
   const { profile } = await requireSession();
+  const APP_PATH = asAppPath(form.get("base"));
   const pin = text(form, "pin");
   if (!validPin(pin)) return { error: "Your PIN is 4 numbers." };
   if (pin !== text(form, "pin2")) return { error: "The two PINs don't match. Try again." };
@@ -68,6 +70,7 @@ export async function savePin(_: FormState, form: FormData): Promise<FormState> 
 
 export async function unlockWithPin(_: FormState, form: FormData): Promise<FormState> {
   const { profile } = await requireSession();
+  const APP_PATH = asAppPath(form.get("base"));
   const pin = text(form, "pin");
   const admin = createAdminClient();
   const { data: row } = await admin.from("car_app_pins").select("pin_hash, failed").eq("user_id", profile.id).maybeSingle();
@@ -90,21 +93,24 @@ export async function unlockWithPin(_: FormState, form: FormData): Promise<FormS
 }
 
 // Forgot the PIN: sign in again with email, then choose a new one.
-export async function forgotPin() {
+export async function forgotPin(form: FormData) {
   const { profile } = await requireSession();
+  const APP_PATH = asAppPath(form.get("base"));
   await createAdminClient().from("car_app_pins").delete().eq("user_id", profile.id);
   await (await createClient()).auth.signOut();
   redirect(`/login?next=${encodeURIComponent(APP_PATH)}`);
 }
 
-export async function lockApp() {
+export async function lockApp(form: FormData) {
+  const APP_PATH = asAppPath(form.get("base"));
   const jar = await cookies();
   jar.delete(UNLOCK_COOKIE);
   jar.set(LOCKED_COOKIE, "1", { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
   redirect(`${APP_PATH}/unlock`);
 }
 
-export async function signOutApp() {
+export async function signOutApp(form: FormData) {
+  const APP_PATH = asAppPath(form.get("base"));
   const jar = await cookies();
   jar.delete(UNLOCK_COOKIE);
   await (await createClient()).auth.signOut();

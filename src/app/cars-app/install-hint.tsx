@@ -7,7 +7,7 @@ import { Button } from "@/components/ui";
 type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
 // Shown in the phone's browser (not once installed): how to put the app on the home screen.
-export function InstallHint() {
+export function InstallHint({ name = "Cars", storageKey = "cars-install-hint" }: { name?: string; storageKey?: string }) {
   const [mode, setMode] = useState<"hidden" | "ios" | "android" | "other">("hidden");
   const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
 
@@ -15,7 +15,7 @@ export function InstallHint() {
     const installed = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
     let dismissed = false;
     try {
-      dismissed = localStorage.getItem("cars-install-hint") === "no";
+      dismissed = localStorage.getItem(storageKey) === "no";
     } catch {}
     if (installed || dismissed) return;
     const ua = navigator.userAgent;
@@ -30,19 +30,19 @@ export function InstallHint() {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.clearTimeout(t);
     };
-  }, []);
+  }, [storageKey]);
 
   if (mode === "hidden") return null;
   const hide = () => {
     try {
-      localStorage.setItem("cars-install-hint", "no");
+      localStorage.setItem(storageKey, "no");
     } catch {}
     setMode("hidden");
   };
 
   return (
     <section className="flex flex-col gap-2 rounded-xl border border-brand/30 bg-brand-soft p-4 text-sm text-ink">
-      <p className="font-semibold">Put Cars on your home screen</p>
+      <p className="font-semibold">Put {name} on your home screen</p>
       {prompt ? (
         <Button
           onClick={async () => {

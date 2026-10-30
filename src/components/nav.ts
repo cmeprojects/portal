@@ -23,6 +23,8 @@ export type NavAccess = {
   customFeatures?: { slug: string; label: string }[];
   // Their reports, for those ticked under "Who sees every entry".
   featureReports?: { slug: string; label: string }[];
+  // "EC Apps": the company's phone apps this person can use (none = no menu item).
+  appsLabel?: string;
   // Areas of System settings delegated to this manager.
   adminAreas?: string[];
 };
@@ -106,6 +108,7 @@ export function navFor(
         ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),
         ...sectionItem("cars", role, features, access),
         ...(access.customFeatures ?? []).map((f) => ({ href: `/f/${f.slug}`, label: f.label })),
+        ...(access.appsLabel ? [{ href: "/apps", label: access.appsLabel }] : []),
         ...sectionItem("people", role, features, access),
         ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
         ...sectionItem("reports", role, features, access),

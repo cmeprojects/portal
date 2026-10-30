@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { APP_COOKIE, APP_DAYS_COOKIE, APP_PATH, LOCKED_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, isAppPath, isUnlocked, unlockValue } from "@/lib/app-lock";
+import { APP_COOKIE, APP_DAYS_COOKIE, LOCKED_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, appPathOf, isUnlocked, unlockValue } from "@/lib/app-lock";
 
 // Pages anyone can open without signing in.
 // /cron checks its own secret.
@@ -36,9 +36,10 @@ export async function proxy(request: NextRequest) {
   const userId = data?.claims?.sub;
   const signedIn = Boolean(userId);
   const path = request.nextUrl.pathname;
-  const app = isAppPath(path);
-  // The Cars app's install details and icon are needed before signing in.
-  const appPublic = path === `${APP_PATH}/manifest.webmanifest` || path.startsWith(`${APP_PATH}/icon/`);
+  const appBase = appPathOf(path);
+  const app = appBase !== null;
+  // The apps' install details and icons are needed before signing in.
+  const appPublic = app && (path === `${appBase}/manifest.webmanifest` || path.startsWith(`${appBase}/icon/`));
   const isPublic = appPublic || PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
   // When they last signed in properly (password, link or code), from the session itself.
   const amr = (data?.claims?.amr ?? []) as { timestamp?: number }[];
@@ -63,15 +64,15 @@ export async function proxy(request: NextRequest) {
     // The Cars app stays signed in for the set number of days, then a full sign-in again.
     const appDays = Number(request.cookies.get(APP_DAYS_COOKIE)?.value ?? 90) || 90;
     if (pageVisit && signedInAt > 0 && now - signedInAt > appDays * 86_400_000) {
-      return signOutTo(`?error=app&next=${encodeURIComponent(APP_PATH)}`);
+      return signOutTo(`?error=app&next=${encodeURIComponent(appBase!)}`);
     }
     // Opening it needs the PIN, unless they've just signed in or used it in the last few minutes.
     const unlocked =
       (await isUnlocked(request.cookies.get(UNLOCK_COOKIE)?.value, userId!, now)) ||
       (!request.cookies.has(LOCKED_COOKIE) && now - signedInAt < UNLOCK_MINUTES * 60_000);
-    if (!unlocked && pageVisit && path !== `${APP_PATH}/unlock`) {
+    if (!unlocked && pageVisit && path !== `${appBase}/unlock`) {
       const url = request.nextUrl.clone();
-      url.pathname = `${APP_PATH}/unlock`;
+      url.pathname = `${appBase}/unlock`;
       url.search = "";
       const out = NextResponse.redirect(url);
       response.cookies.getAll().forEach((c) => out.cookies.set(c));

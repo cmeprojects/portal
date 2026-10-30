@@ -93,3 +93,37 @@ export const isIconChoice = (icon: string, uploads: string[]) => ["car", "mark",
 
 // The picture to draw for an icon choice ("" = the car).
 export const iconPicture = (icon: string, brand: Branding) => (icon === "mark" ? brand.logoMarkUrl : icon === "logo" ? brand.logoUrl : icon === "car" ? "" : icon);
+
+export type StaffAppLook = CarsAppLook & { cars: boolean; separateCars: boolean };
+
+// The Staff app (premium): its name, icon, and whether Cars is inside it.
+export const getStaffAppLook = cache(async (): Promise<StaffAppLook> => {
+  const look: StaffAppLook = { name: "Staff", icon: "car", uploads: [], cars: false, separateCars: true };
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["staff_app.name", "staff_app.icon", "staff_app.icon_uploads", "staff_app.cars", "vehicles.separate_app"]);
+    for (const row of data ?? []) {
+      if (row.key === "staff_app.name" && typeof row.value === "string" && row.value.trim()) look.name = row.value.trim().slice(0, 20);
+      if (row.key === "staff_app.icon" && typeof row.value === "string") look.icon = row.value;
+      if (row.key === "staff_app.icon_uploads" && Array.isArray(row.value)) look.uploads = row.value.filter((u): u is string => typeof u === "string");
+      if (row.key === "staff_app.cars") look.cars = row.value === true;
+      if (row.key === "vehicles.separate_app") look.separateCars = row.value !== false;
+    }
+  } catch {
+    // Not connected yet: the defaults.
+  }
+  if (!isIconChoice(look.icon, look.uploads)) look.icon = "car";
+  return look;
+});
+
+// The company's initials, e.g. "EC" for Engaged Care (for "EC Apps" and the icons).
+export const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter((w) => /^[A-Za-z]/.test(w))
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
