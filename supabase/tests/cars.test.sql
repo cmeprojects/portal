@@ -143,6 +143,17 @@ select test.ok((select count(*) from public.notifications where user_id = test.p
 select test.ok((select count(*) from public.notifications where user_id = test.pid('boss@example.com') and kind = 'car_service') = 1,
   'and a service coming up');
 
+-- Monday's mileage report goes only to the managers the system admin ticked.
+update public.app_settings set value = '[]' where key = 'vehicles.weekly_recipients';
+select public.run_car_alerts(((now() at time zone 'Australia/Melbourne')::date - extract(isodow from (now() at time zone 'Australia/Melbourne')::date)::int + 8)::timestamp at time zone 'Australia/Melbourne' + interval '9 hours');
+select test.ok(not exists (select 1 from public.notifications where kind = 'car_weekly'), 'no one ticked: no weekly report');
+delete from public.daily_runs where job = 'car_weekly';
+update public.app_settings set value = jsonb_build_array(test.pid('boss@example.com')) where key = 'vehicles.weekly_recipients';
+select public.run_car_alerts(((now() at time zone 'Australia/Melbourne')::date - extract(isodow from (now() at time zone 'Australia/Melbourne')::date)::int + 8)::timestamp at time zone 'Australia/Melbourne' + interval '9 hours');
+select test.ok((select count(*) from public.notifications where kind = 'car_weekly') = 1
+               and exists (select 1 from public.notifications where kind = 'car_weekly' and user_id = test.pid('boss@example.com')),
+  'only the ticked manager gets it');
+
 -- Settings: car managers set the client field; the rest is for the system admin (or a delegate).
 select test.act_as('boss@example.com');
 set role authenticated;

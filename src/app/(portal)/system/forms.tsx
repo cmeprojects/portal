@@ -89,8 +89,9 @@ export type SettingRow = { key: string; label: string; description: string | nul
 // Text that can be left blank (to hide it).
 const OPTIONAL_TEXT = ["brand.support_contact", "brand.announcement", "people.invite_message"];
 
-export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sla" | "yesno" | "choice" | "logo" | "note" {
+export function kindOf(key: string): "color" | "number" | "roles" | "people" | "text" | "sla" | "yesno" | "choice" | "logo" | "note" {
   if (key === "tasks.sla_days") return "sla";
+  if (key === "vehicles.weekly_recipients") return "people";
   if (key === "brand.logo_url" || key === "brand.logo_mark_url") return "logo";
   if (OPTIONAL_TEXT.includes(key)) return "note";
   if (key in CHOICES) return "choice";
@@ -102,7 +103,7 @@ export function kindOf(key: string): "color" | "number" | "roles" | "text" | "sl
   return "text";
 }
 
-export function SettingForm({ setting }: { setting: SettingRow }) {
+export function SettingForm({ setting, people = [] }: { setting: SettingRow; people?: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState(saveSetting, null);
   const kind = kindOf(setting.key);
   const id = `s-${setting.key}`;
@@ -111,7 +112,7 @@ export function SettingForm({ setting }: { setting: SettingRow }) {
     <form action={action} className="flex flex-col gap-2 border-t border-line py-4 first:border-t-0">
       <input type="hidden" name="key" value={setting.key} />
       <input type="hidden" name="kind" value={kind} />
-      <label htmlFor={kind === "roles" ? undefined : id} className="font-semibold">
+      <label htmlFor={kind === "roles" || kind === "people" ? undefined : id} className="font-semibold">
         {setting.label}
       </label>
       {setting.description ? <p className="-mt-1 text-sm text-muted">{setting.description}</p> : null}
@@ -123,6 +124,23 @@ export function SettingForm({ setting }: { setting: SettingRow }) {
             <input type="checkbox" name="value" value="true" defaultChecked={setting.value === true} className="h-5 w-5 accent-[var(--brand-primary)]" />
             Yes
           </label>
+        ) : kind === "people" ? (
+          <fieldset className="flex flex-col">
+            <legend className="sr-only">{setting.label}</legend>
+            {people.length === 0 ? <p className="text-sm text-muted">There are no active managers yet.</p> : null}
+            {people.map((p) => (
+              <label key={p.id} className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="value"
+                  value={p.id}
+                  defaultChecked={Array.isArray(setting.value) && setting.value.includes(p.id)}
+                  className="h-5 w-5 accent-[var(--brand-primary)]"
+                />
+                {p.name}
+              </label>
+            ))}
+          </fieldset>
         ) : kind === "roles" ? (
           <fieldset className="flex flex-wrap gap-x-5">
             <legend className="sr-only">{setting.label}</legend>

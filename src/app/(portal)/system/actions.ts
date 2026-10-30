@@ -55,6 +55,8 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
       const roles = form.getAll("value").map(String).filter(isRole);
       return { value: roles };
     }
+    case "people":
+      return { value: form.getAll("value").map(String).filter((v) => /^[0-9a-f-]{36}$/.test(v)) };
     default:
       return raw ? { value: raw } : { error: "This can't be empty." };
   }

@@ -37,6 +37,7 @@ const ORDER = [
   "security.idle_minutes",
   "vehicles.manager_roles",
   "vehicles.report_roles",
+  "vehicles.weekly_recipients",
   "vehicles.client_field",
   "vehicles.odo_photo",
   "vehicles.undo_minutes",
@@ -124,7 +125,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   const [{ data: features }, { data: settings }, { data: managers }, { data: delegations }] = await Promise.all([
     supabase.from("features").select("*").order("sort_order"),
     supabase.from("app_settings").select("key, label, description, value").order("key"),
-    isAdmin ? supabase.from("profiles").select("id, full_name, email").eq("role", "manager").eq("active", true).order("full_name") : Promise.resolve({ data: [] }),
+    supabase.from("profiles").select("id, full_name, email").eq("role", "manager").eq("active", true).order("full_name"),
     isAdmin ? supabase.from("admin_delegations").select("user_id, areas") : Promise.resolve({ data: [] }),
   ]);
   const rows = ((settings ?? []) as SettingRow[]).filter((s) => !HIDDEN.includes(s.key));
@@ -197,7 +198,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
               {section.intro ? <p className="text-sm text-muted">{section.intro}</p> : null}
               <div className="mt-2">
                 {list.map((s) => (
-                  <SettingForm key={s.key} setting={s} />
+                  <SettingForm key={s.key} setting={s} people={(managers ?? []).map((m) => ({ id: m.id, name: m.full_name || m.email }))} />
                 ))}
               </div>
             </Card>
