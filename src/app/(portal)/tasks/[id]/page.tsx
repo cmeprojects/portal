@@ -27,6 +27,7 @@ import { EditDetailsForm } from "./edit-details";
 import { FollowUpForm } from "./follow-up";
 import { AttachmentForm, CommentForm, TaskActions, type Can } from "./workflow";
 import { describeEvent, type TaskEvent } from "@/lib/task-events";
+import { LiveRefresh } from "@/components/live-refresh";
 
 export const metadata: Metadata = { title: "Task" };
 
@@ -164,6 +165,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
 
   return (
     <>
+      {/* Comments, status changes and files from others show up by themselves. */}
+      <LiveRefresh tables={["task_events"]} />
       <PrintHeader
         brand={brand}
         title={`${registry.name} · ${refLabel(registry.prefix, task.ref_number)}`}
