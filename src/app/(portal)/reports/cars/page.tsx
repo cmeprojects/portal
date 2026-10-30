@@ -1,53 +1,47 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
-import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { canSeeCarReports, canUseCars, getCarRules } from "@/lib/cars";
-import { buildCarReport, parseCarPeriod } from "@/lib/car-reports";
+import { CAR_REPORT_COOKIE, KIND_HINTS, KIND_LABELS, PERIODS, buildCarReport, carFilterQuery, parseCarFilter, type CarReportKind } from "@/lib/car-reports";
 import { getTimeZone } from "@/lib/settings";
 import { getBranding } from "@/lib/branding";
 import { todayIn } from "@/lib/tasks";
-import { createClient } from "@/lib/supabase/server";
 import { km } from "@/lib/car-types";
-import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
+import { Card, Notice, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { DataTable } from "@/components/data-table";
 import { PrintButton } from "@/components/print-button";
 import { PrintHeader } from "@/components/print-header";
+import { SectionTabs } from "@/components/section-tabs";
+import { clearCarReportView, saveCarReportView } from "./actions";
 
 export const metadata: Metadata = { title: "Car reports" };
 
-const RANGES = [
-  { key: "last-week", label: "Last week" },
-  { key: "this-week", label: "This week" },
-  { key: "month", label: "This month" },
-];
+const KINDS = Object.keys(KIND_LABELS) as CarReportKind[];
 
 export default async function CarReportsPage({ searchParams }: PageProps<"/reports/cars">) {
   const { profile, features } = await requireSession();
   if (!canUseCars(profile.role, features) || !canSeeCarReports(profile.role, await getCarRules())) redirect("/cars");
-  const [timeZone, brand, params] = await Promise.all([getTimeZone(), getBranding(), searchParams]);
-  const period = parseCarPeriod(params, todayIn(timeZone));
-  const view = params.view === "log" ? "log" : "mileage";
-  const carId = typeof params.car === "string" ? params.car : "";
-  const supabase = await createClient();
-  const [{ data: allCars }, report] = await Promise.all([
-    supabase.from("cars").select("id, name, rego").order("name"),
-    buildCarReport(period, timeZone, carId),
-  ]);
-  const qs = new URLSearchParams({ ...(period.key === "custom" ? { from: period.from, to: period.to } : { range: period.key }), ...(carId ? { car: carId } : {}) });
-  const link = (extra: Record<string, string>) => `/reports/cars?${new URLSearchParams({ ...Object.fromEntries(qs), ...extra })}`;
+  const params = await searchParams;
+  // No choices in the address: open their saved report, if they have one.
+  const saved = (await cookies()).get(CAR_REPORT_COOKIE)?.value;
+  if (!Object.keys(params).length && saved) redirect(`/reports/cars?${saved}`);
+  const [timeZone, brand] = await Promise.all([getTimeZone(), getBranding()]);
+  const f = parseCarFilter(params, todayIn(timeZone));
+  const report = await buildCarReport(f, timeZone);
+  const qs = carFilterQuery(f);
   const printedAt = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date());
+  const field = "flex flex-col gap-1 text-sm";
 
   return (
     <>
-      <PrintHeader brand={brand} title={view === "log" ? "Car use log" : "Mileage report"} subtitle={period.label} printedAt={printedAt} />
+      <PrintHeader brand={brand} title={KIND_LABELS[f.kind]} subtitle={report.filterText} printedAt={printedAt} />
       <SectionTabs section="reports" current="/reports/cars" />
       <PageHeader
-        eyebrow="Reports"
         title="Car reports"
-        intro={`${period.label}. Car managers get last week's report every Monday morning.`}
+        intro="Choose a report, a car (or all of them) and the dates, then show it, download it or print it."
         action={
           <div className="flex flex-wrap gap-2 print:hidden">
             <a href={`/reports/cars/export?${qs}`} className={buttonClass("primary")}>
@@ -57,33 +51,107 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
           </div>
         }
       />
+      {params.saved ? <Notice tone="success">Saved. Car reports opens like this for you next time.</Notice> : null}
 
-      <div className="flex flex-col gap-3 print:hidden">
-        <Tabs label="Period" items={RANGES.map((r) => ({ href: `/reports/cars?range=${r.key}${carId ? `&car=${carId}` : ""}&view=${view}`, text: r.label, current: period.key === r.key }))} />
-        <form className="flex flex-wrap items-end gap-2">
-          <input type="hidden" name="view" value={view} />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-semibold">From</span>
-            <input type="date" name="from" defaultValue={period.from} required className={inputClass} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-semibold">To</span>
-            <input type="date" name="to" defaultValue={period.to} required className={inputClass} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-semibold">Car</span>
-            <select name="car" defaultValue={carId} className={inputClass}>
-              <option value="">All cars</option>
-              {(allCars ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} · {c.rego}
-                </option>
+      <Card className="p-4 print:hidden">
+        <form className="flex flex-col gap-4">
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-sm font-semibold">Report</legend>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {KINDS.map((k) => (
+                <label key={k} className="flex cursor-pointer items-start gap-3 rounded-md border border-line px-3 py-2 has-[:checked]:border-brand has-[:checked]:bg-brand-soft">
+                  <input type="radio" name="report" value={k} defaultChecked={f.kind === k} className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-primary)]" />
+                  <span>
+                    <span className="block text-sm font-semibold">{KIND_LABELS[k]}</span>
+                    <span className="block text-xs text-muted">{KIND_HINTS[k]}</span>
+                  </span>
+                </label>
               ))}
-            </select>
-          </label>
-          <button className={buttonClass("outline", "h-11")}>Show</button>
+            </div>
+          </fieldset>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className={field}>
+              <span className="font-semibold">Period</span>
+              <select name="range" defaultValue={f.period.key === "custom" ? "" : f.period.key} className={inputClass}>
+                {PERIODS.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+                <option value="">Choose dates below</option>
+              </select>
+            </label>
+            <label className={field}>
+              <span className="font-semibold">Car</span>
+              <select name="car" defaultValue={f.car} className={inputClass}>
+                <option value="">All cars</option>
+                {report.options.cars.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={field}>
+              <span className="font-semibold">Staff</span>
+              <select name="staff" defaultValue={f.staff} className={inputClass}>
+                <option value="">All staff</option>
+                {report.options.staff.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={field}>
+              <span className="font-semibold">Client</span>
+              <select name="client" defaultValue={f.client} className={inputClass}>
+                <option value="">All clients</option>
+                <option value="No client">No client</option>
+                {report.options.clients.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={field}>
+              <span className="font-semibold">Purpose</span>
+              <select name="purpose" defaultValue={f.purpose} className={inputClass}>
+                <option value="">All purposes</option>
+                {report.options.purposes.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={field}>
+              <span className="font-semibold">From (your own dates)</span>
+              <input type="date" name="from" defaultValue={f.period.key === "custom" ? f.period.from : ""} className={inputClass} />
+            </label>
+            <label className={field}>
+              <span className="font-semibold">To</span>
+              <input type="date" name="to" defaultValue={f.period.key === "custom" ? f.period.to : ""} className={inputClass} />
+            </label>
+            <div className="flex items-end">
+              <button className={buttonClass("primary", "h-11 w-full")}>Show report</button>
+            </div>
+          </div>
+          <p className="text-xs text-muted">Fill in both dates to use your own dates instead of the period.</p>
         </form>
-      </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3 text-sm">
+          <form action={saveCarReportView}>
+            <input type="hidden" name="query" value={qs} />
+            <button className="font-semibold text-brand underline">Save as my default</button>
+          </form>
+          {saved ? (
+            <form action={clearCarReportView}>
+              <button className="text-muted underline">Forget my default</button>
+            </form>
+          ) : null}
+        </div>
+      </Card>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
@@ -99,51 +167,19 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
         ))}
       </div>
 
-      <Tabs
-        label="Report"
-        items={[
-          { href: link({ view: "mileage" }), text: "Mileage", current: view === "mileage" },
-          { href: link({ view: "log" }), text: "Car use log", current: view === "log" },
-        ]}
-      />
-
-      {view === "mileage" ? (
-        <>
-          <Card className="overflow-hidden">
-            <div className="border-b border-line px-5 py-3">
-              <h2 className="heading-sm">Summary by car</h2>
-            </div>
-            <DataTable table={report.byCar} empty="No trips in these dates." />
-          </Card>
-          <div className="grid items-start gap-4 md:grid-cols-2">
-            <Card className="overflow-hidden">
-              <h2 className="heading-sm border-b border-line px-5 py-3">By staff member</h2>
-              <DataTable table={report.byDriver} empty="No trips." />
-            </Card>
-            <Card className="overflow-hidden">
-              <h2 className="heading-sm border-b border-line px-5 py-3">By client</h2>
-              <DataTable table={report.byClient} empty="No trips." />
-            </Card>
-          </div>
-          <Card className="overflow-hidden">
-            <div className="border-b border-line px-5 py-3">
-              <h2 className="heading-sm">Every trip</h2>
-              <p className="text-sm text-muted">Start and end readings, with any gap since the car&apos;s last return flagged.</p>
-            </div>
-            <DataTable table={report.mileage} empty="No trips in these dates." />
-          </Card>
-        </>
-      ) : (
-        <Card className="overflow-hidden">
-          <div className="border-b border-line px-5 py-3">
-            <h2 className="heading-sm">Car use log</h2>
-            <p className="text-sm text-muted">Who took which car, when, for what, and when it came back.</p>
-          </div>
-          <DataTable table={report.log} empty="No trips in these dates." />
-        </Card>
-      )}
+      <Card className="overflow-hidden">
+        <div className="border-b border-line px-5 py-3">
+          <h2 className="heading-sm">{KIND_LABELS[f.kind]}</h2>
+          <p className="text-sm text-muted">{report.filterText}</p>
+          {report.carDetails ? <p className="text-sm">{report.carDetails}</p> : null}
+        </div>
+        <DataTable table={report.table} empty="No trips match these choices." />
+      </Card>
       <p className="text-sm text-muted print:hidden">
-        Need to fix a trip? <Link href="/cars/manage?tab=trips" className="font-semibold text-brand underline">Manage cars → Fix a trip</Link>
+        Need to fix a trip?{" "}
+        <Link href="/cars/manage?tab=trips" className="font-semibold text-brand underline">
+          Manage cars → Fix a trip
+        </Link>
       </p>
     </>
   );
