@@ -18,6 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: `${initialsOf((await getBranding()).companyName) || "Our"} Apps` };
 }
 
+// "EC Cars" → "EC Cars app", but "EC APP" stays "EC APP".
+const appLabel = (name: string) => (/\bapp$/i.test(name.trim()) ? name.trim() : `${name.trim()} app`);
+
 const qr = (url: string) => QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
 
 // cmeprojects: the company's phone apps (the Cars app and the Staff app),
@@ -67,10 +70,10 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
   const carApp = carsOffered ? { app: carsLook.name, appIcon: "/cars-app/icon/192" } : { app: staffLook.name, appIcon: "/app/icon/192" };
   const stickers: Sticker[] = [
     ...(carsApp && prints
-      ? [{ key: "app-cars", title: `${carsLook.name} app`, sub: "For company cars", line: "Scan to get the app, sign in once and choose a PIN", svg: carsQr, app: carsLook.name, appIcon: "/cars-app/icon/192" }]
+      ? [{ key: "app-cars", title: appLabel(carsLook.name), sub: "For company cars", line: "Scan to get the app, sign in once and choose a PIN", svg: carsQr, app: carsLook.name, appIcon: "/cars-app/icon/192" }]
       : []),
     ...(staffApp && prints
-      ? [{ key: "app-staff", title: `${staffLook.name} app`, sub: "For staff", line: "Scan to get the app, sign in once and choose a PIN", svg: staffQr, app: staffLook.name, appIcon: "/app/icon/192" }]
+      ? [{ key: "app-staff", title: appLabel(staffLook.name), sub: "For staff", line: "Scan to get the app, sign in once and choose a PIN", svg: staffQr, app: staffLook.name, appIcon: "/app/icon/192" }]
       : []),
     ...(inApp ?? []).map((f, i) => ({
       key: `f-${f.slug}`,
@@ -95,25 +98,40 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
   const single = only ? stickers.find((x) => x.key === only) : undefined;
 
   const stickerCard = (x: Sticker, big = false) => (
-    <div className={`flex h-full break-inside-avoid flex-col items-center gap-2 rounded-xl border-2 border-dashed border-black/40 bg-white text-center text-black ${big ? "p-6" : "p-4"}`}>
+    <div
+      className={`flex h-full break-inside-avoid flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-black/40 bg-white text-center text-black ${big ? "p-6" : "p-3 print:gap-2 print:p-4"}`}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element -- the company's own logo */}
-      <img src={brand.logoUrl} alt={brand.companyName} className={`${big ? "h-14" : "h-10"} w-auto object-contain`} />
+      <img src={brand.logoUrl} alt={brand.companyName} className={`${big ? "h-14" : "h-7 print:h-10"} w-auto object-contain`} />
       <div className="flex items-center gap-2">
-        {x.icon ? <AppSquare icon={x.icon.icon} colour={x.icon.colour} size={big ? "size-12" : "size-10"} /> : null}
+        {x.icon ? <AppSquare icon={x.icon.icon} colour={x.icon.colour} size={big ? "size-12" : "size-8 print:size-10"} /> : null}
         <span className="text-left">
-          <span className={`block leading-tight font-semibold ${big ? "text-2xl" : "text-lg"}`}>{x.title}</span>
-          {x.sub ? <span className="block text-sm font-semibold tracking-wider">{x.sub}</span> : null}
+          <span className={`block leading-tight font-semibold ${big ? "text-2xl" : "text-sm print:text-base"}`}>{x.title}</span>
+          {x.sub ? <span className="block text-xs font-semibold tracking-wider print:text-sm">{x.sub}</span> : null}
         </span>
       </div>
-      <div className={big ? "w-56" : "w-40"} dangerouslySetInnerHTML={{ __html: x.svg }} />
-      <p className={big ? "text-sm" : "text-xs"}>{x.line}</p>
+      <div className={big ? "w-56" : "w-24 print:w-32"} dangerouslySetInnerHTML={{ __html: x.svg }} />
+      <p className={big ? "text-sm" : "text-[11px] leading-tight print:text-xs"}>{x.line}</p>
       <span className="mt-auto flex items-center gap-1.5 rounded-full border border-black/30 py-0.5 pr-3 pl-0.5 text-xs font-semibold">
         {/* eslint-disable-next-line @next/next/no-img-element -- the app's own icon */}
         <img src={x.appIcon} alt="" className="size-5 rounded-full" />
-        {x.app} app
+        {appLabel(x.app)}
       </span>
     </div>
   );
+
+  // A whole-page poster for an app (the noticeboard).
+  const poster = (name: string, svg: string, url: string) => (
+    <section className="flex break-inside-avoid flex-col items-center gap-4 rounded-xl border border-line bg-white p-8 text-center text-black print:min-h-[85vh] print:justify-center print:gap-6 print:break-after-page print:border-0">
+      {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}
+      <img src={brand.logoUrl} alt={brand.companyName} className="h-16 w-auto object-contain print:h-28" />
+      <p className="font-display text-2xl font-semibold tracking-wide uppercase print:text-5xl">Get the {appLabel(name)}</p>
+      <p className="max-w-md print:max-w-xl print:text-2xl">Scan this with your phone camera, sign in once and choose a PIN.</p>
+      <div className="w-56 max-w-full print:w-[26rem]" dangerouslySetInnerHTML={{ __html: svg }} />
+      <p className="text-sm print:text-lg">{url}</p>
+    </section>
+  );
+  const appPoster = (key: string) => (key === "app-cars" ? poster(carsLook.name, carsQr, carsUrl) : poster(staffLook.name, staffQr, staffUrl));
 
   // One sticker on its own, ready to print.
   if (single) {
@@ -123,10 +141,14 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
           <Link href="/apps" className="text-sm font-semibold text-brand underline">
             ‹ Back to {`${initialsOf(brand.companyName) || "Our"} Apps`}
           </Link>
-          <PrintButton label="Print this sticker" />
+          <PrintButton label={single.key.startsWith("app-") ? "Print this poster" : "Print this sticker"} />
         </div>
         {printNow ? <AutoPrint /> : null}
-        <div className="mx-auto w-80 max-w-full">{stickerCard(single, true)}</div>
+        {single.key.startsWith("app-") ? (
+          <div className="mx-auto w-full max-w-xl print:max-w-none">{appPoster(single.key)}</div>
+        ) : (
+          <div className="mx-auto w-80 max-w-full">{stickerCard(single, true)}</div>
+        )}
       </>
     );
   }
@@ -213,15 +235,11 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
       {prints ? (
         <>
           <h2 className="heading-sm print:hidden">Posters and stickers to print</h2>
+          {/* The posters print full page; on screen they're the first tiles below. */}
           {apps.map((a) => (
-            <section key={a.key} className="flex break-inside-avoid flex-col items-center gap-3 rounded-xl border border-line bg-white p-8 text-center text-black print:break-after-page print:border-0">
-              {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}
-              <img src={brand.logoUrl} alt="" className="h-16 w-auto object-contain" />
-              <p className="font-display text-2xl font-semibold tracking-wide uppercase">Get the {a.name} app</p>
-              <p className="max-w-md">Scan this with your phone camera, sign in once and choose a PIN.</p>
-              <div className="w-56 max-w-full" dangerouslySetInnerHTML={{ __html: a.svg }} />
-              <p className="text-sm">{a.url}</p>
-            </section>
+            <div key={a.key} className="hidden print:block">
+              {appPoster(a.key === "cars" ? "app-cars" : "app-staff")}
+            </div>
           ))}
           {stickers.length ? (
             <section className="flex flex-col gap-3">
@@ -229,16 +247,18 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
                 Stick these where the job happens: on the fridge, in a client&apos;s room, on each car&apos;s dashboard. Scanning one opens the app
                 straight on it. Tap a sticker to print just that one, or print them all with the button at the top.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 print:grid-cols-4 print:gap-3">
                 {stickers.map((x) => (
                   <Link
                     key={x.key}
                     href={`/apps?sticker=${x.key}&print=1`}
-                    title={`Print the ${x.title} sticker`}
-                    className="group flex flex-col gap-1 rounded-xl outline-offset-4 hover:outline-2 hover:outline-brand"
+                    title={x.key.startsWith("app-") ? `Print the ${x.title} poster` : `Print the ${x.title} sticker`}
+                    className={`group flex flex-col gap-1 rounded-xl outline-offset-4 hover:outline-2 hover:outline-brand ${x.key.startsWith("app-") ? "print:hidden" : ""}`}
                   >
                     {stickerCard(x)}
-                    <span className="self-center text-sm font-semibold text-brand group-hover:underline print:hidden">Tap to print</span>
+                    <span className="self-center text-xs font-semibold text-brand group-hover:underline print:hidden">
+                      {x.key.startsWith("app-") ? "Tap to print the poster" : "Tap to print"}
+                    </span>
                   </Link>
                 ))}
               </div>
