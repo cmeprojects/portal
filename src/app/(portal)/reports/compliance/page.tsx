@@ -74,7 +74,7 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
         </p>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5 print:flex print:flex-wrap print:gap-2">
         {[
           { label: "People", n: report.totals.people, tone: "text-brand" },
           { label: "All done", n: report.totals.finished, tone: "text-good" },
@@ -82,9 +82,9 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
           { label: "Expiring soon", n: report.totals.expiring, tone: report.totals.expiring ? "text-warn" : "text-muted" },
           { label: "Uploads to check", n: report.totals.check, tone: report.totals.check ? "text-brand" : "text-muted" },
         ].map((s) => (
-          <Card key={s.label} className="p-4">
-            <p className={`heading tabular-nums ${s.tone}`}>{s.n}</p>
-            <p className="text-sm text-muted">{s.label}</p>
+          <Card key={s.label} className="p-4 print:flex print:items-baseline print:gap-1.5 print:rounded-md print:px-2.5 print:py-1">
+            <p className={`heading tabular-nums ${s.tone} print:text-base`}>{s.n}</p>
+            <p className="text-sm text-muted print:text-xs">{s.label}</p>
           </Card>
         ))}
       </div>

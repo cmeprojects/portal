@@ -171,16 +171,16 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
         </div>
       </details>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 print:flex print:flex-wrap print:gap-2">
         {[
           { label: "Trips", n: String(report.totals.trips), tone: "text-brand" },
           { label: "Total distance", n: km(report.totals.km), tone: "text-brand" },
           { label: "Cars used", n: String(report.totals.cars), tone: "text-brand" },
           { label: "Gaps in the readings", n: String(report.totals.gaps), tone: report.totals.gaps ? "text-danger" : "text-muted" },
         ].map((s) => (
-          <Card key={s.label} className="p-4">
-            <p className={`heading ${s.tone} tabular-nums`}>{s.n}</p>
-            <p className="text-sm text-muted">{s.label}</p>
+          <Card key={s.label} className="p-4 print:flex print:items-baseline print:gap-1.5 print:rounded-md print:px-2.5 print:py-1">
+            <p className={`heading ${s.tone} tabular-nums print:text-base`}>{s.n}</p>
+            <p className="text-sm text-muted print:text-xs">{s.label}</p>
           </Card>
         ))}
       </div>

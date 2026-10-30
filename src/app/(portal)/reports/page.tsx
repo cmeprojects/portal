@@ -51,7 +51,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
         </form>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6 print:flex print:flex-wrap print:gap-2">
         {[
           { label: "Opened", n: summary.opened, tone: "text-brand" },
           { label: "Completed", n: summary.completed, tone: "text-good" },
@@ -60,9 +60,9 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
           { label: "Overdue now", n: summary.overdue, tone: "text-danger" },
           { label: "Escalated now", n: summary.escalated, tone: "text-danger" },
         ].map((s) => (
-          <Card key={s.label} className="p-4">
-            <p className={`heading ${s.tone}`}>{s.n}</p>
-            <p className="text-sm text-muted">{s.label}</p>
+          <Card key={s.label} className="p-4 print:flex print:items-baseline print:gap-1.5 print:rounded-md print:px-2.5 print:py-1">
+            <p className={`heading ${s.tone} print:text-base`}>{s.n}</p>
+            <p className="text-sm text-muted print:text-xs">{s.label}</p>
           </Card>
         ))}
       </div>

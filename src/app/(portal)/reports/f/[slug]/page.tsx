@@ -142,16 +142,16 @@ export default async function FeatureReportPage({ params, searchParams }: PagePr
         </form>
       </details>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 print:flex print:flex-wrap print:gap-2">
         {[
           { label: "Entries", n: String(report.totals.entries), tone: "text-brand" },
           { label: "Clients", n: String(report.totals.clients), tone: "text-brand" },
           { label: "Staff who entered", n: String(report.totals.staff), tone: "text-brand" },
           ...(f.kind === "daily" ? [{ label: "Days under target", n: String(report.totals.underTarget), tone: report.totals.underTarget ? "text-danger" : "text-muted" }] : []),
         ].map((s) => (
-          <Card key={s.label} className="p-4">
-            <p className={`heading ${s.tone} tabular-nums`}>{s.n}</p>
-            <p className="text-sm text-muted">{s.label}</p>
+          <Card key={s.label} className="p-4 print:flex print:items-baseline print:gap-1.5 print:rounded-md print:px-2.5 print:py-1">
+            <p className={`heading ${s.tone} tabular-nums print:text-base`}>{s.n}</p>
+            <p className="text-sm text-muted print:text-xs">{s.label}</p>
           </Card>
         ))}
       </div>
