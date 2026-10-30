@@ -15,6 +15,7 @@ import { DataTable } from "@/components/data-table";
 import { PrintButton } from "@/components/print-button";
 import { PrintHeader } from "@/components/print-header";
 import { SectionTabs } from "@/components/section-tabs";
+import { PrintLandscape } from "@/components/print-landscape";
 import { clearCarReportView, saveCarReportView } from "./actions";
 
 export const metadata: Metadata = { title: "Car reports" };
@@ -37,8 +38,10 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
 
   return (
     <>
+      <PrintLandscape />
       <PrintHeader brand={brand} title={KIND_LABELS[f.kind]} subtitle={report.filterText} printedAt={printedAt} />
       <SectionTabs section="reports" current="/reports/cars" />
+      <div className="print:hidden">
       <PageHeader
         title="Car reports"
         intro="Choose a report, a car (or all of them) and the dates, then show it, download it or print it."
@@ -51,9 +54,23 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
           </div>
         }
       />
+      </div>
       {params.saved ? <Notice tone="success">Saved. Car reports opens like this for you next time.</Notice> : null}
 
-      <Card className="p-4 print:hidden">
+      <details className="group rounded-lg border border-line bg-surface print:hidden" open={!Object.keys(params).length}>
+        <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
+          <span className="min-w-0 flex-1 text-sm">
+            <span className="font-semibold">{KIND_LABELS[f.kind]}</span>
+            <span className="text-muted"> · {report.filterText}</span>
+          </span>
+          <span className="group-open:hidden">
+            <span className={buttonClass("outline")}>Change report ▾</span>
+          </span>
+          <span className="hidden group-open:inline">
+            <span className={buttonClass("outline")}>Close ▴</span>
+          </span>
+        </summary>
+        <div className="border-t border-line p-4">
         <form className="flex flex-col gap-4">
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 text-sm font-semibold">Report</legend>
@@ -151,7 +168,8 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
             </form>
           ) : null}
         </div>
-      </Card>
+        </div>
+      </details>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[

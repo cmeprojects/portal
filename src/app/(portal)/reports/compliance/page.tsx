@@ -14,6 +14,7 @@ import { DataTable } from "@/components/data-table";
 import { PrintButton } from "@/components/print-button";
 import { PrintHeader } from "@/components/print-header";
 import { SectionTabs } from "@/components/section-tabs";
+import { PrintLandscape } from "@/components/print-landscape";
 import { clearDefaultView, saveDefaultView } from "./actions";
 
 export const metadata: Metadata = { title: "Compliance report" };
@@ -43,8 +44,10 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
 
   return (
     <>
+      <PrintLandscape />
       <PrintHeader brand={brand} title={`Compliance: ${VIEW_LABELS[f.view]}`} subtitle={filterText} printedAt={printedAt} />
       <SectionTabs section="reports" current="/reports/compliance" />
+      <div className="print:hidden">
       <PageHeader
         title="Compliance report"
         intro="Where everyone is up to with documents to read, trainings and uploads. Choose what to show, then download it or print it."
@@ -57,6 +60,7 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
           </div>
         }
       />
+      </div>
       {params.saved ? <Notice tone="success">Saved. The report opens like this for you next time.</Notice> : null}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
@@ -76,7 +80,20 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
 
       <Tabs label="Report view" items={(Object.keys(VIEW_LABELS) as ComplianceView[]).map((v) => ({ href: viewLink(v), text: VIEW_LABELS[v], current: v === f.view }))} />
 
-      <Card className="p-4 print:hidden">
+      <details className="group rounded-lg border border-line bg-surface print:hidden">
+        <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
+          <span className="min-w-0 flex-1 text-sm">
+            <span className="font-semibold">Showing</span>
+            <span className="text-muted"> · {filterText}</span>
+          </span>
+          <span className="group-open:hidden">
+            <span className={buttonClass("outline")}>Change filters ▾</span>
+          </span>
+          <span className="hidden group-open:inline">
+            <span className={buttonClass("outline")}>Close ▴</span>
+          </span>
+        </summary>
+        <div className="border-t border-line p-4">
         <form className="flex flex-col gap-3">
           <input type="hidden" name="view" value={f.view} />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -161,7 +178,8 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
             </form>
           ) : null}
         </div>
-      </Card>
+        </div>
+      </details>
 
       <Card className="overflow-hidden">
         <div className="border-b border-line px-5 py-3">
