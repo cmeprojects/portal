@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
@@ -91,13 +92,19 @@ export default async function InstallCarsAppPage({ searchParams }: PageProps<"/c
           <p className="text-sm text-muted print:hidden">Scanning a car&apos;s sticker opens the app with that car already picked.</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
             {stickers.map((c, i) => (
-              <div key={c.id} className="flex break-inside-avoid flex-col items-center gap-2 rounded-xl border-2 border-dashed border-black/40 bg-white p-4 text-center text-black">
+              <Link
+                key={c.id}
+                href={`/apps?sticker=car-${c.id}&print=1`}
+                title={`Print the ${c.name} sticker`}
+                className="flex break-inside-avoid flex-col items-center gap-2 rounded-xl border-2 border-dashed border-black/40 bg-white p-4 text-center text-black hover:outline-2 hover:outline-brand"
+              >
                 <p className="text-sm font-semibold">{brand.companyName}</p>
                 <div className="w-40" dangerouslySetInnerHTML={{ __html: carSvgs[i] }} />
                 <p className="text-lg font-semibold">{c.name}</p>
                 <p className="rounded border-2 border-black px-2 font-semibold tracking-widest">{c.rego}</p>
                 <p className="text-xs">Scan to start or return this car</p>
-              </div>
+                <span className="text-sm font-semibold text-brand print:hidden">Tap to print</span>
+              </Link>
             ))}
           </div>
         </section>

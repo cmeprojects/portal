@@ -12,6 +12,7 @@ import { env } from "@/lib/env";
 import { Card, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { AppSquare } from "@/components/app-glyph";
+import { AutoPrint } from "@/components/auto-print";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: `${initialsOf((await getBranding()).companyName) || "Our"} Apps` };
@@ -24,7 +25,9 @@ const qr = (url: string) => QRCode.toString(url, { type: "svg", margin: 1, error
 export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
   const { profile, features } = await requireSession();
   // ?sticker=car-<id> or f-<slug>: just that one sticker, to print.
-  const only = typeof (await searchParams).sticker === "string" ? String((await searchParams).sticker) : "";
+  const query = await searchParams;
+  const only = typeof query.sticker === "string" ? query.sticker : "";
+  const printNow = query.print === "1";
   const [brand, carsLook, staffLook, rules, tiles, carsOffered] = await Promise.all([
     getBranding(),
     getCarsAppLook(),
@@ -59,14 +62,24 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
   ]);
   const featureQrs = rest.slice(0, (inApp ?? []).length);
   const carQrs = rest.slice((inApp ?? []).length);
-  type Sticker = { key: string; title: string; sub: string; line: string; svg: string; icon?: { icon: string; colour: string } };
+  // Each sticker: the company's logo, what it's for, the QR code, and which app it opens.
+  type Sticker = { key: string; title: string; sub: string; line: string; svg: string; app: string; appIcon: string; icon?: { icon: string; colour: string } };
+  const carApp = carsOffered ? { app: carsLook.name, appIcon: "/cars-app/icon/192" } : { app: staffLook.name, appIcon: "/app/icon/192" };
   const stickers: Sticker[] = [
+    ...(carsApp && prints
+      ? [{ key: "app-cars", title: `${carsLook.name} app`, sub: "For company cars", line: "Scan to get the app, sign in once and choose a PIN", svg: carsQr, app: carsLook.name, appIcon: "/cars-app/icon/192" }]
+      : []),
+    ...(staffApp && prints
+      ? [{ key: "app-staff", title: `${staffLook.name} app`, sub: "For staff", line: "Scan to get the app, sign in once and choose a PIN", svg: staffQr, app: staffLook.name, appIcon: "/app/icon/192" }]
+      : []),
     ...(inApp ?? []).map((f, i) => ({
       key: `f-${f.slug}`,
       title: f.name,
-      sub: brand.companyName,
-      line: `Scan to open ${f.menu_label} in ${staffLook.name}`,
+      sub: f.menu_label !== f.name ? f.menu_label : "",
+      line: `Scan to open ${f.menu_label}`,
       svg: featureQrs[i],
+      app: staffLook.name,
+      appIcon: "/app/icon/192",
       icon: { icon: f.app_icon, colour: f.app_colour },
     })),
     ...(cars ?? []).map((c, i) => ({
@@ -75,22 +88,30 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
       sub: c.rego,
       line: "Scan to start or return this car",
       svg: carQrs[i],
+      ...carApp,
       icon: { icon: "car", colour: "#134f8e" },
     })),
   ];
   const single = only ? stickers.find((x) => x.key === only) : undefined;
 
-  const stickerCard = (x: Sticker) => (
-    <div key={x.key} className="flex break-inside-avoid flex-col items-center gap-2 rounded-xl border-2 border-dashed border-black/40 bg-white p-4 text-center text-black">
+  const stickerCard = (x: Sticker, big = false) => (
+    <div className={`flex h-full break-inside-avoid flex-col items-center gap-2 rounded-xl border-2 border-dashed border-black/40 bg-white text-center text-black ${big ? "p-6" : "p-4"}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- the company's own logo */}
+      <img src={brand.logoUrl} alt={brand.companyName} className={`${big ? "h-14" : "h-10"} w-auto object-contain`} />
       <div className="flex items-center gap-2">
-        {x.icon ? <AppSquare icon={x.icon.icon} colour={x.icon.colour} size="size-10" /> : null}
+        {x.icon ? <AppSquare icon={x.icon.icon} colour={x.icon.colour} size={big ? "size-12" : "size-10"} /> : null}
         <span className="text-left">
-          <span className="block text-lg leading-tight font-semibold">{x.title}</span>
-          <span className="block text-xs">{x.sub}</span>
+          <span className={`block leading-tight font-semibold ${big ? "text-2xl" : "text-lg"}`}>{x.title}</span>
+          {x.sub ? <span className="block text-sm font-semibold tracking-wider">{x.sub}</span> : null}
         </span>
       </div>
-      <div className="w-40" dangerouslySetInnerHTML={{ __html: x.svg }} />
-      <p className="text-xs">{x.line}</p>
+      <div className={big ? "w-56" : "w-40"} dangerouslySetInnerHTML={{ __html: x.svg }} />
+      <p className={big ? "text-sm" : "text-xs"}>{x.line}</p>
+      <span className="mt-auto flex items-center gap-1.5 rounded-full border border-black/30 py-0.5 pr-3 pl-0.5 text-xs font-semibold">
+        {/* eslint-disable-next-line @next/next/no-img-element -- the app's own icon */}
+        <img src={x.appIcon} alt="" className="size-5 rounded-full" />
+        {x.app} app
+      </span>
     </div>
   );
 
@@ -104,7 +125,8 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
           </Link>
           <PrintButton label="Print this sticker" />
         </div>
-        <div className="mx-auto w-72 max-w-full">{stickerCard(single)}</div>
+        {printNow ? <AutoPrint /> : null}
+        <div className="mx-auto w-80 max-w-full">{stickerCard(single, true)}</div>
       </>
     );
   }
@@ -205,16 +227,19 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
             <section className="flex flex-col gap-3">
               <p className="text-sm text-muted print:hidden">
                 Stick these where the job happens: on the fridge, in a client&apos;s room, on each car&apos;s dashboard. Scanning one opens the app
-                straight on it. Print them all with the button at the top, or one at a time.
+                straight on it. Tap a sticker to print just that one, or print them all with the button at the top.
               </p>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
                 {stickers.map((x) => (
-                  <div key={x.key} className="flex flex-col gap-1">
+                  <Link
+                    key={x.key}
+                    href={`/apps?sticker=${x.key}&print=1`}
+                    title={`Print the ${x.title} sticker`}
+                    className="group flex flex-col gap-1 rounded-xl outline-offset-4 hover:outline-2 hover:outline-brand"
+                  >
                     {stickerCard(x)}
-                    <Link href={`/apps?sticker=${x.key}`} className="self-center text-sm font-semibold text-brand underline print:hidden">
-                      Print just this one
-                    </Link>
-                  </div>
+                    <span className="self-center text-sm font-semibold text-brand group-hover:underline print:hidden">Tap to print</span>
+                  </Link>
                 ))}
               </div>
             </section>
