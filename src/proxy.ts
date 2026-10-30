@@ -5,7 +5,7 @@ import { APP_COOKIE, APP_DAYS_COOKIE, LOCKED_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUT
 
 // Pages anyone can open without signing in.
 // /cron checks its own secret.
-const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/health", "/cron"];
+const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/health", "/cron", "/robots.txt"];
 
 // Keeps the sign-in session fresh on every request and sends signed-out
 // visitors to the sign-in page. Role and two-factor checks happen on each
