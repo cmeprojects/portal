@@ -37,6 +37,7 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     adminAreas,
     customFeatures,
     featureReports,
+    forms: features.forms === true && role !== "new_starter",
     appsLabel: hasApps ? `${initialsOf(brand.companyName) || "Our"} Apps` : undefined,
   };
 });

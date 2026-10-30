@@ -157,7 +157,7 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
               Items to include ({f.items.length ? `${f.items.length} chosen` : "all"})
             </summary>
             <div className="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
-              {(["read", "training", "upload"] as ItemKind[]).map((kind) => {
+              {(["read", "training", "upload", "form"] as ItemKind[]).map((kind) => {
                 const list = report.items.filter((i) => i.kind === kind);
                 return list.length ? (
                   <fieldset key={kind} className="flex flex-col gap-1">

@@ -1,7 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Role } from "@/lib/roles";
 
-export type ItemKind = "read" | "training" | "upload";
+// "form": a form made in Forms, filled in as part of Compliance.
+export type ItemKind = "read" | "training" | "upload" | "form";
 
 export type ComplianceItem = {
   id: string;
@@ -18,6 +19,7 @@ export type ComplianceItem = {
   applies_roles: Role[];
   applies_teams: string[];
   sort_order: number;
+  form_id?: string | null;
 };
 
 export const ITEM_COLUMNS =
@@ -39,9 +41,10 @@ export const KIND_LABELS: Record<ItemKind, string> = {
   read: "Read and confirm",
   training: "Trainings",
   upload: "Documents to upload",
+  form: "Forms to fill in",
 };
 
-export const KIND_TAB: Record<ItemKind, string> = { read: "Documents to read", training: "Trainings", upload: "Uploads" };
+export const KIND_TAB: Record<ItemKind, string> = { read: "Documents to read", training: "Trainings", upload: "Uploads", form: "Forms" };
 
 // Done, or done enough (uploaded and waiting to be checked, or expiring soon).
 export const isDone = (s: ItemState) => s === "done" || s === "submitted" || s === "accepted" || s === "expiring";

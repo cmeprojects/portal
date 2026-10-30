@@ -139,6 +139,11 @@ const TABS: Tab[] = [
       },
     ],
   },
+  {
+    key: "forms",
+    label: "Forms",
+    sections: [{ title: "Forms", intro: "Who can make forms (the system admin always can). Each form is controlled by the person who made it and anyone they share it with.", keys: (k) => k.startsWith("forms.") }],
+  },
   { key: "features", label: "Features", sections: [] },
   { key: "delegation", label: "Delegation", sections: [] },
   {
@@ -160,7 +165,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   const { features: on } = await requireSession();
   // Car settings only while Cars is switched on (and in the plan).
   const tabs = TABS.filter(
-    (t) => (t.key !== "cars" || on.vehicles === true) && (t.key !== "staff-app" || on.staff_app === true) && (t.sections.length ? t.sections.some(canSee) : isAdmin),
+    (t) => (t.key !== "cars" || on.vehicles === true) && (t.key !== "staff-app" || on.staff_app === true) && (t.key !== "forms" || on.forms === true) && (t.sections.length ? t.sections.some(canSee) : isAdmin),
   );
   if (!tabs.length) redirect("/");
   const { tab: asked } = await searchParams;

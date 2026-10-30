@@ -4,7 +4,6 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/registers";
 import {
-  ITEM_COLUMNS,
   KIND_LABELS,
   LIBRARY_BUCKET,
   isDone,
@@ -13,12 +12,13 @@ import {
   type ItemKind,
   type StatusRow,
 } from "@/lib/compliance";
-import { Badge, Card, PageHeader } from "@/components/ui";
+import Link from "next/link";
+import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { ConfirmButton, UploadForm } from "./forms";
 
 export const metadata: Metadata = { title: "My onboarding" };
 
-const KINDS: ItemKind[] = ["read", "training", "upload"];
+const KINDS: ItemKind[] = ["read", "training", "upload", "form"];
 
 export default async function MyOnboardingPage() {
   const { profile } = await requireSession();
@@ -27,7 +27,7 @@ export default async function MyOnboardingPage() {
   const status = (rows ?? []) as StatusRow[];
   const ids = status.map((s) => s.item_id);
   const [{ data: itemRows }, { data: records }] = await Promise.all([
-    ids.length ? supabase.from("compliance_items").select(ITEM_COLUMNS).in("id", ids) : Promise.resolve({ data: [] }),
+    ids.length ? supabase.from("compliance_items").select("*").in("id", ids) : Promise.resolve({ data: [] }),
     supabase
       .from("compliance_records")
       .select("id, file_name, created_at, status, uploaded_by")
@@ -128,6 +128,14 @@ export default async function MyOnboardingPage() {
                             : null}
                           <UploadForm itemId={item.id} userId={profile.id} needsExpiry={item.needs_expiry} again={Boolean(s.record_id)} />
                         </>
+                      ) : kind === "form" ? (
+                        finished ? (
+                          <p className="text-sm text-good">You&apos;ve filled this in.</p>
+                        ) : item.form_id ? (
+                          <Link href={`/forms/${item.form_id}`} className={buttonClass("primary", "self-start")}>
+                            Fill it in
+                          </Link>
+                        ) : null
                       ) : finished ? (
                         <p className="text-sm text-good">You&apos;ve {kind === "training" ? "completed this" : "confirmed this"}.</p>
                       ) : (

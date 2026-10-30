@@ -76,7 +76,7 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
         title={person.full_name || person.email}
         intro={`${ROLE_LABELS[person.role as Role]} · ${done} of ${status.length} done${person.onboarded_at ? ` · onboarding finished ${formatDate(person.onboarded_at)}` : ""}`}
       />
-      {(["read", "training", "upload"] as ItemKind[]).map((kind) => {
+      {(["read", "training", "upload", "form"] as ItemKind[]).map((kind) => {
         const list = status.filter((s) => s.kind === kind);
         if (!list.length) return null;
         return (
