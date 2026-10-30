@@ -12,7 +12,7 @@ insert into public.invitations (email, full_name, role) values ('sam@example.com
 insert into auth.users (email) values ('sam@example.com');
 
 set role anon;
-select test.ok((select count(*) from public.app_settings where key in ('vehicles.app_name', 'vehicles.app_icon', 'vehicles.app_icon_url')) = 3,
+select test.ok((select count(*) from public.app_settings where key in ('vehicles.app_name', 'vehicles.app_icon', 'vehicles.app_icon_uploads')) = 3,
   'a phone installing the app can read its name and icon');
 reset role;
 

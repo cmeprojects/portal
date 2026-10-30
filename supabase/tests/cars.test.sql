@@ -91,11 +91,13 @@ select test.refused($$select public.undo_car_start(test.trip('sam@example.com'))
 
 -- Returning.
 select test.refused($$select public.return_car_trip(test.trip('sam@example.com'), 48100)$$, 'the end reading can''t be lower than the start');
-select test.ok(public.return_car_trip(test.trip('sam@example.com'), 48257) = 37, 'returning works out the km');
+select test.ok(public.return_car_trip(test.trip('sam@example.com'), 48257, null, '', ' Footscray and Sunshine ') = 37, 'returning works out the km');
+select test.ok((select went_to = 'Footscray and Sunshine' from public.car_trips where id = test.trip('sam@example.com')), 'and keeps where they went');
 select test.ok((select odometer from public.cars where rego = '1EC 4KC') = 48257, 'and updates the car''s reading');
 select public.undo_car_return(test.trip('sam@example.com'));
 select test.ok((select returned_at is null from public.car_trips where id = test.trip('sam@example.com'))
-               and (select odometer from public.cars where rego = '1EC 4KC') = 48220, 'undo return reopens the trip and the reading');
+               and (select odometer from public.cars where rego = '1EC 4KC') = 48220
+               and (select went_to = '' from public.car_trips where id = test.trip('sam@example.com')), 'undo return reopens the trip and the reading');
 select public.return_car_trip(test.trip('sam@example.com'), 48260);
 reset role;
 

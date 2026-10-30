@@ -20,10 +20,4 @@ export const CHOICES: Record<string, { value: string; label: string }[]> = {
     { value: "optional", label: "Optional" },
     { value: "required", label: "Required" },
   ],
-  "vehicles.app_icon": [
-    { value: "car", label: "A car with the company's initials, in its colours" },
-    { value: "mark", label: "The small logo" },
-    { value: "logo", label: "The main logo" },
-    { value: "own", label: "Your own picture (upload it below)" },
-  ],
 };

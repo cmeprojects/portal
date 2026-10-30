@@ -25,6 +25,7 @@ type TripRow = {
   driver_id: string;
   purpose: string;
   details: string;
+  went_to: string;
   client_id: string | null;
   client_name: string;
   started_at: string;
@@ -208,7 +209,7 @@ async function Purposes() {
 async function Trips({ carName, nameOf, when }: { carName: Map<string, string>; nameOf: Map<string, string>; when: Intl.DateTimeFormat }) {
   const supabase = await createClient();
   const [{ data }, { data: purposes }, { data: clients }] = await Promise.all([
-    supabase.from("car_trips").select("id, car_id, driver_id, purpose, details, client_id, client_name, started_at, start_odo, gap_km, returned_at, end_odo, km, corrected_at").order("started_at", { ascending: false }).limit(40),
+    supabase.from("car_trips").select("id, car_id, driver_id, purpose, details, went_to, client_id, client_name, started_at, start_odo, gap_km, returned_at, end_odo, km, corrected_at").order("started_at", { ascending: false }).limit(40),
     supabase.from("car_purposes").select("name").eq("active", true).order("sort_order"),
     supabase.from("car_clients").select("id, name").order("name"),
   ]);
@@ -233,7 +234,8 @@ async function Trips({ carName, nameOf, when }: { carName: Map<string, string>; 
                     </span>
                     <span className="block text-xs text-muted">
                       {when.format(new Date(t.started_at))} · {t.purpose}
-                      {t.client_name ? ` · ${t.client_name}` : ""} · {t.start_odo.toLocaleString("en-AU")} → {t.end_odo?.toLocaleString("en-AU") ?? "still out"}
+                      {t.client_name ? ` · ${t.client_name}` : ""}
+                      {t.went_to ? ` · to ${t.went_to}` : ""} · {t.start_odo.toLocaleString("en-AU")} → {t.end_odo?.toLocaleString("en-AU") ?? "still out"}
                     </span>
                   </span>
                   <span className="flex items-center gap-2">

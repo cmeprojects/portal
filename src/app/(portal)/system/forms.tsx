@@ -1,7 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, ROLES } from "@/lib/roles";
 import { CHOICES } from "@/lib/setting-choices";
@@ -29,7 +30,7 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
     </div>
   );
 }
-import { saveDelegation, saveSetting, setFeature } from "./actions";
+import { addAppIcon, chooseAppIcon, deleteAppIcon, saveDelegation, saveSetting, setFeature } from "./actions";
 
 export function FeatureSwitch({
   feature,
@@ -92,7 +93,7 @@ const OPTIONAL_TEXT = ["brand.support_contact", "brand.announcement", "people.in
 export function kindOf(key: string): "color" | "number" | "roles" | "people" | "text" | "sla" | "yesno" | "choice" | "logo" | "note" {
   if (key === "tasks.sla_days") return "sla";
   if (key === "vehicles.weekly_recipients") return "people";
-  if (key === "brand.logo_url" || key === "brand.logo_mark_url" || key === "vehicles.app_icon_url") return "logo";
+  if (key === "brand.logo_url" || key === "brand.logo_mark_url") return "logo";
   if (OPTIONAL_TEXT.includes(key)) return "note";
   if (key in CHOICES) return "choice";
   if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "tasks.registers_roles", "people.access_reset_roles", "vehicles.manager_roles", "vehicles.report_roles"].includes(key)) return "roles";
@@ -180,8 +181,7 @@ export function SettingForm({ setting, people = [] }: { setting: SettingRow; peo
               <p className="mt-1 text-xs text-muted">
                 {setting.key === "brand.logo_mark_url"
                   ? "A square version for the menu and phone icon. PNG or SVG with a see-through background works best."
-                  : setting.key === "vehicles.app_icon_url"
-                  ? "A square PNG, at least 512 × 512. It fills the icon, so leave a little space around the edges."
+
                   : "PNG or SVG with a see-through background works best."}
               </p>
             </div>
@@ -241,5 +241,88 @@ export function DelegationForm({
         {state?.message ? <span className="text-sm text-good">{state.message}</span> : null}
       </div>
     </form>
+  );
+}
+
+// cmeprojects: the Cars app icon. Tap one to use it; uploaded pictures stay as
+// choices until deleted.
+export function AppIconPicker({ setting, uploads }: { setting: SettingRow; uploads: string[] }) {
+  const router = useRouter();
+  const [result, setResult] = useState<{ error?: string; message?: string } | null>(null);
+  const [pending, start] = useTransition();
+  const [uploadKey, setUploadKey] = useState(0);
+  const current = String(setting.value);
+  const run = (task: () => Promise<{ error?: string; message?: string }>) =>
+    start(async () => {
+      const r = await task();
+      setResult(r);
+      if (!r.error) router.refresh();
+    });
+  const tiles = [
+    { value: "car", label: "Car and initials" },
+    { value: "mark", label: "Small logo" },
+    { value: "logo", label: "Main logo" },
+    ...uploads.map((u, i) => ({ value: u, label: `Your picture ${i + 1}` })),
+  ];
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-line py-4 first:border-t-0">
+      <p className="font-semibold">{setting.label}</p>
+      {setting.description ? <p className="-mt-2 text-sm text-muted">{setting.description}</p> : null}
+      <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+        {tiles.map((t) => {
+          const chosen = t.value === current;
+          const uploaded = uploads.includes(t.value);
+          return (
+            <li key={t.value} className="relative">
+              <button
+                type="button"
+                disabled={pending}
+                aria-pressed={chosen}
+                onClick={() => !chosen && run(() => chooseAppIcon(t.value))}
+                className={`flex w-full flex-col items-center gap-2 rounded-lg border-2 p-3 text-xs font-semibold ${chosen ? "border-brand bg-brand-soft text-ink" : "border-line bg-surface text-muted hover:border-muted"}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- the icon as phones will show it */}
+                <img src={`/cars-app/icon/192?as=${encodeURIComponent(t.value)}`} alt="" className="size-16 rounded-2xl shadow-sm" />
+                <span className="text-center leading-tight">{chosen ? `${t.label} (in use)` : t.label}</span>
+              </button>
+              {uploaded ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  aria-label={`Delete ${t.label}`}
+                  onClick={() => confirm(`Delete ${t.label}?`) && run(() => deleteAppIcon(t.value))}
+                  className="absolute -top-2 -right-2 flex size-8 items-center justify-center rounded-full border border-line bg-surface text-danger shadow-sm hover:bg-danger-soft"
+                >
+                  ×
+                </button>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="max-w-md">
+        <p className="mb-1 text-sm font-semibold">Upload a new icon</p>
+        <FileUpload
+          key={uploadKey}
+          id="app-icon-upload"
+          bucket="branding"
+          folder="logo"
+          name="icon"
+          accept="image/png,image/jpeg,image/webp"
+          maxMb={2}
+          shrink={false}
+          onUploaded={(path) =>
+            run(async () => {
+              const r = await addAppIcon(path);
+              if (!r.error) setUploadKey((k) => k + 1);
+              return r;
+            })
+          }
+        />
+        <p className="mt-1 text-xs text-muted">A square PNG, at least 512 × 512. It fills the icon, so leave a little space around the edges.</p>
+      </div>
+      {result?.error ? <Notice tone="error">{result.error}</Notice> : result?.message ? <p className="text-sm font-semibold text-good">{result.message}</p> : null}
+    </div>
   );
 }

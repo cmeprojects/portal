@@ -47,7 +47,7 @@ export default async function BuilderPage() {
                 </span>
                 <Badge tone="soft">Premium</Badge>
                 {f.status === "published" ? <Badge tone="good">Live</Badge> : <Badge tone="grey">Draft</Badge>}
-                {f.status === "published" ? <IncludedSwitch id={f.id} enabled={f.enabled} /> : null}
+                {f.status === "published" ? <IncludedSwitch id={f.id} enabled={f.enabled} /> : <span className="text-xs text-muted">Publish to switch on</span>}
                 <Link href={`/system/builder/${f.id}`} className="text-sm font-semibold text-brand underline">
                   Edit
                 </Link>

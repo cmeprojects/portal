@@ -8,7 +8,8 @@ import { getMyAdminAreas } from "@/lib/settings";
 import { AREAS, AREA_HINTS, AREA_LABELS, type Area } from "@/lib/delegation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader, Tabs } from "@/components/ui";
-import { DelegationForm, FeatureSwitch, SettingForm, type SettingRow } from "./forms";
+import { IncludedSwitch } from "./builder/forms";
+import { AppIconPicker, DelegationForm, FeatureSwitch, SettingForm, type SettingRow } from "./forms";
 
 export const metadata: Metadata = { title: "System settings" };
 
@@ -17,7 +18,7 @@ type Section = { title: string; intro?: string; area?: Area; keys: (key: string)
 type Tab = { key: string; label: string; sections: Section[] };
 
 // Invites are always general now, so that switch isn't shown.
-const HIDDEN = ["people.general_invites_only"];
+const HIDDEN = ["people.general_invites_only", "vehicles.app_icon_uploads"];
 const MESSAGES = ["brand.support_contact", "brand.announcement", "people.invite_message"];
 // Settings that read best in a set order (others follow, A to Z).
 const ORDER = [
@@ -45,7 +46,6 @@ const ORDER = [
   "vehicles.app_days",
   "vehicles.app_name",
   "vehicles.app_icon",
-  "vehicles.app_icon_url",
 ];
 const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
 
@@ -131,13 +131,16 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   const { tab: asked } = await searchParams;
   const tab = tabs.find((t) => t.key === asked) ?? tabs[0];
   const supabase = await createClient();
-  const [{ data: features }, { data: settings }, { data: managers }, { data: delegations }] = await Promise.all([
+  const [{ data: features }, { data: settings }, { data: managers }, { data: delegations }, { data: built }] = await Promise.all([
     supabase.from("features").select("*").order("sort_order"),
     supabase.from("app_settings").select("key, label, description, value").order("key"),
     supabase.from("profiles").select("id, full_name, email").eq("role", "manager").eq("active", true).order("full_name"),
     isAdmin ? supabase.from("admin_delegations").select("user_id, areas") : Promise.resolve({ data: [] }),
+    isAdmin ? supabase.from("custom_features").select("id, name, status, enabled").order("sort_order").order("name") : Promise.resolve({ data: [] }),
   ]);
   const rows = ((settings ?? []) as SettingRow[]).filter((s) => !HIDDEN.includes(s.key));
+  const uploadsValue = (settings ?? []).find((s) => s.key === "vehicles.app_icon_uploads")?.value;
+  const iconUploads = Array.isArray(uploadsValue) ? (uploadsValue as string[]) : [];
 
   return (
     <>
@@ -188,13 +191,6 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
         <Card className="px-5 py-2">
           <h2 className="pt-3 heading-sm">Features</h2>
           <p className="text-sm text-muted">Switching a feature off hides it and blocks it in the database. Its records stay and can still be read.</p>
-          <p className="text-sm text-muted">
-            Features you build yourself (like Fluid intake) are switched on and off in{" "}
-            <Link href="/system/builder" className="font-semibold text-brand underline">
-              Feature builder
-            </Link>
-            .
-          </p>
           <div className="mt-2">
             {(features ?? []).map((f) => (
               <FeatureSwitch
@@ -203,6 +199,32 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
               />
             ))}
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
+            <h3 className="font-semibold">Features you built</h3>
+            <Link href="/system/builder" className="text-sm font-semibold text-brand underline">
+              Open the Feature builder
+            </Link>
+          </div>
+          <p className="text-sm text-muted">Premium add-ons made in the Feature builder. A new feature is a draft until you publish it; then switch it on or off here.</p>
+          {(built ?? []).length === 0 ? <p className="py-3 text-sm text-muted">None yet. Make one, like Fluid intake, in the Feature builder.</p> : null}
+          <ul className="mt-1 mb-2">
+            {(built ?? []).map((f) => (
+              <li key={f.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3 first:border-t-0">
+                <span className="min-w-48 flex-1">
+                  <span className="flex flex-wrap items-center gap-2 font-semibold">
+                    {f.name}
+                    <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">Premium</span>
+                    {f.status === "published" ? null : <span className="rounded-full bg-page px-2 py-0.5 text-xs font-semibold text-muted">Draft</span>}
+                  </span>
+                  <span className="block text-sm text-muted">{f.status === "published" ? "Off hides it everywhere; entries are kept." : "Publish it in the Feature builder to switch it on."}</span>
+                </span>
+                <Link href={`/system/builder/${f.id}`} className="text-sm font-semibold text-brand underline">
+                  Edit
+                </Link>
+                {f.status === "published" ? <IncludedSwitch id={f.id} enabled={f.enabled} /> : null}
+              </li>
+            ))}
+          </ul>
         </Card>
       ) : (
         tab.sections.filter(canSee).map((section) => {
@@ -213,9 +235,13 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
               <h2 className="pt-3 heading-sm">{section.title}</h2>
               {section.intro ? <p className="text-sm text-muted">{section.intro}</p> : null}
               <div className="mt-2">
-                {list.map((s) => (
-                  <SettingForm key={s.key} setting={s} people={(managers ?? []).map((m) => ({ id: m.id, name: m.full_name || m.email }))} />
-                ))}
+                {list.map((s) =>
+                  s.key === "vehicles.app_icon" ? (
+                    <AppIconPicker key={s.key} setting={s} uploads={iconUploads} />
+                  ) : (
+                    <SettingForm key={s.key} setting={s} people={(managers ?? []).map((m) => ({ id: m.id, name: m.full_name || m.email }))} />
+                  ),
+                )}
               </div>
             </Card>
           );

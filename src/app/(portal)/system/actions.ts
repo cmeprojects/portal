@@ -63,17 +63,20 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
   }
 }
 
-export async function saveSetting(_: FormState, form: FormData): Promise<FormState> {
-  const key = text(form, "key");
-  // Managers can change the SLA; everything else is for system admins.
-  // The system admin, managers for due dates, or a manager given this area.
+// The system admin, managers for due dates, or a manager given this area.
+async function mayChange(key: string) {
   const { profile } = await requireSession();
   const area = areaOf(key);
-  const allowed =
+  return (
     profile.role === "system_admin" ||
     (key.startsWith("tasks.sla") && profile.role === "manager") ||
-    (area !== null && (await getMyAdminAreas(profile.role)).includes(area));
-  if (!allowed) return { error: "You don't have permission to change this setting." };
+    (area !== null && (await getMyAdminAreas(profile.role)).includes(area))
+  );
+}
+
+export async function saveSetting(_: FormState, form: FormData): Promise<FormState> {
+  const key = text(form, "key");
+  if (!(await mayChange(key))) return { error: "You don't have permission to change this setting." };
   const { value, error: problem } = parse(text(form, "kind"), form);
   if (problem) return { error: problem };
 
@@ -96,4 +99,61 @@ export async function saveDelegation(_: FormState, form: FormData): Promise<Form
   if (error) return { error: friendlyError(error) };
   revalidatePath("/system");
   return { message: "Saved." };
+}
+
+// ---------------------------------------------------------------------------
+// The Cars app icon (cmeprojects): pick one, upload a new one, delete an upload
+// ---------------------------------------------------------------------------
+
+type Result = { error?: string; message?: string };
+
+async function iconSettings() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("app_settings").select("key, value").in("key", ["vehicles.app_icon", "vehicles.app_icon_uploads"]);
+  const icon = data?.find((d) => d.key === "vehicles.app_icon")?.value;
+  const uploads = data?.find((d) => d.key === "vehicles.app_icon_uploads")?.value;
+  return { supabase, icon: typeof icon === "string" ? icon : "car", uploads: Array.isArray(uploads) ? (uploads as string[]) : [] };
+}
+
+async function setIcon(icon: string, uploads?: string[]): Promise<Result> {
+  const supabase = await createClient();
+  if (uploads) {
+    const { data, error } = await supabase.from("app_settings").update({ value: uploads }).eq("key", "vehicles.app_icon_uploads").select("key");
+    if (error || !data?.length) return { error: error ? friendlyError(error) : "You don't have permission to change this setting." };
+  }
+  const { data, error } = await supabase.from("app_settings").update({ value: icon }).eq("key", "vehicles.app_icon").select("key");
+  if (error || !data?.length) return { error: error ? friendlyError(error) : "You don't have permission to change this setting." };
+  revalidatePath("/", "layout");
+  return {};
+}
+
+export async function chooseAppIcon(icon: string): Promise<Result> {
+  if (!(await mayChange("vehicles.app_icon"))) return { error: "You don't have permission to change this setting." };
+  const { uploads } = await iconSettings();
+  if (!["car", "mark", "logo"].includes(icon) && !uploads.includes(icon)) return { error: "Choose one of the icons." };
+  const r = await setIcon(icon);
+  return r.error ? r : { message: "Icon saved." };
+}
+
+// A newly uploaded picture joins the choices and becomes the icon.
+export async function addAppIcon(path: string): Promise<Result> {
+  if (!(await mayChange("vehicles.app_icon"))) return { error: "You don't have permission to change this setting." };
+  if (!/^logo\/[\w.\-/]+$/.test(path)) return { error: "Choose a picture and wait for it to upload." };
+  const { uploads } = await iconSettings();
+  if (uploads.length >= 8) return { error: "Keep up to 8 uploaded icons. Delete one first." };
+  const url = `${env.supabaseUrl}/storage/v1/object/public/branding/${path}`;
+  const r = await setIcon(url, [...uploads, url]);
+  return r.error ? r : { message: "Uploaded. It's now the icon." };
+}
+
+export async function deleteAppIcon(url: string): Promise<Result> {
+  if (!(await mayChange("vehicles.app_icon"))) return { error: "You don't have permission to change this setting." };
+  const { supabase, icon, uploads } = await iconSettings();
+  if (!uploads.includes(url)) return { error: "That icon has already gone." };
+  // Deleting the one in use goes back to the car.
+  const r = await setIcon(icon === url ? "car" : icon, uploads.filter((u) => u !== url));
+  if (r.error) return r;
+  const path = url.split("/storage/v1/object/public/branding/")[1];
+  if (path) await supabase.storage.from("branding").remove([path]);
+  return { message: icon === url ? "Deleted. The icon is back to the car." : "Deleted." };
 }

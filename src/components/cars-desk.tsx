@@ -123,6 +123,9 @@ function CarOut({ trip, data, timeZone, userId }: { trip: MyTrip; data: CarScree
             className={`${inputClass} h-14 text-xl tabular-nums`}
           />
         </Field>
+        <Field label="Where did you go? (optional)" htmlFor="went_to" hint="For example the suburb, or the places you visited.">
+          <input id="went_to" name="went_to" maxLength={300} autoComplete="off" className={`${inputClass} h-12`} />
+        </Field>
         {data.rules.odoPhoto !== "off" ? (
           <Field label={`Photo of the odometer${photoNeeded ? "" : " (optional)"}`} htmlFor="photo">
             <FileUpload id="photo" bucket={CAR_FILES} folder={userId} name="photo" accept="image/*" required={photoNeeded} onReady={setPhotoReady} />
@@ -274,9 +277,11 @@ function StartForm({ car, data }: { car: CarBoardRow; data: CarScreen }) {
           ))}
         </select>
       </Field>
-      <Field label={other ? "What's it for?" : "Details (optional)"} htmlFor="details">
-        <input id="details" name="details" required={other} maxLength={300} className={`${inputClass} h-12`} />
-      </Field>
+      {other ? (
+        <Field label="What's it for?" htmlFor="details">
+          <input id="details" name="details" required maxLength={300} className={`${inputClass} h-12`} />
+        </Field>
+      ) : null}
       {clientField !== "off" ? (
         <Field label={`Client${clientField === "optional" ? " (optional)" : ""}`} htmlFor="client_id">
           <select id="client_id" name="client_id" required={clientField === "required"} defaultValue="" className={`${inputClass} h-12`}>

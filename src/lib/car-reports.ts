@@ -132,6 +132,7 @@ type Trip = {
   km: number | null;
   returned_by: string | null;
   return_note: string;
+  went_to: string;
   corrected_at: string | null;
 };
 
@@ -150,7 +151,7 @@ export async function buildCarReport(f: CarFilter, timeZone: string): Promise<Ca
   // A day either side, then exact local dates below (the database stores UTC).
   let query = supabase
     .from("car_trips")
-    .select("id, car_id, driver_id, purpose, details, client_name, started_at, start_odo, gap_km, returned_at, end_odo, km, returned_by, return_note, corrected_at")
+    .select("id, car_id, driver_id, purpose, details, client_name, started_at, start_odo, gap_km, returned_at, end_odo, km, returned_by, return_note, went_to, corrected_at")
     .gte("started_at", `${addDays(period.from, -1)}T00:00:00Z`)
     .lt("started_at", `${addDays(period.to, 2)}T00:00:00Z`)
     .order("started_at");
@@ -204,6 +205,7 @@ export async function buildCarReport(f: CarFilter, timeZone: string): Promise<Ca
         { key: "km", label: "Distance (km)" },
         { key: "client", label: "Client" },
         { key: "purpose", label: "Purpose", wide: true },
+        { key: "where", label: "Where to", wide: true },
         { key: "note", label: "Notes", wide: true },
       ],
       rows: [
@@ -221,6 +223,7 @@ export async function buildCarReport(f: CarFilter, timeZone: string): Promise<Ca
             km: { text: n(t.km), num: t.km ?? undefined },
             client: { text: t.client_name },
             purpose: { text: purpose(t) },
+            where: { text: t.went_to },
             note: {
               text: [
                 t.gap_km > 0 ? `${n(t.gap_km)} km not logged before this trip` : "",
@@ -246,6 +249,7 @@ export async function buildCarReport(f: CarFilter, timeZone: string): Promise<Ca
         { key: "back", label: "Returned" },
         { key: "time", label: "Time out" },
         { key: "purpose", label: "Purpose", wide: true },
+        { key: "where", label: "Where to", wide: true },
         { key: "client", label: "Client" },
       ],
       rows: trips.map((t) => ({
@@ -259,6 +263,7 @@ export async function buildCarReport(f: CarFilter, timeZone: string): Promise<Ca
           back: { text: at(t.returned_at), tone: t.returned_at ? undefined : "danger" },
           time: { text: duration(t) },
           purpose: { text: purpose(t) },
+          where: { text: t.went_to },
           client: { text: t.client_name },
         },
       })),

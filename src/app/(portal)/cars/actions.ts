@@ -81,6 +81,7 @@ export async function returnTrip(_: FormState, form: FormData): Promise<FormStat
     p_end_odo: odo,
     p_photo_path: text(form, "photo_path") || null,
     p_note: text(form, "note"),
+    p_where: text(form, "went_to"),
   });
   if (error) return { error: friendlyError(error) };
   refresh();
