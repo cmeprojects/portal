@@ -31,6 +31,16 @@ async function requireCarManager() {
   return session;
 }
 
+// The client list is shared by Cars and built features: car managers, and
+// managers, staff admins and the system admin (People → Clients) keep it.
+async function requireClientManager() {
+  const session = await requireSession();
+  const role = session.profile.role;
+  if (["manager", "staff_admin", "system_admin"].includes(role)) return session;
+  if (canUseCars(role, session.features) && canManageCars(role, await getCarRules())) return session;
+  throw new Error("You can't change the client list");
+}
+
 // ---------------------------------------------------------------------------
 // Staff: start, return and undo
 // ---------------------------------------------------------------------------
@@ -148,7 +158,7 @@ export async function saveClientField(_: FormState, form: FormData): Promise<For
 }
 
 export async function saveClient(_: FormState, form: FormData): Promise<FormState> {
-  await requireCarManager();
+  await requireClientManager();
   const id = text(form, "id");
   const name = text(form, "name");
   if (!name) return { error: "Enter the client's name." };
@@ -157,6 +167,7 @@ export async function saveClient(_: FormState, form: FormData): Promise<FormStat
   const { error } = id ? await supabase.from("car_clients").update(values).eq("id", id) : await supabase.from("car_clients").insert(values);
   if (error) return { error: friendlyError(error) };
   refresh();
+  revalidatePath("/settings/clients");
   return { message: id ? "Saved." : `${name} added.` };
 }
 
@@ -207,7 +218,7 @@ export async function setPurposeShown(form: FormData) {
 }
 
 export async function setClientShown(form: FormData) {
-  await requireCarManager();
+  await requireClientManager();
   const supabase = await createClient();
   await supabase.from("car_clients").update({ active: text(form, "active") === "true" }).eq("id", text(form, "id"));
   refresh();

@@ -19,6 +19,8 @@ export type NavAccess = {
   seesRegisters?: boolean;
   carManager?: boolean;
   carReports?: boolean;
+  // Live features built in the Feature builder that this person uses.
+  customFeatures?: { slug: string; label: string }[];
   // Areas of System settings delegated to this manager.
   adminAreas?: string[];
 };
@@ -48,6 +50,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       peopleManager && { href: "/settings/staff", text: "Staff" },
       peopleManager && { href: "/settings/teams", text: "Teams" },
       (role === "manager" || admin) && { href: "/settings/roles", text: "Roles" },
+      peopleManager && { href: "/settings/clients", text: "Clients" },
       access.seesCompliance && { href: "/compliance", text: "Compliance" },
       !peopleManager && access.canInvite && { href: "/invite", text: "Invite staff" },
     ],
@@ -60,6 +63,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       (role === "manager" || admin) && { href: "/settings/sla", text: "Due dates (SLA)" },
       (admin || settingsAreas.length > 0) && { href: "/system", text: "System settings" },
       (admin || (access.adminAreas ?? []).includes("audit")) && { href: "/system/audit", text: "Change log" },
+      admin && { href: "/system/builder", text: "Feature builder" },
       admin && { href: "/system/health", text: "System health" },
     ],
   }[section];
@@ -98,6 +102,7 @@ export function navFor(
         // Who sees Registers is set by the system admin (System settings → Tasks).
         ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),
         ...sectionItem("cars", role, features, access),
+        ...(access.customFeatures ?? []).map((f) => ({ href: `/f/${f.slug}`, label: f.label })),
         ...sectionItem("people", role, features, access),
         ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
         ...sectionItem("reports", role, features, access),

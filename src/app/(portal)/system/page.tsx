@@ -179,6 +179,13 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
         <Card className="px-5 py-2">
           <h2 className="pt-3 heading-sm">Features</h2>
           <p className="text-sm text-muted">Switching a feature off hides it and blocks it in the database. Its records stay and can still be read.</p>
+          <p className="text-sm text-muted">
+            Features you build yourself (like Fluid intake) are switched on and off in{" "}
+            <Link href="/system/builder" className="font-semibold text-brand underline">
+              Feature builder
+            </Link>
+            .
+          </p>
           <div className="mt-2">
             {(features ?? []).map((f) => (
               <FeatureSwitch

@@ -49,6 +49,7 @@ export function FileUpload({
   maxMb = MAX_MB,
   shrink = true,
   onReady,
+  onUploaded,
 }: {
   id: string;
   bucket: string;
@@ -60,6 +61,8 @@ export function FileUpload({
   // Logos keep their exact file (and transparency).
   shrink?: boolean;
   onReady?: (ready: boolean) => void;
+  // Where the file was stored, for forms that keep it themselves.
+  onUploaded?: (path: string, file: string) => void;
 }) {
   const [state, setState] = useState<{ path: string; file: string } | null>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
@@ -85,6 +88,7 @@ export function FileUpload({
       return;
     }
     setState({ path, file: file.name });
+    onUploaded?.(path, file.name);
     setMessage(shrunk);
     setStatus("done");
     onReady?.(true);
