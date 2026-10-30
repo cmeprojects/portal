@@ -11,16 +11,19 @@ const BUTTON = {
   danger: "border-field bg-surface text-danger hover:border-danger",
 };
 
-export function buttonClass(variant: keyof typeof BUTTON = "primary", extra = "") {
-  return `inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:min-h-10 ${BUTTON[variant]} ${extra}`;
+// "sm": a quieter, smaller button for rows of actions (still 36px to tap).
+export function buttonClass(variant: keyof typeof BUTTON = "primary", extra = "", size: "md" | "sm" = "md") {
+  const box = size === "sm" ? "min-h-9 px-3 text-[13px] md:min-h-8" : "min-h-11 px-4 text-sm md:min-h-10";
+  return `inline-flex items-center justify-center gap-2 rounded-md border font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${box} ${BUTTON[variant]} ${extra}`;
 }
 
 export function Button({
   variant = "primary",
+  size = "md",
   className = "",
   ...props
-}: ComponentProps<"button"> & { variant?: keyof typeof BUTTON }) {
-  return <button className={buttonClass(variant, className)} {...props} />;
+}: ComponentProps<"button"> & { variant?: keyof typeof BUTTON; size?: "md" | "sm" }) {
+  return <button className={buttonClass(variant, className, size)} {...props} />;
 }
 
 export const inputClass =

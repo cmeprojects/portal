@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Field, Notice, buttonClass, inputClass } from "@/components/ui";
@@ -44,7 +44,7 @@ export function NewFormForm() {
           <input id="nf-title" name="title" required maxLength={120} placeholder="Name it, e.g. Staff survey, Policy sign-off" className={inputClass} />
         </Field>
       </div>
-      <Button disabled={pending}>{pending ? "Making…" : "+ New form"}</Button>
+      <Button size="sm" className="mb-1.5" disabled={pending}>{pending ? "Making…" : "+ New form"}</Button>
       {state?.error ? <div className="w-full"><Notice tone="error">{state.error}</Notice></div> : null}
     </form>
   );
@@ -163,46 +163,47 @@ function Snapshot({ f, people, sharers, teams }: { f: ManagedForm; people: Optio
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link href={`/forms/${f.id}/edit`} className={buttonClass(live ? "outline" : "primary")}>
-          {live ? "Edit" : "Edit and publish"}
-        </Link>
-        {live ? (
-          <>
-            <Link href={`/forms/${f.id}/replies`} className={buttonClass("primary")}>
+      {/* The main things to do, then the quieter ones as links. */}
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap gap-2">
+          {live ? (
+            <Link href={`/forms/${f.id}/replies`} className={buttonClass("primary", "", "sm")}>
               See replies
             </Link>
-            {f.enabled ? (
-              <>
-                <Button type="button" variant="outline" onClick={() => setPanel(panel === "send" ? "none" : "send")}>
-                  Send to people
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setPanel(panel === "compliance" ? "none" : "compliance")}>
-                  {f.compliance ? "Compliance" : "Put in Compliance"}
-                </Button>
-                {f.stillToDo.length ? (
-                  <Button type="button" variant="outline" disabled={pending} onClick={() => run(() => remindForm(f.id), false)}>
-                    Remind them
-                  </Button>
-                ) : null}
-              </>
-            ) : null}
-            <Button type="button" variant="outline" disabled={pending} onClick={() => run(() => setFormOn(f.id, !f.enabled), false)}>
+          ) : null}
+          <Link href={`/forms/${f.id}/edit`} className={buttonClass(live ? "outline" : "primary", "", "sm")}>
+            {live ? "Edit" : "Edit and publish"}
+          </Link>
+          {live && f.enabled ? (
+            <>
+              <Button type="button" size="sm" variant={panel === "send" ? "secondary" : "outline"} onClick={() => setPanel(panel === "send" ? "none" : "send")}>
+                Send
+              </Button>
+              <Button type="button" size="sm" variant={panel === "compliance" ? "secondary" : "outline"} onClick={() => setPanel(panel === "compliance" ? "none" : "compliance")}>
+                {f.compliance ? "Compliance" : "Add to Compliance"}
+              </Button>
+            </>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-1 text-[13px]">
+          {live && f.enabled && f.stillToDo.length ? (
+            <LinkButton disabled={pending} onClick={() => run(() => remindForm(f.id), false)}>
+              Remind them
+            </LinkButton>
+          ) : null}
+          {live ? (
+            <LinkButton disabled={pending} onClick={() => run(() => setFormOn(f.id, !f.enabled), false)}>
               {f.enabled ? "Turn off" : "Turn on"}
-            </Button>
-          </>
-        ) : null}
-        {f.mine ? (
-          <Button type="button" variant="outline" onClick={() => setPanel(panel === "share" ? "none" : "share")}>
-            Share with…
-          </Button>
-        ) : null}
-        <Button type="button" variant="outline" disabled={pending} onClick={() => run(() => copyForm(f.id))}>
-          Make a copy
-        </Button>
-        <Button type="button" variant="danger" onClick={() => setPanel(panel === "delete" ? "none" : "delete")}>
-          Delete
-        </Button>
+            </LinkButton>
+          ) : null}
+          {f.mine ? <LinkButton onClick={() => setPanel(panel === "share" ? "none" : "share")}>Share</LinkButton> : null}
+          <LinkButton disabled={pending} onClick={() => run(() => copyForm(f.id))}>
+            Make a copy
+          </LinkButton>
+          <LinkButton danger onClick={() => setPanel(panel === "delete" ? "none" : "delete")}>
+            Delete
+          </LinkButton>
+        </div>
       </div>
 
       {panel === "send" ? <SendPanel f={f} people={people} teams={teams} pending={pending} run={run} /> : null}
@@ -233,15 +234,29 @@ function Snapshot({ f, people, sharers, teams }: { f: ManagedForm; people: Optio
             Delete <strong>{f.title}</strong> and its {f.replies} {f.replies === 1 ? "reply" : "replies"}? This can&apos;t be undone. To stop replies but keep
             them, use Turn off instead.
           </p>
-          <Button type="button" variant="danger" disabled={pending} onClick={() => run(() => deleteForm(f.id))}>
+          <Button type="button" size="sm" variant="danger" disabled={pending} onClick={() => run(() => deleteForm(f.id))}>
             Yes, delete it
           </Button>
-          <Button type="button" variant="outline" onClick={() => setPanel("none")}>
+          <Button type="button" size="sm" variant="outline" onClick={() => setPanel("none")}>
             Cancel
           </Button>
         </div>
       ) : null}
     </div>
+  );
+}
+
+// A small text action in the quieter row (Remind, Turn off, Share, Copy, Delete).
+function LinkButton({ children, onClick, disabled, danger }: { children: ReactNode; onClick: () => void; disabled?: boolean; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`min-h-8 rounded-md px-2 font-semibold underline-offset-2 hover:bg-surface hover:underline disabled:opacity-50 ${danger ? "text-danger" : "text-brand"}`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -299,6 +314,7 @@ function SendPanel({ f, people, teams, pending, run }: { f: ManagedForm; people:
       <p className="text-xs text-muted">They get a bell note and an email with the link{due ? " and the due date" : ""}.</p>
       <Button
         type="button"
+        size="sm"
         className="self-start"
         disabled={pending}
         onClick={() => run(() => sendForm(f.id, { users: to === "people" ? chosen : [], team: to === "team" ? team : "", everyone: to === "everyone", due }))}
@@ -339,11 +355,11 @@ function CompliancePanel({ f, teams, pending, run }: { f: ManagedForm; teams: Op
         </fieldset>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={pending} onClick={() => run(() => formToCompliance(f.id, roles, inTeams))}>
+        <Button type="button" size="sm" disabled={pending} onClick={() => run(() => formToCompliance(f.id, roles, inTeams))}>
           {f.compliance ? "Save" : "Put in Compliance"}
         </Button>
         {f.compliance ? (
-          <Button type="button" variant="outline" disabled={pending} onClick={() => run(() => formOutOfCompliance(f.id))}>
+          <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => run(() => formOutOfCompliance(f.id))}>
             Take out of Compliance
           </Button>
         ) : null}

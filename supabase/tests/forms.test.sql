@@ -120,6 +120,9 @@ update public.forms set status = 'published', published_at = now() where title =
 select public.form_to_compliance(test.form('Policy sign-off'), '{support_worker}', '{}');
 reset role;
 select test.ok(public.onboarding_missing(test.pid('lee@example.com')) @> array['Policy sign-off'], 'it shows in Compliance as to do');
+select test.ok(exists (select 1 from public.notifications where user_id = test.pid('lee@example.com')
+                         and title = 'Please fill in: Policy sign-off' and href = '/forms/' || test.form('Policy sign-off')),
+  'and Lee is asked to fill it in, with a link to the form');
 select test.act_as('lee@example.com');
 set role authenticated;
 select public.submit_form_response(test.form('Policy sign-off'), jsonb_build_object(test.q('Signature')::text, 'Lee Worker'));
@@ -139,6 +142,15 @@ select test.act_as('boss2@example.com');
 set role authenticated;
 select test.refused($$delete from public.forms where title = 'Policy sign-off'$$, 'someone else can''t delete it');
 reset role;
+
+-- Questions about a form go to its maker as a task (or a note if a task can't be made).
+select test.act_as('sam@example.com');
+set role authenticated;
+select test.ok(public.ask_form_question(test.form('Staff survey'), 'Is this anonymous?') = 'task', 'Sam asks a question');
+reset role;
+select test.ok(exists (select 1 from public.tasks where title = 'Question about the form: Staff survey'
+                         and assigned_to = test.pid('boss@example.com') and created_by = test.pid('sam@example.com')),
+  'it''s a task for Morgan, from Sam');
 
 \o
 \echo All forms tests passed.

@@ -238,3 +238,12 @@ export async function submitReply(id: string, answers: FormAnswers, send: boolea
   revalidatePath("/onboarding");
   return { message: send ? "Sent. Thank you." : "Saved. Come back to finish it any time." };
 }
+
+// "Ask a question" at the bottom of a form: a task for the person who made it
+// (or a bell note and email if a task can't be made).
+export async function askFormQuestion(id: string, question: string): Promise<Result> {
+  await requireSession();
+  const { data, error } = await (await createClient()).rpc("ask_form_question", { p_form: id, p_question: question });
+  if (error) return { error: error.code === "PGRST202" ? "Asking questions isn't set up yet. Please contact them directly." : friendlyError(error) };
+  return { message: data === "task" ? "Sent. It's a task for them now, and you'll see their reply on it." : "Sent. They've been told by the bell and email." };
+}

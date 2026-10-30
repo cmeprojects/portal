@@ -74,14 +74,14 @@ export function FormEditor({
             {dirty ? <Badge tone="warn">Unsaved changes</Badge> : null}
           </div>
         </div>
-        <Button type="button" variant="outline" onClick={() => setTrying((t) => !t)}>
+        <Button type="button" size="sm" variant={trying ? "secondary" : "outline"} onClick={() => setTrying((t) => !t)}>
           {trying ? "Back to editing" : "Try it"}
         </Button>
-        <Button type="button" variant="outline" disabled={pending || !dirty} onClick={() => save()}>
+        <Button type="button" size="sm" variant="outline" disabled={pending || !dirty} onClick={() => save()}>
           {pending ? "Saving…" : "Save"}
         </Button>
         {form.status === "draft" ? (
-          <Button type="button" disabled={pending} onClick={() => save(() => publishForm(form.id))}>
+          <Button type="button" size="sm" disabled={pending} onClick={() => save(() => publishForm(form.id))}>
             Publish
           </Button>
         ) : null}
@@ -205,7 +205,7 @@ export function FormEditor({
               </li>
             ))}
           </ol>
-          <Button type="button" variant="outline" className="self-start" onClick={() => setQuestions((list) => [...list, blankQuestion(list.length + 1)])}>
+          <Button type="button" size="sm" variant="secondary" className="self-start" onClick={() => setQuestions((list) => [...list, blankQuestion(list.length + 1)])}>
             + Add a question
           </Button>
           {replies ? <p className="text-xs text-muted">{replies} {replies === 1 ? "reply" : "replies"} so far. Removing a question hides it; answers already given are kept.</p> : null}
@@ -230,6 +230,7 @@ export function FormEditor({
               <input type="checkbox" checked={form.show_contact} onChange={(e) => set("show_contact", e.target.checked)} className={`${tick} mt-0.5`} />
               <span>
                 &quot;Questions? Contact {me.name}&quot; at the bottom, with {me.email} under it
+                <span className="block text-xs text-muted">Plus an Ask a question button: their question comes to you as a task.</span>
               </span>
             </label>
             <label className="flex items-start gap-2 text-sm">

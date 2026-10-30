@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
 import type { FormAnswers, FormInfo, FormQuestion } from "@/lib/form-types";
-import { submitReply } from "@/app/(portal)/forms/actions";
+import { askFormQuestion, submitReply } from "@/app/(portal)/forms/actions";
 
 type Props = {
   form: Pick<FormInfo, "id" | "title" | "intro" | "repeatable" | "anonymous" | "show_header" | "show_contact" | "due_date">;
@@ -133,12 +133,58 @@ export function FormFiller({ form, questions, brand, contact, userId, mode, draf
         </form>
       )}
 
-      {form.show_contact && contact ? (
-        <div className="border-t border-line pt-3 text-sm text-muted">
+      {form.show_contact && contact ? <ContactFooter formId={form.id} contact={contact} preview={mode === "preview"} /> : null}
+    </div>
+  );
+}
+
+// "Questions? Contact …" with their email, and Ask a question (it becomes a task for them).
+function ContactFooter({ formId, contact, preview }: { formId: string; contact: { name: string; email: string }; preview: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [result, setResult] = useState<{ error?: string; message?: string } | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <div className="flex flex-col gap-2 border-t border-line pt-3 text-sm">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="text-muted">
           <p>
             Questions? Contact <strong className="text-ink">{contact.name}</strong>
           </p>
           <p>{contact.email}</p>
+        </div>
+        {!open && !result?.message ? (
+          <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(true)}>
+            Ask a question
+          </Button>
+        ) : null}
+      </div>
+      {result?.message ? <p className="font-semibold text-good">{result.message}</p> : null}
+      {open && !result?.message ? (
+        <div className="flex flex-col gap-2 rounded-md border border-line bg-page p-3">
+          <label htmlFor={`ask-${formId}`} className="font-semibold">
+            Your question for {contact.name}
+          </label>
+          <textarea id={`ask-${formId}`} rows={3} maxLength={2000} value={question} onChange={(e) => setQuestion(e.target.value)} className={`${inputClass} min-h-20 py-3`} />
+          <p className="text-xs text-muted">It goes to them as a task, so you can see when it&apos;s answered.</p>
+          {result?.error ? <Notice tone="error">{result.error}</Notice> : null}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={pending || question.trim().length < 3}
+              onClick={() =>
+                preview
+                  ? setResult({ message: "Sent (this is a try-out: nothing was sent)." })
+                  : start(async () => setResult(await askFormQuestion(formId, question)))
+              }
+            >
+              {pending ? "Sending…" : "Send question"}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>
