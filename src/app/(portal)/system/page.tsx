@@ -32,6 +32,8 @@ const ORDER = [
   "brand.support_contact",
   "brand.announcement",
   "people.invite_message",
+  "reports.roles",
+  "reports.compliance_roles",
   "security.mfa_required_roles",
   "security.mfa_app_enabled",
   "security.mfa_sms_enabled",
@@ -77,7 +79,18 @@ const TABS: Tab[] = [
     label: "Tasks",
     sections: [
       { title: "Tasks", intro: "Due dates, reminders, escalation and required fields. Managers can also change due dates on the Due dates (SLA) page.", area: "tasks", keys: (k) => k.startsWith("tasks.") },
-      { title: "Reports", area: "reports", keys: (k) => k.startsWith("reports.") },
+    ],
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    sections: [
+      {
+        title: "Who sees which reports",
+        intro: "The system admin always sees every report. Car reports are set on the Cars tab.",
+        area: "reports",
+        keys: (k) => k.startsWith("reports."),
+      },
     ],
   },
   {
