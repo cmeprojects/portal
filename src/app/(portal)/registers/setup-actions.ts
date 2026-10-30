@@ -202,3 +202,13 @@ export async function moveField(form: FormData) {
   }
   refresh(registryId);
 }
+
+// Quick switch on the Registers page: do tasks in this register need a manager's approval to close?
+export async function setRegistryApproval(form: FormData) {
+  const { profile } = await requireTaskAccess();
+  if (!["manager", "system_admin"].includes(profile.role)) return;
+  const id = text(form, "id");
+  const supabase = await createClient();
+  await supabase.from("registries").update({ requires_approval: text(form, "on") === "true" }).eq("id", id).eq("kind", "tasks");
+  refresh(id);
+}
