@@ -42,7 +42,7 @@ export default async function BuilderPage() {
                     {f.name}
                   </Link>
                   <span className="block text-xs text-muted">
-                    {entries(f.id).toLocaleString("en-AU")} entries · /f/{f.slug}
+                    {entries(f.id).toLocaleString("en-AU")} {entries(f.id) === 1 ? "entry" : "entries"} · /f/{f.slug}
                   </span>
                 </span>
                 <Badge tone="soft">Premium</Badge>

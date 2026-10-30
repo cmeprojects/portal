@@ -11,8 +11,8 @@ export function NewFeatureForm() {
     <form action={action} className="flex flex-col gap-3">
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <Field label="Name" htmlFor="nf-name" hint="For example Fluid intake, Fridge temperatures or Petty cash.">
-          <input id="nf-name" name="name" required maxLength={60} className={inputClass} />
+        <Field label="Name" htmlFor="nf-name">
+          <input id="nf-name" name="name" required maxLength={60} placeholder="e.g. Fluid intake, Fridge temperatures" className={inputClass} />
         </Field>
         <Field label="Start from" htmlFor="nf-template">
           <select id="nf-template" name="template" className={inputClass}>

@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
@@ -87,7 +87,7 @@ export function Builder({
       type="button"
       onClick={() => setTab(k)}
       aria-current={tab === k ? "page" : undefined}
-      className={`-mb-px min-h-11 border-b-2 px-3 text-sm font-semibold ${tab === k ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}
+      className={`-mb-px min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold whitespace-nowrap ${tab === k ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}
     >
       {label}
     </button>
@@ -96,36 +96,38 @@ export function Builder({
   return (
     <div className="flex flex-col gap-4">
       {/* Top bar: name, status, save and publish. */}
-      <div className="sticky top-0 z-20 -mx-4 flex flex-wrap items-center gap-3 border-b border-line bg-page/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
+      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-3 border-b border-line bg-page/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center md:-mx-8 md:px-8">
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted">
+          <p className="truncate text-xs text-muted">
             <Link href="/system/builder" className="underline">
               Feature builder
             </Link>{" "}
             › {feature.name || "New feature"}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="heading-sm">{feature.name || "New feature"}</h1>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h1 className="heading-sm truncate">{feature.name || "New feature"}</h1>
             <Badge tone="soft">Premium</Badge>
             {feature.status === "published" ? <Badge tone="good">Live</Badge> : <Badge tone="grey">Draft</Badge>}
             {dirty ? <Badge tone="warn">Unsaved changes</Badge> : null}
           </div>
         </div>
-        <Button variant="outline" className="lg:hidden" onClick={() => setShowPreview((s) => !s)} type="button">
-          {showPreview ? "Back to builder" : "Preview"}
-        </Button>
-        <Button variant="outline" disabled={pending || !dirty} onClick={() => save()} type="button">
-          {pending ? "Saving…" : "Save"}
-        </Button>
-        {feature.status === "draft" ? (
-          <Button disabled={pending} onClick={() => save(() => publishFeature(feature.id))} type="button">
-            Save and publish
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" className="lg:hidden" onClick={() => setShowPreview((s) => !s)} type="button">
+            {showPreview ? "Back to builder" : "Preview"}
           </Button>
-        ) : (
-          <Link href={`/f/${feature.slug}`} className="text-sm font-semibold text-brand underline">
-            Open as staff
-          </Link>
-        )}
+          <Button variant="outline" disabled={pending || !dirty} onClick={() => save()} type="button">
+            {pending ? "Saving…" : "Save"}
+          </Button>
+          {feature.status === "draft" ? (
+            <Button disabled={pending} onClick={() => save(() => publishFeature(feature.id))} type="button">
+              Save and publish
+            </Button>
+          ) : (
+            <Link href={`/f/${feature.slug}`} className="px-2 text-sm font-semibold text-brand underline">
+              Open as staff
+            </Link>
+          )}
+        </div>
       </div>
       {result?.error ? <Notice tone="error">{result.error}</Notice> : result?.message ? <Notice tone="success">{result.message}</Notice> : null}
 
@@ -139,39 +141,37 @@ export function Builder({
           </nav>
 
           {tab === "details" ? (
-            <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Name" htmlFor="b-name">
-                  <input id="b-name" value={feature.name} maxLength={60} onChange={(e) => set("name", e.target.value)} className={inputClass} />
+            <div className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
+              <Section title="About">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Name" htmlFor="b-name">
+                    <input id="b-name" value={feature.name} maxLength={60} onChange={(e) => set("name", e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Menu label" htmlFor="b-menu">
+                    <input id="b-menu" value={feature.menu_label} maxLength={30} onChange={(e) => set("menu_label", e.target.value)} className={inputClass} />
+                  </Field>
+                </div>
+                <Field label="Description" htmlFor="b-desc" hint="Shown at the top of the form. The menu label is what staff see in the menu.">
+                  <input id="b-desc" value={feature.description} maxLength={300} onChange={(e) => set("description", e.target.value)} className={inputClass} />
                 </Field>
-                <Field label="Menu label" htmlFor="b-menu" hint="Short: it's what staff see in the menu.">
-                  <input id="b-menu" value={feature.menu_label} maxLength={30} onChange={(e) => set("menu_label", e.target.value)} className={inputClass} />
-                </Field>
-              </div>
-              <Field label="Description" htmlFor="b-desc" hint="Shown at the top of the form.">
-                <input id="b-desc" value={feature.description} maxLength={300} onChange={(e) => set("description", e.target.value)} className={inputClass} />
-              </Field>
-              <RoleBoxes label="Who can fill it in" roles={FILL_ROLES} value={feature.fill_roles} onChange={(v) => set("fill_roles", v)} />
-              <RoleBoxes
-                label="Who sees every entry (and the report)"
-                hint="Team leaders see their own team's entries. Everyone sees the entries they made."
-                roles={SEE_ROLES}
-                value={feature.see_roles}
-                onChange={(v) => set("see_roles", v)}
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
+              </Section>
+              <Section title="Who">
+                <RoleBoxes label="Who can fill it in" roles={FILL_ROLES} value={feature.fill_roles} onChange={(v) => set("fill_roles", v)} />
+                <RoleBoxes
+                  label="Who sees every entry (and the report)"
+                  hint="Team leaders see their own team's entries. Everyone sees the entries they made."
+                  roles={SEE_ROLES}
+                  value={feature.see_roles}
+                  onChange={(v) => set("see_roles", v)}
+                />
+              </Section>
+              <Section title="Each entry" hint="The date, time and the signed-in staff member's name are always recorded.">
                 <Field label="Time to undo an entry (minutes)" htmlFor="b-undo" hint="After this, only a manager can fix it (if you allow it below).">
-                  <input id="b-undo" inputMode="numeric" value={String(feature.undo_minutes)} onChange={(e) => set("undo_minutes", Number(e.target.value.replace(/\D/g, "")) || 0)} className={inputClass} />
+                  <input id="b-undo" inputMode="numeric" value={String(feature.undo_minutes)} onChange={(e) => set("undo_minutes", Number(e.target.value.replace(/\D/g, "")) || 0)} className={`${inputClass} max-w-32`} />
                 </Field>
-                <label className="flex items-center gap-3 self-end pb-2 text-sm">
-                  <input type="checkbox" checked={feature.record_team} onChange={(e) => set("record_team", e.target.checked)} className="h-5 w-5 accent-[var(--brand-primary)]" />
-                  Also record their team
-                </label>
-              </div>
-              <p className="text-xs text-muted">The date, time and the signed-in staff member&apos;s name are always recorded.</p>
-              <fieldset className="border-t border-line pt-4">
-                <legend className="text-sm font-semibold">Managers can also</legend>
-                <p className="text-xs text-muted">You can always do these. Managers find them under Manage on the feature&apos;s page.</p>
+                <Tick checked={feature.record_team} onChange={(v) => set("record_team", v)} label="Also record their team" />
+              </Section>
+              <Section title="Managers can also" hint="You can always do these. Managers find them under Manage on the feature's page.">
                 {(
                   [
                     ["managers_fix", "Fix entries", "Change the answers after the undo time, with a reason. The change log keeps what it was."],
@@ -179,32 +179,30 @@ export function Builder({
                     ["managers_options", "Change drop-down options", "Add or remove options. Not the rest of the form."],
                   ] as const
                 ).map(([k, label, hint]) => (
-                  <label key={k} className="mt-2 flex items-start gap-3 text-sm">
-                    <input type="checkbox" checked={feature[k]} onChange={(e) => set(k, e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-primary)]" />
-                    <span>
-                      <span className="block font-medium">{label}</span>
-                      <span className="block text-xs text-muted">{hint}</span>
-                    </span>
-                  </label>
+                  <Tick key={k} checked={feature[k]} onChange={(v) => set(k, v)} label={label} hint={hint} />
                 ))}
-              </fieldset>
+              </Section>
               {feature.status === "published" ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-                  <span>
-                    <span className="block font-semibold">In this company&apos;s package</span>
-                    <span className="block text-sm text-muted">Off hides it everywhere; entries are kept.</span>
-                  </span>
-                  <form action={setFeatureIncluded}>
-                    <input type="hidden" name="id" value={feature.id} />
-                    <input type="hidden" name="enabled" value={feature.enabled ? "false" : "true"} />
-                    <Button variant={feature.enabled ? "primary" : "outline"}>{feature.enabled ? "In package: on" : "Off"}</Button>
-                  </form>
-                </div>
+                <Section title="Package">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-sm">
+                      <span className="block font-semibold">In this company&apos;s package</span>
+                      <span className="block text-muted">Off hides it everywhere; entries are kept.</span>
+                    </span>
+                    <form action={setFeatureIncluded}>
+                      <input type="hidden" name="id" value={feature.id} />
+                      <input type="hidden" name="enabled" value={feature.enabled ? "false" : "true"} />
+                      <Button variant={feature.enabled ? "primary" : "outline"}>{feature.enabled ? "In package: on" : "Off"}</Button>
+                    </form>
+                  </div>
+                </Section>
               ) : entryCount === 0 ? (
-                <form action={deleteDraft} className="border-t border-line pt-4">
-                  <input type="hidden" name="id" value={feature.id} />
-                  <Button variant="danger">Delete this draft</Button>
-                </form>
+                <Section title="Draft">
+                  <form action={deleteDraft}>
+                    <input type="hidden" name="id" value={feature.id} />
+                    <Button variant="danger">Delete this draft</Button>
+                  </form>
+                </Section>
               ) : null}
             </div>
           ) : null}
@@ -271,7 +269,7 @@ export function Builder({
               </div>
               {entryCount ? (
                 <p className="text-xs text-muted">
-                  {entryCount.toLocaleString("en-AU")} entries so far. Removing a field hides it from the form; answers already given are kept.
+                  {entryCount.toLocaleString("en-AU")} {entryCount === 1 ? "entry" : "entries"} so far. Removing a field hides it from the form; answers already given are kept.
                 </p>
               ) : null}
             </div>
@@ -316,11 +314,36 @@ export function Builder({
   );
 }
 
+function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-4 p-5">
+      <div>
+        <h2 className="text-xs font-semibold tracking-wider text-muted uppercase">{title}</h2>
+        {hint ? <p className="mt-0.5 text-xs text-muted">{hint}</p> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+// A tick box with its label (and an optional line under it), lined up the same everywhere.
+function Tick({ checked, onChange, label, hint }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
+  return (
+    <label className="flex items-start gap-3 text-sm">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-primary)]" />
+      <span>
+        <span className={hint ? "block font-medium" : ""}>{label}</span>
+        {hint ? <span className="block text-xs text-muted">{hint}</span> : null}
+      </span>
+    </label>
+  );
+}
+
 function RoleBoxes({ label, hint, roles, value, onChange }: { label: string; hint?: string; roles: Role[]; value: Role[]; onChange: (v: Role[]) => void }) {
   return (
     <fieldset>
       <legend className="text-sm font-semibold">{label}</legend>
-      <div className="flex flex-wrap gap-x-5">
+      <div className="grid grid-cols-2 gap-x-4 sm:grid-cols-4">
         {roles.map((r) => (
           <label key={r} className="flex min-h-10 items-center gap-2 text-sm">
             <input
@@ -449,16 +472,12 @@ function FieldEditor({ f, typed, onChange, onRemove }: { f: FeatureField; typed:
             </Button>
           </div>
           {f.type === "choice" ? (
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={f.allow_other} onChange={(e) => onChange({ allow_other: e.target.checked })} className="h-5 w-5 accent-[var(--brand-primary)]" />
-              Staff can type their own answer if it&apos;s not in the list
-            </label>
+            <Tick checked={f.allow_other} onChange={(v) => onChange({ allow_other: v })} label="Staff can type their own answer if it's not in the list" />
           ) : null}
           {f.allow_other ? (
-            <label className="flex items-center gap-2 pl-7 text-sm">
-              <input type="checkbox" checked={f.add_typed} onChange={(e) => onChange({ add_typed: e.target.checked })} className="h-5 w-5 accent-[var(--brand-primary)]" />
-              Add their answer to the list for everyone next time
-            </label>
+            <div className="pl-8">
+              <Tick checked={f.add_typed} onChange={(v) => onChange({ add_typed: v })} label="Add their answer to the list for everyone next time" />
+            </div>
           ) : null}
           {f.allow_other && typed.length ? (
             <div className="rounded-md border border-line bg-surface p-3 text-sm">
@@ -485,10 +504,7 @@ function FieldEditor({ f, typed, onChange, onRemove }: { f: FeatureField; typed:
         <input id={`h-${f.id}`} value={f.help} maxLength={200} onChange={(e) => onChange({ help: e.target.value })} className={inputClass} />
       </Field>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={f.required} onChange={(e) => onChange({ required: e.target.checked })} className="h-5 w-5 accent-[var(--brand-primary)]" />
-          Required
-        </label>
+        <Tick checked={f.required} onChange={(v) => onChange({ required: v })} label="Required" />
         <Button type="button" variant="danger" onClick={onRemove}>
           Remove field
         </Button>

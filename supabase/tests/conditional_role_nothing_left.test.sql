@@ -31,21 +31,20 @@ select test.ok((select role = 'support_worker' from public.profiles where email 
                and not exists (select 1 from public.tasks where assigned_to = test.pid('ana@example.com')),
   'a role that needs nothing more: a manager just gives it, with no task');
 
+select test.ok(public.rule_on('people.first_role_approval') and public.rule_on('people.staff_admin_role_approval'),
+  'a staff admin''s role changes need approval, a first role too');
 select test.act_as('office@example.com');
 set role authenticated;
-select public.give_conditional_role(test.pid('bo@example.com'), 'support_worker', null, '{}', 'Rostered Monday', current_date + 14);
+select test.refused($$update public.profiles set role = 'support_worker' where email = 'bo@example.com'$$,
+  'a staff admin can''t give a first role directly');
 reset role;
-select test.ok((select role = 'support_worker' from public.profiles where email = 'bo@example.com'),
-  'a staff admin gives it straight away too (no approval needed for a first role)');
-
-update public.app_settings set value = 'true' where key = 'people.first_role_approval';
 select test.act_as('office@example.com');
 set role authenticated;
 select public.give_conditional_role(test.pid('cy@example.com'), 'support_worker', null, '{}', 'Rostered Monday', current_date + 14);
 reset role;
 select test.ok((select role = 'new_starter' from public.profiles where email = 'cy@example.com')
                and exists (select 1 from public.people_change_requests where user_id = test.pid('cy@example.com') and status = 'pending'),
-  'unless the rule says a first role needs a manager''s approval');
+  'a staff admin''s conditional role always goes to a manager, even with nothing left to do');
 
 \o
 \echo All conditional role tests passed.

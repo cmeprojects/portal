@@ -31,7 +31,7 @@ export default async function InstallCarsAppPage({ searchParams }: PageProps<"/c
 
   return (
     <>
-      <div className="print:hidden">
+      <div className="flex flex-col gap-6 print:hidden">
         <SectionTabs section="cars" current="/cars/install" />
         <PageHeader
           eyebrow="Cars"

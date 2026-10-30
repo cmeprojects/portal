@@ -37,7 +37,8 @@ select test.refused($$select public.create_task('x', (select id from public.regi
   'a new starter cannot be given a task');
 reset role;
 
--- First role: a staff admin sets it straight away.
+-- First role: with the rule off, a staff admin sets it straight away.
+update public.app_settings set value = 'false' where key = 'people.first_role_approval';
 select test.act_as('office@example.com');
 set role authenticated;
 update public.profiles set role = 'support_worker' where email = 'new@example.com';
