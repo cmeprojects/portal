@@ -32,7 +32,7 @@ export async function buildFormReport(form: FormInfo, allQuestions: FormQuestion
   const table: Table = {
     columns: [
       { key: "when", label: "Sent" },
-      ...(form.anonymous ? [] : [{ key: "who", label: "Name" }]),
+      { key: "who", label: "Name" },
       ...questions.map((q) => ({ key: q.id, label: q.label, wide: q.type === "long" })),
     ],
     rows: rows.map((r) => ({
@@ -40,7 +40,7 @@ export async function buildFormReport(form: FormInfo, allQuestions: FormQuestion
       href: "",
       cells: {
         when: { text: when.format(new Date(r.submitted_at)).replace(",", "") },
-        who: { text: r.user_id ? nameOf.get(r.user_id) ?? "Someone" : "" },
+        who: r.user_id ? { text: nameOf.get(r.user_id) ?? "Someone" } : { text: "Anonymous", tone: "muted" },
         ...Object.fromEntries(
           questions.map((q) => [q.id, { text: answerText(q, r.answers[q.id]), num: q.type === "number" && r.answers[q.id] != null ? Number(r.answers[q.id]) : undefined } as Cell]),
         ),
@@ -74,7 +74,7 @@ export async function buildFormReport(form: FormInfo, allQuestions: FormQuestion
   const files = rows.flatMap((r) =>
     fileQs
       .filter((q) => typeof r.answers[q.id] === "string" && r.answers[q.id])
-      .map((q) => ({ reply: `${when.format(new Date(r.submitted_at))}${!form.anonymous && r.user_id ? ` · ${nameOf.get(r.user_id) ?? ""}` : ""}`, question: q.label, path: String(r.answers[q.id]) })),
+      .map((q) => ({ reply: `${when.format(new Date(r.submitted_at))} · ${r.user_id ? nameOf.get(r.user_id) ?? "" : "Anonymous"}`, question: q.label, path: String(r.answers[q.id]) })),
   );
 
   return {

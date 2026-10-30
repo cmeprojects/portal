@@ -227,9 +227,12 @@ export async function shareForm(id: string, userId: string, on: boolean): Promis
 }
 
 // Staff: send a reply, or save it to finish later.
-export async function submitReply(id: string, answers: FormAnswers, send: boolean): Promise<Result> {
+export async function submitReply(id: string, answers: FormAnswers, send: boolean, anonymous = false): Promise<Result> {
   await requireSession();
-  const { error } = await (await createClient()).rpc("submit_form_response", { p_form: id, p_answers: answers, p_send: send });
+  const supabase = await createClient();
+  let { error } = await supabase.rpc("submit_form_response", { p_form: id, p_answers: answers, p_send: send, p_anonymous: anonymous });
+  // Before live update 33 there's no per-person choice yet.
+  if (error?.code === "PGRST202") ({ error } = await supabase.rpc("submit_form_response", { p_form: id, p_answers: answers, p_send: send }));
   if (error) return { error: friendlyError(error) };
   refresh(id);
   revalidatePath("/onboarding");

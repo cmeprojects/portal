@@ -78,7 +78,7 @@ export function FormsList({ rows, open, people, sharers, teams }: { rows: Manage
               <span className="flex flex-wrap items-center gap-1.5">
                 {f.status === "draft" ? <Badge tone="grey">Draft</Badge> : f.enabled ? <Badge tone="good">On</Badge> : <Badge tone="grey">Off</Badge>}
                 {f.compliance ? <Badge tone="soft">In Compliance</Badge> : null}
-                {f.anonymous ? <Badge tone="soft">Anonymous</Badge> : null}
+                {f.anonymous ? <Badge tone="soft">Anonymous allowed</Badge> : null}
               </span>
             </button>
             {isOpen ? <Snapshot f={f} people={people} sharers={sharers} teams={teams} /> : null}
@@ -114,7 +114,7 @@ function Snapshot({ f, people, sharers, teams }: { f: ManagedForm; people: Optio
           <dt className="text-muted">Status</dt>
           <dd>{f.status === "draft" ? "Draft: not published yet" : f.enabled ? `Published ${f.published}, taking replies` : "Turned off"}</dd>
           <dt className="text-muted">Filled in</dt>
-          <dd>{f.repeatable ? "As many times as needed" : "Once per person"}{f.anonymous ? " · anonymous" : ""}</dd>
+          <dd>{f.repeatable ? "As many times as needed" : "Once per person"}{f.anonymous ? " · people may answer anonymously" : ""}</dd>
           <dt className="text-muted">Replies</dt>
           <dd>{f.replies}</dd>
           {f.sentCount ? (

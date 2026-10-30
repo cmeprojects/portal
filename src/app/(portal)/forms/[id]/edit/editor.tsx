@@ -235,8 +235,11 @@ export function FormEditor({
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" checked={form.anonymous} onChange={(e) => set("anonymous", e.target.checked)} className={`${tick} mt-0.5`} />
               <span>
-                Anonymous replies
-                <span className="block text-xs text-muted">You see the answers and who has done it, but not who wrote which answers.</span>
+                Let people answer anonymously
+                <span className="block text-xs text-muted">
+                  They get an &quot;Answer anonymously&quot; tick box. If they tick it, you see their answers but not their name (you still see that
+                  they&apos;ve done it).
+                </span>
               </span>
             </label>
             <label className="flex items-start gap-2 text-sm">

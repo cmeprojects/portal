@@ -30,6 +30,8 @@ export function FormFiller({ form, questions, brand, contact, userId, mode, draf
   const [answers, setAnswers] = useState<FormAnswers>(draft ?? {});
   const [error, setError] = useState("");
   const [done, setDone] = useState<string | null>(null);
+  // The form allows it: they choose to answer anonymously.
+  const [anon, setAnon] = useState(false);
   const [pending, start] = useTransition();
   const set = (id: string, v: string | string[]) => setAnswers((a) => ({ ...a, [id]: v }));
 
@@ -48,7 +50,7 @@ export function FormFiller({ form, questions, brand, contact, userId, mode, draf
       return;
     }
     start(async () => {
-      const r = await submitReply(form.id, answers, finish);
+      const r = await submitReply(form.id, answers, finish, form.anonymous && anon);
       if (r.error) setError(r.error);
       else {
         setDone(r.message ?? "Sent. Thank you.");
@@ -70,7 +72,7 @@ export function FormFiller({ form, questions, brand, contact, userId, mode, draf
         <h1 className="heading">{form.title || "Untitled form"}</h1>
         {form.intro ? <p className="mt-2 text-sm whitespace-pre-line text-muted">{form.intro}</p> : null}
         <p className="mt-2 text-xs text-muted">
-          {[form.due_date ? `Please fill this in by ${nice(form.due_date)}.` : "", form.anonymous ? "Your answers are anonymous: your name isn't shown with them." : ""]
+          {[form.due_date ? `Please fill this in by ${nice(form.due_date)}.` : "", form.anonymous ? "You can choose to answer anonymously (tick the box before you send)." : ""]
             .filter(Boolean)
             .join(" ")}
         </p>
@@ -112,14 +114,21 @@ export function FormFiller({ form, questions, brand, contact, userId, mode, draf
             </fieldset>
           ))}
           {live.length === 0 ? <p className="text-sm text-muted">No questions yet.</p> : null}
+          {form.anonymous ? (
+            <label className="flex items-start gap-3 rounded-md border border-line bg-page p-3 text-sm">
+              <input type="checkbox" checked={anon} onChange={(e) => setAnon(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-primary)]" />
+              <span>
+                <span className="block font-semibold">Answer anonymously</span>
+                <span className="block text-muted">Your name won&apos;t be shown with your answers. {"The person who made the form only sees that you've done it."}</span>
+              </span>
+            </label>
+          ) : null}
           {error ? <Notice tone="error">{error}</Notice> : null}
           <div className="flex flex-wrap gap-2">
             <Button disabled={pending || live.length === 0}>{pending ? "Sending…" : "Send"}</Button>
-            {!form.anonymous ? (
-              <Button type="button" variant="outline" disabled={pending} onClick={() => send(false)}>
-                Save and finish later
-              </Button>
-            ) : null}
+            <Button type="button" variant="outline" disabled={pending} onClick={() => send(false)}>
+              Save and finish later
+            </Button>
           </div>
         </form>
       )}

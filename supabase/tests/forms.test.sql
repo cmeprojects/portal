@@ -82,21 +82,27 @@ select test.refused(format($$select public.submit_form_response(%L, jsonb_build_
   test.form('Staff survey'), test.q('Happy at work?'), test.q('Best part')), 'choices come from the list');
 select public.submit_form_response(test.form('Staff survey'), jsonb_build_object(test.q('Best part')::text, 'Team'), false);
 select test.ok((select status = 'draft' and user_id = auth.uid() from public.form_responses), 'save and finish later keeps a draft');
-select public.submit_form_response(test.form('Staff survey'), jsonb_build_object(test.q('Happy at work?')::text, 'Yes', test.q('Best part')::text, 'Team'));
+select public.submit_form_response(test.form('Staff survey'), jsonb_build_object(test.q('Happy at work?')::text, 'Yes', test.q('Best part')::text, 'Team'), true, true);
 select test.refused(format($$select public.submit_form_response(%L, jsonb_build_object(%L, 'No'))$$, test.form('Staff survey'), test.q('Happy at work?')),
   'a once-only form can''t be filled in twice');
 reset role;
-select test.ok((select count(*) = 1 and bool_and(user_id is null and status = 'submitted') from public.form_responses), 'the draft became an anonymous reply');
+select test.ok((select count(*) = 1 and bool_and(user_id is null and status = 'submitted') from public.form_responses), 'Sam ticked Answer anonymously: the draft became a reply without their name');
+select test.act_as('lee@example.com');
+set role authenticated;
+select public.submit_form_response(test.form('Staff survey'), jsonb_build_object(test.q('Happy at work?')::text, 'No'));
+reset role;
+select test.ok((select user_id = test.pid('lee@example.com') from public.form_responses where answers ->> test.q('Happy at work?')::text = 'No'),
+  'Lee didn''t tick it: their name is kept');
 
 select test.act_as('boss@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.form_responses) = 1 and (select count(*) from public.form_completions) = 1,
-  'the maker sees the reply and that Sam has done it');
+select test.ok((select count(*) from public.form_responses) = 2 and (select count(*) from public.form_completions) = 2,
+  'the maker sees the replies and that Sam and Lee have done it');
 select test.ok(public.remind_form(test.form('Staff survey')) = 0, 'no one left to remind');
 reset role;
 select test.act_as('lee@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.form_responses) = 0, 'other staff don''t see replies');
+select test.ok((select count(*) from public.form_responses) = 1, 'other staff only see their own reply');
 reset role;
 select test.act_as('office@example.com');
 set role authenticated;

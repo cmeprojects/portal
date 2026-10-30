@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/forms/[id]/r
     companyName: brand.companyName,
     title: def.form.title,
     lines: [
-      `${report.totals.replies} replies${def.form.anonymous ? " (anonymous)" : ""}${report.totals.sent ? ` · sent to ${report.totals.sent}, ${report.totals.done} done` : ""}`,
+      `${report.totals.replies} replies${report.totals.sent ? ` · sent to ${report.totals.sent}, ${report.totals.done} done` : ""}`,
       `Downloaded by ${session.profile.full_name || session.profile.email} on ${when}`,
     ],
     brandColour: brand.colorPrimary,

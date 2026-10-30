@@ -37,7 +37,7 @@ export default async function FormRepliesPage({ params }: PageProps<"/forms/[id]
     report.files.map(async (f) => ({ ...f, url: (await supabase.storage.from("form-files").createSignedUrl(f.path, 3600)).data?.signedUrl ?? "" })),
   );
   const printedAt = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date());
-  const subtitle = `${report.totals.replies} ${report.totals.replies === 1 ? "reply" : "replies"}${form.anonymous ? " · anonymous" : ""}`;
+  const subtitle = `${report.totals.replies} ${report.totals.replies === 1 ? "reply" : "replies"}`;
 
   return (
     <>
@@ -53,7 +53,11 @@ export default async function FormRepliesPage({ params }: PageProps<"/forms/[id]
         </p>
         <PageHeader
           title={`${form.title}: replies`}
-          intro={form.anonymous ? "Anonymous: you see the answers and who has done it, but not who wrote which answers." : "Every reply, with who sent it and when."}
+          intro={
+            form.anonymous
+              ? "Every reply, with who sent it and when. People could choose to answer anonymously: those replies show Anonymous."
+              : "Every reply, with who sent it and when."
+          }
           action={
             <div className="flex flex-wrap gap-2">
               <a href={`/forms/${form.id}/replies/export`} className={buttonClass("primary")}>
