@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { assignableRoles, inCoreTeam, JOB_TITLE_COLUMNS, ROLE_HELP, ROLE_LABELS, ROLES, type JobTitle, type Role } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { InviteForm, PersonEditor, type PersonRow } from "./forms";
-import { canInvite, getPeopleRules } from "@/lib/settings";
+import { canHelpSignIn, canInvite, getPeopleRules } from "@/lib/settings";
 import { decideChangeRequest } from "./actions";
 
 export const metadata: Metadata = { title: "Staff & roles" };
@@ -219,6 +219,7 @@ export default async function StaffPage() {
                       teams={teams ?? []}
                       isManager={me.role === "manager" || me.role === "system_admin"}
                       canResetMfa={me.role === "system_admin"}
+                      canHelpSignIn={canHelpSignIn(me.role, rules) && (me.role === "system_admin" || p.role !== "system_admin")}
                       needsApproval={needsApproval(row.role)}
                     />
                   ) : (

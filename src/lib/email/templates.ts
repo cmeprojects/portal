@@ -206,6 +206,51 @@ export function renderInvite(ctx: {
   return { subject: `Welcome to ${ctx.companyName}: your staff portal invite`, html, text };
 }
 
+// A link to set a new password, with the company's logo.
+export function renderPasswordReset(ctx: { recipientName: string; companyName: string; logo: string; link: string; brand: string; sentBy?: string }): Rendered {
+  const hi = ctx.recipientName ? `Hi ${ctx.recipientName},` : "Hi,";
+  const why = ctx.sentBy
+    ? `${ctx.sentBy} has sent you a link to set a new password for the ${ctx.companyName} staff portal.`
+    : `someone (hopefully you) asked to reset the password for your ${ctx.companyName} staff portal account.`;
+  const html = `<!-- Staff Portal · © cmeproject -->
+<div style="background:#F3F5F9;padding:24px 12px;font-family:Figtree,Arial,sans-serif;color:#1B2333">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden">
+    <div style="padding:28px 28px 0;text-align:center">
+      <img src="${esc(ctx.logo)}" alt="${esc(ctx.companyName)}" style="max-height:72px;max-width:260px">
+    </div>
+    <div style="padding:20px 28px 28px">
+      <h1 style="margin:0 0 12px;font-size:24px;text-align:center">Set a new password</h1>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.55">${esc(hi)} ${esc(why)}</p>
+      <p style="margin:0 0 24px;text-align:center"><a href="${esc(ctx.link)}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:${esc(ctx.brand)};color:#ffffff;font-weight:bold;font-size:16px;text-decoration:none">Set a new password</a></p>
+      <p style="margin:0;color:#5A6478;font-size:13px;line-height:1.5">This link works once and expires after 1 hour. If you didn't ask for it, you can ignore this email: your password won't change.</p>
+    </div>
+  </div>
+</div>`;
+  const text = [`${hi} ${why}`, "", `Set a new password: ${ctx.link}`, "", "This link works once and expires after 1 hour. If you didn't ask for it, ignore this email."].join("\n");
+  return { subject: `Set a new password · ${ctx.companyName}`, html, text };
+}
+
+// A one-time sign-in link (the "Email me a sign-in link" button), with the logo.
+export function renderSignInLink(ctx: { recipientName: string; companyName: string; logo: string; link: string; brand: string }): Rendered {
+  const hi = ctx.recipientName ? `Hi ${ctx.recipientName},` : "Hi,";
+  const html = `<!-- Staff Portal · © cmeproject -->
+<div style="background:#F3F5F9;padding:24px 12px;font-family:Figtree,Arial,sans-serif;color:#1B2333">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden">
+    <div style="padding:28px 28px 0;text-align:center">
+      <img src="${esc(ctx.logo)}" alt="${esc(ctx.companyName)}" style="max-height:72px;max-width:260px">
+    </div>
+    <div style="padding:20px 28px 28px">
+      <h1 style="margin:0 0 12px;font-size:24px;text-align:center">Your sign-in link</h1>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.55">${esc(hi)} here's your link to sign in to the ${esc(ctx.companyName)} staff portal.</p>
+      <p style="margin:0 0 24px;text-align:center"><a href="${esc(ctx.link)}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:${esc(ctx.brand)};color:#ffffff;font-weight:bold;font-size:16px;text-decoration:none">Sign in</a></p>
+      <p style="margin:0;color:#5A6478;font-size:13px;line-height:1.5">This link works once and expires after 1 hour. If you didn't ask for it, you can ignore this email.</p>
+    </div>
+  </div>
+</div>`;
+  const text = [`${hi} here's your link to sign in to the ${ctx.companyName} staff portal.`, "", `Sign in: ${ctx.link}`, "", "This link works once and expires after 1 hour."].join("\n");
+  return { subject: `Your sign-in link · ${ctx.companyName}`, html, text };
+}
+
 // A general notice from the bell (joined, approvals, expired documents).
 export function renderNotice(ctx: { title: string; body: string; link: string; recipientName: string; companyName: string; brand: string }): Rendered {
   const html = `<!-- Staff Portal · © cmeproject -->

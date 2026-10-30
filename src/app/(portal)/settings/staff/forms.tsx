@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
-import { giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, setActive, updatePerson } from "./actions";
+import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, sendResetLink, setActive, updatePerson } from "./actions";
 
 type Team = { id: string; name: string };
 
@@ -86,6 +86,7 @@ export function PersonEditor({
   titles,
   teams,
   canResetMfa,
+  canHelpSignIn = false,
   needsApproval,
   isManager,
 }: {
@@ -96,6 +97,8 @@ export function PersonEditor({
   // Managers give conditional roles straight away; staff admins ask.
   isManager: boolean;
   canResetMfa: boolean;
+  // Send a reset link, reset two-factor, clear the Cars app PIN.
+  canHelpSignIn?: boolean;
   // Staff admins' role changes go to a manager for approval.
   needsApproval: boolean;
 }) {
@@ -103,13 +106,15 @@ export function PersonEditor({
   const [activeState, activeAction, toggling] = useActionState(setActive, null);
   const [inviteState, inviteAction, resending] = useActionState(resendInvite, null);
   const [mfaState, mfaAction, resetting] = useActionState(resetTwoFactor, null);
+  const [linkState, linkAction, sendingLink] = useActionState(sendResetLink, null);
+  const [pinState, pinAction, clearingPin] = useActionState(clearCarPin, null);
   // "New starter" is only for people who don't have a role yet.
   const offered = roles.filter((r) => r !== "new_starter" || person.role === "new_starter");
   const choices = offered.includes(person.role) ? offered : [person.role, ...offered];
 
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-4">
-      <Result state={saveState ?? activeState ?? inviteState ?? mfaState} />
+      <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState} />
       {person.isMe ? (
         <p className="text-sm text-muted">You can&apos;t change your own role. Ask a manager.</p>
       ) : person.lastManager && !canResetMfa ? (
@@ -147,11 +152,26 @@ export function PersonEditor({
             <Button variant="outline" disabled={resending}>Resend invite</Button>
           </form>
         ) : null}
-        {canResetMfa && person.joined ? (
-          <form action={mfaAction}>
-            <input type="hidden" name="id" value={person.id} />
-            <Button variant="outline" disabled={resetting}>Reset two-factor login</Button>
-          </form>
+        {canHelpSignIn && person.joined && person.active && !person.isMe ? (
+          <>
+            <form action={linkAction}>
+              <input type="hidden" name="id" value={person.id} />
+              <Button variant="outline" disabled={sendingLink}>{sendingLink ? "Sending…" : "Email a password reset link"}</Button>
+            </form>
+            <form
+              action={mfaAction}
+              onSubmit={(e) => {
+                if (!confirm(`Reset two-factor login for ${person.full_name || person.email}? They'll set it up again next time they sign in.`)) e.preventDefault();
+              }}
+            >
+              <input type="hidden" name="id" value={person.id} />
+              <Button variant="outline" disabled={resetting}>Reset two-factor login</Button>
+            </form>
+            <form action={pinAction}>
+              <input type="hidden" name="id" value={person.id} />
+              <Button variant="outline" disabled={clearingPin}>Clear Cars app PIN</Button>
+            </form>
+          </>
         ) : null}
         {!person.isMe && !(person.lastManager && !canResetMfa) ? (
           <form

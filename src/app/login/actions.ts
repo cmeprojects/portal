@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { safeNext } from "@/lib/safe-next";
+import { sendSignInLinkEmail } from "@/lib/email/password-reset";
 import { EMAIL, text, type FormState } from "@/lib/form";
 
 // Plain-English reasons, so a set-up problem isn't mistaken for a wrong password.
@@ -41,14 +42,8 @@ export async function sendSignInLink(_: FormState, form: FormData): Promise<Form
   const email = text(form, "email").toLowerCase();
   if (!EMAIL.test(email)) return { error: "Enter the email you were invited with." };
 
-  const supabase = await createClient();
-  await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      shouldCreateUser: false,
-      emailRedirectTo: `${env.siteUrl}/auth/confirm?next=${encodeURIComponent(safeNext(text(form, "next")))}`,
-    },
-  });
+  // Branded email through Resend once it's set up; Supabase's email until then.
+  await sendSignInLinkEmail(email, safeNext(text(form, "next")));
   // Same answer either way, so the page never reveals who has an account.
   return { message: `If ${email} has an account, a sign-in link is on its way. Check your inbox.` };
 }

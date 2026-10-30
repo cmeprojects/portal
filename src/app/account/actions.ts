@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { env } from "@/lib/env";
+import { sendPasswordReset } from "@/lib/email/password-reset";
 import { EMAIL, text, type FormState } from "@/lib/form";
 
 const MIN_PASSWORD = 10;
@@ -66,7 +66,7 @@ export async function updateMyName(_: FormState, form: FormData): Promise<FormSt
 export async function requestPasswordReset(_: FormState, form: FormData): Promise<FormState> {
   const email = text(form, "email").toLowerCase();
   if (!EMAIL.test(email)) return { error: "Enter the email you sign in with." };
-  const supabase = await createClient();
-  await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${env.siteUrl}/set-password` });
-  return { message: `If ${email} has an account, we've emailed a link to set a new password.` };
+  // Branded email through Resend once it's set up; Supabase's email until then.
+  await sendPasswordReset(email);
+  return { message: `If ${email} has an account, we've emailed a link to set a new password. Check your junk folder too.` };
 }

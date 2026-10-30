@@ -20,7 +20,7 @@ export const AREA_LABELS: Record<Area, string> = {
 export const AREA_HINTS: Record<Area, string> = {
   branding: "Change the company name, portal name, logos, colours, and the words the portal uses (for example Client or Participant).",
   messages: "Edit the support contact on the sign-in page, the announcement banner for all staff, and the note in welcome invites.",
-  people: "Which staff admin changes need a manager's approval, who can send invites, what new starters can do, who sees the Scoreboard, and when a task counts as stuck.",
+  people: "Which staff admin changes need a manager's approval, who can send invites, what new starters can do, who sees the Scoreboard, who can help staff sign in (reset links, two-factor, Cars app PIN), and when a task counts as stuck.",
   compliance: "Who manages Compliance (onboarding documents, trainings and uploads), and how many days before expiry reminders start.",
   tasks: "Default due dates, reminders, escalation, weekdays only, when required fields must be filled in, the morning summary, and who sees Registers.",
   reports: "Choose who sees Reports (tasks) and the Compliance report.",

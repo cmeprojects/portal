@@ -9,6 +9,7 @@ import { assignableRoles, parseRoleChoice } from "@/lib/roles";
 import { friendlyError } from "@/lib/db-error";
 import { EMAIL, text, type FormState } from "@/lib/form";
 import { sendInvite } from "@/lib/email/invite";
+import { sendPasswordReset } from "@/lib/email/password-reset";
 import { canInvite, getPeopleRules } from "@/lib/settings";
 
 const PAGE = "/settings/staff";
@@ -147,7 +148,7 @@ export async function resendInvite(_: FormState, form: FormData): Promise<FormSt
 }
 
 export async function resetTwoFactor(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(["system_admin"]);
+  await requireRole(PEOPLE_MANAGERS);
   const id = text(form, "id");
   const supabase = await createClient();
   // Logged (and permission-checked) by the database before anything changes.
@@ -160,6 +161,32 @@ export async function resetTwoFactor(_: FormState, form: FormData): Promise<Form
     await admin.auth.admin.mfa.deleteFactor({ userId: id, id: factor.id });
   }
   return { message: "Two-factor login reset. They'll set it up again next time they sign in." };
+}
+
+// Email them a link to set a new password (the database checks who may).
+export async function sendResetLink(_: FormState, form: FormData): Promise<FormState> {
+  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const id = text(form, "id");
+  const supabase = await createClient();
+  const { data: allowed } = await supabase.rpc("can_help_sign_in", { p_user: id });
+  if (!allowed) return { error: "You can't do this for them. Ask the system admin." };
+  const { data: person } = await supabase.from("profiles").select("email").eq("id", id).single();
+  if (!person) return { error: "Person not found." };
+  const { error } = await sendPasswordReset(person.email, inviterName(me));
+  if (error) return { error };
+  await supabase.rpc("log_admin_action", { p_action: "password_reset_sent", p_user_id: id });
+  return { message: `A link to set a new password has been emailed to ${person.email}.` };
+}
+
+// Forget their Cars app PIN, so they choose a new one after signing in.
+export async function clearCarPin(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(PEOPLE_MANAGERS);
+  const id = text(form, "id");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("log_admin_action", { p_action: "pin_cleared", p_user_id: id });
+  if (error) return { error: friendlyError(error) };
+  await createAdminClient().from("car_app_pins").delete().eq("user_id", id);
+  return { message: "Cars app PIN cleared. They'll choose a new one next time they sign in to the app." };
 }
 
 // A role before onboarding is finished: reason, deadline, and a "Finish
