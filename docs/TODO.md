@@ -57,32 +57,26 @@ Suggested order: Pages and Menu editor first (offer a clickable preview).
 - Printed Tasks report: make the "Opened and completed by month" chart
   smaller when printed.
 
-## AI help chat ("Engaged Care Assistant") — discussed, not building yet
+## Website and Assistant ("Engaged Care Assistant")
 
-A ChatGPT/Claude-style page: anyone types a question and gets answers from
-documents we upload (NDIS, NDIS policy, company policy, public policy).
-Earlier mockups: Home, Answer with sources, Admin library.
+Version 1 is built (live update 36, premium, off until switched on):
+the public website at /ask (ask anything, answers from uploaded documents with
+the source shown, "Would you like to talk to our team?"), /ask/get-started
+(the new-customer enquiry form), a Sign in link to the portal, and in the
+portal: Assistant (documents, wording, model, limits, questions asked) for the
+system admin, Enquiries (stages from New to Became a client) for managers, and
+an Open website link in the menu. Restore points: docs/RESTORE.md.
 
-Agreed so far:
+Still to do (agreed, not built yet):
 
-- **Admin library**: upload PDFs and Word files, tag each one Public, Staff
-  only or Managers only. Visitors use the chat without signing in; staff sign
-  in with their portal account and see more.
-- **Search options** (system admin chooses): Our documents only, Web only,
-  or Both (documents first, the web only when they don't cover it).
-  - A choice per group (e.g. Public: documents only; Staff: both).
-  - Web search limited to trusted sites the admin lists (ndis.gov.au,
-    ndiscommission.gov.au, legislation.gov.au).
-  - Every answer labelled "From our documents" or "From the web", with sources.
-- **AI model**: start with Claude Haiku (cheapest). The model is a setting in
-  System settings so we can switch to Sonnet later without a rebuild.
-- **Costs**: pay per question, no monthly fee. Rough guide in US dollars:
-  Haiku under US$1 for 1,000 questions; Sonnet about US$12 for 1,000; a web
-  search adds about US$10 per 1,000 searches plus reading the pages (check
-  current prices before building).
-- **Monthly spending limit** in settings (e.g. A$50); the chat pauses and
-  says "please contact us" when it's reached.
-- **Safety**: "not official NDIS advice" note, a contact-us button, no client
-  personal details in the public chat, limits against spam, a log of
-  questions (shows gaps in our documents).
-- Data stays in Australia (Supabase Sydney) for the documents and search.
+- **Search options per group** (documents only / web only / both, e.g. Public:
+  documents only, Staff: both), a trusted-websites list, and "From the web"
+  labels. Version 1 answers from documents only.
+- **Follow-up questions** that remember the chat (each question stands alone now).
+- **A limit per visitor** (now the hourly limit covers the whole website).
+- **Make a task** from an enquiry, Excel/print of enquiries, an email alert
+  when an enquiry arrives (needs Resend), and a "where enquiries come from" summary.
+- **Website as the front page** (open the domain to the website, with the portal
+  behind Sign in), more website pages (services, about), SEO details.
+- **Scanned PDFs** (pictures of pages) can't be read yet; paste the words in.
+- Test with about 20 real questions on Haiku, then decide whether to move to Sonnet.

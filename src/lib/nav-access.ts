@@ -38,6 +38,9 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     customFeatures,
     featureReports,
     forms: features.forms === true && role !== "new_starter",
+    assistant: features.assistant === true && role === "system_admin",
+    enquiries: features.assistant === true && (role === "manager" || role === "system_admin"),
+    website: features.assistant === true && (role === "manager" || role === "system_admin"),
     appsLabel: hasApps ? `${initialsOf(brand.companyName) || "Our"} Apps` : undefined,
   };
 });

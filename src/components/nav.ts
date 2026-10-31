@@ -25,6 +25,10 @@ export type NavAccess = {
   featureReports?: { slug: string; label: string }[];
   // Forms (premium): forms sent to them, and the forms they make.
   forms?: boolean;
+  // Website and Assistant: the system admin manages it; managers follow up enquiries.
+  assistant?: boolean;
+  enquiries?: boolean;
+  website?: boolean;
   // "EC Apps": the company's phone apps this person can use (none = no menu item).
   appsLabel?: string;
   // Areas of System settings delegated to this manager.
@@ -111,6 +115,9 @@ export function navFor(
         ...sectionItem("cars", role, features, access),
         ...(access.customFeatures ?? []).map((f) => ({ href: `/f/${f.slug}`, label: f.label })),
         ...(access.forms ? [{ href: "/forms", label: "Forms", match: ["/forms"] }] : []),
+        ...(access.enquiries ? [{ href: "/enquiries", label: "Enquiries" }] : []),
+        ...(access.assistant ? [{ href: "/assistant", label: "Assistant" }] : []),
+        ...(access.website ? [{ href: "/ask", label: "Open website" }] : []),
         ...(access.appsLabel ? [{ href: "/apps", label: access.appsLabel }] : []),
         ...sectionItem("people", role, features, access),
         ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
