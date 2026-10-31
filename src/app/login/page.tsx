@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { PORTAL_LOCK_COOKIE } from "@/lib/app-lock";
 import { getBranding } from "@/lib/branding";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
@@ -23,7 +25,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const supabase = await createClient();
 
   const { data: claims } = await supabase.auth.getClaims();
-  if (claims?.claims?.sub) redirect(next);
+  // Signed in already, unless the portal was locked after a timeout (the apps on this phone stay signed in).
+  if (claims?.claims?.sub && !(await cookies()).has(PORTAL_LOCK_COOKIE)) redirect(next);
 
   const [brand, { data: options }] = await Promise.all([
     getBranding(),

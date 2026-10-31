@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { APP_COOKIE, APP_DAYS_COOKIE, LOCKED_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, appPathOf, isUnlocked, unlockValue } from "@/lib/app-lock";
+import { APP_COOKIE, APP_DAYS_COOKIE, LOCKED_COOKIE, PIN_OFF_COOKIE, PORTAL_LOCK_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, appPathOf, isUnlocked, unlockValue } from "@/lib/app-lock";
 
 // Pages anyone can open without signing in.
 // /cron checks its own secret.
@@ -68,6 +68,8 @@ export async function proxy(request: NextRequest) {
     }
     // Opening it needs the PIN, unless they've just signed in or used it in the last few minutes.
     const unlocked =
+      // They turned the PIN off on this phone (and haven't pressed Lock).
+      (request.cookies.has(PIN_OFF_COOKIE) && !request.cookies.has(LOCKED_COOKIE)) ||
       (await isUnlocked(request.cookies.get(UNLOCK_COOKIE)?.value, userId!, now)) ||
       (!request.cookies.has(LOCKED_COOKIE) && now - signedInAt < UNLOCK_MINUTES * 60_000);
     if (!unlocked && pageVisit && path !== `${appBase}/unlock`) {
@@ -92,8 +94,20 @@ export async function proxy(request: NextRequest) {
   // pages, so the app's longer sign-in never opens the rest of the portal.
   const idleMinutes = Number(request.cookies.get("portal_idle_minutes")?.value ?? 0) || (request.cookies.has(APP_COOKIE) ? 30 : 0);
   const lastActive = Math.max(Number(request.cookies.get("portal_last_active")?.value ?? 0), signedInAt);
+  // Locked after a timeout on a phone with an app: the password again for the portal.
+  const toLogin = () => {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?error=idle&next=${encodeURIComponent(path)}`;
+    const out = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((c) => out.cookies.set(c));
+    out.cookies.set(PORTAL_LOCK_COOKIE, "1", { path: "/", httpOnly: true, sameSite: "lax", maxAge: 31536000 });
+    return out;
+  };
+  if (signedIn && pageVisit && !isPublic && path !== "/mfa" && request.cookies.has(PORTAL_LOCK_COOKIE)) return toLogin();
   if (signedIn && pageVisit && !isPublic && path !== "/mfa" && idleMinutes > 0 && lastActive > 0 && now - lastActive > idleMinutes * 60_000) {
-    return signOutTo("?error=idle");
+    // On a phone with an app, only lock the portal; the apps stay signed in behind their PIN.
+    return request.cookies.has(APP_COOKIE) ? toLogin() : signOutTo("?error=idle");
   }
   // Opening a page counts as activity (background requests don't; clicks and
   // typing are counted in the browser).

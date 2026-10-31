@@ -8,8 +8,8 @@ export function AppNav({ base, children }: { base: string; children?: ReactNode 
   return (
     <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-t border-line pt-4 text-sm">
       {children}
-      <Link href={`${base}/unlock?change=1`} className="text-brand underline">
-        Change PIN
+      <Link href={`${base}/settings`} className="text-brand underline">
+        Settings
       </Link>
       <form action={lockApp}>
         <input type="hidden" name="base" value={base} />

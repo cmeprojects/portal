@@ -3,6 +3,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
+import { PORTAL_LOCK_COOKIE } from "@/lib/app-lock";
 
 // Links in emails (invite, sign-in link, password reset) land here.
 // The email templates are set up in Supabase as described in docs/SETUP.md.
@@ -17,7 +18,9 @@ export async function GET(request: NextRequest) {
     if (!error) {
       const next =
         type === "invite" ? "/welcome" : type === "recovery" ? "/set-password" : safeNext(searchParams.get("next"));
-      return NextResponse.redirect(`${origin}${next}`);
+      const out = NextResponse.redirect(`${origin}${next}`);
+      out.cookies.delete(PORTAL_LOCK_COOKIE);
+      return out;
     }
   }
   return NextResponse.redirect(`${origin}/login?error=link`);

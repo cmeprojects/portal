@@ -8,6 +8,7 @@ import { env } from "@/lib/env";
 import { safeNext } from "@/lib/safe-next";
 import { sendSignInLinkEmail } from "@/lib/email/password-reset";
 import { EMAIL, text, type FormState } from "@/lib/form";
+import { APP_COOKIE, PORTAL_LOCK_COOKIE } from "@/lib/app-lock";
 
 // Plain-English reasons, so a set-up problem isn't mistaken for a wrong password.
 function signInProblem(code: string | undefined, status: number | undefined): string {
@@ -32,6 +33,7 @@ function signInProblem(code: string | undefined, status: number | undefined): st
 // can't sign them straight back out).
 async function freshActivity() {
   const jar = await cookies();
+  jar.delete(PORTAL_LOCK_COOKIE);
   jar.set("portal_last_active", String(Date.now()), { path: "/", maxAge: 31536000, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
 }
 
@@ -70,16 +72,24 @@ export async function signInWithGoogle(form: FormData) {
 
 // Signed out after too long without activity.
 export async function signOutIdle() {
+  const jar = await cookies();
+  // A phone with an app: lock only the portal, so the apps stay signed in behind their PIN.
+  if (jar.has(APP_COOKIE)) {
+    jar.set(PORTAL_LOCK_COOKIE, "1", { path: "/", httpOnly: true, sameSite: "lax", maxAge: 31536000, secure: process.env.NODE_ENV === "production" });
+    redirect("/login?error=idle");
+  }
   const supabase = await createClient();
   await supabase.auth.signOut();
-  (await cookies()).delete("portal_last_active");
+  jar.delete("portal_last_active");
   redirect("/login?error=idle");
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  (await cookies()).delete("portal_last_active");
+  const jar = await cookies();
+  jar.delete("portal_last_active");
+  jar.delete(PORTAL_LOCK_COOKIE);
   redirect("/login");
 }
 

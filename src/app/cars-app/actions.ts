@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSession } from "@/lib/session";
 import { getCarRules } from "@/lib/cars";
-import { APP_DAYS_COOKIE, LOCKED_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, asAppPath, isUnlocked, unlockValue } from "@/lib/app-lock";
+import { APP_DAYS_COOKIE, LOCKED_COOKIE, PIN_OFF_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, asAppPath, isUnlocked, unlockValue } from "@/lib/app-lock";
 import { text, type FormState } from "@/lib/form";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
@@ -65,7 +65,7 @@ export async function savePin(_: FormState, form: FormData): Promise<FormState> 
     .upsert({ user_id: profile.id, pin_hash: await hashPin(pin), failed: 0, updated_at: new Date().toISOString() });
   if (error) return { error: "Your PIN didn't save. Please try again." };
   await openApp(profile.id);
-  redirect(APP_PATH);
+  redirect(`${APP_PATH}?unlocked=1`);
 }
 
 export async function unlockWithPin(_: FormState, form: FormData): Promise<FormState> {
@@ -78,7 +78,7 @@ export async function unlockWithPin(_: FormState, form: FormData): Promise<FormS
   if (validPin(pin) && (await pinMatches(pin, row.pin_hash))) {
     if (row.failed) await admin.from("car_app_pins").update({ failed: 0 }).eq("user_id", profile.id);
     await openApp(profile.id);
-    redirect(APP_PATH);
+    redirect(`${APP_PATH}?unlocked=1`);
   }
   const failed = row.failed + 1;
   if (failed >= MAX_TRIES) {
@@ -115,4 +115,14 @@ export async function signOutApp(form: FormData) {
   jar.delete(UNLOCK_COOKIE);
   await (await createClient()).auth.signOut();
   redirect(`/login?next=${encodeURIComponent(APP_PATH)}`);
+}
+
+// Settings → "Ask for my PIN when I open the app" (this phone only).
+export async function setPinOnOpen(form: FormData) {
+  await requireSession();
+  const APP_PATH = asAppPath(form.get("base"));
+  const jar = await cookies();
+  if (form.get("on") === "true") jar.delete(PIN_OFF_COOKIE);
+  else jar.set(PIN_OFF_COOKIE, "1", { path: "/", maxAge: 31536000, httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
+  redirect(`${APP_PATH}/settings?saved=1`);
 }

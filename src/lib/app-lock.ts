@@ -14,6 +14,11 @@ export const UNLOCK_COOKIE = "cars_unlock";
 // Marks a browser (or installed app) that has used the Cars app.
 export const APP_COOKIE = "cars_app";
 export const APP_DAYS_COOKIE = "cars_app_days";
+// On a phone that has an app, the portal timing out only locks the portal
+// (password again), so the apps behind their PIN stay signed in.
+export const PORTAL_LOCK_COOKIE = "portal_locked";
+// The person turned the PIN off in the app's settings (on this phone only).
+export const PIN_OFF_COOKIE = "app_pin_off";
 // Set by "Lock": the PIN is needed even if they've only just signed in.
 export const LOCKED_COOKIE = "cars_locked";
 // Unlocked for this long after the last use; then the PIN again.

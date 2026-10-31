@@ -2,7 +2,11 @@
 import type { Metadata, Viewport } from "next";
 import { getBranding, getCarsAppLook } from "@/lib/branding";
 import { getSession } from "@/lib/session";
+import { cookies } from "next/headers";
 import { LiveRefresh } from "@/components/live-refresh";
+import { PIN_OFF_COOKIE } from "@/lib/app-lock";
+import { signedInLately } from "@/lib/app-lock-server";
+import { AppAutoLock } from "./auto-lock";
 
 // The Cars app (cmeprojects): installed on staff phones from the portal link.
 // A plain, full-screen frame: the company's bar on top, big buttons below.
@@ -26,6 +30,7 @@ export default async function CarsAppLayout({ children }: LayoutProps<"/cars-app
   const name = session?.profile.full_name || session?.profile.email || "";
   return (
     <div className="flex min-h-dvh flex-col bg-page">
+      {session ? <AppAutoLock base="/cars-app" pinOff={(await cookies()).has(PIN_OFF_COOKIE)} justSignedIn={await signedInLately()} /> : null}
       <header className="sticky top-0 z-30 bg-[var(--side-bg)] pt-[env(safe-area-inset-top)] text-side-fg">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}
