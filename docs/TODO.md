@@ -56,3 +56,33 @@ Suggested order: Pages and Menu editor first (offer a clickable preview).
 
 - Printed Tasks report: make the "Opened and completed by month" chart
   smaller when printed.
+
+## AI help chat ("Engaged Care Assistant") — discussed, not building yet
+
+A ChatGPT/Claude-style page: anyone types a question and gets answers from
+documents we upload (NDIS, NDIS policy, company policy, public policy).
+Earlier mockups: Home, Answer with sources, Admin library.
+
+Agreed so far:
+
+- **Admin library**: upload PDFs and Word files, tag each one Public, Staff
+  only or Managers only. Visitors use the chat without signing in; staff sign
+  in with their portal account and see more.
+- **Search options** (system admin chooses): Our documents only, Web only,
+  or Both (documents first, the web only when they don't cover it).
+  - A choice per group (e.g. Public: documents only; Staff: both).
+  - Web search limited to trusted sites the admin lists (ndis.gov.au,
+    ndiscommission.gov.au, legislation.gov.au).
+  - Every answer labelled "From our documents" or "From the web", with sources.
+- **AI model**: start with Claude Haiku (cheapest). The model is a setting in
+  System settings so we can switch to Sonnet later without a rebuild.
+- **Costs**: pay per question, no monthly fee. Rough guide in US dollars:
+  Haiku under US$1 for 1,000 questions; Sonnet about US$12 for 1,000; a web
+  search adds about US$10 per 1,000 searches plus reading the pages (check
+  current prices before building).
+- **Monthly spending limit** in settings (e.g. A$50); the chat pauses and
+  says "please contact us" when it's reached.
+- **Safety**: "not official NDIS advice" note, a contact-us button, no client
+  personal details in the public chat, limits against spam, a log of
+  questions (shows gaps in our documents).
+- Data stays in Australia (Supabase Sydney) for the documents and search.
