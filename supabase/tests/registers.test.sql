@@ -7,6 +7,9 @@
 \set QUIET 1
 \o /dev/null
 
+-- These checks are about registers, not who may raise tasks (see limited_tasks.test.sql).
+update public.app_settings set value = '[]' where key = 'tasks.limited_roles';
+
 insert into auth.users (email) values ('owner@example.com');
 insert into public.invitations (email, full_name, role) values
   ('boss@example.com', 'Morgan Manager', 'manager'),

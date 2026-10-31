@@ -71,6 +71,8 @@ export type PeopleRules = {
   complianceReportRoles: Role[];
   registersRoles: Role[];
   accessResetRoles: Role[];
+  // Roles that may only raise General tasks and questions.
+  limitedTaskRoles: Role[];
 };
 
 export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
@@ -78,7 +80,7 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
   const { data } = await supabase
     .from("app_settings")
     .select("key, value")
-    .or("key.like.people.%,key.eq.compliance.manager_roles,key.eq.reports.roles,key.eq.reports.compliance_roles,key.eq.tasks.registers_roles");
+    .or("key.like.people.%,key.eq.compliance.manager_roles,key.eq.reports.roles,key.eq.reports.compliance_roles,key.eq.tasks.registers_roles,key.eq.tasks.limited_roles");
   // people.access_reset_roles is included by "people.%".
   const on = (k: string, fallback: boolean) => {
     const v = data?.find((r) => r.key === k)?.value;
@@ -101,6 +103,7 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
     complianceReportRoles: roles("reports.compliance_roles", ["staff_admin"]),
     registersRoles: roles("tasks.registers_roles", ["team_leader", "manager", "staff_admin"]),
     accessResetRoles: roles("people.access_reset_roles", []),
+    limitedTaskRoles: roles("tasks.limited_roles", ["support_worker"]),
   };
 });
 

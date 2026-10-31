@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireTaskAccess } from "@/lib/session";
 import { canSeeReports, getPeopleRules, getTimeZone } from "@/lib/settings";
-import { todayIn } from "@/lib/tasks";
-import { buildReports, parsePeriod } from "@/lib/reports";
+import { PRIORITIES, PRIORITY_LABELS, todayIn } from "@/lib/tasks";
+import { buildReports, parsePeriod, parseTaskFilter, taskFilterQuery } from "@/lib/reports";
 import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
 import { DataTable } from "@/components/data-table";
 
@@ -25,8 +25,11 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
   const today = todayIn(timeZone);
   const params = await searchParams;
   const period = parsePeriod(params, today);
-  const { summary, months, tables } = await buildReports(period, today, timeZone);
-  const qs = period.key === "custom" ? `from=${period.from}&to=${period.to}` : `range=${period.key}`;
+  const filter = parseTaskFilter(params);
+  const { summary, months, tables, options } = await buildReports(period, today, timeZone, filter);
+  const periodQs = period.key === "custom" ? `from=${period.from}&to=${period.to}` : `range=${period.key}`;
+  const fq = taskFilterQuery(filter);
+  const qs = fq ? `${periodQs}&${fq}` : periodQs;
   const max = Math.max(1, ...months.flatMap((m) => [m.opened, m.completed]));
 
   return (
@@ -37,7 +40,41 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
         intro={`${period.label}${profile.role === "team_leader" ? " · your team's tasks" : ""}. Download any table as an Excel file.`}
       />
       <div className="flex flex-col gap-3 print:hidden">
-        <Tabs label="Period" items={RANGES.map((r) => ({ href: `/reports?range=${r.key}`, text: r.label, current: period.key === r.key }))} />
+        <Tabs label="Period" items={RANGES.map((r) => ({ href: `/reports?range=${r.key}${fq ? `&${fq}` : ""}`, text: r.label, current: period.key === r.key }))} />
+        {/* Narrow everything below: register, person, status, priority. */}
+        <form className="flex flex-wrap items-end gap-2">
+          {period.key === "custom" ? (
+            <>
+              <input type="hidden" name="from" value={period.from} />
+              <input type="hidden" name="to" value={period.to} />
+            </>
+          ) : (
+            <input type="hidden" name="range" value={period.key} />
+          )}
+          {[
+            { name: "registry", label: "Register", value: filter.registry, options: [["", "All registers"], ...options.registries.map((r) => [r.id, r.name])] },
+            { name: "person", label: "Looking after", value: filter.person, options: [["", "Everyone"], ...options.people.map((p) => [p.id, p.name])] },
+            { name: "status", label: "Status", value: filter.status, options: [["all", "Any status"], ["open", "Open"], ["overdue", "Overdue"], ["completed", "Completed or closed"]] },
+            { name: "priority", label: "Priority", value: filter.priority, options: [["", "Any priority"], ...PRIORITIES.map((p) => [p, PRIORITY_LABELS[p]])] },
+          ].map((s) => (
+            <label key={s.name} className="flex flex-col gap-1 text-sm">
+              <span className="font-semibold">{s.label}</span>
+              <select name={s.name} defaultValue={s.value} className={`${inputClass} w-48`}>
+                {s.options.map(([v, t]) => (
+                  <option key={v} value={v}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+          <button className={buttonClass("outline", "h-12")}>Apply</button>
+          {fq ? (
+            <a href={`/reports?${periodQs}`} className="h-12 px-2 py-3 text-sm text-brand underline">
+              Clear
+            </a>
+          ) : null}
+        </form>
         <form className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-semibold">From</span>

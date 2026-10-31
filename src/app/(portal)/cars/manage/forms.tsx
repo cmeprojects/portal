@@ -147,47 +147,53 @@ function ShownSwitch({ id, active, action, label }: { id: string; active: boolea
 export function AddClientForm() {
   const [state, action, pending] = useActionState(saveClient, null);
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form action={action} className="flex flex-col gap-2">
       <Result state={state} />
-      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <Field label="Name" htmlFor="cn-new" hint="Staff see this in the list.">
-          <input id="cn-new" name="name" required maxLength={80} className={inputClass} />
-        </Field>
-        <Field label="Reference (optional)" htmlFor="cr-new" hint="For example their NDIS number. Staff don't see it.">
-          <input id="cr-new" name="reference" maxLength={60} className={inputClass} />
-        </Field>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs font-medium">
+          Name
+          <input name="name" required maxLength={80} className={inputClass} />
+        </label>
+        <label className="flex min-w-40 flex-1 flex-col gap-1 text-xs font-medium">
+          Reference (optional, staff don&apos;t see it)
+          <input name="reference" maxLength={60} placeholder="For example their NDIS number" className={inputClass} />
+        </label>
         <Button disabled={pending}>{pending ? "Adding…" : "Add client"}</Button>
       </div>
     </form>
   );
 }
 
+// One client: name, reference, shown switch, and Edit tucked away.
 export function ClientRow({ client }: { client: { id: string; name: string; reference: string; active: boolean } }) {
   const [state, action, pending] = useActionState(saveClient, null);
   return (
-    <li className="flex flex-col gap-2 px-4 py-3 sm:px-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className={`min-w-0 flex-1 ${client.active ? "" : "text-muted"}`}>
-          <span className="block font-semibold">{client.name}</span>
-          {client.reference ? <span className="block text-xs text-muted">{client.reference}</span> : null}
-        </span>
-        <ShownSwitch id={client.id} active={client.active} action={setClientShown} label={client.name} />
-      </div>
-      <details>
-        <summary className="cursor-pointer text-xs font-semibold text-brand">Edit</summary>
-        <form action={action} className="mt-2 flex flex-col gap-2">
+    <li className="px-4 py-2">
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
+          <span className={`min-w-0 flex-1 truncate ${client.active ? "" : "text-muted line-through"}`}>
+            <span className="font-semibold">{client.name}</span>
+            {client.reference ? <span className="ml-2 text-xs text-muted">{client.reference}</span> : null}
+          </span>
+          <span className="text-xs font-semibold text-brand group-open:hidden">Edit</span>
+          <span className="hidden text-xs font-semibold text-brand group-open:inline">Close</span>
+        </summary>
+        <form action={action} className="mt-2 flex flex-col gap-2 pb-1">
           <Result state={state} />
           <input type="hidden" name="id" value={client.id} />
-          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <div className="flex flex-wrap items-end gap-2">
             <Field label="Name" htmlFor={`cn-${client.id}`}>
               <input id={`cn-${client.id}`} name="name" required maxLength={80} defaultValue={client.name} className={inputClass} />
             </Field>
             <Field label="Reference" htmlFor={`cr-${client.id}`}>
               <input id={`cr-${client.id}`} name="reference" maxLength={60} defaultValue={client.reference} className={inputClass} />
             </Field>
-            <Button variant="outline" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+            <Button size="sm" variant="outline" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
           </div>
         </form>
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted">
+          Shown to staff <ShownSwitch id={client.id} active={client.active} action={setClientShown} label={client.name} />
+        </div>
       </details>
     </li>
   );

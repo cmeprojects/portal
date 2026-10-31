@@ -19,16 +19,17 @@ export default async function ClientsPage() {
       <SectionTabs section="people" current="/settings/clients" />
       <PageHeader
         title="Clients"
-        intro="The people you support. Staff choose from this list in Cars and in features like Fluid intake. Staff only ever see the name, never the reference."
+        intro="The people you support. Staff pick from this list in Cars and features like Fluid intake, and only see the name."
       />
-      <Card className="p-5">
-        <h2 className="mb-4 heading-sm">Add a client</h2>
+      <Card className="p-4">
         <AddClientForm />
       </Card>
       {clients.length ? (
         <Card className="overflow-hidden">
-          <h2 className="heading-sm border-b border-line px-5 py-3">Clients · {clients.length}</h2>
-          <ul className="divide-y divide-line">
+          <h2 className="border-b border-line px-4 py-2 text-sm font-semibold">
+            {clients.filter((c) => c.active).length} shown{clients.some((c) => !c.active) ? ` · ${clients.filter((c) => !c.active).length} hidden` : ""}
+          </h2>
+          <ul className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 [&>li]:border-line sm:[&>li]:border-b">
             {clients.map((c) => (
               <ClientRow key={c.id} client={c} />
             ))}

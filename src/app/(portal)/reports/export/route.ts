@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { getBranding } from "@/lib/branding";
 import { canSeeReports, getPeopleRules, getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
-import { buildReports, parsePeriod } from "@/lib/reports";
+import { buildReports, parsePeriod, parseTaskFilter } from "@/lib/reports";
 import { pngSize, tableToXlsx, type ExcelHeader } from "@/lib/excel";
 
 async function fetchLogo(url: string, origin: string): Promise<ExcelHeader["logo"]> {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   const today = todayIn(timeZone);
   const params = Object.fromEntries(request.nextUrl.searchParams);
   const period = parsePeriod(params, today);
-  const { tables } = await buildReports(period, today, timeZone);
+  const { tables } = await buildReports(period, today, timeZone, parseTaskFilter(params));
   const section = tables.find((t) => t.key === params.section);
   if (!section) return new NextResponse("Not found", { status: 404 });
 

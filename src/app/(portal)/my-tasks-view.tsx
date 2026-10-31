@@ -28,13 +28,16 @@ type Row = {
   due_date: string | null;
   assigned_to: string;
   created_by: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
   registries: { name: string; prefix: string } | null;
 };
 
 const TABS = [
   { key: "assigned", label: "Assigned to me" },
   { key: "helping", label: "Asked to help" },
-  { key: "created", label: "Created by me" },
+  { key: "created", label: "My requests and questions" },
   { key: "completed", label: "Completed" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
@@ -58,7 +61,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
   if (helpingIds.length) filters.push(`id.in.(${helpingIds.join(",")})`);
   const { data } = await supabase
     .from("tasks")
-    .select("id, ref_number, title, priority, status, due_date, assigned_to, created_by, registries(name, prefix)")
+    .select("id, ref_number, title, description, priority, status, due_date, assigned_to, created_by, created_at, updated_at, registries(name, prefix)")
     .or(filters.join(","))
     .order("created_at", { ascending: false })
     .limit(500)
@@ -92,6 +95,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
     return ad === bd ? PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] : ad < bd ? -1 : 1;
   });
   const firstName = profile.full_name.split(" ")[0];
+  const snap = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
 
   return (
     <>
@@ -136,7 +140,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
               : tab === "helping"
                 ? "You're not helping on any open tasks."
                 : tab === "created"
-                  ? "You haven't created any open tasks."
+                  ? "Nothing open that you created or asked. Questions you ask (including from a form) show here until they're answered."
                   : "No completed tasks yet."}
           </p>
         ) : (
@@ -144,7 +148,18 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
             {shown.map((t) => {
               const due = dueState(t.due_date, today, t.status);
               return (
-                <li key={t.id} className="border-t border-line first:border-t-0">
+                <li key={t.id} className="group relative border-t border-line first:border-t-0">
+                  {/* A quick look on hover (or keyboard focus): what it's about and when it last moved. */}
+                  <div
+                    role="tooltip"
+                    className="pointer-events-none invisible absolute top-full left-5 z-20 mt-1 w-[min(28rem,calc(100%-2.5rem))] rounded-lg border border-line bg-surface p-4 text-sm opacity-0 shadow-lg transition-opacity delay-300 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100 print:hidden"
+                  >
+                    <p className="font-semibold">{t.title}</p>
+                    <p className="mt-1 line-clamp-4 whitespace-pre-line text-muted">{t.description?.trim() || "No details added."}</p>
+                    <p className="mt-2 text-xs text-muted">
+                      Opened {snap.format(new Date(t.created_at))} · Last updated {snap.format(new Date(t.updated_at))}
+                    </p>
+                  </div>
                   <Link href={`/tasks/${t.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 hover:bg-page">
                     <span className="min-w-56 flex-1">
                       <span className="block text-base font-semibold">{t.title}</span>

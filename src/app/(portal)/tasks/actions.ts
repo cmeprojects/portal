@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireTaskAccess } from "@/lib/session";
+import { getPeopleRules } from "@/lib/settings";
 import { flushOutbox } from "@/lib/email/outbox";
 import { friendlyError } from "@/lib/db-error";
 import { isPriority } from "@/lib/tasks";
@@ -26,7 +27,7 @@ async function fieldsOf(registryId: string): Promise<RegistryField[]> {
 }
 
 export async function createTask(_: FormState, form: FormData): Promise<FormState> {
-  await requireTaskAccess();
+  const { profile } = await requireTaskAccess();
   const title = text(form, "title");
   const registryId = text(form, "registry_id");
   const assignedTo = text(form, "assigned_to");
@@ -37,6 +38,10 @@ export async function createTask(_: FormState, form: FormData): Promise<FormStat
   const helpers = form.getAll("helpers").map(String).filter(Boolean);
 
   if (!registryId) return { error: "Choose a register." };
+  if ((await getPeopleRules()).limitedTaskRoles.includes(profile.role)) {
+    const { data: reg } = await (await createClient()).from("registries").select("is_default").eq("id", registryId).maybeSingle();
+    if (!reg?.is_default) return { error: "You can raise General tasks and questions. Please choose General tasks." };
+  }
   if (!title) return { error: "Give the task a title." };
   if (!assignedTo) return { error: "Choose who will look after it." };
   if (!isPriority(priority)) return { error: "Choose a priority." };

@@ -26,7 +26,9 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
     getSla(),
     getRequiredWhen(),
   ]);
-  const taskRegistries = registries.filter((r) => r.active && r.kind === "tasks");
+  // Some roles (support workers by default) only raise General tasks and questions.
+  const limited = rules.limitedTaskRoles.includes(profile.role);
+  const taskRegistries = registries.filter((r) => r.active && r.kind === "tasks" && (!limited || r.is_default));
 
   if (features.tasks === false) {
     return (
@@ -41,7 +43,14 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
   return (
     <>
       <SectionTabs section="tasks" current="/tasks/new" />
-      <PageHeader title="New task" intro="Choose a register, fill in the details and pick who will look after it." />
+      <PageHeader
+        title={limited ? "New task or question" : "New task"}
+        intro={
+          limited
+            ? "Raise a general task or ask a question, and pick who should look at it. You'll see how it's going in My tasks → My requests and questions."
+            : "Choose a register, fill in the details and pick who will look after it."
+        }
+      />
       <Card className="max-w-4xl p-5 sm:p-7">
         <NewTaskForm
           registries={taskRegistries}

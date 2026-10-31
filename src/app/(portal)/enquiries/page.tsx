@@ -1,10 +1,11 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireRole } from "@/lib/session";
+import { redirect } from "next/navigation";
+import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Button, Card, Notice, PageHeader, inputClass } from "@/components/ui";
-import { updateEnquiry } from "./actions";
+import { enquiryTask, updateEnquiry } from "./actions";
 import { STAGES } from "./stages";
 
 export const metadata: Metadata = { title: "Enquiries" };
@@ -15,7 +16,8 @@ const when = (iso: string) =>
 // cmeprojects: people who left their details on the website, for managers to
 // call back and follow up.
 export default async function EnquiriesPage({ searchParams }: PageProps<"/enquiries">) {
-  const { features } = await requireRole(["manager", "system_admin"]);
+  const { features } = await requireSession();
+  if (!(await canSee())) redirect("/");
   const query = await searchParams;
   const stage = typeof query.stage === "string" && STAGES.some((s) => s.key === query.stage) ? query.stage : "";
   const { data, error } = await (await createClient()).from("website_enquiries").select("*").order("created_at", { ascending: false }).limit(300);
@@ -27,7 +29,15 @@ export default async function EnquiriesPage({ searchParams }: PageProps<"/enquir
 
   return (
     <>
-      <PageHeader title="Enquiries" intro="People who left their details on the website. Call them back and move them along." />
+      <PageHeader
+        title="Enquiries"
+        intro="People who left their details on the website. Call them back, make a follow-up task, and move them along."
+        action={
+          <a href="/enquiries/export" className="inline-flex min-h-11 items-center rounded-md border border-line px-4 text-sm font-semibold hover:bg-brand-soft">
+            Download Excel
+          </a>
+        }
+      />
       {!features.assistant ? <Notice>The website is switched off, so no new enquiries will arrive. Old ones are kept.</Notice> : null}
       {error ? <Notice tone="error">Enquiries aren&apos;t set up in the database yet. Ask the system admin to run live update 36.</Notice> : null}
 
@@ -113,6 +123,12 @@ export default async function EnquiriesPage({ searchParams }: PageProps<"/enquir
                   </label>
                   <Button size="sm">Save</Button>
                 </form>
+                <form action={enquiryTask}>
+                  <input type="hidden" name="id" value={e.id} />
+                  <Button size="sm" variant="outline">
+                    Make a follow-up task for me
+                  </Button>
+                </form>
               </Card>
             </li>
           ))}
@@ -120,4 +136,9 @@ export default async function EnquiriesPage({ searchParams }: PageProps<"/enquir
       )}
     </>
   );
+}
+
+async function canSee(): Promise<boolean> {
+  const { data, error } = await (await createClient()).rpc("can_see_enquiries");
+  return error ? true : data === true;
 }

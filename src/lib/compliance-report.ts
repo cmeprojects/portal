@@ -12,7 +12,7 @@ import type { Cell, Table } from "@/lib/register-rows";
 // Each person's saved view (Save as my default view).
 export const DEFAULT_COOKIE = "compliance_report_view";
 
-export type ComplianceView = "people" | "grid" | "expiry";
+export type ComplianceView = "people" | "grid" | "full" | "expiry";
 export type ComplianceShow = "all" | "unfinished" | "expired" | "expiring" | "check" | "sendback" | "done";
 
 export type ComplianceFilter = {
@@ -24,10 +24,10 @@ export type ComplianceFilter = {
   within: number; // expiry list: days ahead (0 = every date)
 };
 
-const VIEWS: ComplianceView[] = ["people", "grid", "expiry"];
+const VIEWS: ComplianceView[] = ["people", "grid", "full", "expiry"];
 const SHOWS: ComplianceShow[] = ["all", "unfinished", "expired", "expiring", "check", "sendback", "done"];
 
-export const VIEW_LABELS: Record<ComplianceView, string> = { people: "Summary by person", grid: "Every item, every person", expiry: "Expiry dates" };
+export const VIEW_LABELS: Record<ComplianceView, string> = { people: "Summary by person", grid: "Every item, every person", full: "Full list with dates", expiry: "Expiry dates" };
 export const SHOW_LABELS: Record<ComplianceShow, string> = {
   all: "Everyone",
   unfinished: "Not finished",
@@ -166,6 +166,40 @@ export async function buildComplianceReport(f: ComplianceFilter, today: string):
         }
         return { id: p.id, href: "", cells };
       }),
+    };
+  } else if (f.view === "full") {
+    // One line per person per item: who submitted or finished what, and when it expires.
+    const ids = shown.flatMap((p) => p.status.map((s) => s.record_id)).filter((id): id is number => Boolean(id));
+    const { data: recs } = ids.length ? await supabase.from("compliance_records").select("id, created_at, reviewed_at").in("id", ids) : { data: [] };
+    const rec = new Map((recs ?? []).map((r) => [r.id as number, r]));
+    table = {
+      columns: [
+        { key: "name", label: "Person" },
+        { key: "teams", label: "Teams" },
+        { key: "item", label: "Item", wide: true },
+        { key: "state", label: "Status" },
+        { key: "sent", label: "Submitted or done" },
+        { key: "checked", label: "Checked" },
+        { key: "expires", label: "Expires" },
+      ],
+      rows: shown.flatMap((p) =>
+        p.status.map((s) => {
+          const r = s.record_id ? rec.get(s.record_id) : undefined;
+          return {
+            id: `${p.id}-${s.item_id}`,
+            href: "",
+            cells: {
+              name: { text: p.name },
+              teams: { text: teamsOf(p) },
+              item: { text: s.title },
+              state: { text: SHORT[s.state], badge: COLOUR[s.state] },
+              sent: { text: r ? date(r.created_at.slice(0, 10)) : "", tone: r ? undefined : "muted" },
+              checked: { text: r?.reviewed_at ? date(r.reviewed_at.slice(0, 10)) : "" },
+              expires: { text: date(s.expires_on), tone: s.state === "expired" ? "danger" : undefined },
+            },
+          };
+        }),
+      ),
     };
   } else if (f.view === "expiry") {
     const until = f.within ? new Date(new Date(`${today}T00:00:00Z`).getTime() + f.within * 86_400_000).toISOString().slice(0, 10) : "9999-12-31";

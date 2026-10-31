@@ -67,16 +67,18 @@ portal: Assistant (documents, wording, model, limits, questions asked) for the
 system admin, Enquiries (stages from New to Became a client) for managers, and
 an Open website link in the menu. Restore points: docs/RESTORE.md.
 
+Version 2 (updates 37 to 39) added: the new landing page, chat history for
+staff (kept until the tab closes for visitors), Website settings (landing
+page, suggested questions, credits, front-page switch, where it looks per
+group, listed websites, model and limits), reading scanned PDFs and photos,
+who sees enquiries, follow-up tasks and Excel for enquiries.
+
 Still to do (agreed, not built yet):
 
-- **Search options per group** (documents only / web only / both, e.g. Public:
-  documents only, Staff: both), a trusted-websites list, and "From the web"
-  labels. Version 1 answers from documents only.
-- **Follow-up questions** that remember the chat (each question stands alone now).
-- **A limit per visitor** (now the hourly limit covers the whole website).
-- **Make a task** from an enquiry, Excel/print of enquiries, an email alert
-  when an enquiry arrives (needs Resend), and a "where enquiries come from" summary.
-- **Website as the front page** (open the domain to the website, with the portal
-  behind Sign in), more website pages (services, about), SEO details.
-- **Scanned PDFs** (pictures of pages) can't be read yet; paste the words in.
+- **Enquiries register**: a new enquiry becomes a task for … (owner still deciding).
+- **Get support** form: to be reworked with the enquiries register.
+- **Compliance report for managers**: more ways to customise (ideas: saved
+  views per manager, choose columns, schedule a weekly email, a team leader view).
+- **A limit per visitor** (the hourly limit covers the whole website now).
+- More website pages (services, about) and SEO details.
 - Test with about 20 real questions on Haiku, then decide whether to move to Sonnet.

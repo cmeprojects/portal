@@ -6,6 +6,9 @@
 \set QUIET 1
 \o /dev/null
 
+-- These checks aren't about who may raise tasks (see limited_tasks.test.sql).
+update public.app_settings set value = '[]' where key = 'tasks.limited_roles';
+
 -- People: owner (system admin), a manager of Compliance, a team leader
 -- leading Sam's team, support workers in different teams, a staff admin.
 insert into auth.users (email) values ('owner@example.com');
