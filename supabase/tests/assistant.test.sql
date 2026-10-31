@@ -79,5 +79,22 @@ select test.ok((select count(*) from public.website_enquiries) = 0, 'a support w
 select test.ok(public.new_enquiry_count() = 0, 'and no count');
 reset role;
 
+-- Chat history: each person only sees their own chats.
+select test.act_as('sam@example.com');
+set role authenticated;
+insert into public.assistant_chats (title) values ('Cancelling');
+insert into public.assistant_messages (chat_id, question, answer) select id, 'How do I cancel?', 'Two days before.' from public.assistant_chats;
+select test.ok((select count(*) from public.assistant_messages) = 1, 'staff keep their own chat');
+reset role;
+select test.act_as('boss@example.com');
+set role authenticated;
+select test.ok((select count(*) from public.assistant_chats) = 0 and (select count(*) from public.assistant_messages) = 0, 'others can''t see it, managers included');
+select test.refused($$insert into public.assistant_messages (chat_id, question, answer) select id, 'x', 'y' from public.assistant_chats$$, 'or add to it');
+reset role;
+set role anon;
+select test.refused($$select * from public.assistant_chats$$, 'the public can''t read chats');
+select test.ok((select value from public.app_settings where key = 'website.front_page') = 'false'::jsonb, 'the front-page switch can be read before signing in');
+reset role;
+
 \o
 \echo All assistant tests passed.

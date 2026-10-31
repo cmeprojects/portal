@@ -278,11 +278,11 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
         {tab.key === "website" ? (
           <Card className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div>
-              <h2 className="heading-sm">Assistant</h2>
-              <p className="text-sm text-muted">The documents it answers from, its wording, model and spending limit, and the questions people asked.</p>
+              <h2 className="heading-sm">Website and Assistant</h2>
+              <p className="text-sm text-muted">The landing page, where the Assistant looks for answers, its documents, model and spending limit, and the questions people asked.</p>
             </div>
             <Link href="/assistant" className="text-sm font-semibold text-brand underline">
-              Open Assistant settings
+              Open Website settings
             </Link>
           </Card>
         ) : null}

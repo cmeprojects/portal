@@ -117,6 +117,11 @@ export async function proxy(request: NextRequest) {
 
   if (!signedIn && !isPublic) {
     const url = request.nextUrl.clone();
+    // The website can be the front page (Website settings): visitors land there.
+    if (path === "/" && (await websiteIsFrontPage(supabase))) {
+      url.pathname = "/ask";
+      return NextResponse.redirect(url);
+    }
     url.pathname = "/login";
     url.search = path === "/" ? "" : `?next=${encodeURIComponent(path)}`;
     return NextResponse.redirect(url);
@@ -128,3 +133,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|logo\\.(?:png|svg)|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)"],
 };
+
+// A public setting, so it can be read before anyone signs in.
+async function websiteIsFrontPage(supabase: ReturnType<typeof createServerClient>): Promise<boolean> {
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "website.front_page").maybeSingle();
+  return data?.value === true;
+}

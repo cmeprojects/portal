@@ -8,7 +8,7 @@ import { Badge, Button, Card, Notice, PageHeader, inputClass } from "@/component
 import { AddDocumentForm, SettingsForm } from "./forms";
 import { deleteDocument, setDocumentAudience } from "./actions";
 
-export const metadata: Metadata = { title: "Assistant" };
+export const metadata: Metadata = { title: "Website settings" };
 
 const when = (iso: string) => new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" }).format(new Date(iso));
 
@@ -17,11 +17,12 @@ const when = (iso: string) => new Intl.DateTimeFormat("en-AU", { day: "numeric",
 export default async function AssistantPage() {
   const { features } = await requireRole(["system_admin"]);
   const supabase = await createClient();
-  const [{ data: settings }, { data: docs }, { data: questions }, { data: spent }] = await Promise.all([
+  const [{ data: settings }, { data: docs }, { data: questions }, { data: spent }, { data: front }] = await Promise.all([
     supabase.from("assistant_settings").select("*").maybeSingle(),
     supabase.from("assistant_documents").select("id, title, audience, created_at").order("created_at", { ascending: false }),
     supabase.from("assistant_questions").select("id, question, answered, sources, created_at").order("created_at", { ascending: false }).limit(100),
     supabase.from("assistant_questions").select("cost_usd").gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+    supabase.from("app_settings").select("value").eq("key", "website.front_page").maybeSingle(),
   ]);
   const s: AssistantSettings = { ...DEFAULT_SETTINGS, ...(settings ?? {}), monthly_limit_aud: Number(settings?.monthly_limit_aud ?? DEFAULT_SETTINGS.monthly_limit_aud) };
   const usedAud = (spent ?? []).reduce((n, r) => n + Number(r.cost_usd), 0) * AUD_PER_USD;
@@ -32,8 +33,9 @@ export default async function AssistantPage() {
   return (
     <>
       <PageHeader
-        title="Assistant"
-        intro="The website's ask-anything page. It answers only from the documents you upload here."
+        eyebrow="System settings"
+        title="Website settings"
+        intro="The public website and its Assistant: how the landing page looks, where it looks for answers, and the documents it answers from."
         action={
           <Link href="/ask" className="inline-flex min-h-11 items-center rounded-md border border-line px-4 text-sm font-semibold hover:bg-brand-soft">
             Open website
@@ -52,7 +54,7 @@ export default async function AssistantPage() {
         <h2 className="heading-sm">Documents</h2>
         <Card className="p-4">
           <p className="mb-4 text-sm text-muted">
-            Upload NDIS rules, company policies or public policies. Choose who can get answers from each one: the public, staff, or managers only. Scanned PDFs (pictures of pages) can&apos;t be read; paste the words in instead.
+            Upload NDIS rules, company policies or public policies. Choose who can get answers from each one: the public, staff, or managers only. Scanned PDFs and photos of pages are read by the AI (a few cents each).
           </p>
           <AddDocumentForm />
         </Card>
@@ -95,12 +97,12 @@ export default async function AssistantPage() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="heading-sm">Wording, model and limits</h2>
+        <h2 className="heading-sm">Look, answers and limits</h2>
         <Card className="p-4">
           <p className="mb-4 text-sm text-muted">
-            Spent this month: <strong className="text-ink">A${usedAud.toFixed(2)}</strong> of A${s.monthly_limit_aud.toFixed(0)}. Searching the web comes in a later version; for now it answers from your documents only.
+            Spent this month: <strong className="text-ink">A${usedAud.toFixed(2)}</strong> of A${s.monthly_limit_aud.toFixed(0)}.
           </p>
-          <SettingsForm s={s} />
+          <SettingsForm s={s} frontPage={front?.value === true} />
         </Card>
       </section>
 

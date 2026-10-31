@@ -2,18 +2,47 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { EMAIL, text } from "@/lib/form";
-import { answerQuestion, assistantOn, loadSettings, visitorAudiences, type Answer } from "@/lib/assistant";
+import { answerQuestion, assistantOn, getVisitor, loadSettings } from "@/lib/assistant";
+import type { Answer } from "@/lib/assistant-shared";
 
 // The public website's actions: anyone can ask a question or leave their
 // details, so everything is checked and capped here.
 
-export async function askQuestion(question: string): Promise<Answer | { error: string }> {
+type Turn = { question: string; answer: string };
+
+// Signed in: the chat is saved (and its earlier turns come from the database).
+// Not signed in: the browser sends its own earlier turns, kept until it's closed.
+export async function askQuestion(question: string, chatId: string | null, history: Turn[]): Promise<{ answer: Answer; chatId: string | null } | { error: string }> {
   if (!(await assistantOn())) return { error: "The assistant isn't available right now." };
-  const q = String(question ?? "").trim();
+  const q = String(question ?? "").trim().slice(0, 500);
   if (q.length < 3) return { error: "Please type a question." };
-  const [settings, audiences] = await Promise.all([loadSettings(), visitorAudiences()]);
-  return answerQuestion(q, settings, audiences);
+  const [settings, visitor] = await Promise.all([loadSettings(), getVisitor()]);
+
+  if (!visitor.userId) {
+    const earlier = (Array.isArray(history) ? history : []).slice(-4).map((t) => ({ question: String(t.question).slice(0, 300), answer: String(t.answer).slice(0, 600) }));
+    return { answer: await answerQuestion(q, settings, visitor.audiences, earlier), chatId: null };
+  }
+
+  const supabase = await createClient();
+  let id = chatId && /^[0-9a-f-]{36}$/.test(chatId) ? chatId : null;
+  let earlier: Turn[] = [];
+  if (id) {
+    const { data } = await supabase.from("assistant_messages").select("question, answer").eq("chat_id", id).order("id", { ascending: false }).limit(4);
+    earlier = (data ?? []).reverse();
+  }
+  const answer = await answerQuestion(q, settings, visitor.audiences, earlier);
+  if (!id) {
+    const { data } = await supabase.from("assistant_chats").insert({ title: q.slice(0, 80) }).select("id").single();
+    id = data?.id ?? null;
+  }
+  if (id) await supabase.from("assistant_messages").insert({ chat_id: id, question: q, answer: answer.text, sources: answer.sources, answered: answer.answered });
+  return { answer, chatId: id };
+}
+
+export async function deleteChat(chatId: string): Promise<void> {
+  await (await createClient()).from("assistant_chats").delete().eq("id", chatId);
 }
 
 export const NEEDS = ["Daily living support", "Community access", "Supported independent living", "Not sure yet"];
