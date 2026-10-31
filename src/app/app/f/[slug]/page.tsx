@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps<"/app/f/[slug]">): 
 }
 
 // A built feature inside the Staff app: the same form as the portal, full screen.
-export default async function StaffAppFeature({ params }: PageProps<"/app/f/[slug]">) {
+export default async function StaffAppFeature({ params, searchParams }: PageProps<"/app/f/[slug]">) {
   const { profile, features } = await requireSession();
   if (!staffAppOn(features)) notFound();
   const def = await loadFeature({ slug: (await params).slug });
@@ -26,6 +26,11 @@ export default async function StaffAppFeature({ params }: PageProps<"/app/f/[slu
   const { data: canFill } = await supabase.rpc("can_fill_feature", { p_feature: def.feature.id });
   if (!canFill) notFound();
   const ctx = await formContext(def.feature.id, profile.id);
+  // From a client's QR sticker: that client already chosen.
+  const stickerClient = (await searchParams).client;
+  const clientField = def.fields.find((x) => x.type === "client" && !x.archived);
+  const preset =
+    typeof stickerClient === "string" && clientField && ctx.clients.some((c) => c.id === stickerClient) ? { [clientField.id]: stickerClient } : undefined;
   return (
     <>
       <LiveRefresh tables={["custom_entries"]} />
@@ -33,7 +38,7 @@ export default async function StaffAppFeature({ params }: PageProps<"/app/f/[slu
         ‹ All
       </Link>
       <section className="rounded-xl border border-line bg-surface p-4">
-        <FeatureForm feature={def.feature} fields={def.fields} clients={ctx.clients} staff={ctx.staff} me={ctx.me} targets={ctx.targets} timeZone={ctx.timeZone} mode="live" />
+        <FeatureForm feature={def.feature} fields={def.fields} clients={ctx.clients} staff={ctx.staff} me={ctx.me} targets={ctx.targets} timeZone={ctx.timeZone} mode="live" preset={preset} />
       </section>
     </>
   );

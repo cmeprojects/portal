@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps<"/f/[slug]">): Prom
 }
 
 // A feature built in the Feature builder: the form staff fill in, and their recent entries.
-export default async function FeaturePage({ params }: PageProps<"/f/[slug]">) {
+export default async function FeaturePage({ params, searchParams }: PageProps<"/f/[slug]">) {
   const { profile } = await requireSession();
   const def = await loadFeature({ slug: (await params).slug });
   if (!def || def.feature.status !== "published" || !def.feature.enabled) notFound();
@@ -38,11 +38,21 @@ export default async function FeaturePage({ params }: PageProps<"/f/[slug]">) {
   const total = fields.find((f) => f.id === feature.total_field);
   const choice = fields.find((f) => f.type === "choice" && !f.archived);
 
+  // From a client's QR sticker: that client already chosen.
+  const stickerClient = (await searchParams).client;
+  const clientField = fields.find((x) => x.type === "client" && !x.archived);
+  const preset =
+    typeof stickerClient === "string" && clientField && ctx.clients.some((c) => c.id === stickerClient) ? { [clientField.id]: stickerClient } : undefined;
   return (
     <div className="flex w-full max-w-xl flex-col gap-5">
       <LiveRefresh tables={["custom_entries"]} />
-      {canManage || canReport ? (
+      {canManage || canReport || profile.role === "manager" || profile.role === "system_admin" ? (
         <div className="flex flex-wrap justify-end gap-x-5 gap-y-1 text-sm font-semibold">
+          {(profile.role === "manager" || profile.role === "system_admin") && fields.some((x) => x.type === "client" && !x.archived) ? (
+            <Link href={`/f/${feature.slug}/sticker`} className="text-brand underline">
+              QR sticker for a client
+            </Link>
+          ) : null}
           {canReport ? (
             <Link href={`/reports/f/${feature.slug}`} className="text-brand underline">
               See the report
@@ -57,7 +67,7 @@ export default async function FeaturePage({ params }: PageProps<"/f/[slug]">) {
       ) : null}
       {canFill ? (
         <Card className="p-4 sm:p-5">
-          <FeatureForm feature={feature} fields={fields} clients={ctx.clients} staff={ctx.staff} me={ctx.me} targets={ctx.targets} timeZone={ctx.timeZone} mode="live" />
+          <FeatureForm feature={feature} fields={fields} clients={ctx.clients} staff={ctx.staff} me={ctx.me} targets={ctx.targets} timeZone={ctx.timeZone} mode="live" preset={preset} />
         </Card>
       ) : (
         <Card className="p-5 text-sm">

@@ -19,6 +19,8 @@ export type FeatureFormProps = {
   // "preview": the builder's live preview; nothing is saved.
   mode: "live" | "preview";
   timeZone: string;
+  // Answers filled in already (e.g. the client, from a QR sticker on their door).
+  preset?: Answers;
 };
 
 const OTHER = "\u0000other";
@@ -44,7 +46,7 @@ function summarise(data: Record<string, unknown>, fields: FeatureField[], totalF
 export function FeatureForm(props: FeatureFormProps) {
   const { feature, fields, clients, staff, me, targets, mode } = props;
   const live = fields.filter((f) => !f.archived).sort((a, b) => a.sort_order - b.sort_order);
-  const [answers, setAnswers] = useState<Answers>({});
+  const [answers, setAnswers] = useState<Answers>(props.preset ?? {});
   const [typed, setTyped] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [saved, setSaved] = useState<SaveResult | null>(null);
@@ -82,7 +84,7 @@ export function FeatureForm(props: FeatureFormProps) {
       const rows = [row, ...previewRows];
       setPreviewRows(rows);
       setSaved({ ok: true, entryId: row.id, clientId, today: rows.filter((r) => r.client === clientId), savedAt: row.created_at, data });
-      setAnswers({});
+      setAnswers(props.preset ?? {});
       setTyped({});
       return;
     }
@@ -91,7 +93,7 @@ export function FeatureForm(props: FeatureFormProps) {
       if (!result.ok) setError(result.error);
       else {
         setSaved(result);
-        setAnswers({});
+        setAnswers(props.preset ?? {});
         setTyped({});
       }
     });
