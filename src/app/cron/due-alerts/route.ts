@@ -37,13 +37,16 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
   // Cars still out, rego and service coming up, and Monday's mileage report.
   const { data: cars, error: carError } = await admin.rpc("run_car_alerts");
   if (carError) return { status: 500, body: { ok: false, error: carError.message } };
+  // Time-based alerts for built features (after live update 35; skipped before it).
+  const { data: timed, error: timedError } = await admin.rpc("run_feature_time_alerts");
+  if (timedError && timedError.code !== "PGRST202") return { status: 500, body: { ok: false, error: timedError.message } };
   // Up to 50 emails a round; keep going while there are more.
   for (let i = 0; i < 10; i++) {
     const { count } = await admin.from("email_outbox").select("id", { count: "exact", head: true }).is("sent_at", null).lt("attempts", 5);
     if (!count) break;
     await flushOutbox();
   }
-  return { status: 200, body: { ok: true, ...data, ...documents, ...cars } };
+  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}) } };
 }
 
 export const GET = run;

@@ -15,7 +15,11 @@ const WHEN: Record<AlertDraft["when_kind"], string> = {
   below: "A number is below…",
   total_over: "A client's daily total goes over their target",
   total_met: "A client's daily total reaches their target",
+  total_under_by: "At a set time: a client's daily total is still under their target",
+  no_entry_by: "At a set time: nothing has been entered today",
 };
+const TIMED = (k: AlertDraft["when_kind"]) => k === "total_under_by" || k === "no_entry_by";
+const hourLabel = (h: number) => (h === 0 ? "12 am" : h < 12 ? `${h} am` : h === 12 ? "12 pm" : `${h - 12} pm`);
 const ROLES: Role[] = ["manager", "staff_admin", "team_leader"];
 const tick = "h-5 w-5 shrink-0 accent-[var(--brand-primary)]";
 
@@ -23,6 +27,7 @@ const blank = (): AlertDraft => ({
   id: `new-${Math.random().toString(36).slice(2, 10)}`,
   name: "",
   when_kind: "any",
+  at_hour: null,
   field_id: null,
   match_text: "",
   limit_value: null,
@@ -49,7 +54,9 @@ export function Alerts({ feature, fields, staff, alerts, dirty }: { feature: Fea
         ? `${field?.label ?? "An answer"} is ${a.match_text}`
         : a.when_kind === "above" || a.when_kind === "below"
           ? `${field?.label ?? "A number"} is ${a.when_kind} ${a.limit_value ?? "?"}${field?.unit ? ` ${field.unit}` : ""}`
-          : WHEN[a.when_kind];
+          : TIMED(a.when_kind)
+            ? `${a.when_kind === "no_entry_by" ? "Nothing entered" : "A client under target"} by ${hourLabel(a.at_hour ?? 18)}, checked daily`
+            : WHEN[a.when_kind];
     const who = [
       ...a.notify_roles.map((r) => (r in ROLE_LABELS ? ROLE_LABELS[r as Role] + "s" : r)),
       a.notify_leader ? "their team leader" : "",
@@ -78,7 +85,8 @@ export function Alerts({ feature, fields, staff, alerts, dirty }: { feature: Fea
               <span className="min-w-48 flex-1 text-sm">
                 <span className="flex flex-wrap items-center gap-2 font-semibold">
                   {a.name || s.when}
-                  {a.active ? null : <Badge tone="grey">Paused</Badge>}
+                  {a.active ? null : <Badge tone="grey">{TIMED(a.when_kind) ? "Off" : "Paused"}</Badge>}
+                  {TIMED(a.when_kind) ? <Badge tone="soft">Daily at {hourLabel(a.at_hour ?? 18)}</Badge> : null}
                 </span>
                 <span className="block text-muted">
                   {a.name ? `${s.when} → ` : "→ "}
@@ -134,13 +142,17 @@ function AlertEditor({ draft, feature, fields, staff, onClose }: { draft: AlertD
         <select
           id="al-when"
           value={a.when_kind}
-          onChange={(e) => setA((x) => ({ ...x, when_kind: e.target.value as AlertDraft["when_kind"], field_id: null, match_text: "", limit_value: null }))}
+          onChange={(e) => {
+            const k = e.target.value as AlertDraft["when_kind"];
+            // Time-based alerts start switched off until the conditions are right.
+            setA((x) => ({ ...x, when_kind: k, field_id: null, match_text: "", limit_value: null, at_hour: TIMED(k) ? x.at_hour ?? 18 : null, active: TIMED(k) && x.id.startsWith("new-") ? false : x.active }));
+          }}
           className={inputClass}
         >
           {(Object.keys(WHEN) as AlertDraft["when_kind"][]).map((k) => (
-            <option key={k} value={k} disabled={(k === "total_over" || k === "total_met") && !totals}>
+            <option key={k} value={k} disabled={(k === "total_over" || k === "total_met" || k === "total_under_by") && !totals}>
               {WHEN[k]}
-              {(k === "total_over" || k === "total_met") && !totals ? " (set up daily totals first)" : ""}
+              {(k === "total_over" || k === "total_met" || k === "total_under_by") && !totals ? " (set up daily totals first)" : ""}
             </option>
           ))}
         </select>
@@ -193,6 +205,26 @@ function AlertEditor({ draft, feature, fields, staff, onClose }: { draft: AlertD
           </Field>
         </div>
       ) : null}
+      {TIMED(a.when_kind) ? (
+        <div className="flex flex-col gap-2">
+          <Field label="Check at" htmlFor="al-hour" hint="Checked once a day, at the start of that hour (company time).">
+            <select id="al-hour" value={a.at_hour ?? 18} onChange={(e) => set("at_hour", Number(e.target.value))} className={`${inputClass} max-w-40`}>
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>
+                  {hourLabel(h)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <p className="rounded-md bg-warn-soft px-3 py-2 text-xs text-warn">
+            {a.when_kind === "no_entry_by"
+              ? "Sends one note if no one has filled it in by then."
+              : "Sends one note listing every client still under their target by then."}{" "}
+            Time-based alerts start switched off. Tick On below when the conditions are right.
+          </p>
+        </div>
+      ) : null}
+
       {a.when_kind === "total_over" || a.when_kind === "total_met" ? (
         <p className="text-xs text-muted">Once a day per client, the moment their total crosses the target set on the Daily totals and targets tab.</p>
       ) : null}
@@ -206,7 +238,7 @@ function AlertEditor({ draft, feature, fields, staff, onClose }: { draft: AlertD
               {ROLE_LABELS[r]}s
             </label>
           ))}
-          <label className="col-span-2 flex min-h-10 items-center gap-2 text-sm">
+          <label className={`col-span-2 flex min-h-10 items-center gap-2 text-sm ${TIMED(a.when_kind) ? "hidden" : ""}`}>
             <input type="checkbox" checked={a.notify_leader} onChange={(e) => set("notify_leader", e.target.checked)} className={tick} />
             The team leader of whoever made the entry
           </label>
@@ -248,7 +280,7 @@ function AlertEditor({ draft, feature, fields, staff, onClose }: { draft: AlertD
       </div>
 
       <div className="flex flex-wrap gap-x-6">
-        <label className="flex min-h-10 items-center gap-2 text-sm">
+        <label className={`flex min-h-10 items-center gap-2 text-sm ${TIMED(a.when_kind) ? "hidden" : ""}`}>
           <input type="checkbox" checked={a.on_fix} onChange={(e) => set("on_fix", e.target.checked)} className={tick} />
           Also when a manager fixes an entry
         </label>

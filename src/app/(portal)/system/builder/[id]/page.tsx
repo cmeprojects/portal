@@ -41,7 +41,7 @@ export default async function BuildFeaturePage({ params }: PageProps<"/system/bu
         ctx={ctx}
         typed={typed}
         entryCount={count ?? 0}
-        alerts={((alerts ?? []) as AlertDraft[]).map((a) => ({ ...a, limit_value: a.limit_value == null ? null : Number(a.limit_value) }))}
+        alerts={((alerts ?? []) as AlertDraft[]).map((a) => ({ ...a, at_hour: a.at_hour ?? null, limit_value: a.limit_value == null ? null : Number(a.limit_value) }))}
       />
     </>
   );

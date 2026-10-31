@@ -74,5 +74,30 @@ select public.submit_custom_entry(test.feature(), jsonb_build_object(test.fid('C
 reset role;
 select test.ok((select count(*) from public.notifications where title like '%goal%') = 1, 'the goal alert is once a day, not on every entry after');
 
+-- Time-based alerts: off until switched on, checked by the hourly timer, once a day.
+insert into public.car_clients (name) values ('Jo B.');
+insert into public.custom_client_targets (feature_id, client_id, target) values (test.feature(), test.client('Jo B.'), 500);
+select test.act_as('owner@example.com');
+set role authenticated;
+insert into public.custom_alerts (feature_id, name, when_kind, at_hour, active) values (test.feature(), 'Under target', 'total_under_by', 0, false);
+insert into public.custom_alerts (feature_id, name, when_kind, at_hour, active) values (test.feature(), 'Nothing yet', 'no_entry_by', 0, true);
+reset role;
+select public.run_feature_time_alerts();
+select test.ok(not exists (select 1 from public.notifications where title like '%under target%'), 'a time alert that is off sends nothing');
+select test.ok(not exists (select 1 from public.notifications where title like '%nothing entered%'), 'and nothing-entered stays quiet when there are entries today');
+update public.custom_alerts set active = true where name = 'Under target';
+select public.run_feature_time_alerts();
+select test.ok((select count(*) from public.notifications where user_id = test.pid('boss@example.com') and title like 'Fluid intake: under target at %') = 1
+               and exists (select 1 from public.notifications where title like '%under target%' and body like '%Jo B.: 0 of 500%' and body not like '%Mia T.%'),
+  'switched on: managers hear which clients are under their target');
+select public.run_feature_time_alerts();
+select test.ok((select count(*) from public.notifications where user_id = test.pid('boss@example.com') and title like '%under target%') = 1, 'only once a day');
+
+select test.act_as('sam@example.com');
+set role authenticated;
+select public.submit_custom_entry(test.feature(), jsonb_build_object(test.fid('Client')::text, test.client('Jo B.'), test.fid('Drink')::text, 'Water', test.fid('Amount')::text, '50'));
+reset role;
+select test.ok((select count(*) from public.notifications where title like '%under target%' or title like '%Nothing yet%') = 1, 'time alerts don''t go off on each entry');
+
 \o
 \echo All feature alert tests passed.

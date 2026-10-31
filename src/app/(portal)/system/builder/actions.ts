@@ -192,7 +192,9 @@ export async function deleteDraft(form: FormData) {
 export type AlertDraft = {
   id: string;
   name: string;
-  when_kind: "any" | "choice" | "above" | "below" | "total_over" | "total_met";
+  when_kind: "any" | "choice" | "above" | "below" | "total_over" | "total_met" | "total_under_by" | "no_entry_by";
+  // Time-based alerts: the hour of the day to check (0 to 23).
+  at_hour: number | null;
   field_id: string | null;
   match_text: string;
   limit_value: number | null;
@@ -213,6 +215,8 @@ export async function saveAlert(featureId: string, a: AlertDraft): Promise<{ err
   if ((a.when_kind === "choice" || a.when_kind === "above" || a.when_kind === "below") && !a.field_id) return { error: "Choose the question it looks at." };
   if (a.when_kind === "choice" && !a.match_text.trim()) return { error: "Choose the answer that sets it off." };
   if ((a.when_kind === "above" || a.when_kind === "below") && (a.limit_value == null || Number.isNaN(a.limit_value))) return { error: "Enter the limit." };
+  const timed = a.when_kind === "total_under_by" || a.when_kind === "no_entry_by";
+  if (timed && (a.at_hour == null || a.at_hour < 0 || a.at_hour > 23)) return { error: "Choose the time to check." };
   const row = {
     feature_id: featureId,
     name: a.name.trim().slice(0, 80),
@@ -221,11 +225,12 @@ export async function saveAlert(featureId: string, a: AlertDraft): Promise<{ err
     match_text: a.when_kind === "choice" ? a.match_text.trim().slice(0, 80) : "",
     limit_value: a.when_kind === "above" || a.when_kind === "below" ? a.limit_value : null,
     notify_roles: a.notify_roles.filter(isRole).filter((r) => r !== "system_admin" && r !== "new_starter"),
-    notify_leader: a.notify_leader,
+    notify_leader: !timed && a.notify_leader,
     notify_people: a.notify_people.filter((p) => /^[0-9a-f-]{36}$/.test(p)),
     by_bell: a.by_bell,
     by_email: a.by_email,
-    on_fix: a.on_fix,
+    on_fix: !timed && a.on_fix,
+    at_hour: timed ? a.at_hour : null,
     message: a.message.trim().slice(0, 200),
     active: a.active,
   };
