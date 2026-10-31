@@ -80,9 +80,12 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
   // Forms sent to me, waiting or done.
   const doneIds = new Set((myDone ?? []).map((d) => d.form_id));
   const draftIds = new Set((myDrafts ?? []).map((d) => d.form_id));
-  const toFill = (sentToMe ?? [])
-    .map((s) => all.find((f) => f.id === s.form_id))
-    .filter((f): f is FormInfo => Boolean(f && f.status === "published" && f.enabled))
+  // To fill in: forms sent to me, forms in Compliance for my role or team, and
+  // open forms not sent to anyone in particular (the database works it out).
+  const { data: fillIds, error: fillError } = await supabase.rpc("my_forms_to_fill");
+  const mine = new Set<string>(fillError ? (sentToMe ?? []).map((s) => s.form_id) : ((fillIds ?? []) as string[]));
+  const toFill = all
+    .filter((f) => f.status === "published" && f.enabled && mine.has(f.id))
     .filter((f) => !doneIds.has(f.id) || f.repeatable);
   const filled = all.filter((f) => doneIds.has(f.id) && !f.repeatable);
 
@@ -144,6 +147,7 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
             people={people.filter((p) => p.active && p.role !== "system_admin" && p.role !== "new_starter").map((p) => ({ id: p.id, name: p.name }))}
             sharers={people.filter((p) => p.active && p.id !== profile.id && (p.role === "manager" || p.role === "staff_admin")).map((p) => ({ id: p.id, name: p.name }))}
             teams={teams ?? []}
+            complianceOn={features.compliance !== false}
           />
         </section>
       ) : null}

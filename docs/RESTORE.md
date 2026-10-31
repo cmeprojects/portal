@@ -18,6 +18,11 @@ change. Nothing here deletes your people, tasks, forms or cars.
   → Off. The public website then shows "coming soon" and the menu items
   disappear. Nothing is deleted.
 
+## Before the quick fixes (live update 36)
+
+- **Code:** branch `restore-update-36` (commit `e7dc8ac`).
+- **Database:** run `supabase/live-updates/undo-37.sql`.
+
 ## Habit for every big change
 
 1. Make a branch from `main` named `restore-update-NN` before starting.

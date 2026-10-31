@@ -61,7 +61,7 @@ export default async function MyOnboardingPage() {
       />
       <Card className="flex flex-col gap-3 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="heading-sm">{status.length === 0 ? "Nothing to do yet" : done === status.length ? "All done, thank you" : `${done} of ${status.length} done`}</p>
+          <p className="heading-sm">{status.length === 0 ? "Nothing to do yet" : done === status.length ? "All done, thank you. You don't have any actions waiting." : `${done} of ${status.length} done`}</p>
           {profile.role === "new_starter" ? (
             <p className="text-sm text-muted">Once it&apos;s all done, a staff admin will set up your role and team.</p>
           ) : null}
@@ -132,14 +132,20 @@ export default async function MyOnboardingPage() {
                         finished ? (
                           <p className="text-sm text-good">You&apos;ve filled this in.</p>
                         ) : item.form_id ? (
-                          <Link href={`/forms/${item.form_id}`} className={buttonClass("primary", "self-start")}>
-                            Fill it in
-                          </Link>
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-page px-4 py-3">
+                            <p className="text-sm text-muted">A short form to answer. You can save it and finish later.</p>
+                            <Link href={`/forms/${item.form_id}`} className={buttonClass("primary")}>
+                              Answer now
+                            </Link>
+                          </div>
                         ) : null
                       ) : finished ? (
                         <p className="text-sm text-good">You&apos;ve {kind === "training" ? "completed this" : "confirmed this"}.</p>
                       ) : (
-                        <ConfirmButton itemId={item.id} label={kind === "training" ? "I've completed this training" : "I've read and understood this"} />
+                        <>
+                          {kind === "read" ? <p className="text-sm font-medium">Please confirm that you&apos;ve read and understood this document.</p> : null}
+                          <ConfirmButton itemId={item.id} label={kind === "training" ? "I've completed this training" : "I confirm I've read and understood this"} />
+                        </>
                       )}
                     </div>
                   </ItemShell>

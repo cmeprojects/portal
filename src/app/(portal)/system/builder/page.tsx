@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { SectionTabs } from "@/components/section-tabs";
-import { NewFeatureForm, IncludedSwitch } from "./forms";
+import { NewFeatureForm, IncludedSwitch, DeleteFeatureButton } from "./forms";
 
 export const metadata: Metadata = { title: "Feature builder" };
 
@@ -51,6 +51,7 @@ export default async function BuilderPage() {
                 <Link href={`/system/builder/${f.id}`} className="text-sm font-semibold text-brand underline">
                   Edit
                 </Link>
+                {entries(f.id) === 0 ? <DeleteFeatureButton id={f.id} name={f.name} /> : null}
               </li>
             ))}
           </ul>

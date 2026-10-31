@@ -144,6 +144,11 @@ const TABS: Tab[] = [
     label: "Forms",
     sections: [{ title: "Forms", intro: "Who can make forms (the system admin always can). Each form is controlled by the person who made it and anyone they share it with.", keys: (k) => k.startsWith("forms.") }],
   },
+  {
+    key: "website",
+    label: "Website",
+    sections: [{ title: "Enquiries", intro: "Who sees the enquiries people leave on the website (the system admin always can).", keys: (k) => k.startsWith("assistant.") }],
+  },
   { key: "features", label: "Features", sections: [] },
   { key: "delegation", label: "Delegation", sections: [] },
   {
@@ -269,7 +274,19 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
           </ul>
         </Card>
       ) : (
-        tab.sections.filter(canSee).map((section) => {
+        <>
+        {tab.key === "website" ? (
+          <Card className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div>
+              <h2 className="heading-sm">Assistant</h2>
+              <p className="text-sm text-muted">The documents it answers from, its wording, model and spending limit, and the questions people asked.</p>
+            </div>
+            <Link href="/assistant" className="text-sm font-semibold text-brand underline">
+              Open Assistant settings
+            </Link>
+          </Card>
+        ) : null}
+        {tab.sections.filter(canSee).map((section) => {
           const list = rows.filter((s) => section.keys(s.key)).sort((x, y) => rank(x.key) - rank(y.key) || x.key.localeCompare(y.key));
           if (!list.length) return null;
           return (
@@ -292,7 +309,8 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
               </div>
             </Card>
           );
-        })
+        })}
+        </>
       )}
     </>
   );

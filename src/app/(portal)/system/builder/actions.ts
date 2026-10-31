@@ -180,7 +180,8 @@ export async function setFeatureIncluded(form: FormData) {
 export async function deleteDraft(form: FormData) {
   await requireBuilder();
   const supabase = await createClient();
-  await supabase.from("custom_features").delete().eq("id", text(form, "id")).eq("status", "draft");
+  // The database only allows it while nobody has entered anything.
+  await supabase.from("custom_features").delete().eq("id", text(form, "id"));
   refresh();
   redirect("/system/builder");
 }

@@ -3,7 +3,7 @@
 
 import { useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
-import { createFeature, setFeatureIncluded } from "./actions";
+import { createFeature, setFeatureIncluded, deleteDraft } from "./actions";
 
 export function NewFeatureForm() {
   const [state, action, pending] = useActionState(createFeature, null);
@@ -44,6 +44,21 @@ export function IncludedSwitch({ id, enabled }: { id: string; enabled: boolean }
         <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${enabled ? "bg-brand-fg" : "bg-muted"}`} />
         {enabled ? "In package" : "Off"}
       </button>
+    </form>
+  );
+}
+
+// Delete a feature nobody has used yet (drafts, or live ones with no entries).
+export function DeleteFeatureButton({ id, name }: { id: string; name: string }) {
+  return (
+    <form
+      action={deleteDraft}
+      onSubmit={(e) => {
+        if (!confirm(`Delete "${name}"? This can't be undone.`)) e.preventDefault();
+      }}
+    >
+      <input type="hidden" name="id" value={id} />
+      <button className="text-sm font-semibold text-danger underline">Delete</button>
     </form>
   );
 }

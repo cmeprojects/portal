@@ -7,6 +7,7 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { PIN_OFF_COOKIE } from "@/lib/app-lock";
 import { signedInLately } from "@/lib/app-lock-server";
 import { AppAutoLock } from "./auto-lock";
+import { EarlyLockCheck } from "./early-lock";
 
 // The Cars app (cmeprojects): installed on staff phones from the portal link.
 // A plain, full-screen frame: the company's bar on top, big buttons below.
@@ -28,9 +29,15 @@ export async function generateViewport(): Promise<Viewport> {
 export default async function CarsAppLayout({ children }: LayoutProps<"/cars-app">) {
   const [brand, session, look] = await Promise.all([getBranding(), getSession(), getCarsAppLook()]);
   const name = session?.profile.full_name || session?.profile.email || "";
+  const [pinOff, justIn] = [(await cookies()).has(PIN_OFF_COOKIE), await signedInLately()];
   return (
     <div className="flex min-h-dvh flex-col bg-page">
-      {session ? <AppAutoLock base="/cars-app" pinOff={(await cookies()).has(PIN_OFF_COOKIE)} justSignedIn={await signedInLately()} /> : null}
+      {session ? (
+        <>
+          <EarlyLockCheck base="/cars-app" pinOff={pinOff} justSignedIn={justIn} />
+          <AppAutoLock base="/cars-app" pinOff={pinOff} justSignedIn={justIn} />
+        </>
+      ) : null}
       <header className="sticky top-0 z-30 bg-[var(--side-bg)] pt-[env(safe-area-inset-top)] text-side-fg">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}

@@ -9,6 +9,8 @@ import { getMenuFeatures, getReportFeatures } from "@/lib/custom-features";
 import { requireSession } from "@/lib/session";
 import { getBranding, initialsOf } from "@/lib/branding";
 import { canUseCars } from "@/lib/cars";
+import { canMakeForms } from "@/lib/forms";
+import { createClient } from "@/lib/supabase/server";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
 
 // What the menu and the section tabs show this person (worked out once per page).
@@ -27,20 +29,40 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
   return {
     newStarterTasks: rules.newStarterTasks,
     canInvite: canInvite(role, rules),
-    seesCompliance: seesCompliance(role, rules),
+    // Compliance is a premium add-on (on for companies that already use it).
+    seesCompliance: features.compliance !== false && seesCompliance(role, rules),
     seesScoreboard: canSeeScoreboard(role, rules),
     seesReports: canSeeReports(role, rules),
-    complianceReport: canSeeComplianceReport(role, rules),
+    complianceReport: features.compliance !== false && canSeeComplianceReport(role, rules),
     seesRegisters: role !== "new_starter" && canSeeRegisters(role, rules),
     carManager: canManageCars(role, carRules),
     carReports: canSeeCarReports(role, carRules),
     adminAreas,
     customFeatures,
     featureReports,
-    forms: features.forms === true && role !== "new_starter",
-    assistant: features.assistant === true && role === "system_admin",
-    enquiries: features.assistant === true && (role === "manager" || role === "system_admin"),
-    website: features.assistant === true && (role === "manager" || role === "system_admin"),
+    // Forms: for those who make forms, or have one waiting (others find theirs in My onboarding).
+    forms: features.forms === true && role !== "new_starter" && (await formsInMenu()),
+    // The website's Assistant is for every staff member; enquiries for those the system admin chose.
+    assistant: features.assistant === true && role !== "new_starter",
+    enquiries: features.assistant === true && (await canSeeEnquiries()),
+    tools: role === "manager" || role === "system_admin",
     appsLabel: hasApps ? `${initialsOf(brand.companyName) || "Our"} Apps` : undefined,
   };
 });
+
+// Forms in the menu: makers always; others only while a form is waiting for them.
+async function formsInMenu(): Promise<boolean> {
+  if (await canMakeForms()) return true;
+  const { data, error } = await (await createClient()).rpc("my_forms_to_fill");
+  return !error && Array.isArray(data) && data.length > 0;
+}
+
+// Who sees website enquiries is set by the system admin (managers by default).
+async function canSeeEnquiries(): Promise<boolean> {
+  const { data, error } = await (await createClient()).rpc("can_see_enquiries");
+  if (error) {
+    const { data: role } = await (await createClient()).rpc("my_role");
+    return role === "manager" || role === "system_admin";
+  }
+  return data === true;
+}

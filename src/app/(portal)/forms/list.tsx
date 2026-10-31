@@ -51,7 +51,7 @@ export function NewFormForm() {
 }
 
 // cmeprojects: the forms you look after, stacked; tap one for a snapshot.
-export function FormsList({ rows, open, people, sharers, teams }: { rows: ManagedForm[]; open: string; people: Option[]; sharers: Option[]; teams: Option[] }) {
+export function FormsList({ rows, open, people, sharers, teams, complianceOn = true }: { rows: ManagedForm[]; open: string; people: Option[]; sharers: Option[]; teams: Option[]; complianceOn?: boolean }) {
   const [openId, setOpenId] = useState<string | null>(open || null);
   if (!rows.length) return <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">No forms yet.</p>;
   return (
@@ -81,7 +81,7 @@ export function FormsList({ rows, open, people, sharers, teams }: { rows: Manage
                 {f.anonymous ? <Badge tone="soft">Anonymous allowed</Badge> : null}
               </span>
             </button>
-            {isOpen ? <Snapshot f={f} people={people} sharers={sharers} teams={teams} /> : null}
+            {isOpen ? <Snapshot complianceOn={complianceOn} f={f} people={people} sharers={sharers} teams={teams} /> : null}
           </li>
         );
       })}
@@ -89,7 +89,7 @@ export function FormsList({ rows, open, people, sharers, teams }: { rows: Manage
   );
 }
 
-function Snapshot({ f, people, sharers, teams }: { f: ManagedForm; people: Option[]; sharers: Option[]; teams: Option[] }) {
+function Snapshot({ f, people, sharers, teams, complianceOn }: { f: ManagedForm; people: Option[]; sharers: Option[]; teams: Option[]; complianceOn: boolean }) {
   const router = useRouter();
   const [panel, setPanel] = useState<"none" | "send" | "compliance" | "share" | "delete">("none");
   const [result, setResult] = useState<{ error?: string; message?: string } | null>(null);
@@ -179,9 +179,11 @@ function Snapshot({ f, people, sharers, teams }: { f: ManagedForm; people: Optio
               <Button type="button" size="sm" variant={panel === "send" ? "secondary" : "outline"} onClick={() => setPanel(panel === "send" ? "none" : "send")}>
                 Send
               </Button>
-              <Button type="button" size="sm" variant={panel === "compliance" ? "secondary" : "outline"} onClick={() => setPanel(panel === "compliance" ? "none" : "compliance")}>
-                {f.compliance ? "Compliance" : "Add to Compliance"}
-              </Button>
+              {complianceOn ? (
+                <Button type="button" size="sm" variant={panel === "compliance" ? "secondary" : "outline"} onClick={() => setPanel(panel === "compliance" ? "none" : "compliance")}>
+                  {f.compliance ? "Compliance" : "Add to Compliance"}
+                </Button>
+              ) : null}
             </>
           ) : null}
         </div>

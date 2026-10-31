@@ -105,8 +105,10 @@ export default async function AssistantPage() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="heading-sm">What people asked</h2>
-        <p className="text-sm text-muted">Questions it couldn&apos;t answer show first. Add a document to fill the gap.</p>
+        <h2 className="heading-sm">Questions people asked</h2>
+        <p className="text-sm text-muted">
+          A record that fills in by itself as people use the website (no names), so it can&apos;t be edited. Questions it couldn&apos;t answer show first: upload a document that covers them and it will answer next time.
+        </p>
         {log.length === 0 ? (
           <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">No questions yet.</p>
         ) : (

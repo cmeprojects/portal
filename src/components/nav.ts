@@ -28,7 +28,8 @@ export type NavAccess = {
   // Website and Assistant: the system admin manages it; managers follow up enquiries.
   assistant?: boolean;
   enquiries?: boolean;
-  website?: boolean;
+  // Managers: built features, Cars and the apps under one "Tools" item.
+  tools?: boolean;
   // "EC Apps": the company's phone apps this person can use (none = no menu item).
   appsLabel?: string;
   // Areas of System settings delegated to this manager.
@@ -47,7 +48,6 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
   const tabs: (Tab | false)[] = {
     tasks: [
       { href: seesDashboard(role) ? "/my-tasks" : "/", text: "My tasks" },
-      features.tasks !== false && { href: "/tasks/new", text: "New task" },
     ],
     cars: cars
       ? [
@@ -95,7 +95,7 @@ export function navFor(
   access: NavAccess = { newStarterTasks: false, canInvite: false, seesCompliance: false },
 ): NavGroup[] {
   const mine: NavItem[] = [
-    ...(role !== "system_admin" ? [{ href: "/onboarding", label: "My onboarding" }] : []),
+    ...(role !== "system_admin" && features.compliance !== false ? [{ href: "/onboarding", label: "My onboarding" }] : []),
     { href: "/account", label: "My account" },
   ];
 
@@ -112,13 +112,17 @@ export function navFor(
         ...sectionItem("tasks", role, features, access, dashboard ? "Tasks" : "My tasks"),
         // Who sees Registers is set by the system admin (System settings → Tasks).
         ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),
-        ...sectionItem("cars", role, features, access),
-        ...(access.customFeatures ?? []).map((f) => ({ href: `/f/${f.slug}`, label: f.label })),
+        // Managers get one "Tools" item; everyone else sees them in order.
+        ...(access.tools
+          ? [{ href: "/tools", label: "Tools", match: ["/tools", "/f/", "/cars", "/apps"] }]
+          : [
+              ...(access.customFeatures ?? []).map((f) => ({ href: `/f/${f.slug}`, label: f.label })),
+              ...sectionItem("cars", role, features, access),
+              ...(access.appsLabel ? [{ href: "/apps", label: access.appsLabel }] : []),
+            ]),
         ...(access.forms ? [{ href: "/forms", label: "Forms", match: ["/forms"] }] : []),
         ...(access.enquiries ? [{ href: "/enquiries", label: "Enquiries" }] : []),
-        ...(access.assistant ? [{ href: "/assistant", label: "Assistant" }] : []),
-        ...(access.website ? [{ href: "/ask", label: "Open website" }] : []),
-        ...(access.appsLabel ? [{ href: "/apps", label: access.appsLabel }] : []),
+        ...(access.assistant ? [{ href: "/ask", label: "Assistant" }] : []),
         ...sectionItem("people", role, features, access),
         ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
         ...sectionItem("reports", role, features, access),

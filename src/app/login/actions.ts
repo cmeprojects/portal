@@ -4,6 +4,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { env } from "@/lib/env";
 import { safeNext } from "@/lib/safe-next";
 import { sendSignInLinkEmail } from "@/lib/email/password-reset";
@@ -29,6 +30,16 @@ function signInProblem(code: string | undefined, status: number | undefined): st
   }
 }
 
+// Wrong-password counting, kept by the database (0 = not locked; before live
+// update 37 there's no lock).
+async function signInGuard(email: string, event: "check" | "fail" | "ok"): Promise<number> {
+  const { data, error } = await createAdminClient().rpc("sign_in_guard", { p_email: email, p_event: event });
+  return error ? 0 : Number(data ?? 0);
+}
+
+const lockedMessage = (minutes: number) =>
+  `Too many wrong passwords, so this account is locked for ${minutes} minute${minutes === 1 ? "" : "s"}. You can still sign in with a sign-in link below.`;
+
 // The inactivity timer starts again from now (and a stale time from before
 // can't sign them straight back out).
 async function freshActivity() {
@@ -42,9 +53,20 @@ export async function signInWithPassword(_: FormState, form: FormData): Promise<
   const password = String(form.get("password") ?? "");
   if (!EMAIL.test(email) || !password) return { error: "Enter your email and password." };
 
+  // Five wrong passwords lock the email for 15 minutes (a sign-in link still works).
+  const lockedFor = await signInGuard(email, "check");
+  if (lockedFor > 0) return { error: lockedMessage(lockedFor) };
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: signInProblem(error.code, error.status) };
+  if (error) {
+    if (error.code === "invalid_credentials") {
+      const locked = await signInGuard(email, "fail");
+      if (locked > 0) return { error: lockedMessage(locked) };
+    }
+    return { error: signInProblem(error.code, error.status) };
+  }
+  await signInGuard(email, "ok");
   await freshActivity();
   redirect(safeNext(text(form, "next")));
 }

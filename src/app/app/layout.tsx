@@ -7,6 +7,7 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { PIN_OFF_COOKIE } from "@/lib/app-lock";
 import { signedInLately } from "@/lib/app-lock-server";
 import { AppAutoLock } from "../cars-app/auto-lock";
+import { EarlyLockCheck } from "../cars-app/early-lock";
 
 // The Staff app (cmeprojects, premium): one phone app with the features the
 // system admin chose. Same frame as the Cars app; shares its PIN.
@@ -29,9 +30,15 @@ export async function generateViewport(): Promise<Viewport> {
 export default async function StaffAppLayout({ children }: LayoutProps<"/app">) {
   const [brand, session, look] = await Promise.all([getBranding(), getSession(), getStaffAppLook()]);
   const name = session?.profile.full_name || session?.profile.email || "";
+  const [pinOff, justIn] = [(await cookies()).has(PIN_OFF_COOKIE), await signedInLately()];
   return (
     <div className="flex min-h-dvh flex-col bg-page">
-      {session ? <AppAutoLock base="/app" pinOff={(await cookies()).has(PIN_OFF_COOKIE)} justSignedIn={await signedInLately()} /> : null}
+      {session ? (
+        <>
+          <EarlyLockCheck base="/app" pinOff={pinOff} justSignedIn={justIn} />
+          <AppAutoLock base="/app" pinOff={pinOff} justSignedIn={justIn} />
+        </>
+      ) : null}
       <LiveRefresh tables={["app_settings", "features", "live_signals", "cars"]} onShow />
       <header className="sticky top-0 z-30 bg-[var(--side-bg)] pt-[env(safe-area-inset-top)] text-side-fg">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3">

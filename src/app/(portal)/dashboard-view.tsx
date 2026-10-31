@@ -191,7 +191,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
                     <span className="min-w-48 flex-1">
                       <span className="block text-sm font-semibold">{t.title}</span>
                       <span className="block text-xs text-muted">
-                        {ref(t)} · {t.assigned_to === profile.id ? "you're looking after it" : "you are asked to help"}
+                        {ref(t)} · {t.assigned_to === profile.id ? "You're looking after it" : "You're asked to help"}
                       </span>
                     </span>
                     <span className="flex items-center gap-2 text-xs font-semibold">
