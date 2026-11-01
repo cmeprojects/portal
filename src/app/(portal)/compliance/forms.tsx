@@ -65,7 +65,11 @@ export function ItemForm({ kind, item, teams }: { kind: ItemKind; item?: Complia
         </label>
       )}
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-semibold">Who it&apos;s for (leave all unticked for everyone)</legend>
+        <legend className="mb-1 text-sm font-semibold">Who it&apos;s for</legend>
+        <p className="text-xs text-muted">
+          Leave everything unticked for everyone. Tick roles, teams or both: with both, a person needs one of the roles <strong>and</strong> to be in one of the teams. Managers and staff admins usually aren&apos;t in a team, so ticking a team leaves them out.
+        </p>
+        <p className="pt-1 text-xs font-semibold">Roles</p>
         <div className="flex flex-wrap gap-x-5">
           {ROLES_FOR_ITEMS.map((r) => (
             <label key={r} className="flex min-h-11 items-center gap-2 text-sm">
@@ -74,6 +78,7 @@ export function ItemForm({ kind, item, teams }: { kind: ItemKind; item?: Complia
             </label>
           ))}
         </div>
+        {teams.length ? <p className="pt-1 text-xs font-semibold">Teams</p> : null}
         {teams.length ? (
           <div className="flex flex-wrap gap-x-5">
             {teams.map((t) => (

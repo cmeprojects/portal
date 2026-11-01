@@ -137,6 +137,8 @@ export function Chat(props: Props) {
     if (id === chatId) newChat();
   };
 
+  // Visitors see the company's number; signed-in staff see the staff contact number.
+  const supportPhone = signedIn ? props.staffPhone : props.urgentPhone;
   const started = turns.length > 0;
   const last = turns.at(-1);
   const showOffer = props.offerCall && !offerHidden && Boolean(last?.a?.offerCall);
@@ -229,17 +231,19 @@ export function Chat(props: Props) {
           )}
 
           <footer className="px-4 pb-4 text-center text-xs text-muted">
-            {props.urgentPhone && !signedIn ? (
-              <>
-                For urgent support please call{" "}
-                <a href={telOf(props.urgentPhone)} className="font-bold text-brand">
-                  {props.urgentPhone}
-                </a>
-                {" · "}
-              </>
-            ) : null}
-            {props.disclaimer}
-            {props.showCredits ? " · Built by cmeproject" : null}
+            <p>
+              {supportPhone ? (
+                <>
+                  For general support, please call{" "}
+                  <a href={telOf(supportPhone)} className="font-bold text-brand">
+                    {supportPhone}
+                  </a>
+                  .{" "}
+                </>
+              ) : null}
+              {props.disclaimer}
+            </p>
+            {props.showCredits ? <p className="mt-1">Built by cmeproject</p> : null}
           </footer>
         </div>
       </div>

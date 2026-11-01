@@ -150,15 +150,27 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
 
 async function Items({ kind }: { kind: ItemKind }) {
   const supabase = await createClient();
-  const [{ data: itemRows }, { data: teams }] = await Promise.all([
+  const [{ data: itemRows }, { data: teams }, { data: people }, { data: members }] = await Promise.all([
     supabase.from("compliance_items").select(ITEM_COLUMNS).eq("kind", kind).order("active", { ascending: false }).order("sort_order").order("title"),
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
+    supabase.from("profiles").select("id, role").eq("active", true).neq("role", "system_admin"),
+    supabase.from("team_members").select("user_id, team_id"),
   ]);
+  // How many people an item reaches: a ticked role AND a ticked team must both
+  // match (the same rule as the database's compliance_applies).
+  const teamsOf = (id: string) => (members ?? []).filter((m) => m.user_id === id).map((m) => m.team_id);
+  const reach = (i: ComplianceItem) =>
+    (people ?? []).filter(
+      (p) => (!i.applies_roles.length || i.applies_roles.includes(p.role as Role)) && (!i.applies_teams.length || teamsOf(p.id).some((t) => i.applies_teams.includes(t))),
+    ).length;
   const items = (itemRows ?? []) as ComplianceItem[];
   const teamName = new Map((teams ?? []).map((t) => [t.id, t.name]));
   const forWhom = (i: ComplianceItem) => {
     const parts = [...i.applies_roles.map((r) => ROLE_LABELS[r]), ...i.applies_teams.map((t) => teamName.get(t) ?? "a team")];
-    return parts.length ? parts.join(", ") : "Everyone";
+    const roles = i.applies_roles.map((r) => ROLE_LABELS[r]).join(" or ");
+    const inTeams = i.applies_teams.map((t) => teamName.get(t) ?? "a team").join(" or ");
+    if (!parts.length) return "Everyone";
+    return roles && inTeams ? `${roles}, in ${inTeams}` : roles || `Anyone in ${inTeams}`;
   };
   const noun = kind === "read" ? "document" : kind === "training" ? "training" : "upload";
 
@@ -178,6 +190,7 @@ async function Items({ kind }: { kind: ItemKind }) {
                 <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
                   <span className={`min-w-48 flex-1 font-semibold ${i.active ? "" : "text-muted"}`}>{i.title}</span>
                   <span className="text-sm text-muted">{forWhom(i)}</span>
+                  {i.active ? <Badge tone={reach(i) ? "soft" : "warn"}>{reach(i) === 1 ? "1 person" : `${reach(i)} people`}</Badge> : null}
                   {kind !== "upload" && i.version > 1 ? <Badge tone="grey">Version {i.version}</Badge> : null}
                   {i.active ? <Badge tone="good">{kind === "upload" ? "On" : "In use"}</Badge> : <Badge tone="grey">{kind === "upload" ? "Off" : "Not in use"}</Badge>}
                   <span className="text-sm font-semibold text-brand group-open:hidden">Edit</span>

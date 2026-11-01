@@ -60,7 +60,7 @@ export function LandingForm({ s }: { s: AssistantSettings }) {
         {area("suggestions", s.suggestions.join("\n"), 4)}
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Urgent support number (shown big at the top)" htmlFor="phone">
+        <Field label="General support number (shown at the bottom of the website)" htmlFor="phone">
           <input id="phone" name="phone" defaultValue={s.phone} maxLength={40} className={inputClass} />
         </Field>
         <Field label="Note at the bottom of the page" htmlFor="disclaimer">
