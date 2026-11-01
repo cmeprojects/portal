@@ -83,7 +83,7 @@ export async function unlockWithPin(_: FormState, form: FormData): Promise<FormS
   if (failed >= MAX_TRIES) {
     // Too many tries: forget the PIN and ask for a full sign-in.
     await admin.from("car_app_pins").delete().eq("user_id", profile.id);
-    await (await createClient()).auth.signOut();
+    await (await createClient()).auth.signOut({ scope: "local" });
     redirect(`/login?error=pin&next=${encodeURIComponent(APP_PATH)}`);
   }
   await admin.from("car_app_pins").update({ failed }).eq("user_id", profile.id);
@@ -96,7 +96,7 @@ export async function forgotPin(form: FormData) {
   const { profile } = await requireSession();
   const APP_PATH = asAppPath(form.get("base"));
   await createAdminClient().from("car_app_pins").delete().eq("user_id", profile.id);
-  await (await createClient()).auth.signOut();
+  await (await createClient()).auth.signOut({ scope: "local" });
   redirect(`/login?next=${encodeURIComponent(APP_PATH)}`);
 }
 
@@ -112,7 +112,7 @@ export async function signOutApp(form: FormData) {
   const APP_PATH = asAppPath(form.get("base"));
   const jar = await cookies();
   jar.delete(UNLOCK_COOKIE);
-  await (await createClient()).auth.signOut();
+  await (await createClient()).auth.signOut({ scope: "local" });
   redirect(`/login?next=${encodeURIComponent(APP_PATH)}`);
 }
 

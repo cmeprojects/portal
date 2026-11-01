@@ -58,7 +58,7 @@ async function ask(question: string, chatId: string | null, history: Turn[]): Pr
 
 // Signing out from the website keeps them on the website.
 export async function signOutWebsite() {
-  await (await createClient()).auth.signOut();
+  await (await createClient()).auth.signOut({ scope: "local" });
   redirect("/ask");
 }
 

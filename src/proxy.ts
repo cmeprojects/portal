@@ -49,7 +49,7 @@ export async function proxy(request: NextRequest) {
   const pageVisit = request.headers.get("sec-fetch-dest") === "document";
 
   const signOutTo = async (search: string) => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = search;

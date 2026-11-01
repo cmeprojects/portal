@@ -101,14 +101,14 @@ export async function signOutIdle() {
     redirect("/login?error=idle");
   }
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   jar.delete("portal_last_active");
   redirect("/login?error=idle");
 }
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   const jar = await cookies();
   jar.delete("portal_last_active");
   jar.delete(PORTAL_LOCK_COOKIE);
@@ -118,6 +118,6 @@ export async function signOut() {
 // The account was turned off: sign out of this browser without any questions.
 export async function signOutDeactivated() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   (await cookies()).delete("portal_last_active");
 }
