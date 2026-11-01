@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Engaged Care Staff Portal · Clickable simulation</title>
+<style>
+/* Staff Portal · © cmeproject. Clickable simulation with sample data only. */
+:root{--brand:#134f8e;--dark:#0f2f57;--accent:#6497c8;--bg:#e8edf4;--surface:#fff;--line:#d3dbe6;--ink:#141a24;--muted:#5a6478;--soft:#e9eff6;--good:#1d6b3a;--goodsoft:#e3f3e9;--warn:#9a4a0b;--warnsoft:#fbeedd;--bad:#a11b1b;--badsoft:#fbe6e4;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-size:15px}
+a{color:var(--brand)}button{font:inherit;cursor:pointer}
+.demo{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;background:#000;color:#fff;font-size:13px}
+.demo b{font-family:ui-monospace,monospace;margin-right:8px}.demo button{border:1px solid #555;background:#111;color:#fff;border-radius:999px;padding:5px 12px}.demo button.on{background:#fff;color:#000}
+.demo .note{margin-left:auto;color:#aaa}
+.app{display:flex;min-height:calc(100vh - 44px)}
+.side{width:240px;flex:none;background:var(--dark);color:#f2f5fa;padding:16px 12px;display:flex;flex-direction:column;gap:2px}
+.side .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px}.mark{width:34px;height:34px;border-radius:8px;background:#fff;color:var(--dark);display:grid;place-items:center;font-weight:800;font-size:13px}
+.side a{display:flex;justify-content:space-between;color:#f2f5fa;text-decoration:none;padding:9px 12px;border-radius:8px}.side a:hover{background:rgba(255,255,255,.09)}.side a.on{background:rgba(255,255,255,.17);font-weight:600}
+.side .who{margin-top:auto;border-top:1px solid rgba(255,255,255,.15);padding:12px 8px 0;font-size:13px;color:#b3c0d3}.side .who b{display:block;color:#fff;font-size:14px}
+.count{background:#a11b1b;color:#fff;border-radius:999px;font-size:11px;padding:1px 7px}
+main.page{flex:1;padding:24px 28px;display:flex;flex-direction:column;gap:18px;min-width:0}
+h1{margin:0;font-size:26px}h2{margin:0;font-size:18px}.muted{color:var(--muted)}.small{font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px}.pad{padding:16px 18px}
+.grid{display:grid;gap:12px}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.stat b{display:block;font-size:30px;color:var(--brand)}.stat.alert b{color:var(--bad)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}.tab{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 14px;font-weight:600;font-size:13px}.tab.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--brand);background:var(--brand);color:#fff;border-radius:8px;padding:9px 16px;font-weight:600;text-decoration:none}.btn.o{background:var(--surface);color:var(--brand)}.btn.s{padding:5px 11px;font-size:13px}
+.badge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;background:var(--soft);color:var(--brand)}.b-good{background:var(--goodsoft);color:var(--good)}.b-warn{background:var(--warnsoft);color:var(--warn)}.b-bad{background:var(--badsoft);color:var(--bad)}.b-grey{background:#edf0f4;color:#3a4553}
+.list>div,.list>details{border-top:1px solid var(--line);padding:13px 18px}.list>div:first-child,.list>details:first-child{border-top:0}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.grow{flex:1;min-width:180px}
+details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}.open-area{margin-top:12px;background:var(--soft);border:1px solid #c5d6ea;border-radius:10px;padding:12px 14px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px 12px;border-top:1px solid var(--line)}th{font-size:12px;color:var(--muted);border-top:0}
+input,select,textarea{font:inherit;width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:#fff}label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600}
+.bar{height:9px;background:var(--bg);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--brand)}
+.tip{position:relative}.tip:hover::after{content:attr(data-tip);position:absolute;top:110%;left:0;background:var(--ink);color:#fff;font-size:12px;padding:5px 9px;border-radius:6px;white-space:nowrap;z-index:9}
+/* website */
+.site{min-height:calc(100vh - 44px);display:flex;flex-direction:column;background:var(--bg)}
+.top{display:flex;align-items:center;gap:12px;background:var(--brand);color:#fff;padding:10px 18px}.top .tg{width:40px;height:40px;border:2px solid rgba(255,255,255,.8);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;font-size:18px}
+.top .logo{background:#fff;border-radius:6px;padding:4px 8px;display:flex;align-items:center}.top .name{font-weight:700;font-size:18px}.top .r{margin-left:auto;display:flex;gap:8px}.top .r a{border:1px solid rgba(255,255,255,.8);color:#fff;text-decoration:none;padding:7px 14px;border-radius:7px;font-weight:600;font-size:14px}.top .r a.w{background:#fff;color:var(--brand)}
+.sbody{display:flex;flex:1}.panel{width:250px;background:#fff;border-right:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px}.panel .chat{padding:8px;border-radius:7px;font-size:14px;cursor:pointer}.panel .chat:hover,.panel .chat.on{background:var(--soft)}
+.land{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px 16px;text-align:center}
+.compose{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 6px 6px 20px;width:min(640px,100%)}.compose input{border:0;padding:6px 0;outline:none}.send{width:36px;height:36px;border-radius:50%;border:0;background:var(--brand);color:#fff;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:640px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:14px}
+.convo{flex:1;width:min(760px,100%);margin:0 auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px}.q{align-self:flex-end;background:var(--soft);padding:11px 15px;border-radius:20px 20px 4px 20px;max-width:80%}.offer{background:var(--brand);color:#fff;border-radius:16px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}.offer a{background:#fff;color:var(--brand);padding:9px 14px;border-radius:999px;font-weight:700;text-decoration:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:grid;place-items:center;z-index:70}.modal .card{width:min(520px,92vw);padding:20px;display:flex;flex-direction:column;gap:12px}
+/* phone */
+.phonewrap{flex:1;display:grid;place-items:center;padding:30px}.phone{width:360px;height:720px;border-radius:44px;background:#111;padding:12px;box-shadow:0 20px 50px rgba(0,0,0,.25)}.screen{width:100%;height:100%;border-radius:34px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+.ah{background:var(--dark);color:#fff;padding:18px 16px 12px;display:flex;align-items:center;gap:10px}.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px}.tile{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;text-align:center;cursor:pointer}.tile i{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;color:#fff;font-style:normal;font-size:26px}
+.pin{display:grid;grid-template-columns:repeat(3,64px);gap:14px;justify-content:center}.pin button{height:64px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:22px}
+.dots{display:flex;gap:12px;justify-content:center}.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--brand)}.dots i.f{background:var(--brand)}
+@media(max-width:820px){.side{display:none}.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2{grid-template-columns:1fr}.panel{position:absolute;z-index:5;height:calc(100% - 100px)}}
+</style>
+</head>
+<body>
+<div class="demo" id="demo"></div>
+<div id="view"></div>
+<script>
+// Staff Portal · © cmeproject. A clickable simulation of the Engaged Care
+// Staff Portal, its website (Assistant) and phone apps. Sample data only:
+// nothing is saved and nothing connects to the real system.
+const S = {
+  mode: "site-public", role: "manager", page: "dashboard", panel: false, chat: [], pin: "", appScreen: "pin", modal: null, taskTab: "assigned", settingsTab: "branding", reportTab: "tasks",
+};
+const LOGO = '<svg width="120" height="44" viewBox="0 0 120 44" aria-label="Engaged Care"><text x="60" y="18" text-anchor="middle" font-size="13" font-weight="800" fill="#134f8e" font-family="system-ui">ENGAGED CARE</text><path d="M30 30 q30 -16 60 0" stroke="#6497c8" stroke-width="5" fill="none"/><text x="60" y="41" text-anchor="middle" font-size="9" fill="#134f8e" font-family="system-ui">MELBOURNE</text></svg>';
+const BIG = LOGO.replace('width="120" height="44"', 'width="260" height="96"');
+const ROLES = { support_worker: "Support worker", team_leader: "Team leader", staff_admin: "Staff admin", manager: "Manager", system_admin: "System admin" };
+const PEOPLE = { support_worker: "Sam Sample", team_leader: "Tina Leader", staff_admin: "Olive Office", manager: "Morgan Manager", system_admin: "Admin" };
+const TASKS = [
+  { ref: "GEN-0142", title: "Call back: Jordan Sample", reg: "General tasks", pr: "High", st: "Assigned", due: "Today", desc: "New enquiry from the website. Phone 0412 345 678, Sampleton 3000. Looking for community access." },
+  { ref: "INC-0031", title: "Fall in the lounge – follow up", reg: "Incidents", pr: "Urgent", st: "In progress", due: "Overdue 1 day", desc: "Client slipped near the lounge. Check the floor mats and update the risk register." },
+  { ref: "GEN-0139", title: "Staff question: weekend roster swaps", reg: "General tasks", pr: "Medium", st: "Assigned", due: "Fri 6 Nov", desc: "Can we swap shifts directly or does it need approval?" },
+  { ref: "MNT-0018", title: "Replace smoke alarm battery – Unit 4", reg: "Maintenance", pr: "Low", st: "Assigned", due: "Mon 9 Nov", desc: "Beeping since Tuesday." },
+];
+const go = (patch) => { Object.assign(S, patch); render(); window.scrollTo(0, 0); };
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+function demoBar() {
+  const b = (m, t) => `<button class="${S.mode === m ? "on" : ""}" onclick="go({mode:'${m}',page:'${m === "portal" ? "dashboard" : S.page}',panel:false,chat:[],modal:null,appScreen:'pin',pin:''})">${t}</button>`;
+  const roleSel = S.mode === "portal" ? `<select style="width:auto;padding:4px 8px;border-radius:999px" onchange="go({role:this.value,page:'dashboard'})">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}" ${S.role === k ? "selected" : ""}>${v}</option>`).join("")}</select>` : "";
+  return `<b>&lt;&gt;cmeprojects</b>${b("site-public", "Website · visitor")}${b("site-staff", "Website · staff")}${b("portal", "Staff portal")}${roleSel}${b("staff-app", "Staff app")}${b("cars-app", "Cars app")}<span class="note">Simulation · sample data only</span>`;
+}
+
+// ---------- Website ----------
+function site(staff) {
+  const panel = S.panel ? `<aside class="panel"><div class="row"><span class="small muted grow">Your chats</span><a class="small" href="#" onclick="go({panel:false});return false">Close</a></div>
+    <button class="btn o s" onclick="go({chat:[]})">+ New chat</button>
+    <div class="chat ${S.chat.length ? "on" : ""}">Support</div><div class="chat">Cancellation policy</div><div class="chat">Weekend rosters</div>
+    <div style="margin-top:auto;border-top:1px solid var(--line);padding-top:10px">${staff ? `<b>Mark Ello</b><div class="small muted">Support worker</div><div style="display:flex;flex-direction:column;gap:6px;margin:8px 0"><a href="#" onclick="go({mode:'portal',role:'support_worker',page:'dashboard'});return false">Portal</a><a href="#" onclick="go({modal:'raise'});return false">Raise a question</a></div><button class="btn o s" onclick="go({mode:'site-public',panel:false})">Sign out</button>` : `<button class="btn o s" onclick="go({mode:'site-staff'})">Sign in</button>`}</div></aside>` : "";
+  const answer = (q) => staff && /roster|leave|shift/i.test(q)
+    ? { t: "Shift swaps need your team leader's OK before the roster changes. Ask them in the portal, then they update the roster and both staff get a bell note.", src: ["Rostering Procedure (staff)"] }
+    : { t: "Please tell us at least 2 business days before a support visit if you need to cancel. Shorter notice may be charged as a short-notice cancellation, in line with the NDIS Pricing Arrangements. We'll always talk with you first.", src: ["Cancellation Policy", "Service Agreement"] };
+  const convo = S.chat.map((q) => { const a = answer(q); return `<div class="q">${esc(q)}</div><div><p style="line-height:1.6;margin:0">${a.t}</p>${staff ? `<p class="small muted">Further information can be found in: ${a.src.map((s) => `<span class="badge b-grey">${s}</span>`).join(" ")}</p>` : ""}</div>`; }).join("");
+  const offer = S.chat.length ? (staff
+    ? `<div class="offer"><div><b>Can't find an answer?</b><div class="small">Contact your manager.</div></div><a href="#" onclick="return false">Call 03 9000 0001</a></div>`
+    : `<div class="offer"><div><b>Would you like to talk to our team?</b><div class="small">Leave your name and number and we'll call you, or call 1300 000 000.</div></div><a href="#" onclick="go({mode:'callback'});return false">Yes, call me</a></div>`) : "";
+  const body = S.chat.length
+    ? `<div class="convo">${convo}${offer}<div style="margin-top:auto">${compose("Ask a follow-up question")}</div></div>`
+    : `<div class="land">${BIG}<h1 style="font-size:34px">How can we help today?</h1><p class="muted" style="max-width:560px">Ask anything about our services, the NDIS or our policies. Answers come from our own documents, with the source shown.</p>${compose("Ask anything")}<div class="chips">${["What services do you offer?", "What's your cancellation policy?", "How do I start with you?", "How does NDIS funding work?"].map((c) => `<button class="chip" onclick="ask('${c.replace(/'/g, "\\'")}')">${c}</button>`).join("")}</div></div>`;
+  return `<div class="site"><div class="top"><button class="tg tip" data-tip="${S.panel ? "Hide options" : "Expand to see options"}" onclick="go({panel:!S.panel})">${S.panel ? "▴" : "▾"}</button><span class="logo">${LOGO}</span><span class="name">Engaged Care</span><span class="r">${staff ? "" : `<a class="w" href="#" onclick="go({mode:'callback'});return false">Request a call back</a>`}<a href="#" onclick="go({mode:'about'});return false">About</a></span></div>
+    <div class="sbody">${panel}<div style="flex:1;display:flex;flex-direction:column">${body}<p class="small muted" style="text-align:center;padding:10px">${staff ? "" : "For urgent support please call <b style='color:var(--brand)'>1300 000 000</b> · "}General information only, not official NDIS advice. · Built by cmeproject</p></div></div></div>${S.modal === "raise" ? raiseModal() : ""}`;
+}
+const compose = (ph) => `<form class="compose" onsubmit="ask(this.q.value);return false"><input name="q" placeholder="${ph}" aria-label="Your question"><button class="send" aria-label="Send">↑</button></form>`;
+function ask(q) { if (q && q.trim().length > 2) go({ chat: [...S.chat, q.trim()] }); }
+function raiseModal() {
+  return `<div class="modal"><div class="card"><h2>Raise a question</h2><p class="small muted">It becomes a Staff question task. You'll see the answer in My tasks → My requests and questions.</p><label class="f">Your question<input value="Can I swap my Saturday shift?"></label><label class="f">Details<textarea rows="3">Swap with Lee for Sunday 9 Nov.</textarea></label><label class="f">Who should answer it?<select><option>Tina Leader · Team leader</option><option>Morgan Manager · Manager</option></select></label><div class="row"><button class="btn" onclick="go({modal:null})">Send question</button><button class="btn o" onclick="go({modal:null})">Cancel</button></div></div></div>`;
+}
+function callback() {
+  return `<div class="site"><div class="top"><span class="logo">${LOGO}</span><span class="name">Engaged Care</span><span class="r"><a href="#" onclick="go({mode:'site-public'});return false">Back</a></span></div><main class="page" style="max-width:820px;margin:0 auto;width:100%"><h1>Request a call back</h1><p class="muted">Tell us a little about you and someone from our team will call you within one business day.</p>
+  <div class="card pad" style="display:flex;flex-direction:column;gap:16px"><h2>Your details</h2><div class="grid g2"><label class="f">Your name<input value="Jordan Sample"></label><label class="f">Mobile or phone<input value="0412 345 678"><span class="small muted">An Australian number</span></label><label class="f">Email (optional)<input value="jordan@example.com"></label><div class="grid" style="grid-template-columns:1fr 110px"><label class="f">Suburb<input value="Sampleton"></label><label class="f">Postcode<input value="3000"></label></div></div>
+  <div style="border-top:1px solid var(--line);padding-top:14px"><h2>Customise your call with us</h2><p class="small muted">Optional: it helps us get ready for your call.</p></div>
+  <div class="small"><b>Who is the support for?</b><div class="row" style="margin-top:6px">${["Me", "A family member", "Someone I support", "Other"].map((o, i) => `<span class="badge ${i === 0 ? "" : "b-grey"}">${o}</span>`).join("")}</div></div>
+  <div class="small"><b>Do you have an NDIS plan?</b><div class="row" style="margin-top:6px"><span class="badge">Yes</span><span class="badge b-grey">Not yet</span><span class="badge b-grey">Not sure</span></div></div>
+  <label class="f">Anything else? (optional)<textarea rows="2"></textarea></label><label class="small"><input type="checkbox" checked style="width:auto"> I agree to be contacted about support.</label><button class="btn" style="align-self:flex-start" onclick="go({mode:'sent'})">Send my details</button></div></main></div>`;
+}
+function about() {
+  return `<div class="site"><div class="top"><span class="logo">${LOGO}</span><span class="name">Engaged Care</span><span class="r"><a href="#" onclick="go({mode:'site-public'});return false">Back</a></span></div><main class="page" style="max-width:820px;margin:0 auto;width:100%"><h1>About Engaged Care Melbourne</h1><h2>Who we are</h2><p class="muted">A Melbourne NDIS provider supporting people to live the life they choose. (Sample wording: set in Website settings.)</p><h2>Our mission</h2><p class="muted">Person-centred support, delivered by people who care.</p><h2>Our services</h2><div class="grid g2">${["Daily living support", "Community access", "Supported independent living", "Respite"].map((s) => `<div class="card pad">${s}</div>`).join("")}</div></main></div>`;
+}
+
+// ---------- Portal ----------
+const MENU = () => {
+  const r = S.role, mgr = r === "manager" || r === "system_admin";
+  return [
+    ["dashboard", "Dashboard"], ["tasks", "Tasks"], r !== "support_worker" && ["registers", "Registers"],
+    mgr ? ["tools", "Tools"] : ["fluid", "Fluid intake"], !mgr && ["cars", "Cars"], !mgr && ["apps", "EC Apps"],
+    mgr && ["forms", "Forms"], (r === "manager" || r === "staff_admin" || r === "system_admin") && ["enquiries", "Enquiries"], ["assistant", "Assistant"],
+    r !== "support_worker" && ["people", "People"], mgr && ["reports", "Reports"], (r === "manager" || r === "system_admin") && ["settings", "Settings"],
+    r !== "system_admin" && ["onboarding", "My onboarding"], ["account", "My account"],
+  ].filter(Boolean);
+};
+function portal() {
+  const menu = MENU().map(([k, t]) => `<a href="#" class="${S.page === k ? "on" : ""}" onclick="${k === "assistant" ? "go({mode:'site-staff'})" : `go({page:'${k}'})`};return false"><span>${t}</span>${k === "enquiries" ? '<span class="count">2</span>' : ""}</a>`).join("");
+  return `<div class="app"><nav class="side"><div class="brand"><span class="mark">EC</span><b>Staff Portal</b></div>${menu}<div class="who"><b>${PEOPLE[S.role]}</b>${ROLES[S.role]}</div></nav><main class="page">${(PAGES[S.page] || PAGES.dashboard)()}</main></div>${S.modal === "task" ? taskModal() : ""}`;
+}
+const head = (t, intro, action = "") => `<div class="row"><div class="grow"><h1>${t}</h1>${intro ? `<p class="muted" style="margin:4px 0 0">${intro}</p>` : ""}</div>${action}</div>`;
+const tabs = (key, list) => `<div class="tabs">${list.map(([k, t]) => `<button class="tab ${S[key] === k ? "on" : ""}" onclick="go({${key}:'${k}'})">${t}</button>`).join("")}</div>`;
+const taskRow = (t, inline) => inline
+  ? `<details><summary class="row"><span class="grow"><b>${t.title}</b><div class="small muted">${t.ref} · With Tina Leader</div></span><span class="badge b-grey">Staff question</span><span class="badge">${t.st}</span><span class="small" style="color:var(--brand)">Open</span></summary><div class="open-area"><p style="margin:0 0 8px">${t.desc}</p><div class="small muted">LATEST</div><div class="card pad small" style="margin:6px 0">Tina Leader: I'll check with Morgan today.</div><div class="row"><button class="btn o s">Follow up</button><button class="btn o s">Escalate</button></div></div></details>`
+  : `<div class="row tip" data-tip="${esc(t.desc)}" style="cursor:pointer" onclick="go({modal:'task'})"><span class="grow"><b>${t.title}</b><div class="small muted">${t.ref} · ${t.reg}</div></span><span class="badge ${t.pr === "Urgent" || t.pr === "High" ? "b-warn" : "b-grey"}">${t.pr}</span><span class="badge">${t.st}</span><span class="small" style="width:120px;color:${t.due.startsWith("Overdue") ? "var(--bad)" : t.due === "Today" ? "var(--warn)" : "var(--muted)"};font-weight:600">${t.due}</span></div>`;
+const PAGES = {
+  dashboard: () => `${head(`Good morning, ${PEOPLE[S.role].split(" ")[0]}`, "Here's what needs you today.", `<button class="btn" onclick="go({page:'newtask'})">+ New task</button>`)}
+    <div class="grid g4"><div class="card pad stat"><b>4</b>Assigned to me</div><div class="card pad stat"><b>2</b>Helping on</div><div class="card pad stat"><b>3</b>Due this week</div><div class="card pad stat alert"><b>1</b>Overdue</div></div>
+    <div class="card"><div class="pad"><h2>Needs your attention</h2></div><div class="list">${TASKS.slice(0, 3).map((t) => taskRow(t)).join("")}</div></div>`,
+  tasks: () => `${head("My tasks", "Everything you're looking after or helping with. Hover a task for a snapshot.", `<button class="btn" onclick="go({page:'newtask'})">+ New task</button>`)}
+    ${tabs("taskTab", [["assigned", "Assigned to me · 4"], ["helping", "Asked to help · 2"], ["created", "My requests and questions · 1"], ["completed", "Completed"]])}
+    <div class="card list">${S.taskTab === "created" ? taskRow(TASKS[2], true) : TASKS.map((t) => taskRow(t)).join("")}</div>`,
+  newtask: () => S.role === "support_worker"
+    ? `${head("New task or question", "Raise a general task or ask a question. You'll see how it's going in My tasks → My requests and questions.")}<div class="card pad" style="display:flex;flex-direction:column;gap:12px;max-width:720px"><div class="small"><b>What is it?</b><div class="row"><span class="badge">A question (tagged Staff question)</span><span class="badge b-grey">A general task</span></div></div><label class="f">Register<select><option>General tasks</option></select></label><label class="f">Title<input value="Weekend roster swaps"></label><label class="f">Who looks after it<select><option>Tina Leader</option></select></label><button class="btn" style="align-self:flex-start" onclick="go({page:'tasks',taskTab:'created'})">Create</button></div>`
+    : `${head("New task", "Choose a register, fill in the details and pick who will look after it.")}<div class="card pad grid g2" style="max-width:820px"><label class="f">Register<select><option>Incidents</option><option>General tasks</option><option>Maintenance</option></select></label><label class="f">Priority<select><option>High</option></select></label><label class="f" style="grid-column:1/-1">Title<input value="Fall in the lounge – follow up"></label><label class="f">Who looks after it<select><option>Tina Leader</option></select></label><label class="f">Due date<input value="Fri 6 Nov 2026"></label><button class="btn" style="justify-self:start" onclick="go({page:'tasks'})">Create task</button></div>`,
+  registers: () => `${head("Registers", "Incidents, risks, maintenance and assets, each with its own fields.")}<div class="card"><table><tr><th>Register</th><th>Open</th><th>Overdue</th><th>Completed (month)</th></tr><tr><td>Incidents</td><td>3</td><td style="color:var(--bad)">1</td><td>6</td></tr><tr><td>Risk register</td><td>5</td><td>0</td><td>2</td></tr><tr><td>Maintenance</td><td>4</td><td>0</td><td>9</td></tr><tr><td>Assets</td><td>38 items</td><td>–</td><td>–</td></tr></table></div>`,
+  tools: () => `${head("Tools", "Your built features, cars and phone apps in one place.")}<div class="grid g3">${[["Fluid intake", "Built feature"], ["Fridge temps", "Built feature"], ["Cars", "Book and return cars"], ["EC Apps", "Phone apps and QR stickers"]].map(([a, b]) => `<div class="card pad" style="cursor:pointer" onclick="go({page:'${a === "Cars" ? "cars" : a === "EC Apps" ? "apps" : "fluid"}'})"><b>${a}</b><div class="small muted">${b}</div></div>`).join("")}</div>`,
+  fluid: () => `${head("Fluid intake", "Record drinks for each client. Targets and alerts are set by managers.", `<button class="btn">+ Add entry</button>`)}<div class="card"><table><tr><th>Client</th><th>Today</th><th>Target</th><th></th></tr><tr><td>Client A</td><td>1,150 ml</td><td>1,500 ml</td><td><div class="bar"><i style="width:77%"></i></div></td></tr><tr><td>Client B</td><td>1,620 ml</td><td>1,500 ml</td><td><span class="badge b-good">Met</span></td></tr></table></div>`,
+  cars: () => `${head("Cars", "Start a trip, return a car, see who has what.")}<div class="grid g3">${["Corolla · 1AB 2CD", "i30 · 3EF 4GH", "Kona · 5IJ 6KL"].map((c, i) => `<div class="card pad"><b>${c}</b><div class="small muted">${i === 1 ? "Out with Lee since 9:10 am" : "Available"}</div><div style="margin-top:10px"><button class="btn s ${i === 1 ? "o" : ""}">${i === 1 ? "Return for Lee" : "Start a trip"}</button></div></div>`).join("")}</div>`,
+  apps: () => `${head("EC Apps", "Put the company's apps on your phone: scan the code, then Add to Home Screen.")}<div class="grid g2"><div class="card pad"><b>EC Staff app</b><p class="small muted">Fluid intake, Cars and more, behind a 4-digit PIN.</p><button class="btn s" onclick="go({mode:'staff-app'})">Try it</button></div><div class="card pad"><b>EC Cars app</b><p class="small muted">Start and return trips quickly.</p><button class="btn s" onclick="go({mode:'cars-app'})">Try it</button></div></div>`,
+  forms: () => `${head("Forms", "The forms you make and send. Forms for staff to fill in show in their My onboarding.", `<button class="btn">+ New form</button>`)}<div class="card list"><details><summary class="row"><span class="grow"><b>Staff survey 2026</b><div class="small muted">Published · 12 of 18 replied</div></span><span class="badge b-good">Live</span></summary><div class="open-area row"><button class="btn o s">Send</button><button class="btn o s">Add to Compliance</button><button class="btn o s">Replies</button><button class="btn o s">QR code</button></div></details><div class="row"><span class="grow"><b>Vehicle check</b><div class="small muted">Draft</div></span><span class="badge b-grey">Draft</span></div></div>`,
+  enquiries: () => `${head("Enquiries", "People who left their details on the website. Call them back and move them along.", `<button class="btn o">Download Excel</button>`)}<div class="grid g4">${[["2", "New"], ["1", "Called"], ["1", "Meeting booked"], ["3", "Became a client"]].map(([n, t]) => `<div class="card pad stat"><b>${n}</b>${t}</div>`).join("")}</div><div class="card pad"><div class="row"><span class="grow"><b style="font-size:17px">Jordan Sample</b><div class="small"><a href="#">0412 345 678</a> · jordan@example.com</div></span><span class="badge b-warn">New</span></div><p class="small">Suburb: Sampleton 3000 · Support is for: Me · Looking for: Community access</p><div class="open-area small">They asked the assistant: What's your cancellation policy?</div><div class="row" style="margin-top:10px"><select style="width:200px"><option>New</option><option>Called</option></select><input placeholder="Note" style="flex:1"><button class="btn s">Save</button><button class="btn o s">Make a follow-up task for me</button></div><p class="small muted">A Call back task (due the next business day) was made for the intake person.</p></div>`,
+  people: () => `${head("Staff", "Everyone with access, their role, teams and onboarding.")}${tabs("x", [["s", "Staff"], ["t", "Teams"], ["c", "Clients"], ["co", "Compliance"]])}<div class="card list"><details open><summary class="row"><span class="mark" style="background:var(--soft)">SS</span><span class="grow"><b>Sam Sample</b><div class="small muted">sam@example.com</div></span><span class="badge">Support worker</span><span class="badge b-warn">Onboarding: 2 to do</span><span class="badge b-good">Active</span></summary><div class="open-area grid g2"><label class="f">Name<input value="Sam Sample"></label><div class="f">Teams<div class="row small"><label><input type="checkbox" checked style="width:auto"> Team A</label><label><input type="checkbox" style="width:auto"> Team B</label></div></div><label class="f">Role<select><option>Support worker</option></select></label><div class="row" style="align-self:end"><button class="btn o s">Email a password reset link</button><button class="btn o s">Deactivate</button></div></div></details><div class="row"><span class="mark" style="background:var(--soft)">TL</span><span class="grow"><b>Tina Leader</b><div class="small muted">tina@example.com</div></span><span class="badge">Team leader</span><span class="badge b-good">Active</span></div></div>`,
+  reports: () => `${head("Reports", "This month. Download any table as an Excel file.")}${tabs("reportTab", [["tasks", "Tasks"], ["compliance", "Compliance"], ["cars", "Cars"]])}${S.reportTab === "compliance"
+    ? `<div class="card"><div class="pad"><h2>Full list with dates</h2></div><table><tr><th>Person</th><th>Item</th><th>Status</th><th>Submitted</th><th>Expires</th></tr><tr><td>Sam Sample</td><td>First aid certificate</td><td><span class="badge b-warn">Expiring</span></td><td>3 Feb 2026</td><td>28 Nov 2026</td></tr><tr><td>Sam Sample</td><td>Code of conduct</td><td><span class="badge b-good">Done</span></td><td>1 Feb 2026</td><td></td></tr><tr><td>Lee Example</td><td>Police check</td><td><span class="badge b-bad">Expired</span></td><td>2 Jan 2023</td><td>2 Jan 2026</td></tr></table></div>`
+    : `<div class="card pad row">${["Register: All", "Looking after: Everyone", "Status: Any", "Priority: Any"].map((f) => `<select style="width:190px"><option>${f}</option></select>`).join("")}<button class="btn o s">Apply</button></div><div class="grid g4"><div class="card pad stat"><b>42</b>Opened</div><div class="card pad stat"><b>37</b>Completed</div><div class="card pad stat"><b>86%</b>On time</div><div class="card pad stat alert"><b>2</b>Overdue now</div></div><div class="card"><div class="pad"><h2>Task list</h2></div><table><tr><th>Task</th><th>Register</th><th>Looking after</th><th>Status</th><th>Days taken</th></tr>${TASKS.map((t) => `<tr><td>${t.title}</td><td>${t.reg}</td><td>Tina Leader</td><td>${t.st}</td><td>${t.st === "Assigned" ? "" : 2}</td></tr>`).join("")}</table></div>`}`,
+  settings: () => S.role !== "system_admin" ? `${head("Due dates (SLA)", "Default due dates by priority.")}<div class="card pad">Urgent 1 day · High 2 days · Medium 5 days · Low 10 days</div>` :
+    `${head("System settings", "Only system admins (and managers you delegate areas to). Every change is in the change log.")}${tabs("settingsTab", [["branding", "System settings"], ["features", "Features"], ["website", "Website settings"], ["log", "Change log"], ["health", "System health"]])}${SETTINGS[S.settingsTab]()}`,
+  onboarding: () => `${head("My onboarding", "Everything you need to read, complete and upload.")}<div class="card pad"><b>3 of 5 done</b><div class="bar" style="margin-top:8px"><i style="width:60%"></i></div></div><h2>Forms sent to you · 1</h2><div class="card pad row"><span class="grow"><b>Staff survey 2026</b><div class="small muted">Please answer by 15 Nov. You can save it and finish later.</div></span><button class="btn">Answer now</button></div><h2>Read and confirm · 1 of 2</h2><div class="card"><details open><summary class="pad"><b>Privacy policy</b> <span class="badge b-warn">To do</span></summary><div class="open-area" style="margin:0 14px 14px">Our privacy policy explains how we look after clients' and staff information… <p><b>Please confirm that you've read and understood this document.</b></p><button class="btn">I confirm I've read and understood this</button></div></details></div>`,
+  account: () => `${head("My account", "Your name, password, two-factor login and theme.")}<div class="card pad grid g2"><label class="f">Name<input value="${PEOPLE[S.role]}"></label><label class="f">Theme<select><option>Match my device</option><option>Light</option><option>Dark</option></select></label></div>`,
+};
+const SETTINGS = {
+  branding: () => `<div class="tabs">${["Branding", "Messages", "People", "Tasks", "Reports", "Cars", "Security", "Staff app", "Forms", "Delegation", "General"].map((t, i) => `<span class="tab ${i === 0 ? "on" : ""}">${t}</span>`).join("")}</div><div class="card pad grid g2"><label class="f">Company name<input value="Engaged Care Melbourne"></label><label class="f">Portal name<input value="Staff Portal"></label><label class="f">Main colour<input type="color" value="#134f8e" style="height:42px"></label><label class="f">Logo<input type="file"></label></div>`,
+  features: () => `<div class="card list">${[["Tasks", "Core", 1], ["Compliance (staff management)", "Premium", 1], ["Cars", "Premium", 1], ["Forms", "Premium", 1], ["Staff app", "Premium", 1], ["Website and Assistant", "Premium", 1], ["Feature builder (Fluid intake…)", "Premium", 1], ["Two-factor login", "Core", 1]].map(([n, k, on]) => `<div class="row"><span class="grow"><b>${n}</b> <span class="badge ${k === "Premium" ? "" : "b-grey"}">${k}</span></span><span class="badge b-good">On</span></div>`).join("")}</div>`,
+  website: () => `<div class="card pad"><h2>Assistant usage</h2><div class="grid g4" style="margin-top:10px"><div class="stat"><b>A$3.40</b>Spent this month</div><div class="stat"><b>A$50</b>Monthly limit</div><div class="stat"><b>412</b>Questions</div><div class="stat"><b>A$16.60</b>Credit left (estimate)</div></div><div class="bar" style="margin-top:8px"><i style="width:7%"></i></div></div><div class="card pad grid g2"><label class="f">Website is the front page<select><option>Yes</option></select></label><label class="f">Staff contact number<input value="03 9000 0001"></label><label class="f">Public visitors look in<select><option>Our documents only</option><option>Documents first, then listed websites</option></select></label><label class="f">Listed websites<textarea rows="3">ndis.gov.au&#10;ndiscommission.gov.au</textarea></label><label class="f">Search title (SEO)<input value="Engaged Care Melbourne | NDIS support"></label><label class="f">Who calls back new enquiries<select><option>Staff admin</option></select></label></div><div class="card"><div class="pad row"><h2 class="grow">Documents</h2><button class="btn s">Upload document</button></div><table><tr><th>Document</th><th>Who can use it</th></tr><tr><td>Cancellation Policy</td><td>Public</td></tr><tr><td>Rostering Procedure</td><td>Staff only</td></tr><tr><td>Manager approval rules</td><td>Managers only</td></tr></table></div>`,
+  log: () => `<div class="card"><table><tr><th>When</th><th>Who</th><th>What changed</th></tr><tr><td>Today 9:12 am</td><td>Admin</td><td>Website: listed websites</td></tr><tr><td>Yesterday</td><td>Morgan Manager</td><td>Tasks: public holidays</td></tr></table></div>`,
+  health: () => `<div class="card list"><div class="row"><span class="badge b-good">OK</span><span class="grow">Database and sign-in</span></div><div class="row"><span class="badge b-good">OK</span><span class="grow">Storage: 312 MB of 1 GB</span></div><div class="row"><span class="badge b-warn">Check</span><span class="grow">Emails: Resend not set up yet</span></div></div>`,
+};
+function taskModal() {
+  const t = TASKS[1];
+  return `<div class="modal" onclick="go({modal:null})"><div class="card" onclick="event.stopPropagation()"><div class="small muted">${t.ref} · ${t.reg}</div><h2>${t.title}</h2><div class="row"><span class="badge b-warn">${t.pr}</span><span class="badge">${t.st}</span><span class="small" style="color:var(--bad);font-weight:600">${t.due}</span></div><p>${t.desc}</p><label class="f">Comment<textarea rows="2"></textarea></label><div class="row"><button class="btn s" onclick="go({modal:null})">Complete</button><button class="btn o s">Escalate</button><button class="btn o s">Add a helper</button><button class="btn o s" onclick="go({modal:null})">Close</button></div></div></div>`;
+}
+
+// ---------- Phone apps ----------
+function phone(inner) { return `<div class="phonewrap"><div class="phone"><div class="screen">${inner}</div></div></div>`; }
+function pinScreen(app) {
+  const dots = [0, 1, 2, 3].map((i) => `<i class="${i < S.pin.length ? "f" : ""}"></i>`).join("");
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((k) => k ? `<button onclick="pinKey('${k}','${app}')">${k}</button>` : "<span></span>").join("");
+  return `<div class="ah"><span class="mark">EC</span><b>${app === "cars" ? "EC Cars" : "EC Staff"}</b></div><div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px"><h2 style="text-align:center">Welcome back, Sam</h2><p class="small muted" style="text-align:center;margin:0">Enter your PIN (any 4 numbers)</p><div class="dots">${dots}</div><div class="pin">${keys}</div></div>`;
+}
+function pinKey(k) { const p = k === "⌫" ? S.pin.slice(0, -1) : (S.pin + k).slice(0, 4); go({ pin: p, appScreen: p.length === 4 ? "home" : "pin" }); }
+function staffApp() {
+  if (S.appScreen === "pin") return phone(pinScreen("staff"));
+  return phone(`<div class="ah"><span class="mark">EC</span><b>EC Staff</b></div><div style="padding:16px 18px 0"><h2>Good morning, Sam</h2></div><div class="tiles">${[["💧", "#2d7dd2", "Fluid intake"], ["🌡", "#b4532a", "Fridge temps"], ["🚗", "#134f8e", "Cars"], ["⚙", "#5a6478", "Settings"]].map(([i, c, t]) => `<div class="tile" onclick="go({appScreen:'${t === "Cars" ? "cars" : "home"}'})"><i style="background:${c}">${i}</i>${t}</div>`).join("")}</div>${S.appScreen === "cars" ? carsCard() : ""}`);
+}
+const carsCard = () => `<div class="card pad" style="margin:0 16px"><b>Corolla · 1AB 2CD</b><p class="small muted">Available</p><label class="f">Odometer<input value="48 210"></label><button class="btn s" style="margin-top:10px" onclick="go({appScreen:'home'})">Start trip</button></div>`;
+function carsApp() { return phone(S.appScreen === "pin" ? pinScreen("cars") : `<div class="ah"><span class="mark">EC</span><b>EC Cars</b></div>${carsCard()}<div class="card pad" style="margin:12px 16px"><b>i30 · 3EF 4GH</b><p class="small muted">Out with you since 9:10 am</p><label class="f">Where did you go? (optional)<input value="Client visit, Sampleton"></label><button class="btn o s" style="margin-top:10px">Return car</button></div>`); }
+
+function render() {
+  document.getElementById("demo").innerHTML = demoBar();
+  const v = { "site-public": () => site(false), "site-staff": () => site(true), portal, "staff-app": staffApp, "cars-app": carsApp, callback, about, sent: () => `<div class="site"><main class="page" style="max-width:600px;margin:60px auto"><div class="card pad"><h1>Thank you. We'll call you soon.</h1><p class="muted">Someone from our team will call you within one business day.</p><button class="btn" onclick="go({mode:'portal',role:'staff_admin',page:'enquiries'})">See it in the portal (staff admin view)</button></div></main></div>` };
+  document.getElementById("view").innerHTML = (v[S.mode] || v["site-public"])();
+}
+// Open a screen straight from the address, e.g. index.html#portal/manager/tasks
+const START = { ...S };
+function fromHash() {
+  Object.assign(S, START, { chat: [] });
+  const [mode, role, page, extra] = location.hash.slice(1).split("/");
+  if (mode) Object.assign(S, { mode }, role ? { role } : {}, page ? { page } : {});
+  if (extra === "panel") S.panel = true;
+  if (extra === "chat") S.chat = ["What's your cancellation policy?"];
+  if (extra === "raise") Object.assign(S, { panel: true, modal: "raise" });
+  if (extra === "home") Object.assign(S, { appScreen: "home", pin: "1234" });
+  if (extra && extra.startsWith("tab-")) S[page === "settings" ? "settingsTab" : page === "reports" ? "reportTab" : "taskTab"] = extra.slice(4);
+  render();
+}
+window.addEventListener("hashchange", fromHash);
+fromHash();
+</script>
+</body>
+</html>
