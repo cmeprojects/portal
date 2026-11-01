@@ -27,6 +27,8 @@ async function fetchLogo(url: string, origin: string): Promise<ExcelHeader["logo
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.redirect(new URL("/login", request.url));
+  // Excel downloads are part of Reports and exports (a premium add-on).
+  if (session.features.reports === false) return new NextResponse("Reports and exports are switched off", { status: 403 });
   if (!canUseCars(session.profile.role, session.features) || !canSeeCarReports(session.profile.role, await getCarRules())) {
     return new NextResponse("Not allowed", { status: 403 });
   }

@@ -28,6 +28,8 @@ async function fetchLogo(url: string, origin: string): Promise<ExcelHeader["logo
 export async function GET(request: NextRequest, ctx: RouteContext<"/reports/f/[slug]/export">) {
   const session = await getSession();
   if (!session) return NextResponse.redirect(new URL("/login", request.url));
+  // Excel downloads are part of Reports and exports (a premium add-on).
+  if (session.features.reports === false) return new NextResponse("Reports and exports are switched off", { status: 403 });
   const def = await loadFeature({ slug: (await ctx.params).slug });
   if (!def || def.feature.status !== "published" || !def.feature.enabled) return new NextResponse("Not found", { status: 404 });
   const supabase = await createClient();

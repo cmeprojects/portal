@@ -12,6 +12,8 @@ import { STAGES } from "../stages";
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.redirect(new URL("/login", request.url));
+  // Excel downloads are part of Reports and exports (a premium add-on).
+  if (session.features.reports === false) return new NextResponse("Reports and exports are switched off", { status: 403 });
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("can_see_enquiries");
   if (allowed !== true) return new NextResponse("Not allowed", { status: 403 });

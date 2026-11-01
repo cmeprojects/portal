@@ -66,9 +66,9 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
     ],
     reports: [
       Boolean(access.seesReports) && features.reports !== false && { href: "/reports", text: "Tasks" },
-      cars && Boolean(access.carReports) && { href: "/reports/cars", text: "Cars" },
+      cars && Boolean(access.carReports) && features.reports !== false && { href: "/reports/cars", text: "Cars" },
       Boolean(access.complianceReport) && features.reports !== false && { href: "/reports/compliance", text: "Compliance" },
-      ...(access.featureReports ?? []).map((f) => ({ href: `/reports/f/${f.slug}`, text: f.label })),
+      ...(features.reports !== false ? (access.featureReports ?? []) : []).map((f) => ({ href: `/reports/f/${f.slug}`, text: f.label })),
     ],
     settings: [
       (role === "manager" || admin) && { href: "/settings/sla", text: "Due dates (SLA)" },

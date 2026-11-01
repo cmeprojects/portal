@@ -24,6 +24,7 @@ const KINDS = Object.keys(KIND_LABELS) as CarReportKind[];
 
 export default async function CarReportsPage({ searchParams }: PageProps<"/reports/cars">) {
   const { profile, features } = await requireSession();
+  if (features.reports === false) redirect("/");
   if (!canUseCars(profile.role, features) || !canSeeCarReports(profile.role, await getCarRules())) redirect("/cars");
   const params = await searchParams;
   // No choices in the address: open their saved report, if they have one.

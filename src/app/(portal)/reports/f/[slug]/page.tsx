@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: PageProps<"/reports/f/[slug]"
 // cmeprojects: the report for a feature built in the Feature builder, for
 // whoever the system admin ticked under "Who sees every entry".
 export default async function FeatureReportPage({ params, searchParams }: PageProps<"/reports/f/[slug]">) {
-  await requireSession();
+  if ((await requireSession()).features.reports === false) redirect("/");
   const def = await loadFeature({ slug: (await params).slug });
   if (!def || def.feature.status !== "published" || !def.feature.enabled) notFound();
   const { feature, fields } = def;

@@ -27,6 +27,8 @@ async function fetchLogo(url: string, origin: string): Promise<ExcelHeader["logo
 export async function GET(request: NextRequest, ctx: RouteContext<"/forms/[id]/replies/export">) {
   const session = await getSession();
   if (!session) return NextResponse.redirect(new URL("/login", request.url));
+  // Excel downloads are part of Reports and exports (a premium add-on).
+  if (session.features.reports === false) return new NextResponse("Reports and exports are switched off", { status: 403 });
   const def = await loadForm((await ctx.params).id);
   if (!def) return new NextResponse("Not found", { status: 404 });
   const { data: canManage } = await (await createClient()).rpc("can_manage_form", { p_form: def.form.id });

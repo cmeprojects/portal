@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Answer } from "@/lib/assistant-shared";
 import { askQuestion, deleteChat } from "./actions";
+import { AnswerText } from "./answer-text";
 import { ChatHistory, VisitorFooter } from "./chat-history";
 import { StaffFooter } from "./raise-question";
 import { PanelToggle, SiteHeader } from "./site-header";
@@ -211,7 +212,7 @@ export function Chat(props: Props) {
                   <OfferCard
                     title="Can't find an answer?"
                     text="Contact your manager."
-                    action={props.staffPhone ? { href: telOf(props.staffPhone), label: `Call ${props.staffPhone}` } : null}
+                    action={supportPhone ? { href: telOf(supportPhone), label: `Call ${supportPhone}`, call: true } : null}
                     onHide={() => setOfferHidden(true)}
                   />
                 ) : (
@@ -303,7 +304,7 @@ function Composer({ onAsk, pending, placeholder }: { onAsk: (q: string) => void;
 function AnswerView({ answer, showSources }: { answer: Answer; showSources: boolean }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="leading-relaxed whitespace-pre-line">{answer.text}</p>
+      <AnswerText text={answer.text} />
       {showSources && answer.sources.length ? (
         <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
           Further information can be found in:
@@ -324,7 +325,7 @@ function AnswerView({ answer, showSources }: { answer: Answer; showSources: bool
   );
 }
 
-function OfferCard({ title, text, action, onHide }: { title: string; text: string; action: { href: string; label: string } | null; onHide: () => void }) {
+function OfferCard({ title, text, action, onHide }: { title: string; text: string; action: { href: string; label: string; call?: boolean } | null; onHide: () => void }) {
   return (
     <div className="ask-rise flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-brand p-4 text-brand-fg">
       <div>
@@ -333,7 +334,12 @@ function OfferCard({ title, text, action, onHide }: { title: string; text: strin
       </div>
       <div className="flex gap-2">
         {action ? (
-          <a href={action.href} className="inline-flex min-h-11 items-center rounded-full bg-surface px-4 text-sm font-semibold text-brand">
+          <a href={action.href} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-surface px-4 text-sm font-semibold text-brand">
+            {action.call ? (
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+              </svg>
+            ) : null}
             {action.label}
           </a>
         ) : null}
