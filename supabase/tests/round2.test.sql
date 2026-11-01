@@ -50,5 +50,13 @@ set role authenticated;
 select test.refused($$update public.profiles set full_name = 'Boss' where id = test.pid('boss@example.com')$$, 'a support worker can''t rename others');
 reset role;
 
+-- Code audit: task titles can't be read through task_label().
+set role authenticated;
+select test.refused($$select public.task_label(gen_random_uuid())$$, 'task_label can''t be called directly');
+reset role;
+set role anon;
+select test.refused($$select public.task_label(gen_random_uuid())$$, 'not by the public either');
+reset role;
+
 \o
 \echo All round 2 tests passed.

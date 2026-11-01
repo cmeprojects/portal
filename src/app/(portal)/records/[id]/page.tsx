@@ -45,7 +45,8 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
   const when = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone });
 
   // Tasks in any register that link to this item (for example its repairs).
-  const linkKeys = [...new Set(allFields.filter((f) => f.type === "asset").map((f) => f.key))];
+  // Only plain field names and a real record ID go into the filter.
+  const linkKeys = [...new Set(allFields.filter((f) => f.type === "asset").map((f) => f.key))].filter((k) => /^[a-z0-9_]+$/.test(k) && /^[0-9a-f-]{36}$/.test(id));
   const { data: linked } = linkKeys.length
     ? await supabase
         .from("tasks")

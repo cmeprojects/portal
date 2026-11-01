@@ -90,8 +90,14 @@ export type SettingRow = { key: string; label: string; description: string | nul
 // Text that can be left blank (to hide it).
 const OPTIONAL_TEXT = ["brand.support_contact", "brand.announcement", "people.invite_message", "website.closed_text"];
 
-export function kindOf(key: string): "color" | "number" | "roles" | "people" | "text" | "sla" | "yesno" | "choice" | "logo" | "note" | "dates" {
+export type SettingKind = "color" | "number" | "roles" | "people" | "text" | "sla" | "yesno" | "choice" | "logo" | "note" | "longnote" | "dates" | "lines";
+
+const LONG_TEXT = ["website.about_intro", "website.mission", "website.vision", "website.seo_description"];
+
+export function kindOf(key: string): SettingKind {
   if (key === "tasks.public_holidays") return "dates";
+  if (key === "website.services") return "lines";
+  if (LONG_TEXT.includes(key)) return "longnote";
   if (key === "tasks.sla_days") return "sla";
   if (key === "vehicles.weekly_recipients") return "people";
   if (key === "brand.logo_url" || key === "brand.logo_mark_url" || key === "website.logo_url") return "logo";
@@ -188,6 +194,17 @@ export function SettingForm({ setting, people = [] }: { setting: SettingRow; peo
               </p>
             </div>
           </div>
+        ) : kind === "longnote" ? (
+          <textarea id={id} name="value" rows={4} maxLength={2000} defaultValue={String(setting.value ?? "")} className={`${inputClass} max-w-xl min-h-28 py-3`} />
+        ) : kind === "lines" ? (
+          <textarea
+            id={id}
+            name="value"
+            rows={5}
+            defaultValue={Array.isArray(setting.value) ? (setting.value as string[]).join("\n") : ""}
+            placeholder="One per line"
+            className={`${inputClass} max-w-xl min-h-32 py-3`}
+          />
         ) : kind === "dates" ? (
           <textarea
             id={id}

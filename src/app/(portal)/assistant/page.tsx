@@ -36,8 +36,14 @@ export default async function AssistantPage() {
   const s = { ...DEFAULT_SETTINGS, ...(settings ?? {}), monthly_limit_aud: Number(settings?.monthly_limit_aud ?? DEFAULT_SETTINGS.monthly_limit_aud) } as AssistantSettings & { credit_aud?: number; credit_since?: string | null };
   const unanswered = (questions ?? []).filter((q) => !q.answered);
   const log = [...unanswered, ...(questions ?? []).filter((q) => q.answered)].slice(0, 30);
-  const order = ["website.front_page", "website.logo_url", "website.closed_title", "website.closed_text", "assistant.enquiry_roles", "assistant.intake_roles"];
-  const rows = ((siteRows ?? []) as SettingRow[]).sort((x, y) => order.indexOf(x.key) - order.indexOf(y.key));
+  // The public website's settings, in groups.
+  const GROUPS = [
+    { title: "Website", keys: ["website.front_page", "website.logo_url", "website.staff_phone", "website.closed_title", "website.closed_text"] },
+    { title: "About page", keys: ["website.about_intro", "website.mission", "website.vision", "website.services"] },
+    { title: "Search engines (SEO)", keys: ["website.site_url", "website.seo_title", "website.seo_description"] },
+    { title: "Enquiries", keys: ["assistant.enquiry_roles", "assistant.intake_roles"] },
+  ];
+  const settingRows = (siteRows ?? []) as SettingRow[];
 
   return (
     <>
@@ -55,16 +61,22 @@ export default async function AssistantPage() {
       {!settings ? <Notice tone="error">The website isn&apos;t set up in the database yet. Run the latest live updates, then refresh.</Notice> : null}
       {usage ? <AssistantUsageCard u={usage} /> : null}
 
-      {admin && rows.length ? (
-        <section className="flex flex-col gap-2">
-          <h2 className="heading-sm">Website</h2>
-          <Card className="px-5 py-2">
-            {rows.map((r) => (
-              <SettingForm key={r.key} setting={r} />
-            ))}
-          </Card>
-        </section>
-      ) : null}
+      {admin
+        ? GROUPS.map((g) => {
+            const list = g.keys.map((k) => settingRows.find((r) => r.key === k)).filter((r): r is SettingRow => Boolean(r));
+            if (!list.length) return null;
+            return (
+              <section key={g.title} className="flex flex-col gap-2">
+                <h2 className="heading-sm">{g.title}</h2>
+                <Card className="px-5 py-2">
+                  {list.map((r) => (
+                    <SettingForm key={r.key} setting={r} />
+                  ))}
+                </Card>
+              </section>
+            );
+          })
+        : null}
 
       {admin ? (
         <section className="flex flex-col gap-2">

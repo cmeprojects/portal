@@ -43,6 +43,11 @@ change. Nothing here deletes your people, tasks, forms or cars.
 - **Code:** branch `restore-update-40` (commit `bb7059f`).
 - **Database:** run `supabase/live-updates/undo-41.sql`.
 
+## Before the website About/SEO round and audit (live update 41)
+
+- **Code:** branch `restore-update-41` (commit `f83556e`).
+- **Database:** run `supabase/live-updates/undo-42.sql`.
+
 ## Habit for every big change
 
 1. Make a branch from `main` named `restore-update-NN` before starting.

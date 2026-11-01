@@ -42,6 +42,16 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
       return { value: slaFromForm(form, "sla_") };
     case "note":
       return { value: raw.slice(0, 500) };
+    case "longnote":
+      return { value: String(form.get("value") ?? "").trim().slice(0, 2000) };
+    case "lines":
+      return {
+        value: String(form.get("value") ?? "")
+          .split(/\n+/)
+          .map((l) => l.trim().slice(0, 120))
+          .filter(Boolean)
+          .slice(0, 30),
+      };
     case "dates": {
       // One per line: YYYY-MM-DD then a name (public holidays).
       const lines = String(form.get("value") ?? "")

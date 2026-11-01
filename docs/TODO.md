@@ -80,5 +80,5 @@ Still to do (agreed, not built yet):
 - **Compliance report for managers**: more ways to customise (ideas: saved
   views per manager, choose columns, schedule a weekly email, a team leader view).
 - **A limit per visitor** (the hourly limit covers the whole website now).
-- More website pages (services, about) and SEO details.
+- A free bot check (Cloudflare Turnstile) on Request a call back (see docs/AUDIT-2026-11.md).
 - Test with about 20 real questions on Haiku, then decide whether to move to Sonnet.

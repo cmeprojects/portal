@@ -94,9 +94,9 @@ export async function answerQuestion(question: string, settings: AssistantSettin
 
   if (hits.length) {
     if (!aiReady) {
-      // No AI key, or the monthly limit is reached: show what the documents say.
-      const top = hits.slice(0, 2);
-      answer = { text: `Here's what our documents say:\n\n${top.map((h) => h.content.slice(0, 600)).join("\n\n")}`, sources: uniq(top.map((h) => ({ title: h.title }))), from: "documents", answered: true, offerCall };
+      // No AI key, or the monthly limit is reached: the best matching passage,
+      // as it's written in the document.
+      answer = { text: excerpt(hits[0].content), sources: [{ title: hits[0].title }], from: "documents", answered: true, offerCall };
     } else {
       try {
         const docs = hits.map((h, i) => `[${i + 1}] ${h.title}\n${h.content}`).join("\n\n");
@@ -115,7 +115,7 @@ export async function answerQuestion(question: string, settings: AssistantSettin
           answer = { text: reply.replace(/\s*\[\d\]/g, ""), sources: uniq(titles), from: "documents", answered: true, offerCall };
         }
       } catch {
-        answer = { text: `Here's what our documents say:\n\n${hits[0].content.slice(0, 600)}`, sources: [{ title: hits[0].title }], from: "documents", answered: true, offerCall };
+        answer = { text: excerpt(hits[0].content), sources: [{ title: hits[0].title }], from: "documents", answered: true, offerCall };
       }
     }
   }
@@ -179,6 +179,15 @@ export async function readScanned(bytes: Uint8Array, mediaType: string): Promise
   return { text: textOf(res), costUsd: cost(res.usage, model) };
 }
 
+// A passage from a document, trimmed at a sentence end so it reads cleanly.
+function excerpt(content: string): string {
+  const text = content.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  if (text.length <= 700) return text;
+  const cut = text.slice(0, 700);
+  const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(".\n"));
+  return `${stop > 300 ? cut.slice(0, stop + 1) : cut}…`;
+}
+
 const textOf = (res: Anthropic.Messages.Message) =>
   res.content
     .flatMap((b) => (b.type === "text" ? [b.text] : []))
@@ -226,16 +235,41 @@ export async function assistantUsage(): Promise<AssistantUsage> {
   };
 }
 
-// The website's own logo (blank = the portal's) and its "switched off" words.
-export async function getWebsiteLook(portalLogo: string): Promise<{ logoUrl: string; closedTitle: string; closedText: string }> {
+// Everything the public website shows that the system admin sets: its own
+// logo (blank = the portal's), phone numbers, About page, search-engine
+// details and the "switched off" words.
+export type WebsiteContent = {
+  frontPage: boolean;
+  logoUrl: string;
+  staffPhone: string;
+  aboutIntro: string;
+  mission: string;
+  vision: string;
+  services: string[];
+  siteUrl: string;
+  seoTitle: string;
+  seoDescription: string;
+  closedTitle: string;
+  closedText: string;
+};
+
+export async function getWebsiteContent(portalLogo: string): Promise<WebsiteContent> {
   const { data } = await createAdminClient().from("app_settings").select("key, value").like("key", "website.%");
-  const get = (k: string) => {
-    const v = (data ?? []).find((r) => r.key === k)?.value;
-    return typeof v === "string" ? v.trim() : "";
-  };
+  const value = (key: string) => (data ?? []).find((r) => r.key === key)?.value;
+  const text = (key: string) => (typeof value(key) === "string" ? (value(key) as string).trim() : "");
+  const list = (key: string) => (Array.isArray(value(key)) ? (value(key) as unknown[]).map(String).filter(Boolean) : []);
   return {
-    logoUrl: get("website.logo_url") || portalLogo,
-    closedTitle: get("website.closed_title") || "Our website is coming soon",
-    closedText: get("website.closed_text") || "In the meantime, please call us, or sign in if you're part of the team.",
+    frontPage: value("website.front_page") === true,
+    logoUrl: text("website.logo_url") || portalLogo,
+    staffPhone: text("website.staff_phone"),
+    aboutIntro: text("website.about_intro"),
+    mission: text("website.mission"),
+    vision: text("website.vision"),
+    services: list("website.services"),
+    siteUrl: text("website.site_url").replace(/\/+$/, ""),
+    seoTitle: text("website.seo_title"),
+    seoDescription: text("website.seo_description"),
+    closedTitle: text("website.closed_title") || "Our website is coming soon",
+    closedText: text("website.closed_text") || "In the meantime, please call us, or sign in if you're part of the team.",
   };
 }

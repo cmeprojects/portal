@@ -1,8 +1,14 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { MetadataRoute } from "next";
+import { siteBase } from "./ask/seo";
 
-// A private staff portal: search engines are asked not to look at any of it
-// (every page also says "noindex"), except the public website at /ask. Shared links still show the name and logo.
-export default function robots(): MetadataRoute.Robots {
-  return { rules: [{ userAgent: "*", allow: ["/ask"], disallow: ["/"] }] };
+// cmeprojects: search engines may read the public website (the front page and
+// /ask pages) and nothing else: the staff portal stays out of search results
+// (its pages also say "noindex").
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const base = await siteBase().catch(() => "");
+  return {
+    rules: [{ userAgent: "*", allow: ["/$", "/ask", "/ask/about", "/ask/get-started"], disallow: ["/"] }],
+    sitemap: base ? `${base}/sitemap.xml` : undefined,
+  };
 }
