@@ -39,23 +39,48 @@ export function EnquiryForm({ asked, phone }: { asked: string; phone: string }) 
         <input type="hidden" name="asked" value={asked} />
         {/* Real people never see this box; if it's filled in, it's a robot. */}
         <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px]" />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Your name" htmlFor="full_name">
-            <input id="full_name" name="full_name" autoComplete="name" required maxLength={120} className={inputClass} />
-          </Field>
-          <Field label="Phone" htmlFor="phone">
-            <input id="phone" name="phone" type="tel" autoComplete="tel" required maxLength={40} className={inputClass} />
-          </Field>
-          <Field label="Email (optional)" htmlFor="email">
-            <input id="email" name="email" type="email" autoComplete="email" maxLength={200} className={inputClass} />
-          </Field>
-          <Field label="Suburb" htmlFor="suburb">
-            <input id="suburb" name="suburb" maxLength={100} className={inputClass} />
-          </Field>
-        </div>
+        <section className="flex flex-col gap-4">
+          <h2 className="heading-sm">Your details</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Your name" htmlFor="full_name">
+              <input id="full_name" name="full_name" autoComplete="name" required maxLength={120} className={inputClass} />
+            </Field>
+            <Field label="Mobile or phone" htmlFor="phone" hint="An Australian number, for example 0412 345 678.">
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                required
+                maxLength={20}
+                pattern="^\s*(\+?61|0)[\s-]*[2-478]([\s-]*\d){8}\s*$"
+                title="An Australian number, for example 0412 345 678"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Email (optional)" htmlFor="email">
+              <input id="email" name="email" type="email" autoComplete="email" maxLength={200} className={inputClass} />
+            </Field>
+            <div className="grid grid-cols-[1fr_7rem] gap-3">
+              <Field label="Suburb" htmlFor="suburb">
+                <input id="suburb" name="suburb" autoComplete="address-level2" required maxLength={80} className={inputClass} />
+              </Field>
+              <Field label="Postcode" htmlFor="postcode">
+                <input id="postcode" name="postcode" inputMode="numeric" autoComplete="postal-code" required pattern="\d{4}" maxLength={4} title="4 digits" className={inputClass} />
+              </Field>
+            </div>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-5 border-t border-line pt-5">
+          <div>
+            <h2 className="heading-sm">Customise your call with us</h2>
+            <p className="text-sm text-muted">Optional: it helps us get ready for your call.</p>
+          </div>
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-medium">Who is the support for?</legend>
-          <Choice name="support_for" options={["Me", "A family member", "Someone I support (coordinator)", "Other"]} first="Me" />
+          <Choice name="support_for" options={["Me", "A family member", "Someone I support (coordinator)", "Other"]} />
         </fieldset>
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-medium">Do you have an NDIS plan?</legend>
@@ -76,8 +101,9 @@ export function EnquiryForm({ asked, phone }: { asked: string; phone: string }) 
         </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Best time to call" htmlFor="best_time">
-            <select id="best_time" name="best_time" className={inputClass} defaultValue="Any time">
-              {["Any time", "Morning", "Afternoon", "After 5 pm"].map((o) => (
+            <select id="best_time" name="best_time" className={inputClass} defaultValue="">
+              <option value="">No preference</option>
+              {["Morning", "Afternoon", "After 5 pm"].map((o) => (
                 <option key={o}>{o}</option>
               ))}
             </select>
@@ -94,6 +120,8 @@ export function EnquiryForm({ asked, phone }: { asked: string; phone: string }) 
         <Field label="Anything else? (optional)" htmlFor="message" hint="Please don't include health details.">
           <textarea id="message" name="message" rows={3} maxLength={1000} className={`${inputClass} min-h-24 py-3`} />
         </Field>
+        </section>
+
         <label className="flex items-start gap-3 text-sm leading-relaxed">
           <input type="checkbox" name="consent" required className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-primary)]" />
           <span>I agree to be contacted about support. We keep your details private and only use them to get in touch.</span>

@@ -20,9 +20,7 @@ export default async function GetStartedPage({ searchParams }: PageProps<"/ask/g
     <SiteHeader
       logoUrl={(await getWebsiteContent(brand.logoUrl)).logoUrl}
       companyName={brand.companyName}
-      urgentPhone={s.phone}
-      visitor={visitor.userId ? { name: visitor.name, position: visitor.position } : null}
-    />
+      signedIn={Boolean(visitor.userId)} />
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10 sm:py-14">
       <div className="flex flex-col gap-2">
         <h1 className="heading">Request a call back</h1>

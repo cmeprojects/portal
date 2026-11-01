@@ -1,76 +1,65 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { signOutWebsite } from "./actions";
-
-export type HeaderVisitor = { name: string; position: string } | null;
 
 type Props = {
   logoUrl: string;
   companyName: string;
-  urgentPhone: string;
-  visitor: HeaderVisitor;
-  // Something before the logo, for example the chat history button.
-  leading?: ReactNode;
+  signedIn: boolean;
+  // The button that opens and closes the side panel (pages with chats only).
+  toggle?: ReactNode;
 };
 
-const pill = "inline-flex min-h-10 items-center rounded-full px-4 text-sm font-semibold";
+const outline = "inline-flex min-h-9 items-center rounded-md border border-white/70 px-4 text-sm font-semibold text-white hover:bg-white/10";
 
-// cmeprojects: the website's top bar. Logo on the left. On the right:
-// visitors get Request a call back, the urgent support number, About and
-// Sign in; signed-in staff get their name, About, the portal and Sign out.
-export function SiteHeader({ logoUrl, companyName, urgentPhone, visitor, leading }: Props) {
+// cmeprojects: the website's blue top bar: the panel button, the logo and the
+// company name on the left; Request a call back (visitors) and About on the right.
+export function SiteHeader({ logoUrl, companyName, signedIn, toggle }: Props) {
   return (
-    <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line bg-surface px-4 py-2.5 sm:px-6">
-      {leading}
-      <Link href="/ask" aria-label={`${companyName} home`} className="flex items-center">
-        {/* eslint-disable-next-line @next/next/no-img-element -- the company's own logo */}
-        <img src={logoUrl} alt={companyName} className="h-10 w-auto max-w-40 object-contain" />
+    <header className="sticky top-0 z-30 flex items-center gap-3 bg-brand px-3 py-2.5 text-white sm:px-5">
+      {toggle}
+      <Link href="/ask" aria-label={`${companyName} home`} className="flex items-center gap-3">
+        <span className="flex h-11 items-center rounded-md bg-white px-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- the company's own logo */}
+          <img src={logoUrl} alt="" className="h-9 w-auto max-w-28 object-contain" />
+        </span>
+        <span className="hidden font-display text-lg font-semibold sm:inline">{companyName}</span>
       </Link>
-
-      <nav aria-label="Website" className="ml-auto flex flex-wrap items-center justify-end gap-2">
-        {visitor ? (
-          <>
-            <span className="hidden text-right leading-tight sm:block">
-              <span className="block text-sm font-semibold">{visitor.name}</span>
-              {visitor.position ? <span className="block text-xs text-muted">{visitor.position}</span> : null}
-            </span>
-            <Link href="/ask/about" className={`${pill} hover:bg-page`}>
-              About
-            </Link>
-            <Link href="/" className={`${pill} bg-brand text-brand-fg`}>
-              Portal
-            </Link>
-            <form action={signOutWebsite}>
-              <button className={`${pill} border border-line hover:bg-page`}>Sign out</button>
-            </form>
-          </>
-        ) : (
-          <>
-            {urgentPhone ? (
-              <a href={`tel:${urgentPhone.replace(/[^\d+]/g, "")}`} className="hidden flex-col items-end leading-tight md:flex">
-                <span className="text-xs text-muted">For urgent support please call</span>
-                <span className="text-lg font-bold text-brand">{urgentPhone}</span>
-              </a>
-            ) : null}
-            <Link href="/ask/get-started" className={`${pill} border border-brand text-brand hover:bg-brand-soft`}>
-              Request a call back
-            </Link>
-            <Link href="/ask/about" className={`${pill} hover:bg-page`}>
-              About
-            </Link>
-            <Link href="/login?next=/ask" className={`${pill} bg-brand text-brand-fg`}>
-              Sign in
-            </Link>
-          </>
+      <nav aria-label="Website" className="ml-auto flex items-center gap-2">
+        {signedIn ? null : (
+          <Link href="/ask/get-started" className={`${outline} bg-white !text-brand hover:bg-white/90`}>
+            Request a call back
+          </Link>
         )}
+        <Link href="/ask/about" className={outline}>
+          About
+        </Link>
       </nav>
-      {/* On a phone the urgent number gets its own line under the bar. */}
-      {!visitor && urgentPhone ? (
-        <a href={`tel:${urgentPhone.replace(/[^\d+]/g, "")}`} className="w-full text-center text-sm md:hidden">
-          For urgent support please call <strong className="text-brand">{urgentPhone}</strong>
-        </a>
-      ) : null}
     </header>
+  );
+}
+
+// The square button that shows or hides the side panel, with its hint on hover.
+export function PanelToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <span className="group relative">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-expanded={open}
+        aria-label={open ? "Hide options" : "Expand to see options"}
+        className="flex size-10 items-center justify-center rounded-md border-2 border-white/80 bg-white/10 text-white transition hover:bg-white/20"
+      >
+        <svg viewBox="0 0 24 24" className={`size-5 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute top-full left-0 z-40 mt-2 rounded-md bg-ink px-2.5 py-1.5 text-xs whitespace-nowrap text-surface opacity-0 shadow transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+      >
+        {open ? "Hide options" : "Expand to see options"}
+      </span>
+    </span>
   );
 }

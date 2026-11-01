@@ -2,17 +2,22 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Credits } from "@/components/ui";
 import type { Answer } from "@/lib/assistant-shared";
-import { askQuestion } from "./actions";
-import { ChatHistory } from "./chat-history";
-import { SiteHeader, type HeaderVisitor } from "./site-header";
+import { askQuestion, deleteChat } from "./actions";
+import { ChatHistory, VisitorFooter } from "./chat-history";
+import { StaffFooter } from "./raise-question";
+import { PanelToggle, SiteHeader } from "./site-header";
 
 export type ChatTurn = { q: string; a?: Answer; error?: string };
+type Person = { id: string; name: string; detail: string };
+type Staff = { name: string; position: string; answerers: Person[] } | null;
+type VisitorChat = { id: string; title: string; turns: ChatTurn[] };
 
 type Props = {
   brand: { logoUrl: string; companyName: string };
-  visitor: HeaderVisitor;
+  staff: Staff;
   heading: string;
   intro: string;
   suggestions: string[];
@@ -26,64 +31,79 @@ type Props = {
   initialTurns: ChatTurn[];
 };
 
-// Visitors' chats are kept in this browser tab until it's closed.
-const VISITOR_CHAT = "ask-chat";
-// Whether a signed-in person keeps their chat history open (this device only).
-const HISTORY_OPEN = "ask-history-open";
+// Visitors' recent chats live in this browser only (the last 20).
+const VISITOR_CHATS = "ask-visitor-chats";
+// Whether the side panel is open (remembered on this device).
+const PANEL_OPEN = "ask-panel-open";
 
 const telOf = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
+const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now()));
+
+function readVisitorChats(): VisitorChat[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(VISITOR_CHATS) ?? "[]");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
 
 // cmeprojects: the website's chat. It starts as a landing page (big logo,
 // question box, suggestions) and becomes a normal chat after the first
-// question. Signed-in staff have their chats saved, in a History panel.
+// question. Everyone keeps recent chats: on the account for signed-in staff,
+// in this browser for visitors.
 export function Chat(props: Props) {
-  const signedIn = Boolean(props.visitor);
+  const router = useRouter();
+  const signedIn = Boolean(props.staff);
   const [turns, setTurns] = useState<ChatTurn[]>(props.initialTurns);
   const [chatId, setChatId] = useState(props.chatId);
   const [chats, setChats] = useState(props.chats);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [offerHidden, setOfferHidden] = useState(false);
   const [pending, start] = useTransition();
   const end = useRef<HTMLDivElement>(null);
 
-  // Read saved choices after the first paint, so the server and browser agree.
+  // Read this device's saved state after the first paint, so the server and browser agree.
   useEffect(() => {
     try {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring this device's saved state once
-      if (signedIn && localStorage.getItem(HISTORY_OPEN) === "1") setHistoryOpen(true);
-      if (!signedIn) {
-        const saved = JSON.parse(sessionStorage.getItem(VISITOR_CHAT) ?? "[]") as ChatTurn[];
-        if (saved.length) setTurns(saved);
-      }
+      setPanelOpen(localStorage.getItem(PANEL_OPEN) === "1");
     } catch {}
+    if (!signedIn) setChats(readVisitorChats().map((c) => ({ id: c.id, title: c.title })));
   }, [signedIn]);
 
+  // Keep a visitor's chat in this browser as it grows.
   useEffect(() => {
-    if (!signedIn) {
-      try {
-        sessionStorage.setItem(VISITOR_CHAT, JSON.stringify(turns.filter((t) => t.a)));
-      } catch {}
-    }
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [turns, signedIn]);
-
-  const toggleHistory = (open: boolean) => {
-    setHistoryOpen(open);
+    if (signedIn || !chatId || !turns.some((t) => t.a)) return;
+    const saved = readVisitorChats().filter((c) => c.id !== chatId);
+    const title = turns[0]?.q.slice(0, 80) ?? "Chat";
+    const next = [{ id: chatId, title, turns: turns.filter((t) => t.a) }, ...saved].slice(0, 20);
     try {
-      localStorage.setItem(HISTORY_OPEN, open ? "1" : "0");
+      localStorage.setItem(VISITOR_CHATS, JSON.stringify(next));
+    } catch {}
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the list mirrors what was just saved
+    setChats(next.map((c) => ({ id: c.id, title: c.title })));
+  }, [turns, chatId, signedIn]);
+
+  const setPanel = (open: boolean) => {
+    setPanelOpen(open);
+    try {
+      localStorage.setItem(PANEL_OPEN, open ? "1" : "0");
     } catch {}
   };
 
   const ask = (question: string) => {
     const q = question.trim();
     if (q.length < 3 || pending) return;
-    // Signed in: the server reads earlier turns from the saved chat.
+    // Visitors send their earlier turns; staff's come from the saved chat.
     const history = signedIn ? [] : turns.filter((t) => t.a).map((t) => ({ question: t.q, answer: t.a!.text }));
+    if (!signedIn && !chatId) setChatId(newId());
     setTurns((t) => [...t, { q }]);
     start(async () => {
-      const result = await askQuestion(q, chatId, history).catch(() => ({ error: "Sorry, we couldn't reach the server. Please check your connection and try again." }));
+      const result = await askQuestion(q, signedIn ? chatId : null, history).catch(() => ({ error: "Sorry, we couldn't reach the server. Please check your connection and try again." }));
       setTurns((t) => t.map((turn, i) => (i < t.length - 1 ? turn : "error" in result ? { q, error: result.error } : { q, a: result.answer })));
-      if (!("error" in result) && result.chatId && result.chatId !== chatId) {
+      if (signedIn && !("error" in result) && result.chatId && result.chatId !== chatId) {
         setChatId(result.chatId);
         setChats((list) => [{ id: result.chatId!, title: q.slice(0, 80) }, ...list]);
         window.history.replaceState(null, "", `/ask?chat=${result.chatId}`);
@@ -91,13 +111,31 @@ export function Chat(props: Props) {
     });
   };
 
-  const startAgain = () => {
-    try {
-      sessionStorage.removeItem(VISITOR_CHAT);
-    } catch {}
+  const newChat = () => {
     setTurns([]);
     setChatId(null);
-    window.history.replaceState(null, "", "/ask");
+    setOfferHidden(false);
+    if (signedIn) router.push("/ask");
+  };
+
+  const openChat = (id: string) => {
+    if (signedIn) return router.push(`/ask?chat=${id}`);
+    const chat = readVisitorChats().find((c) => c.id === id);
+    if (chat) {
+      setChatId(chat.id);
+      setTurns(chat.turns);
+    }
+  };
+
+  const removeChat = async (id: string) => {
+    if (signedIn) await deleteChat(id);
+    else {
+      try {
+        localStorage.setItem(VISITOR_CHATS, JSON.stringify(readVisitorChats().filter((c) => c.id !== id)));
+      } catch {}
+    }
+    setChats((list) => list.filter((c) => c.id !== id));
+    if (id === chatId) newChat();
   };
 
   const started = turns.length > 0;
@@ -105,111 +143,102 @@ export function Chat(props: Props) {
   const showOffer = props.offerCall && !offerHidden && Boolean(last?.a?.offerCall);
 
   return (
-    <div className="flex min-h-dvh">
-      {signedIn && historyOpen ? (
-        <>
-          {/* On a phone the panel sits over the page; on a computer, beside it. */}
-          <button type="button" aria-label="Close your chats" onClick={() => toggleHistory(false)} className="fixed inset-0 z-30 bg-black/30 md:hidden" />
-          <div className="fixed inset-y-0 left-0 z-40 md:sticky md:top-0 md:h-dvh">
+    <div className="flex min-h-dvh flex-col">
+      <SiteHeader
+        logoUrl={props.brand.logoUrl}
+        companyName={props.brand.companyName}
+        signedIn={signedIn}
+        toggle={<PanelToggle open={panelOpen} onClick={() => setPanel(!panelOpen)} />}
+      />
+
+      <div className="flex flex-1">
+        {panelOpen ? (
+          <div className="fixed inset-y-0 top-[60px] left-0 z-20 md:sticky md:top-[60px] md:h-[calc(100dvh-60px)]">
             <ChatHistory
               chats={chats}
               current={chatId}
-              onClose={() => toggleHistory(false)}
-              onDeleted={(id) => {
-                setChats((list) => list.filter((c) => c.id !== id));
-                if (id === chatId) startAgain();
-              }}
+              onClose={() => setPanel(false)}
+              onOpen={openChat}
+              onNew={newChat}
+              onDelete={removeChat}
+              footer={props.staff ? <StaffFooter name={props.staff.name} position={props.staff.position} answerers={props.staff.answerers} /> : <VisitorFooter />}
             />
           </div>
-        </>
-      ) : null}
+        ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <SiteHeader
-          logoUrl={props.brand.logoUrl}
-          companyName={props.brand.companyName}
-          urgentPhone={props.urgentPhone}
-          visitor={props.visitor}
-          leading={
-            signedIn && !historyOpen ? (
-              <button type="button" onClick={() => toggleHistory(true)} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-line px-3 text-sm font-semibold hover:bg-page">
-                <HistoryIcon /> History
-              </button>
-            ) : null
-          }
-        />
-
-        {!started ? (
-          <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-5 px-4 pb-16">
-            <div className="flex flex-col items-center gap-4 text-center">
-              {/* eslint-disable-next-line @next/next/no-img-element -- the company's own logo */}
-              <img src={props.brand.logoUrl} alt="" className="h-24 w-auto max-w-[70%] object-contain sm:h-28" />
-              <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{props.heading}</h1>
-              {props.intro ? <p className="max-w-xl text-muted">{props.intro}</p> : null}
-            </div>
-            <Composer onAsk={ask} pending={pending} placeholder="Ask anything" />
-            {props.suggestions.length ? (
-              <div className="flex flex-wrap justify-center gap-2">
-                {props.suggestions.map((idea) => (
-                  <button key={idea} type="button" onClick={() => ask(idea)} className="min-h-10 rounded-full border border-line bg-surface px-4 text-sm hover:border-muted">
-                    {idea}
-                  </button>
-                ))}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {!started ? (
+            <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-5 px-4 py-10">
+              <div className="flex flex-col items-center gap-4 text-center">
+                {/* eslint-disable-next-line @next/next/no-img-element -- the company's own logo */}
+                <img src={props.brand.logoUrl} alt="" className="h-36 w-auto max-w-[80%] object-contain sm:h-44" />
+                <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{props.heading}</h1>
+                {props.intro ? <p className="max-w-xl text-muted">{props.intro}</p> : null}
               </div>
-            ) : null}
-          </main>
-        ) : (
-          <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 pt-6">
-            <ol className="flex flex-col gap-6" aria-live="polite">
-              {turns.map((t, i) => (
-                <li key={i} className="ask-rise flex flex-col gap-3">
-                  <p className="max-w-[85%] self-end rounded-3xl rounded-br-md bg-brand-soft px-4 py-3">{t.q}</p>
-                  {t.error ? (
-                    <p role="alert" className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">
-                      {t.error}
-                    </p>
-                  ) : t.a ? (
-                    <AnswerView answer={t.a} showSources={signedIn} />
-                  ) : (
-                    <p className="animate-pulse text-sm text-muted">Looking that up…</p>
-                  )}
-                </li>
-              ))}
-            </ol>
-
-            {showOffer ? (
-              signedIn ? (
-                <OfferCard
-                  title="Can't find an answer?"
-                  text="Contact your manager."
-                  action={props.staffPhone ? { href: telOf(props.staffPhone), label: `Call ${props.staffPhone}` } : null}
-                  onHide={() => setOfferHidden(true)}
-                />
-              ) : (
-                <OfferCard
-                  title="Would you like to talk to our team?"
-                  text={`Leave your name and number and we'll call you${props.urgentPhone ? `, or call ${props.urgentPhone}` : ""}.`}
-                  action={{ href: `/ask/get-started?asked=${encodeURIComponent(last?.q ?? "")}`, label: "Yes, call me" }}
-                  onHide={() => setOfferHidden(true)}
-                />
-              )
-            ) : null}
-            <div ref={end} />
-            <div className="sticky bottom-0 mt-auto bg-page pt-2 pb-3">
-              <Composer onAsk={ask} pending={pending} placeholder="Ask a follow-up question" />
-              {!signedIn ? (
-                <button type="button" onClick={startAgain} className="mt-2 text-xs text-muted underline">
-                  Start again
-                </button>
+              <Composer onAsk={ask} pending={pending} placeholder="Ask anything" />
+              {props.suggestions.length ? (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {props.suggestions.map((idea) => (
+                    <button key={idea} type="button" onClick={() => ask(idea)} className="min-h-10 rounded-full border border-line bg-surface px-4 text-sm hover:border-muted">
+                      {idea}
+                    </button>
+                  ))}
+                </div>
               ) : null}
-            </div>
-          </main>
-        )}
+            </main>
+          ) : (
+            <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 pt-6">
+              <ol className="flex flex-col gap-6" aria-live="polite">
+                {turns.map((t, i) => (
+                  <li key={i} className="ask-rise flex flex-col gap-3">
+                    <p className="max-w-[85%] self-end rounded-3xl rounded-br-md bg-brand-soft px-4 py-3">{t.q}</p>
+                    {t.error ? (
+                      <p role="alert" className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">
+                        {t.error}
+                      </p>
+                    ) : t.a ? (
+                      <AnswerView answer={t.a} showSources={signedIn} />
+                    ) : (
+                      <p className="animate-pulse text-sm text-muted">Looking that up…</p>
+                    )}
+                  </li>
+                ))}
+              </ol>
 
-        <footer className="flex flex-col items-center gap-1 px-4 pb-4 text-center text-xs text-muted">
-          <p>{props.disclaimer} Please don&apos;t type personal or health details.</p>
-          {props.showCredits ? <Credits /> : null}
-        </footer>
+              {showOffer ? (
+                signedIn ? (
+                  <OfferCard
+                    title="Can't find an answer?"
+                    text="Contact your manager."
+                    action={props.staffPhone ? { href: telOf(props.staffPhone), label: `Call ${props.staffPhone}` } : null}
+                    onHide={() => setOfferHidden(true)}
+                  />
+                ) : (
+                  <OfferCard
+                    title="Would you like to talk to our team?"
+                    text={`Leave your name and number and we'll call you${props.urgentPhone ? `, or call ${props.urgentPhone}` : ""}.`}
+                    action={{ href: `/ask/get-started?asked=${encodeURIComponent(last?.q ?? "")}`, label: "Yes, call me" }}
+                    onHide={() => setOfferHidden(true)}
+                  />
+                )
+              ) : null}
+              <div ref={end} />
+              <div className="sticky bottom-0 mt-auto bg-page pt-2 pb-3">
+                <Composer onAsk={ask} pending={pending} placeholder="Ask a follow-up question" />
+              </div>
+            </main>
+          )}
+
+          <footer className="flex flex-col items-center gap-1 px-4 pb-4 text-center text-xs text-muted">
+            {props.urgentPhone && !signedIn ? (
+              <a href={telOf(props.urgentPhone)} className="text-sm text-ink">
+                For urgent support please call <strong className="text-brand">{props.urgentPhone}</strong>
+              </a>
+            ) : null}
+            <p>{props.disclaimer} Please don&apos;t type personal or health details.</p>
+            {props.showCredits ? <Credits /> : null}
+          </footer>
+        </div>
       </div>
     </div>
   );
@@ -306,14 +335,5 @@ function OfferCard({ title, text, action, onHide }: { title: string; text: strin
         </button>
       </div>
     </div>
-  );
-}
-
-function HistoryIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-      <path d="M3 3v5h5M12 7v5l3 2" />
-    </svg>
   );
 }

@@ -30,7 +30,7 @@ export default async function AssistantPage() {
     supabase.from("assistant_settings").select("*").maybeSingle(),
     supabase.from("assistant_documents").select("id, title, audience, created_at").order("created_at", { ascending: false }),
     supabase.from("assistant_questions").select("id, question, answered, sources, created_at").order("created_at", { ascending: false }).limit(100),
-    admin ? supabase.from("app_settings").select("key, label, description, value").or("key.like.website.%,key.like.assistant.%").order("key") : Promise.resolve({ data: [] }),
+    supabase.from("app_settings").select("key, label, description, value").or("key.like.website.%,key.like.assistant.%").order("key"),
     admin ? assistantUsage() : Promise.resolve(null),
   ]);
   const s = { ...DEFAULT_SETTINGS, ...(settings ?? {}), monthly_limit_aud: Number(settings?.monthly_limit_aud ?? DEFAULT_SETTINGS.monthly_limit_aud) } as AssistantSettings & { credit_aud?: number; credit_since?: string | null };
@@ -61,8 +61,8 @@ export default async function AssistantPage() {
       {!settings ? <Notice tone="error">The website isn&apos;t set up in the database yet. Run the latest live updates, then refresh.</Notice> : null}
       {usage ? <AssistantUsageCard u={usage} /> : null}
 
-      {admin
-        ? GROUPS.map((g) => {
+      {/* The system admin sees every group; a manager given "Website" sees the About page wording. */}
+      {GROUPS.filter((g) => admin || g.title === "About page").map((g) => {
             const list = g.keys.map((k) => settingRows.find((r) => r.key === k)).filter((r): r is SettingRow => Boolean(r));
             if (!list.length) return null;
             return (
@@ -75,8 +75,7 @@ export default async function AssistantPage() {
                 </Card>
               </section>
             );
-          })
-        : null}
+          })}
 
       {admin ? (
         <section className="flex flex-col gap-2">

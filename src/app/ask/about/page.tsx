@@ -41,7 +41,7 @@ export default async function AboutPage() {
 
   return (
     <>
-      <SiteHeader logoUrl={site.logoUrl} companyName={brand.companyName} urgentPhone={settings.phone} visitor={me} />
+      <SiteHeader logoUrl={site.logoUrl} companyName={brand.companyName} signedIn={Boolean(me)} />
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 sm:py-14">
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">About {brand.companyName}</h1>
         {section("Who we are", site.aboutIntro)}
