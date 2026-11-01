@@ -15,8 +15,9 @@ export default async function StaffAppHome() {
   if (!staffAppOn(features)) {
     return <p className="rounded-xl border border-line bg-surface p-4 text-sm">The staff app isn&apos;t switched on for your company.</p>;
   }
-  if (!(await hasPin(profile.id))) redirect("/app/unlock");
-  const [tiles, look] = await Promise.all([getStaffAppTiles(profile.id, profile.role, features), getStaffAppLook()]);
+  // Asked together: each trip to the database adds a little wait after the PIN.
+  const [pinSet, tiles, look] = await Promise.all([hasPin(profile.id), getStaffAppTiles(profile.id, profile.role, features), getStaffAppLook()]);
+  if (!pinSet) redirect("/app/unlock");
   const first = (profile.full_name || "").split(" ")[0];
   const hour = Number(new Intl.DateTimeFormat("en-AU", { hour: "numeric", hourCycle: "h23", timeZone: "Australia/Melbourne" }).format(new Date()));
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";

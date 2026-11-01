@@ -2,7 +2,7 @@
 
 // Areas of System settings the system admin can hand to a named manager.
 // Security, Features, General and Delegation always stay with the system admin.
-export const AREAS = ["branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "audit"] as const;
+export const AREAS = ["branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit"] as const;
 export type Area = (typeof AREAS)[number];
 
 export const AREA_LABELS: Record<Area, string> = {
@@ -13,6 +13,7 @@ export const AREA_LABELS: Record<Area, string> = {
   tasks: "Task settings",
   reports: "Who can see Reports",
   vehicles: "Car settings",
+  website: "Website (where the Assistant looks, and its documents)",
   audit: "Read the change log",
 };
 
@@ -25,6 +26,7 @@ export const AREA_HINTS: Record<Area, string> = {
   tasks: "Default due dates, reminders, escalation, weekdays only, when required fields must be filled in, the morning summary, and who sees Registers.",
   reports: "Choose who sees Reports (tasks) and the Compliance report.",
   vehicles: "Odometer photo, undo time, the car-still-out reminder, Cars app sign-in days, and who manages or reports on cars.",
+  website: "Choose where the website's Assistant looks for answers (documents, listed websites or both), the listed websites, and upload or remove its documents.",
   audit: "Read the change log: who changed what in System settings, and when. They can't change anything with this alone.",
 };
 
@@ -38,6 +40,7 @@ export function areaOf(key: string): Area | null {
   if (key.startsWith("people.")) return "people";
   if (key.startsWith("compliance.")) return "compliance";
   if (key.startsWith("tasks.")) return "tasks";
+  if (key.startsWith("website.") || key.startsWith("assistant.")) return "website";
   if (key.startsWith("reports.")) return "reports";
   if (key.startsWith("vehicles.")) return "vehicles";
   return null;

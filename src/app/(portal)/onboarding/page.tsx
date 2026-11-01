@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import { requireSession } from "@/lib/session";
+import { getFormsToFill } from "@/lib/forms";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/registers";
 import {
@@ -23,7 +24,7 @@ const KINDS: ItemKind[] = ["read", "training", "upload", "form"];
 export default async function MyOnboardingPage() {
   const { profile } = await requireSession();
   const supabase = await createClient();
-  const { data: rows } = await supabase.rpc("compliance_status", { p_user: profile.id });
+  const [{ data: rows }, sentForms] = await Promise.all([supabase.rpc("compliance_status", { p_user: profile.id }), getFormsToFill(profile.id)]);
   const status = (rows ?? []) as StatusRow[];
   const ids = status.map((s) => s.item_id);
   const [{ data: itemRows }, { data: records }] = await Promise.all([
@@ -61,7 +62,7 @@ export default async function MyOnboardingPage() {
       />
       <Card className="flex flex-col gap-3 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="heading-sm">{status.length === 0 ? "Nothing to do yet" : done === status.length ? "All done, thank you. You don't have any actions waiting." : `${done} of ${status.length} done`}</p>
+          <p className="heading-sm">{status.length === 0 ? "Nothing to do yet" : done === status.length && !sentForms.length ? "All done, thank you. You don't have any actions waiting." : `${done} of ${status.length} done`}</p>
           {profile.role === "new_starter" ? (
             <p className="text-sm text-muted">Once it&apos;s all done, a staff admin will set up your role and team.</p>
           ) : null}
@@ -70,6 +71,28 @@ export default async function MyOnboardingPage() {
           <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
         </div>
       </Card>
+
+      {sentForms.length ? (
+        <section className="flex flex-col gap-3" aria-labelledby="h-sent">
+          <h2 id="h-sent" className="heading-sm">
+            Forms sent to you · {sentForms.length}
+          </h2>
+          {sentForms.map((f) => (
+            <Card key={f.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <span className="min-w-48 flex-1">
+                <span className="block font-semibold">{f.title}</span>
+                <span className="block text-sm text-muted">
+                  {f.due_date ? `Please answer by ${formatDate(f.due_date)}. ` : ""}You can save it and finish later.
+                </span>
+              </span>
+              {f.started ? <Badge tone="warn">Started</Badge> : null}
+              <Link href={`/forms/${f.id}`} className={buttonClass("primary")}>
+                {f.started ? "Carry on" : "Answer now"}
+              </Link>
+            </Card>
+          ))}
+        </section>
+      ) : null}
 
       {KINDS.map((kind) => {
         const list = status.filter((s) => s.kind === kind);
@@ -94,9 +117,10 @@ export default async function MyOnboardingPage() {
                       ))}
                     </>
                   }>
-                    <div className="flex flex-col gap-4 border-t border-line px-5 py-4">
-                      {item.description ? <p className="text-sm text-muted">{item.description}</p> : null}
-                      {item.body ? <div className="max-h-[28rem] overflow-y-auto rounded-md bg-page p-4 text-sm leading-relaxed whitespace-pre-line">{item.body}</div> : null}
+                    {/* Opened details stand out from the list (clear in light and dark). */}
+                    <div className="flex flex-col gap-4 border-t border-brand/30 bg-brand-soft px-5 py-4 text-ink">
+                      {item.description ? <p className="text-sm">{item.description}</p> : null}
+                      {item.body ? <div className="max-h-[28rem] overflow-y-auto rounded-md border border-line bg-surface p-4 text-sm leading-relaxed whitespace-pre-line">{item.body}</div> : null}
                       {item.link_url || links.has(item.id) ? (
                         <p className="flex flex-wrap gap-4 text-sm">
                           {item.link_url ? (

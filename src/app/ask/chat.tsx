@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Credits } from "@/components/ui";
 import type { Answer } from "@/lib/assistant-shared";
-import { askQuestion, deleteChat } from "./actions";
+import { askQuestion, deleteChat, signOutWebsite } from "./actions";
 import { SiteHeader } from "./site-header";
 
 export type ChatTurn = { q: string; a?: Answer; error?: string };
@@ -38,17 +38,23 @@ export function Chat(p: Props) {
   const [text, setText] = useState("");
   const [hideOffer, setHideOffer] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
+  // Signed in: they can hide their chat list (remembered on this device).
+  const [listHidden, setListHidden] = useState(false);
   const [pending, start] = useTransition();
   const end = useRef<HTMLDivElement>(null);
   const signedIn = Boolean(p.visitor);
 
   // Bring back this tab's chat for visitors who aren't signed in.
   useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a remembered choice on this device
+      if (localStorage.getItem("ask-list-hidden") === "1") setListHidden(true);
+    } catch {}
     if (signedIn) return;
     try {
       const saved = JSON.parse(sessionStorage.getItem(STORE) ?? "[]") as ChatTurn[];
       // Read after the first paint so the server and browser agree on the page.
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring this tab's saved chat once
+       
       if (saved.length) setTurns(saved);
     } catch {}
   }, [signedIn]);
@@ -97,14 +103,14 @@ export function Chat(p: Props) {
         e.preventDefault();
         ask(text);
       }}
-      className="flex items-end gap-2 rounded-3xl border border-field bg-surface p-2 pl-5 shadow-sm focus-within:border-brand"
+      className="flex items-end gap-2 rounded-full border border-line bg-surface py-1.5 pr-1.5 pl-5 shadow-sm"
     >
       <label htmlFor="ask" className="sr-only">
         Your question
       </label>
       <textarea
         id="ask"
-        rows={started ? 1 : 2}
+        rows={1}
         value={text}
         maxLength={500}
         onChange={(e) => setText(e.target.value)}
@@ -115,15 +121,15 @@ export function Chat(p: Props) {
           }
         }}
         placeholder={started ? "Ask a follow-up question" : "Ask anything"}
-        className="max-h-40 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-base text-ink outline-none placeholder:text-muted/70"
+        className="max-h-32 min-h-9 flex-1 resize-none border-0 bg-transparent py-1.5 text-base text-ink shadow-none ring-0 outline-none placeholder:text-muted/70 focus:border-0 focus:ring-0 focus:outline-none"
       />
       <button
         type="submit"
         aria-label="Send question"
         disabled={pending || text.trim().length < 3}
-        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg transition-opacity disabled:opacity-40"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg transition-opacity disabled:opacity-40"
       >
-        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 19V5M5 12l7-7 7 7" />
         </svg>
       </button>
@@ -135,25 +141,39 @@ export function Chat(p: Props) {
       {signedIn ? (
         <aside
           aria-label="Your chats"
-          className={`${sideOpen ? "fixed inset-0 z-40 flex" : "hidden"} w-full flex-col gap-2 border-r border-line bg-surface p-3 md:static md:flex md:w-64 md:shrink-0`}
+          className={`${sideOpen ? "fixed inset-0 z-40 flex" : "hidden"} w-full flex-col gap-2 bg-[var(--side-bg)] p-3 text-side-fg md:sticky md:top-0 md:flex md:h-dvh md:w-64 md:shrink-0`}
         >
           <div className="flex items-center justify-between gap-2">
-            <Link href="/ask" onClick={() => setSideOpen(false)} className="flex min-h-11 flex-1 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold hover:border-muted">
+            <Link href="/ask" onClick={() => setSideOpen(false)} className="flex min-h-11 flex-1 items-center gap-2 rounded-full border border-white/30 px-4 text-sm font-semibold hover:bg-[var(--side-hover)]">
               <span aria-hidden="true">+</span> New chat
             </Link>
             <button type="button" onClick={() => setSideOpen(false)} className="min-h-11 rounded-md px-3 text-sm md:hidden">
               Close
             </button>
           </div>
-          <p className="px-2 pt-2 text-xs font-semibold text-muted">Your chats</p>
-          <ul className="flex flex-col gap-0.5 overflow-y-auto">
-            {chats.length === 0 ? <li className="px-2 text-sm text-muted">Your questions will be saved here.</li> : null}
+          <div className="flex items-center justify-between px-2 pt-2">
+            <p className="text-xs font-semibold text-side-muted">Your chats</p>
+            <button
+              type="button"
+              onClick={() => {
+                setListHidden(!listHidden);
+                try {
+                  localStorage.setItem("ask-list-hidden", listHidden ? "0" : "1");
+                } catch {}
+              }}
+              className="rounded px-2 py-1 text-xs text-side-muted underline hover:text-side-fg"
+            >
+              {listHidden ? "Show" : "Hide"}
+            </button>
+          </div>
+          <ul className={`${listHidden ? "hidden" : "flex"} min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto`}>
+            {chats.length === 0 ? <li className="px-2 text-sm text-side-muted">Your questions will be saved here.</li> : null}
             {chats.map((c) => (
               <li key={c.id} className="group flex items-center">
                 <Link
                   href={`/ask?chat=${c.id}`}
                   onClick={() => setSideOpen(false)}
-                  className={`min-h-10 flex-1 truncate rounded-md px-2 py-2 text-sm ${c.id === chatId ? "bg-brand-soft font-semibold" : "hover:bg-page"}`}
+                  className={`min-h-10 flex-1 truncate rounded-md px-2 py-2 text-sm ${c.id === chatId ? "bg-[var(--side-active)] font-semibold" : "hover:bg-[var(--side-hover)]"}`}
                 >
                   {c.title}
                 </Link>
@@ -166,30 +186,43 @@ export function Chat(p: Props) {
                     setChats((list) => list.filter((x) => x.id !== c.id));
                     if (c.id === chatId) newChat();
                   }}
-                  className="rounded px-2 py-2 text-xs text-muted opacity-60 hover:text-danger group-hover:opacity-100"
+                  className="rounded px-2 py-2 text-xs text-side-muted opacity-60 hover:text-side-fg group-hover:opacity-100"
                 >
                   ✕
                 </button>
               </li>
             ))}
           </ul>
+          {listHidden ? <div className="flex-1" /> : null}
+          {/* Who is signed in, like the portal's menu: the portal and Sign out side by side. */}
+          <div className="mt-auto flex flex-col gap-2 border-t border-white/15 pt-3">
+            <div className="px-2 leading-tight">
+              <p className="truncate text-sm font-semibold">{p.visitor?.name}</p>
+              {p.visitor?.position ? <p className="truncate text-xs text-side-muted">{p.visitor.position}</p> : null}
+            </div>
+            <div className="flex gap-2">
+              <Link href="/" className="flex min-h-10 flex-1 items-center justify-center rounded-md bg-white px-3 text-sm font-semibold text-[var(--side-bg)]">
+                Open portal
+              </Link>
+              <form action={signOutWebsite} className="flex-1">
+                <button className="min-h-10 w-full rounded-md border border-white/30 px-3 text-sm font-semibold hover:bg-[var(--side-hover)]">Sign out</button>
+              </form>
+            </div>
+          </div>
         </aside>
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center">
+        <SiteHeader logoUrl={p.brand.logoUrl} companyName={p.brand.companyName} signedIn={signedIn} showLogo={started}>
           {signedIn ? (
-            <button type="button" onClick={() => setSideOpen(true)} className="ml-3 min-h-11 rounded-md px-3 text-sm font-semibold md:hidden">
+            <button type="button" onClick={() => setSideOpen(true)} className="min-h-10 rounded-md px-2 text-sm font-semibold md:hidden">
               Chats
             </button>
           ) : null}
-          <div className="flex-1">
-            <SiteHeader logoUrl={p.brand.logoUrl} companyName={p.brand.companyName} visitor={p.visitor} showLogo={started} />
-          </div>
-        </div>
+        </SiteHeader>
 
         {!started ? (
-          <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-6 px-4 pb-16">
+          <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-5 px-4 pb-16">
             <div className="flex flex-col items-center gap-4 text-center">
               {/* eslint-disable-next-line @next/next/no-img-element -- the company's own logo */}
               <img src={p.brand.logoUrl} alt={p.brand.companyName} className="h-24 w-auto max-w-[70%] object-contain sm:h-28" />

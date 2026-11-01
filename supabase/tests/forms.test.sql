@@ -148,7 +148,7 @@ select test.act_as('sam@example.com');
 set role authenticated;
 select test.ok(public.ask_form_question(test.form('Staff survey'), 'Is this anonymous?') = 'task', 'Sam asks a question');
 reset role;
-select test.ok(exists (select 1 from public.tasks where title = 'Question about the form: Staff survey'
+select test.ok(exists (select 1 from public.tasks where title = 'Staff question: about the form Staff survey'
                          and assigned_to = test.pid('boss@example.com') and created_by = test.pid('sam@example.com')),
   'it''s a task for Morgan, from Sam');
 

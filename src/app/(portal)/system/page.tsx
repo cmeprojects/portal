@@ -144,11 +144,6 @@ const TABS: Tab[] = [
     label: "Forms",
     sections: [{ title: "Forms", intro: "Who can make forms (the system admin always can). Each form is controlled by the person who made it and anyone they share it with.", keys: (k) => k.startsWith("forms.") }],
   },
-  {
-    key: "website",
-    label: "Website",
-    sections: [{ title: "Enquiries", intro: "Who sees the enquiries people leave on the website (the system admin always can).", keys: (k) => k.startsWith("assistant.") }],
-  },
   { key: "features", label: "Features", sections: [] },
   { key: "delegation", label: "Delegation", sections: [] },
   {
@@ -174,7 +169,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   );
   if (!tabs.length) redirect("/");
   const { tab: asked } = await searchParams;
-  const tab = tabs.find((t) => t.key === asked) ?? tabs[0];
+  const tab = tabs.find((t) => t.key === asked) ?? tabs.find((t) => t.key !== "features") ?? tabs[0];
   const supabase = await createClient();
   const [{ data: features }, { data: settings }, { data: managers }, { data: delegations }, { data: built }] = await Promise.all([
     supabase.from("features").select("*").order("sort_order"),
@@ -191,16 +186,16 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
 
   return (
     <>
-      <SectionTabs section="settings" current="/system" />
+      <SectionTabs section="settings" current={tab.key === "features" ? "/system?tab=features" : "/system"} />
       <PageHeader
         eyebrow="System"
-        title="System settings"
+        title={tab.key === "features" ? "Features" : "System settings"}
         intro={
           isAdmin
             ? "Only system admins can see this page (and managers you delegate areas to). Every change is recorded in the change log."
             : "The areas the system admin has asked you to look after. Every change is recorded in the change log."
         }
-        action={isAdmin || areas.includes("audit") ? <Link href="/system/audit" className="font-semibold text-brand">View change log</Link> : undefined}
+
       />
 
       {isAdmin && features?.find((f) => f.key === "two_factor")?.enabled === false ? (
@@ -210,7 +205,8 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
         </Notice>
       ) : null}
 
-      <Tabs label="Settings" items={tabs.map((t) => ({ href: `/system?tab=${t.key}`, text: t.label, current: t.key === tab.key }))} />
+      {/* Features has its own tab at the top (Settings row). */}
+      {tab.key !== "features" ? <Tabs label="Settings" items={tabs.filter((t) => t.key !== "features").map((t) => ({ href: `/system?tab=${t.key}`, text: t.label, current: t.key === tab.key }))} /> : null}
 
       {tab.key === "delegation" ? (
         <Card className="flex flex-col gap-4 p-5">
@@ -275,17 +271,6 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
         </Card>
       ) : (
         <>
-        {tab.key === "website" ? (
-          <Card className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-            <div>
-              <h2 className="heading-sm">Website and Assistant</h2>
-              <p className="text-sm text-muted">The landing page, where the Assistant looks for answers, its documents, model and spending limit, and the questions people asked.</p>
-            </div>
-            <Link href="/assistant" className="text-sm font-semibold text-brand underline">
-              Open Website settings
-            </Link>
-          </Card>
-        ) : null}
         {tab.sections.filter(canSee).map((section) => {
           const list = rows.filter((s) => section.keys(s.key)).sort((x, y) => rank(x.key) - rank(y.key) || x.key.localeCompare(y.key));
           if (!list.length) return null;

@@ -3,9 +3,9 @@
 
 import { useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
-import { ROLE_LABELS, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
+import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
-import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, sendResetLink, setActive, updatePerson } from "./actions";
+import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, sendResetLink, setActive, updatePerson, renamePerson, setPersonTeams } from "./actions";
 
 type Team = { id: string; name: string };
 
@@ -78,6 +78,8 @@ export type PersonRow = {
   joined: boolean;
   isMe: boolean;
   editable: boolean;
+  // The teams they're in (core-team roles, like managers and staff admins, don't need one).
+  teamIds: string[];
 };
 
 export function PersonEditor({
@@ -112,9 +114,15 @@ export function PersonEditor({
   const offered = roles.filter((r) => r !== "new_starter" || person.role === "new_starter");
   const choices = offered.includes(person.role) ? offered : [person.role, ...offered];
 
+  const label = "text-xs font-semibold tracking-wide text-muted uppercase";
   return (
-    <div className="flex flex-col gap-3 border-t border-line pt-4">
+    <div className="flex flex-col gap-4 border-t border-line pt-4">
       <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <NameForm person={person} />
+        {!inCoreTeam(person.role) && person.role !== "system_admin" && person.role !== "new_starter" && teams.length ? <TeamsForm person={person} teams={teams} /> : null}
+      </div>
+      <p className={label}>Role</p>
       {person.isMe ? (
         <p className="text-sm text-muted">You can&apos;t change your own role. Ask a manager.</p>
       ) : person.lastManager && !canResetMfa ? (
@@ -145,6 +153,7 @@ export function PersonEditor({
           </Button>
         </form>
       )}
+      <p className={label}>Sign-in and account</p>
       <div className="flex flex-wrap gap-2">
         {!person.joined && person.active ? (
           <form action={inviteAction}>
@@ -260,6 +269,49 @@ function ConditionalRoleForm({
       <Button className="self-start" disabled={pending}>
         {pending ? "Saving…" : isManager ? "Give conditional role" : "Send to a manager for approval"}
       </Button>
+    </form>
+  );
+}
+
+function NameForm({ person }: { person: PersonRow }) {
+  const [state, action, pending] = useActionState(renamePerson, null);
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="id" value={person.id} />
+      <label htmlFor={`name-${person.id}`} className="text-xs font-semibold tracking-wide text-muted uppercase">
+        Name
+      </label>
+      <div className="flex gap-2">
+        <input id={`name-${person.id}`} name="full_name" defaultValue={person.full_name} maxLength={120} className={`${inputClass} min-w-0 flex-1`} />
+        <Button size="sm" variant="outline" disabled={pending} className="h-11">
+          {pending ? "Saving…" : "Save"}
+        </Button>
+      </div>
+      <Result state={state} />
+    </form>
+  );
+}
+
+function TeamsForm({ person, teams }: { person: PersonRow; teams: Team[] }) {
+  const [state, action, pending] = useActionState(setPersonTeams, null);
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="id" value={person.id} />
+      <p className="text-xs font-semibold tracking-wide text-muted uppercase">Teams</p>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {teams.map((t) => (
+          <label key={t.id} className="flex min-h-9 items-center gap-2 text-sm">
+            <input type="checkbox" name="teams" value={t.id} defaultChecked={person.teamIds.includes(t.id)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+            {t.name}
+          </label>
+        ))}
+      </div>
+      <div>
+        <Button size="sm" variant="outline" disabled={pending}>
+          {pending ? "Saving…" : "Save teams"}
+        </Button>
+      </div>
+      <Result state={state} />
     </form>
   );
 }

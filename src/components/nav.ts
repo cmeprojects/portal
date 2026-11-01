@@ -73,6 +73,8 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
     settings: [
       (role === "manager" || admin) && { href: "/settings/sla", text: "Due dates (SLA)" },
       (admin || settingsAreas.length > 0) && { href: "/system", text: "System settings" },
+      admin && { href: "/system?tab=features", text: "Features" },
+      features.assistant === true && (admin || (access.adminAreas ?? []).includes("website")) && { href: "/assistant", text: "Website settings" },
       (admin || (access.adminAreas ?? []).includes("audit")) && { href: "/system/audit", text: "Change log" },
       admin && { href: "/system/builder", text: "Feature builder" },
       admin && { href: "/system/health", text: "System health" },

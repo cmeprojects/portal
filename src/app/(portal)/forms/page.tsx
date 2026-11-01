@@ -1,7 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +9,7 @@ import { getPeople } from "@/lib/register-data";
 import { getTimeZone } from "@/lib/settings";
 import { env } from "@/lib/env";
 import type { FormInfo } from "@/lib/form-types";
-import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
+import { Card, PageHeader } from "@/components/ui";
 import { LiveRefresh } from "@/components/live-refresh";
 import { FormsList, NewFormForm, type ManagedForm } from "./list";
 
@@ -25,14 +24,12 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
   if (!formsOn(features)) notFound();
   const supabase = await createClient();
   const [canMake, timeZone, people, { open }] = await Promise.all([canMakeForms(), getTimeZone(), getPeople(), searchParams]);
+  // Forms to fill in are in My onboarding; this page is for the people who make them.
   const admin = profile.role === "system_admin";
 
-  const [{ data: forms }, { data: shared }, { data: sentToMe }, { data: myDone }, { data: myDrafts }] = await Promise.all([
+  const [{ data: forms }, { data: shared }] = await Promise.all([
     supabase.from("forms").select("*").order("updated_at", { ascending: false }),
     supabase.from("form_collaborators").select("form_id, user_id"),
-    supabase.from("form_recipients").select("form_id, sent_at").eq("user_id", profile.id),
-    supabase.from("form_completions").select("form_id, done_at").eq("user_id", profile.id),
-    supabase.from("form_responses").select("form_id").eq("user_id", profile.id).eq("status", "draft"),
   ]);
   const all = (forms ?? []) as FormInfo[];
   const sharedWith = (id: string) => (shared ?? []).filter((s) => s.form_id === id).map((s) => s.user_id);
@@ -77,59 +74,13 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
     };
   });
 
-  // Forms sent to me, waiting or done.
-  const doneIds = new Set((myDone ?? []).map((d) => d.form_id));
-  const draftIds = new Set((myDrafts ?? []).map((d) => d.form_id));
-  // To fill in: forms sent to me, forms in Compliance for my role or team, and
-  // open forms not sent to anyone in particular (the database works it out).
-  const { data: fillIds, error: fillError } = await supabase.rpc("my_forms_to_fill");
-  const mine = new Set<string>(fillError ? (sentToMe ?? []).map((s) => s.form_id) : ((fillIds ?? []) as string[]));
-  const toFill = all
-    .filter((f) => f.status === "published" && f.enabled && mine.has(f.id))
-    .filter((f) => !doneIds.has(f.id) || f.repeatable);
-  const filled = all.filter((f) => doneIds.has(f.id) && !f.repeatable);
+  // Nothing to manage here: their forms are in My onboarding.
+  if (!canMake && !rows.length) redirect("/onboarding");
 
   return (
     <>
       <LiveRefresh tables={["forms", "form_completions", "form_responses"]} />
-      <PageHeader title="Forms" intro={canMake ? "Forms sent to you, and the forms you make and send." : "Forms sent to you to fill in."} />
-
-      <section className="flex flex-col gap-2">
-        <h2 className="heading-sm">To fill in</h2>
-        {toFill.length === 0 ? (
-          <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">Nothing to fill in right now.</p>
-        ) : (
-          <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
-            {toFill.map((f) => (
-              <li key={f.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <span className="min-w-48 flex-1">
-                  <span className="block font-semibold">{f.title}</span>
-                  <span className="block text-xs text-muted">
-                    From {nameOf.get(f.created_by) ?? "the office"}
-                    {f.due_date ? ` · due ${day.format(new Date(`${f.due_date}T12:00:00Z`))}` : ""}
-                  </span>
-                </span>
-                {draftIds.has(f.id) ? <Badge tone="warn">Started</Badge> : null}
-                <Link href={`/forms/${f.id}`} className={buttonClass("primary")}>
-                  {draftIds.has(f.id) ? "Carry on" : "Fill it in"}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        {filled.length ? (
-          <details className="text-sm">
-            <summary className="cursor-pointer text-muted">Done · {filled.length}</summary>
-            <ul className="mt-2 flex flex-col gap-1 pl-4">
-              {filled.map((f) => (
-                <li key={f.id}>
-                  {f.title} <span className="text-muted">· done {day.format(new Date((myDone ?? []).find((d) => d.form_id === f.id)!.done_at))}</span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        ) : null}
-      </section>
+      <PageHeader title="Forms" intro="The forms you make and send. Forms for you to fill in are in My onboarding." />
 
       {canMake || rows.length ? (
         <section className="flex flex-col gap-3">

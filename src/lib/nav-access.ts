@@ -40,8 +40,8 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     adminAreas,
     customFeatures,
     featureReports,
-    // Forms: for those who make forms, or have one waiting (others find theirs in My onboarding).
-    forms: features.forms === true && role !== "new_starter" && (await formsInMenu()),
+    // Forms: for those who make forms (everyone else answers theirs in My onboarding).
+    forms: features.forms === true && role !== "new_starter" && (await canMakeForms()),
     // The website's Assistant is for every staff member; enquiries for those the system admin chose.
     assistant: features.assistant === true && role !== "new_starter",
     enquiries: features.assistant === true && (await canSeeEnquiries()),
@@ -49,13 +49,6 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     appsLabel: hasApps ? `${initialsOf(brand.companyName) || "Our"} Apps` : undefined,
   };
 });
-
-// Forms in the menu: makers always; others only while a form is waiting for them.
-async function formsInMenu(): Promise<boolean> {
-  if (await canMakeForms()) return true;
-  const { data, error } = await (await createClient()).rpc("my_forms_to_fill");
-  return !error && Array.isArray(data) && data.length > 0;
-}
 
 // Who sees website enquiries is set by the system admin (managers by default).
 async function canSeeEnquiries(): Promise<boolean> {

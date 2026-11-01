@@ -195,3 +195,23 @@ body {
 }
 .ask-rise { animation: ask-rise 0.45s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .ask-rise { animation: none; } }
+
+/* cmeprojects: the public website is always light, whatever the device or
+   the portal's theme choice (same colours as the portal's light mode). */
+.ask-light {
+  --bg: #e8edf4;
+  --surface: #ffffff;
+  --line: #d3dbe6;
+  --line-strong: #b4c0d0;
+  --fg: #141a24;
+  --muted: #5a6478;
+  --accent: var(--brand-primary);
+  --accent-fg: #ffffff;
+  --accent-soft: color-mix(in srgb, var(--brand-primary) 9%, #ffffff);
+  --side-bg: var(--brand-dark);
+  --side-fg: #f2f5fa;
+  --side-muted: #b3c0d3;
+  --side-hover: color-mix(in srgb, white 9%, var(--brand-dark));
+  --side-active: color-mix(in srgb, white 17%, var(--brand-dark));
+  color-scheme: light;
+}

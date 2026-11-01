@@ -117,10 +117,13 @@ export async function proxy(request: NextRequest) {
 
   if (!signedIn && !isPublic) {
     const url = request.nextUrl.clone();
-    // The website can be the front page (Website settings): visitors land there.
+    // The website can be the front page (Website settings): visitors see it at
+    // the main address (engagedcare.com.au/), staff sign in from there.
     if (path === "/" && (await websiteIsFrontPage(supabase))) {
       url.pathname = "/ask";
-      return NextResponse.redirect(url);
+      const out = NextResponse.rewrite(url);
+      response.cookies.getAll().forEach((c) => out.cookies.set(c));
+      return out;
     }
     url.pathname = "/login";
     url.search = path === "/" ? "" : `?next=${encodeURIComponent(path)}`;

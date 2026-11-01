@@ -170,6 +170,7 @@ export default async function StaffPage() {
             joined: joined ? joined.has(p.id) : true,
             isMe: p.id === me.id,
             editable: roles.includes(p.role as Role) || p.id === me.id,
+            teamIds: (memberships ?? []).filter((m) => m.user_id === p.id).map((m) => m.team_id),
           };
           const status = !p.active ? "Deactivated" : row.joined ? "Active" : "Invite sent";
           return (

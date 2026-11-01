@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { EMAIL, text } from "@/lib/form";
@@ -39,6 +40,12 @@ export async function askQuestion(question: string, chatId: string | null, histo
   }
   if (id) await supabase.from("assistant_messages").insert({ chat_id: id, question: q, answer: answer.text, sources: answer.sources, answered: answer.answered });
   return { answer, chatId: id };
+}
+
+// Signing out from the website keeps them on the website.
+export async function signOutWebsite() {
+  await (await createClient()).auth.signOut();
+  redirect("/ask");
 }
 
 export async function deleteChat(chatId: string): Promise<void> {

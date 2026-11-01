@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import Link from "next/link";
 import { getBranding } from "@/lib/branding";
-import { assistantOn, getVisitor, loadSettings } from "@/lib/assistant";
+import { assistantOn, getVisitor, getWebsiteLook, loadSettings } from "@/lib/assistant";
 import { createClient } from "@/lib/supabase/server";
 import type { Source } from "@/lib/assistant-shared";
 import { Chat, type ChatTurn } from "./chat";
@@ -12,13 +12,14 @@ import { SiteHeader } from "./site-header";
 export default async function AskPage({ searchParams }: PageProps<"/ask">) {
   const [brand, on, visitor, query] = await Promise.all([getBranding(), assistantOn(), getVisitor(), searchParams]);
   const me = visitor.userId ? { name: visitor.name, position: visitor.position } : null;
+  const look = await getWebsiteLook(brand.logoUrl);
   if (!on) {
     return (
       <>
-        <SiteHeader logoUrl={brand.logoUrl} companyName={brand.companyName} visitor={me} />
+        <SiteHeader logoUrl={look.logoUrl} companyName={brand.companyName} signedIn={Boolean(me)} />
         <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-3 px-4 py-16 text-center">
-          <h1 className="heading">Our website is coming soon</h1>
-          <p className="text-muted">In the meantime, please call us, or sign in if you&apos;re part of the team.</p>
+          <h1 className="heading">{look.closedTitle}</h1>
+          <p className="whitespace-pre-line text-muted">{look.closedText}</p>
           {me ? null : (
             <Link href="/login" className="mx-auto text-brand underline">
               Sign in
@@ -47,7 +48,7 @@ export default async function AskPage({ searchParams }: PageProps<"/ask">) {
   return (
     <Chat
       key={chatId ?? "new"}
-      brand={{ logoUrl: brand.logoUrl, companyName: brand.companyName }}
+      brand={{ logoUrl: look.logoUrl, companyName: brand.companyName }}
       visitor={me}
       heading={s.heading}
       intro={s.intro}

@@ -7,7 +7,8 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { canManageCompliance, getPeopleRules, seesCompliance } from "@/lib/settings";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
-import { ITEM_COLUMNS, KIND_TAB, isDone, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
+import { ITEM_COLUMNS, KIND_TAB, isDone, stateBadges, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
+import { formatDate } from "@/lib/registers";
 import { Badge, Card, PageHeader, Tabs } from "@/components/ui";
 import { ItemForm } from "./forms";
 
@@ -91,27 +92,52 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
               const flags = r.status.filter((s) => ["expired", "expiring", "rejected", "submitted"].includes(s.state));
               return (
                 <li key={r.id}>
-                  <Link href={`/compliance/people/${r.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-page">
-                    <span className="min-w-48 flex-1">
-                      <span className="block font-semibold">{r.full_name || r.email}</span>
-                      <span className="block text-sm text-muted">
-                        {ROLE_LABELS[r.role]}
-                        {r.joined_at ? "" : " · hasn't joined yet"}
+                  {/* Opens in place; the full page is still there for files and checking. */}
+                  <details className="group">
+                    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-page [&::-webkit-details-marker]:hidden">
+                      <span className="min-w-48 flex-1">
+                        <span className="block font-semibold">{r.full_name || r.email}</span>
+                        <span className="block text-sm text-muted">
+                          {ROLE_LABELS[r.role]}
+                          {r.joined_at ? "" : " · hasn't joined yet"}
+                        </span>
                       </span>
-                    </span>
-                    <span className="flex flex-wrap gap-1.5">
-                      {flags.some((s) => s.state === "submitted") ? <Badge tone="soft">To check</Badge> : null}
-                      {flags.some((s) => s.state === "expired") ? <Badge tone="warn">Expired</Badge> : null}
-                      {flags.some((s) => s.state === "expiring") ? <Badge tone="warn">Expiring</Badge> : null}
-                      {flags.some((s) => s.state === "rejected") ? <Badge tone="warn">Sent back</Badge> : null}
-                    </span>
-                    <span className="flex w-40 items-center gap-2">
-                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-page">
-                        <span className="block h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+                      <span className="flex flex-wrap gap-1.5">
+                        {flags.some((s) => s.state === "submitted") ? <Badge tone="soft">To check</Badge> : null}
+                        {flags.some((s) => s.state === "expired") ? <Badge tone="warn">Expired</Badge> : null}
+                        {flags.some((s) => s.state === "expiring") ? <Badge tone="warn">Expiring</Badge> : null}
+                        {flags.some((s) => s.state === "rejected") ? <Badge tone="warn">Sent back</Badge> : null}
                       </span>
-                      <span className="w-12 text-right text-sm tabular-nums">{r.total ? `${r.done}/${r.total}` : "—"}</span>
-                    </span>
-                  </Link>
+                      <span className="flex w-40 items-center gap-2">
+                        <span className="h-2 flex-1 overflow-hidden rounded-full bg-page">
+                          <span className="block h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+                        </span>
+                        <span className="w-12 text-right text-sm tabular-nums">{r.total ? `${r.done}/${r.total}` : "—"}</span>
+                      </span>
+                    </summary>
+                    <div className="border-t border-brand/30 bg-brand-soft px-5 py-4 text-ink">
+                      {r.status.length === 0 ? (
+                        <p className="text-sm">Nothing applies to them yet.</p>
+                      ) : (
+                        <ul className="grid gap-2 sm:grid-cols-2">
+                          {r.status.map((st) => (
+                            <li key={st.item_id} className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm">
+                              <span className="min-w-32 flex-1 font-medium">{st.title}</span>
+                              {st.expires_on ? <span className="text-xs">Expires {formatDate(st.expires_on)}</span> : null}
+                              {stateBadges(st.state).map((b) => (
+                                <Badge key={b.label} tone={b.tone}>
+                                  {b.label}
+                                </Badge>
+                              ))}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <Link href={`/compliance/people/${r.id}`} className="mt-3 inline-block text-sm font-semibold text-brand underline">
+                        Files, checking and uploads
+                      </Link>
+                    </div>
+                  </details>
                 </li>
               );
             })}

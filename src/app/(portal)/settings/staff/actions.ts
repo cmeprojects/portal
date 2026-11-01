@@ -220,3 +220,50 @@ export async function giveConditionalRole(_: FormState, form: FormData): Promise
       : "Done. They have the role. Nothing is left to do for that role, so there's no onboarding task.",
   };
 }
+
+// Change someone's name (people managers; only a system admin renames a system admin).
+export async function renamePerson(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(PEOPLE_MANAGERS);
+  const id = text(form, "id");
+  const name = text(form, "full_name").slice(0, 120);
+  if (name.length < 2) return { error: "Type their full name." };
+  const { data, error } = await (await createClient()).from("profiles").update({ full_name: name }).eq("id", id).select("id");
+  if (error) return { error: friendlyError(error) };
+  if (!data?.length) return { error: "You don't have permission to change this person." };
+  revalidatePath(PAGE);
+  return { message: "Name saved." };
+}
+
+// Which teams someone is in, from their own row on the Staff page. Each team
+// that changes is saved as it would be on the Teams page (a staff admin's
+// change goes to a manager when the rules say so).
+export async function setPersonTeams(_: FormState, form: FormData): Promise<FormState> {
+  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const id = text(form, "id");
+  const wanted = new Set(form.getAll("teams").map(String));
+  const supabase = await createClient();
+  const [{ data: teams }, { data: members }, { data: leaders }] = await Promise.all([
+    supabase.from("teams").select("id").eq("active", true).eq("is_core", false),
+    supabase.from("team_members").select("team_id, user_id"),
+    supabase.from("team_leaders").select("team_id, user_id"),
+  ]);
+  const ask = me.role === "staff_admin" && (await getPeopleRules()).staffAdminTeamApproval;
+  let changed = 0;
+  for (const t of teams ?? []) {
+    const now = (members ?? []).filter((m) => m.team_id === t.id).map((m) => m.user_id);
+    const isIn = now.includes(id);
+    if (isIn === wanted.has(t.id)) continue;
+    const next = isIn ? now.filter((u) => u !== id) : [...now, id];
+    const leader = (leaders ?? []).find((l) => l.team_id === t.id)?.user_id ?? null;
+    const keepLeader = leader && next.includes(leader) ? leader : null;
+    const { error } = ask
+      ? await supabase.rpc("request_team_change", { p_team_id: t.id, p_members: next.sort(), p_leader: keepLeader, p_reason: "" })
+      : await supabase.rpc("set_team", { p_team_id: t.id, p_members: next.sort(), p_leader: keepLeader });
+    if (error) return { error: friendlyError(error) };
+    changed++;
+  }
+  revalidatePath(PAGE);
+  revalidatePath("/settings/teams");
+  if (!changed) return { message: "Nothing has changed." };
+  return { message: ask ? "Sent to a manager to approve." : "Teams saved." };
+}

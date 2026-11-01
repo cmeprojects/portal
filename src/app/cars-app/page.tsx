@@ -19,8 +19,8 @@ export default async function CarsAppHome({ searchParams }: PageProps<"/cars-app
     );
   }
   // First time on this phone: choose a PIN.
-  if (!(await hasPin(profile.id))) redirect("/cars-app/unlock");
-  const [rules, timeZone, data, params] = await Promise.all([getCarRules(), getTimeZone(), loadCarScreen(profile.id), searchParams]);
+  const [pinSet, rules, timeZone, data, params] = await Promise.all([hasPin(profile.id), getCarRules(), getTimeZone(), loadCarScreen(profile.id), searchParams]);
+  if (!pinSet) redirect("/cars-app/unlock");
 
   return (
     <>

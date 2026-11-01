@@ -62,6 +62,7 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
           initialRegistryId={typeof register === "string" ? register : undefined}
           sla={sla.days}
           weekdaysOnly={sla.weekdaysOnly}
+          askChoice={limited}
         />
       </Card>
     </>

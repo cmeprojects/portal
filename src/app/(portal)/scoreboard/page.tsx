@@ -27,7 +27,19 @@ type Row = {
   onboarding_missing: number;
 };
 
-const PERIODS = [30, 90] as const;
+// Weekly, the last 30 or 90 days, or the year so far.
+const PERIODS = [
+  { key: "7", text: "This week" },
+  { key: "30", text: "Last 30 days" },
+  { key: "90", text: "Last 90 days" },
+  { key: "ytd", text: "Year to date" },
+] as const;
+
+function daysFor(key: string): number {
+  if (key !== "ytd") return Number(key);
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+  return Math.max(1, Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${today.slice(0, 4)}-01-01T00:00:00Z`)) / 86_400_000) + 1);
+}
 
 // What needs attention, worst first: overdue, escalated and stuck tasks,
 // then a low on-time rate.
@@ -40,7 +52,8 @@ export default async function ScoreboardPage({ searchParams }: PageProps<"/score
   const { profile: me } = await requireSession();
   if (!canSeeScoreboard(me.role, await getPeopleRules())) redirect("/");
   const params = await searchParams;
-  const days = PERIODS.find((d) => String(d) === params.days) ?? 30;
+  const period = PERIODS.find((d) => d.key === params.days) ?? PERIODS[1];
+  const days = daysFor(period.key);
   const supabase = await createClient();
   const [{ data }, { data: stuckSetting }] = await Promise.all([
     supabase.rpc("staff_scoreboard", { p_days: days }),
@@ -60,14 +73,14 @@ export default async function ScoreboardPage({ searchParams }: PageProps<"/score
         title="Scoreboard"
         intro={`How everyone is going with their tasks, so you can see who might need support. "Stuck" means open with nothing done on it for ${stuckDays} days.${me.role === "team_leader" ? " Showing the team you lead." : ""}`}
       />
-      <Tabs label="Period" items={PERIODS.map((d) => ({ href: `/scoreboard?days=${d}`, text: `Last ${d} days`, current: d === days }))} />
+      <Tabs label="Period" items={PERIODS.map((d) => ({ href: `/scoreboard?days=${d.key}`, text: d.text, current: d.key === period.key }))} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Need attention", n: flagged.length, tone: "text-danger" },
           { label: "Overdue tasks", n: totals.overdue, tone: "text-danger" },
           { label: "Stuck tasks", n: totals.stuck, tone: "text-warn" },
-          { label: `Completed (${days} days)`, n: totals.completed, tone: "text-good" },
+          { label: `Completed (${period.text.toLowerCase()})`, n: totals.completed, tone: "text-good" },
         ].map((s) => (
           <Card key={s.label} className="p-4">
             <p className={`heading ${s.tone}`}>{s.n}</p>

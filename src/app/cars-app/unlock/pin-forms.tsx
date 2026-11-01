@@ -1,7 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { savePin, unlockWithPin } from "../actions";
 
@@ -12,6 +13,9 @@ export function PinPad({ base }: { base: string }) {
   const [state, action, pending] = useActionState(unlockWithPin, null);
   const [pin, setPin] = useState("");
   const form = useRef<HTMLFormElement>(null);
+  // Get the app's home page ready while they type, so it opens quickly after.
+  const router = useRouter();
+  useEffect(() => router.prefetch(base), [router, base]);
 
   function press(k: string) {
     if (pending) return;
@@ -38,7 +42,7 @@ export function PinPad({ base }: { base: string }) {
         ))}
       </div>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-      {pending ? <p className="text-sm text-muted">Checking…</p> : null}
+      {pending ? <p className="text-sm text-muted">Opening…</p> : null}
       <div className="grid grid-cols-3 gap-3">
         {KEYS.map((k, i) =>
           k === "" ? (

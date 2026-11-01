@@ -33,6 +33,11 @@ change. Nothing here deletes your people, tasks, forms or cars.
 - **Code:** branch `restore-update-38` (commit `5430a4d`).
 - **Database:** run `supabase/live-updates/undo-39.sql`.
 
+## Before round 2 (live update 39)
+
+- **Code:** branch `restore-update-39` (commit `2b54d01`).
+- **Database:** run `supabase/live-updates/undo-40.sql`.
+
 ## Habit for every big change
 
 1. Make a branch from `main` named `restore-update-NN` before starting.

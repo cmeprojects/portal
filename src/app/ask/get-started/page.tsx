@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import { getBranding } from "@/lib/branding";
-import { assistantOn, getVisitor, loadSettings } from "@/lib/assistant";
+import { assistantOn, getVisitor, getWebsiteLook, loadSettings } from "@/lib/assistant";
 import { SiteHeader } from "../site-header";
 import { EnquiryForm } from "./enquiry-form";
 
@@ -14,7 +14,7 @@ export default async function GetStartedPage({ searchParams }: PageProps<"/ask/g
   const [on, s, brand, visitor] = await Promise.all([assistantOn(), loadSettings(), getBranding(), getVisitor()]);
   return (
     <>
-    <SiteHeader logoUrl={brand.logoUrl} companyName={brand.companyName} visitor={visitor.userId ? { name: visitor.name, position: visitor.position } : null} />
+    <SiteHeader logoUrl={(await getWebsiteLook(brand.logoUrl)).logoUrl} companyName={brand.companyName} signedIn={Boolean(visitor.userId)} />
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10 sm:py-14">
       <div className="flex flex-col gap-2">
         <h1 className="heading">Let&apos;s get you started</h1>

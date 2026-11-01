@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // cmeprojects: the public website. It uses the portal's own colours and fonts
-// (set in System settings), so it always matches.
+// (set in System settings), always in the light version.
 export default function AskLayout({ children }: LayoutProps<"/ask">) {
-  return <div className="flex min-h-dvh flex-col bg-page text-ink">{children}</div>;
+  return <div className="ask-light flex min-h-dvh flex-col bg-page text-ink">{children}</div>;
 }

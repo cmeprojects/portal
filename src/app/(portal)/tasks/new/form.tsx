@@ -44,6 +44,7 @@ export function NewTaskForm({
   initialRegistryId,
   sla,
   weekdaysOnly,
+  askChoice = false,
 }: {
   registries: Registry[];
   fields: RegistryField[];
@@ -54,6 +55,8 @@ export function NewTaskForm({
   initialRegistryId?: string;
   sla: Sla;
   weekdaysOnly: boolean;
+  // Limited roles choose between a general task and a question.
+  askChoice?: boolean;
 }) {
   const [state, action, pending] = useActionState(createTask, null);
   // System admins can't take tasks, so they start with the first person in the list.
@@ -77,6 +80,21 @@ export function NewTaskForm({
   return (
     <form action={action} className="flex flex-col gap-5">
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {askChoice ? (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-sm font-medium">What is it?</legend>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex min-h-10 items-center gap-2 text-sm">
+              <input type="radio" name="kind" value="question" defaultChecked className="h-5 w-5 accent-[var(--brand-primary)]" />
+              A question (tagged Staff question)
+            </label>
+            <label className="flex min-h-10 items-center gap-2 text-sm">
+              <input type="radio" name="kind" value="task" className="h-5 w-5 accent-[var(--brand-primary)]" />
+              A general task
+            </label>
+          </div>
+        </fieldset>
+      ) : null}
 
       <Field
         label="Register"

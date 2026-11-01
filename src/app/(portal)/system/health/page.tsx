@@ -8,6 +8,8 @@ import { BUCKET_LABELS, LIMITS, bytes, meter, type Plan } from "@/lib/health";
 import { Card, PageHeader } from "@/components/ui";
 import { SectionTabs } from "@/components/section-tabs";
 import { SettingForm, type SettingRow } from "../forms";
+import { assistantUsage } from "@/lib/assistant";
+import { AssistantUsageCard } from "@/components/assistant-usage";
 
 export const metadata: Metadata = { title: "System health" };
 
@@ -94,6 +96,7 @@ export default async function SystemHealthPage() {
     <>
       <SectionTabs section="settings" current="/system/health" />
       <PageHeader title="System health" intro="Is everything working, and how full is it? Only system admins see this page." />
+      {features.assistant ? <AssistantUsageCard u={await assistantUsage()} /> : null}
 
       <Card className="overflow-hidden">
         <h2 className="heading-sm border-b border-line px-5 py-3">Checks</h2>

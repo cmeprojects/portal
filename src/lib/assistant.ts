@@ -186,3 +186,56 @@ const textOf = (res: Anthropic.Messages.Message) =>
     .trim();
 const cost = (u: Anthropic.Messages.Usage, m: { input: number; output: number }) => (u.input_tokens * m.input + u.output_tokens * m.output) / 1_000_000;
 const uniq = (list: Source[]) => list.filter((s, i) => list.findIndex((x) => x.title === s.title && x.url === s.url) === i);
+
+// What the Assistant has cost: this month against the limit, and what's left
+// of the credit bought (an estimate: the real balance is on the Anthropic
+// Console). For Website settings and System health.
+export type AssistantUsage = {
+  monthAud: number;
+  limitAud: number;
+  questionsMonth: number;
+  creditAud: number;
+  creditSince: string | null;
+  leftAud: number | null;
+  aiKey: boolean;
+};
+
+export async function assistantUsage(): Promise<AssistantUsage> {
+  const admin = createAdminClient();
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const [{ data: s }, { data: qs }, { data: docs }] = await Promise.all([
+    admin.from("assistant_settings").select("monthly_limit_aud, credit_aud, credit_since").maybeSingle(),
+    admin.from("assistant_questions").select("cost_usd, created_at").gte("created_at", new Date(Date.now() - 400 * 86_400_000).toISOString()).limit(100000),
+    admin.from("assistant_documents").select("read_cost_usd, created_at"),
+  ]);
+  const rows = [
+    ...(qs ?? []).map((q) => ({ usd: Number(q.cost_usd), at: q.created_at as string })),
+    ...(docs ?? []).map((d) => ({ usd: Number(d.read_cost_usd ?? 0), at: d.created_at as string })),
+  ];
+  const spent = (from: string) => rows.filter((r) => r.at >= from).reduce((n, r) => n + r.usd, 0) * AUD_PER_USD;
+  const creditAud = Number(s?.credit_aud ?? 0);
+  const creditSince = (s?.credit_since as string | null) ?? null;
+  return {
+    monthAud: spent(monthStart),
+    limitAud: Number(s?.monthly_limit_aud ?? 0),
+    questionsMonth: (qs ?? []).filter((q) => q.created_at >= monthStart).length,
+    creditAud,
+    creditSince,
+    leftAud: creditAud > 0 ? Math.max(0, creditAud - spent(creditSince ? `${creditSince}T00:00:00` : "1970-01-01")) : null,
+    aiKey: Boolean(process.env.ANTHROPIC_API_KEY),
+  };
+}
+
+// The website's own logo (blank = the portal's) and its "switched off" words.
+export async function getWebsiteLook(portalLogo: string): Promise<{ logoUrl: string; closedTitle: string; closedText: string }> {
+  const { data } = await createAdminClient().from("app_settings").select("key, value").like("key", "website.%");
+  const get = (k: string) => {
+    const v = (data ?? []).find((r) => r.key === k)?.value;
+    return typeof v === "string" ? v.trim() : "";
+  };
+  return {
+    logoUrl: get("website.logo_url") || portalLogo,
+    closedTitle: get("website.closed_title") || "Our website is coming soon",
+    closedText: get("website.closed_text") || "In the meantime, please call us, or sign in if you're part of the team.",
+  };
+}

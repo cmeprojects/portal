@@ -2,7 +2,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import { text, type FormState } from "@/lib/form";
@@ -14,49 +15,71 @@ import { readScanned } from "@/lib/assistant";
 
 const refresh = () => revalidatePath("/assistant");
 
+// Website settings are saved one part at a time, so each person only changes
+// what they may: the system admin everything, a manager given "Website"
+// only where it looks for answers.
+type Part = "landing" | "answers" | "limits";
+
+async function canManageWebsite(): Promise<{ admin: boolean; ok: boolean }> {
+  const { profile } = await requireSession();
+  const admin = profile.role === "system_admin";
+  return { admin, ok: admin || (await getMyAdminAreas(profile.role)).includes("website") };
+}
+
 export async function saveAssistantSettings(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(["system_admin"]);
-  const limit = Number(text(form, "monthly_limit_aud"));
-  const hourly = Math.round(Number(text(form, "hourly_limit")));
-  if (!(limit >= 0 && limit <= 100000)) return { error: "The monthly limit should be a dollar amount, like 50." };
-  if (!(hourly >= 1 && hourly <= 500)) return { error: "Questions per hour should be between 1 and 500." };
-  const model = text(form, "model") === "sonnet" ? "sonnet" : "haiku";
-  const heading = text(form, "heading").slice(0, 120);
-  if (!heading) return { error: "The heading can't be empty." };
-  const scope = (name: string) => (["documents", "web", "both"].includes(text(form, name)) ? text(form, name) : "documents");
+  const part = text(form, "part") as Part;
+  const who = await canManageWebsite();
+  if (!who.ok || (part !== "answers" && !who.admin)) return { error: "Only the system admin can change this part." };
   const lines = (name: string, max: number, len: number) =>
     text(form, name)
       .split(/\n+/)
       .map((l) => l.trim().slice(0, len))
       .filter(Boolean)
       .slice(0, max);
-  // Websites: just the address, like ndis.gov.au.
-  const sites = lines("trusted_sites", 30, 100)
-    .map((l) => l.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase())
-    .filter((l) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(l));
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("assistant_settings")
-    .update({
-      model,
+  let row: Record<string, unknown>;
+  if (part === "landing") {
+    const heading = text(form, "heading").slice(0, 120);
+    if (!heading) return { error: "The heading can't be empty." };
+    row = {
       heading,
       intro: text(form, "intro").slice(0, 400),
-      disclaimer: text(form, "disclaimer").slice(0, 300),
-      fallback: text(form, "fallback").slice(0, 400),
-      phone: text(form, "phone").slice(0, 40),
-      offer_call: form.get("offer_call") === "on",
-      log_questions: form.get("log_questions") === "on",
-      show_credits: form.get("show_credits") === "on",
       suggestions: lines("suggestions", 8, 80),
+      phone: text(form, "phone").slice(0, 40),
+      disclaimer: text(form, "disclaimer").slice(0, 300),
+      show_credits: form.get("show_credits") === "on",
+      offer_call: form.get("offer_call") === "on",
+    };
+  } else if (part === "answers") {
+    const scope = (name: string) => (["documents", "web", "both"].includes(text(form, name)) ? text(form, name) : "documents");
+    // Websites: just the address, like ndis.gov.au.
+    const sites = lines("trusted_sites", 30, 100)
+      .map((l) => l.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase())
+      .filter((l) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(l));
+    row = {
       scope_public: scope("scope_public"),
       scope_staff: scope("scope_staff"),
       scope_managers: scope("scope_managers"),
       trusted_sites: [...new Set(sites)],
+      fallback: text(form, "fallback").slice(0, 400),
+    };
+  } else if (part === "limits") {
+    const limit = Number(text(form, "monthly_limit_aud"));
+    const hourly = Math.round(Number(text(form, "hourly_limit")));
+    const credit = Number(text(form, "credit_aud") || 0);
+    if (!(limit >= 0 && limit <= 100000)) return { error: "The monthly limit should be a dollar amount, like 50." };
+    if (!(hourly >= 1 && hourly <= 500)) return { error: "Questions per hour should be between 1 and 500." };
+    if (!(credit >= 0 && credit <= 100000)) return { error: "The credit should be a dollar amount, like 20." };
+    const since = text(form, "credit_since");
+    row = {
+      model: text(form, "model") === "sonnet" ? "sonnet" : "haiku",
       monthly_limit_aud: limit,
       hourly_limit: hourly,
-    })
-    .eq("id", true);
-  if (!error) await supabase.from("app_settings").update({ value: form.get("front_page") === "on" }).eq("key", "website.front_page");
+      credit_aud: credit,
+      credit_since: /^\d{4}-\d{2}-\d{2}$/.test(since) ? since : null,
+      log_questions: form.get("log_questions") === "on",
+    };
+  } else return { error: "Something went wrong. Please refresh and try again." };
+  const { error } = await (await createClient()).from("assistant_settings").update(row).eq("id", true);
   if (error) return { error: friendlyError(error) };
   refresh();
   return { message: "Saved." };
@@ -93,7 +116,8 @@ async function readText(file: File): Promise<{ text: string; costUsd: number }> 
 }
 
 export async function addDocument(_: FormState, form: FormData): Promise<FormState> {
-  const { profile } = await requireRole(["system_admin"]);
+  const { profile } = await requireSession();
+  if (!(await canManageWebsite()).ok) return { error: "Only the system admin (or a manager given Website) can add documents." };
   const file = form.get("file");
   let body = text(form, "body");
   let title = text(form, "title").slice(0, 200);
@@ -126,7 +150,7 @@ export async function addDocument(_: FormState, form: FormData): Promise<FormSta
 }
 
 export async function setDocumentAudience(form: FormData) {
-  await requireRole(["system_admin"]);
+  if (!(await canManageWebsite()).ok) return;
   const audience = text(form, "audience");
   if (!AUDIENCES.includes(audience as (typeof AUDIENCES)[number])) return;
   await (await createClient()).from("assistant_documents").update({ audience }).eq("id", text(form, "id"));
@@ -134,7 +158,7 @@ export async function setDocumentAudience(form: FormData) {
 }
 
 export async function deleteDocument(form: FormData) {
-  await requireRole(["system_admin"]);
+  if (!(await canManageWebsite()).ok) return;
   await (await createClient()).from("assistant_documents").delete().eq("id", text(form, "id"));
   refresh();
 }

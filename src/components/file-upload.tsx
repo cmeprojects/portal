@@ -81,7 +81,12 @@ export function FileUpload({
       return;
     }
     const path = `${folder}/${Date.now()}-${safeFileName(file.name)}`;
-    const { error } = await createClient().storage.from(bucket).upload(path, file, { contentType: file.type || undefined });
+    // After a long pause the sign-in may need refreshing: a quick visit to the
+    // server does that (the browser doesn't refresh it itself).
+    const supabase = createClient();
+    const { data: s } = await supabase.auth.getSession();
+    if (!s.session || (s.session.expires_at ?? 0) * 1000 < Date.now() + 60_000) await fetch("/health", { cache: "no-store" }).catch(() => undefined);
+    const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type || undefined });
     if (error) {
       setStatus("error");
       setMessage("The upload didn't work. Check your connection and try again.");

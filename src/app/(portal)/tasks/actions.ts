@@ -28,7 +28,9 @@ async function fieldsOf(registryId: string): Promise<RegistryField[]> {
 
 export async function createTask(_: FormState, form: FormData): Promise<FormState> {
   const { profile } = await requireTaskAccess();
-  const title = text(form, "title");
+  // A question from staff is tagged so it stands out in the lists.
+  const asked = text(form, "title");
+  const title = text(form, "kind") === "question" && asked && !asked.startsWith("Staff question") ? `Staff question: ${asked}`.slice(0, 200) : asked;
   const registryId = text(form, "registry_id");
   const assignedTo = text(form, "assigned_to");
   const priority = text(form, "priority");

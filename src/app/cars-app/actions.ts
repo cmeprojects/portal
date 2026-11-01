@@ -39,11 +39,11 @@ async function unlockedNow(userId: string): Promise<boolean> {
   return Date.now() - at < UNLOCK_MINUTES * 60_000;
 }
 
-async function openApp(userId: string) {
+async function openApp(userId: string, appDays?: number) {
   const jar = await cookies();
   const secure = process.env.NODE_ENV === "production";
   jar.set(UNLOCK_COOKIE, await unlockValue(userId), { path: "/", httpOnly: true, sameSite: "lax", secure });
-  jar.set(APP_DAYS_COOKIE, String((await getCarRules()).appDays), { path: "/", maxAge: 31536000, sameSite: "lax", secure });
+  jar.set(APP_DAYS_COOKIE, String(appDays ?? (await getCarRules()).appDays), { path: "/", maxAge: 31536000, sameSite: "lax", secure });
   jar.delete(LOCKED_COOKIE);
 }
 
@@ -73,11 +73,10 @@ export async function unlockWithPin(_: FormState, form: FormData): Promise<FormS
   const APP_PATH = asAppPath(form.get("base"));
   const pin = text(form, "pin");
   const admin = createAdminClient();
-  const { data: row } = await admin.from("car_app_pins").select("pin_hash, failed").eq("user_id", profile.id).maybeSingle();
+  const [{ data: row }, rules] = await Promise.all([admin.from("car_app_pins").select("pin_hash, failed").eq("user_id", profile.id).maybeSingle(), getCarRules()]);
   if (!row) redirect(`${APP_PATH}/unlock`);
   if (validPin(pin) && (await pinMatches(pin, row.pin_hash))) {
-    if (row.failed) await admin.from("car_app_pins").update({ failed: 0 }).eq("user_id", profile.id);
-    await openApp(profile.id);
+    await Promise.all([row.failed ? admin.from("car_app_pins").update({ failed: 0 }).eq("user_id", profile.id) : null, openApp(profile.id, rules.appDays)]);
     redirect(`${APP_PATH}?unlocked=1`);
   }
   const failed = row.failed + 1;
