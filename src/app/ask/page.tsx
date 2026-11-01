@@ -7,6 +7,9 @@ import type { Source } from "@/lib/assistant-shared";
 import { Chat, type ChatTurn } from "./chat";
 import { SiteHeader } from "./site-header";
 
+// Answers (with an AI or web search) can take a few seconds: allow up to a minute.
+export const maxDuration = 60;
+
 // cmeprojects: the website's landing page and chat. Answers come only from
 // the documents (and listed websites) the system admin chose.
 export default async function AskPage({ searchParams }: PageProps<"/ask">) {

@@ -4,7 +4,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button, Card, Field, Notice, inputClass } from "@/components/ui";
-import { NEEDS, submitEnquiry } from "../actions";
+import { submitEnquiry } from "../actions";
+import { NEEDS } from "../options";
 
 const Choice = ({ name, options, first }: { name: string; options: string[]; first?: string }) => (
   <div className="flex flex-wrap gap-2" role="radiogroup">

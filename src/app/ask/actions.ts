@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EMAIL, text } from "@/lib/form";
 import { answerQuestion, assistantOn, getVisitor, loadSettings } from "@/lib/assistant";
 import type { Answer } from "@/lib/assistant-shared";
+import { NEEDS } from "./options";
 
 // The public website's actions: anyone can ask a question or leave their
 // details, so everything is checked and capped here.
@@ -65,7 +66,6 @@ export async function deleteChat(chatId: string): Promise<void> {
   await (await createClient()).from("assistant_chats").delete().eq("id", chatId);
 }
 
-export const NEEDS = ["Daily living support", "Community access", "Supported independent living", "Not sure yet"];
 const SUPPORT_FOR = ["Me", "A family member", "Someone I support (coordinator)", "Other"];
 const PLANS = ["Yes", "Not yet", "Not sure"];
 const MANAGED = ["Self-managed", "Plan-managed", "NDIA-managed", "Don't know"];
