@@ -162,3 +162,25 @@ export async function deleteDocument(form: FormData) {
   await (await createClient()).from("assistant_documents").delete().eq("id", text(form, "id"));
   refresh();
 }
+
+// "Test the AI connection": one tiny request, so the system admin knows the
+// key and credit work before relying on it. Costs a fraction of a cent.
+export async function testAiConnection(): Promise<{ ok: boolean; message: string }> {
+  const who = await canManageWebsite();
+  if (!who.admin) return { ok: false, message: "Only the system admin can run this." };
+  if (!process.env.ANTHROPIC_API_KEY) return { ok: false, message: "No AI key yet. Add ANTHROPIC_API_KEY in Vercel, then redeploy." };
+  const started = Date.now();
+  try {
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const res = await new Anthropic().messages.create({ model: "claude-haiku-5-5", max_tokens: 20, messages: [{ role: "user", content: "Reply with the single word OK." }] });
+    const reply = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
+    return { ok: true, message: `Connected. The AI replied "${reply.slice(0, 20)}" in ${((Date.now() - started) / 1000).toFixed(1)} seconds.` };
+  } catch (e) {
+    const status = (e as { status?: number }).status;
+    const text = e instanceof Error ? e.message : String(e);
+    if (status === 401) return { ok: false, message: "The key wasn't accepted. Copy it again from console.anthropic.com, update it in Vercel and redeploy." };
+    if (status === 400 && /credit|balance/i.test(text)) return { ok: false, message: "The key works but there's no credit. Add credit in console.anthropic.com → Billing." };
+    if (status === 429) return { ok: false, message: "Too many requests right now, or a spending limit was reached in the Anthropic console. Try again in a minute." };
+    return { ok: false, message: `It didn't connect (${status ?? "no response"}): ${text.slice(0, 160)}` };
+  }
+}

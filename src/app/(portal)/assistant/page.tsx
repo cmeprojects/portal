@@ -11,7 +11,7 @@ import { SettingForm, type SettingRow } from "../system/forms";
 import { createClient } from "@/lib/supabase/server";
 import { AUDIENCE_LABELS, AUDIENCES, DEFAULT_SETTINGS, type AssistantSettings } from "@/lib/assistant-shared";
 import { Badge, Button, Card, Notice, PageHeader, inputClass } from "@/components/ui";
-import { AddDocumentForm, AnswersForm, LandingForm, LimitsForm } from "./forms";
+import { AddDocumentForm, AnswersForm, LandingForm, LimitsForm, TestAiButton } from "./forms";
 import { deleteDocument, setDocumentAudience } from "./actions";
 
 export const metadata: Metadata = { title: "Website settings" };
@@ -142,7 +142,8 @@ export default async function AssistantPage() {
       {admin ? (
         <section className="flex flex-col gap-2">
           <h2 className="heading-sm">Model, limits and credit</h2>
-          <Card className="p-4">
+          <Card className="flex flex-col gap-4 p-4">
+            <TestAiButton />
             <LimitsForm s={s} />
           </Card>
         </section>

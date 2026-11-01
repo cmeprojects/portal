@@ -1,10 +1,10 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useTransition, type ReactNode } from "react";
+import { useActionState, useState, useTransition, type ReactNode } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { AUDIENCE_LABELS, AUDIENCES, SCOPE_LABELS, type AssistantSettings, type Scope } from "@/lib/assistant-shared";
-import { addDocument, saveAssistantSettings } from "./actions";
+import { addDocument, saveAssistantSettings, testAiConnection } from "./actions";
 
 const box = "h-5 w-5 shrink-0 accent-[var(--brand-primary)]";
 const tick = (name: string, on: boolean, label: string) => (
@@ -161,5 +161,18 @@ export function AddDocumentForm() {
         {pending ? "Reading it…" : "Add document"}
       </Button>
     </form>
+  );
+}
+
+export function TestAiButton() {
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button type="button" variant="outline" disabled={pending} onClick={() => start(async () => setResult(await testAiConnection()))}>
+        {pending ? "Testing…" : "Test the AI connection"}
+      </Button>
+      {result ? <span role="status" className={`text-sm font-semibold ${result.ok ? "text-good" : "text-danger"}`}>{result.ok ? "✓ " : ""}{result.message}</span> : null}
+    </div>
   );
 }
