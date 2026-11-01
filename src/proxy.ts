@@ -126,7 +126,12 @@ export async function proxy(request: NextRequest) {
       return out;
     }
     url.pathname = "/login";
-    url.search = path === "/" ? "" : `?next=${encodeURIComponent(path)}`;
+    // They had a sign-in on this device that Supabase no longer accepts: say so.
+    const hadSession = request.cookies.getAll().some((c) => c.name.includes("-auth-token"));
+    const params = new URLSearchParams();
+    if (path !== "/") params.set("next", path);
+    if (hadSession) params.set("error", "expired");
+    url.search = params.size ? `?${params}` : "";
     return NextResponse.redirect(url);
   }
 
