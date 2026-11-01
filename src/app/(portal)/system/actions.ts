@@ -42,6 +42,16 @@ function parse(kind: string, form: FormData): { value?: unknown; error?: string 
       return { value: slaFromForm(form, "sla_") };
     case "note":
       return { value: raw.slice(0, 500) };
+    case "dates": {
+      // One per line: YYYY-MM-DD then a name (public holidays).
+      const lines = String(form.get("value") ?? "")
+        .split(/\n+/)
+        .map((l) => l.trim().replace(/\s+/g, " "))
+        .filter(Boolean);
+      const bad = lines.find((l) => !/^\d{4}-\d{2}-\d{2}( .*)?$/.test(l));
+      if (bad) return { error: `Start each line with a date like 2026-12-25: "${bad}"` };
+      return { value: [...new Set(lines)].sort().slice(0, 200) };
+    }
     case "logo": {
       const path = text(form, "logo_path");
       if (!path.startsWith("logo/")) return { error: "Choose an image and wait for it to upload." };

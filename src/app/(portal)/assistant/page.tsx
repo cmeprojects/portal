@@ -34,11 +34,9 @@ export default async function AssistantPage() {
     admin ? assistantUsage() : Promise.resolve(null),
   ]);
   const s = { ...DEFAULT_SETTINGS, ...(settings ?? {}), monthly_limit_aud: Number(settings?.monthly_limit_aud ?? DEFAULT_SETTINGS.monthly_limit_aud) } as AssistantSettings & { credit_aud?: number; credit_since?: string | null };
-  // After saving, the forms start again from what was saved.
-  const version = String(settings?.updated_at ?? "");
   const unanswered = (questions ?? []).filter((q) => !q.answered);
   const log = [...unanswered, ...(questions ?? []).filter((q) => q.answered)].slice(0, 30);
-  const order = ["website.front_page", "website.logo_url", "website.closed_title", "website.closed_text", "assistant.enquiry_roles"];
+  const order = ["website.front_page", "website.logo_url", "website.closed_title", "website.closed_text", "assistant.enquiry_roles", "assistant.intake_roles"];
   const rows = ((siteRows ?? []) as SettingRow[]).sort((x, y) => order.indexOf(x.key) - order.indexOf(y.key));
 
   return (
@@ -72,7 +70,7 @@ export default async function AssistantPage() {
         <section className="flex flex-col gap-2">
           <h2 className="heading-sm">Landing page</h2>
           <Card className="p-4">
-            <LandingForm key={version} s={s} />
+            <LandingForm s={s} />
           </Card>
         </section>
       ) : null}
@@ -80,7 +78,7 @@ export default async function AssistantPage() {
       <section className="flex flex-col gap-2">
         <h2 className="heading-sm">Where it looks for answers</h2>
         <Card className="p-4">
-          <AnswersForm key={version} s={s} aiReady={Boolean(process.env.ANTHROPIC_API_KEY)} />
+          <AnswersForm s={s} aiReady={Boolean(process.env.ANTHROPIC_API_KEY)} />
         </Card>
       </section>
 
@@ -134,7 +132,7 @@ export default async function AssistantPage() {
         <section className="flex flex-col gap-2">
           <h2 className="heading-sm">Model, limits and credit</h2>
           <Card className="p-4">
-            <LimitsForm key={version} s={s} />
+            <LimitsForm s={s} />
           </Card>
         </section>
       ) : null}

@@ -90,13 +90,14 @@ export type SettingRow = { key: string; label: string; description: string | nul
 // Text that can be left blank (to hide it).
 const OPTIONAL_TEXT = ["brand.support_contact", "brand.announcement", "people.invite_message", "website.closed_text"];
 
-export function kindOf(key: string): "color" | "number" | "roles" | "people" | "text" | "sla" | "yesno" | "choice" | "logo" | "note" {
+export function kindOf(key: string): "color" | "number" | "roles" | "people" | "text" | "sla" | "yesno" | "choice" | "logo" | "note" | "dates" {
+  if (key === "tasks.public_holidays") return "dates";
   if (key === "tasks.sla_days") return "sla";
   if (key === "vehicles.weekly_recipients") return "people";
   if (key === "brand.logo_url" || key === "brand.logo_mark_url" || key === "website.logo_url") return "logo";
   if (OPTIONAL_TEXT.includes(key)) return "note";
   if (key in CHOICES) return "choice";
-  if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "tasks.registers_roles", "people.access_reset_roles", "vehicles.manager_roles", "vehicles.report_roles", "forms.maker_roles", "assistant.enquiry_roles", "tasks.limited_roles"].includes(key)) return "roles";
+  if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "tasks.registers_roles", "people.access_reset_roles", "vehicles.manager_roles", "vehicles.report_roles", "forms.maker_roles", "assistant.enquiry_roles", "assistant.intake_roles", "tasks.limited_roles"].includes(key)) return "roles";
   if (key.endsWith("_days") || key.endsWith("_years") || key.endsWith("_minutes") || key.endsWith("_hour")) return "number";
   if (key === "tasks.sla_weekdays_only" || key === "tasks.sla_manager_summary" || key.startsWith("people.")) return "yesno";
   if (key === "staff_app.cars" || key === "vehicles.separate_app" || key === "website.front_page") return "yesno";
@@ -187,6 +188,15 @@ export function SettingForm({ setting, people = [] }: { setting: SettingRow; peo
               </p>
             </div>
           </div>
+        ) : kind === "dates" ? (
+          <textarea
+            id={id}
+            name="value"
+            rows={8}
+            defaultValue={Array.isArray(setting.value) ? (setting.value as string[]).join("\n") : ""}
+            placeholder="2026-12-25 Christmas Day"
+            className={`${inputClass} max-w-xl min-h-40 py-3 font-mono text-sm`}
+          />
         ) : kind === "note" ? (
           <textarea id={id} name="value" rows={2} defaultValue={String(setting.value ?? "")} className={`${inputClass} max-w-xl min-h-20 py-3`} />
         ) : kind === "color" ? (

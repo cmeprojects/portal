@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, type ReactNode } from "react";
+import { useActionState, useTransition, type ReactNode } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { AUDIENCE_LABELS, AUDIENCES, SCOPE_LABELS, type AssistantSettings, type Scope } from "@/lib/assistant-shared";
 import { addDocument, saveAssistantSettings } from "./actions";
@@ -17,18 +17,32 @@ const area = (name: string, value: string, rows = 2, max?: number) => (
   <textarea id={name} name={name} defaultValue={value} rows={rows} maxLength={max} className={`${inputClass} min-h-20 py-3`} />
 );
 
-// One part of Website settings; each saves only its own fields.
+// One part of Website settings; each saves only its own fields. It's sent
+// without the browser's automatic form reset, so what you saved stays on
+// screen with a clear "Saved" next to the button.
 function PartForm({ part, children }: { part: "landing" | "answers" | "limits"; children: ReactNode }) {
   const [state, action, pending] = useActionState(saveAssistantSettings, null);
+  const [, start] = useTransition();
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        start(() => action(data));
+      }}
+      className="flex flex-col gap-4"
+    >
       <input type="hidden" name="part" value={part} />
       {children}
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-      {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
-      <Button disabled={pending} className="self-start">
-        {pending ? "Saving…" : "Save"}
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+        {state?.message && !pending ? (
+          <span role="status" className="text-sm font-semibold text-good">
+            ✓ {state.message}
+          </span>
+        ) : null}
+      </div>
     </form>
   );
 }
@@ -135,7 +149,7 @@ export function AddDocumentForm() {
           </select>
         </Field>
       </div>
-      <Field label="File" htmlFor="file" hint="PDF, Word (.docx), text or a photo of a page, up to 10 MB. Scanned pages are read by the AI.">
+      <Field label="File" htmlFor="file" hint="Word (.docx), text files and normal PDFs are read for free. Scanned PDFs and photos are read by the AI, which uses a little credit, so a Word copy is cheaper when you have one. Up to 10 MB.">
         <input id="file" name="file" type="file" accept=".pdf,.docx,.txt,.md,.jpg,.jpeg,.png,.webp" className={`${inputClass} h-auto py-2`} />
       </Field>
       <Field label="Or paste the words" htmlFor="body">

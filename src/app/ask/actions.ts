@@ -16,6 +16,19 @@ type Turn = { question: string; answer: string };
 // Signed in: the chat is saved (and its earlier turns come from the database).
 // Not signed in: the browser sends its own earlier turns, kept until it's closed.
 export async function askQuestion(question: string, chatId: string | null, history: Turn[]): Promise<{ answer: Answer; chatId: string | null } | { error: string }> {
+  try {
+    return await ask(question, chatId, history);
+  } catch (e) {
+    // Never a blank "page couldn't load": a plain message (and the reason for
+    // signed-in staff, so it can be fixed), and the details in the server log.
+    console.error("cmeprojects assistant: askQuestion failed", e);
+    const staff = Boolean((await getVisitor().catch(() => null))?.userId);
+    const why = e instanceof Error ? e.message : String(e);
+    return { error: `Sorry, something went wrong. Please try again, or contact us.${staff ? ` (For the admin: ${why.slice(0, 200)})` : ""}` };
+  }
+}
+
+async function ask(question: string, chatId: string | null, history: Turn[]): Promise<{ answer: Answer; chatId: string | null } | { error: string }> {
   if (!(await assistantOn())) return { error: "The assistant isn't available right now." };
   const q = String(question ?? "").trim().slice(0, 500);
   if (q.length < 3) return { error: "Please type a question." };
