@@ -187,3 +187,21 @@ export async function deleteAppIcon(url: string, which: WhichApp = "cars"): Prom
   if (path) await supabase.storage.from("branding").remove([path]);
   return { message: icon === url ? "Deleted. The icon is back to the drawn one." : "Deleted." };
 }
+
+// Demo data (system admin): load sample records, delete only those, or clear every task.
+export async function runDemoAction(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(["system_admin"]);
+  const what = text(form, "what");
+  const supabase = await createClient();
+  if (what === "clear-all" && text(form, "confirm") !== "DELETE") return { error: "Type DELETE to confirm." };
+  const fn = what === "load" ? "demo_load" : what === "clear" ? "demo_clear" : what === "clear-all" ? "demo_clear_all_tasks" : null;
+  if (!fn) return { error: "Choose what to do." };
+  const { data, error } = await supabase.rpc(fn);
+  if (error) return { error: error.code === "PGRST202" ? "Run live update 43 first." : friendlyError(error) };
+  revalidatePath("/", "layout");
+  const n = Number(data ?? 0);
+  return {
+    message:
+      what === "load" ? `Loaded ${n} sample records (tasks across the registers and website enquiries).` : what === "clear" ? `Deleted ${n} sample records. Real work wasn't touched.` : `Deleted all ${n} tasks.`,
+  };
+}

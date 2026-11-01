@@ -48,9 +48,9 @@ export function PanelToggle({ open, onClick }: { open: boolean; onClick: () => v
         onClick={onClick}
         aria-expanded={open}
         aria-label={open ? "Hide options" : "Expand to see options"}
-        className="flex size-10 items-center justify-center rounded-md border-2 border-white/80 bg-white/10 text-white transition hover:bg-white/20"
+        className="flex size-8 items-center justify-center rounded-md border border-white/40 text-white transition hover:bg-white/10"
       >
-        <svg viewBox="0 0 24 24" className={`size-5 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>

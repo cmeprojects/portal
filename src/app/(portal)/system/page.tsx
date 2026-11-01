@@ -9,7 +9,7 @@ import { AREAS, AREA_HINTS, AREA_LABELS, type Area } from "@/lib/delegation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader, Tabs } from "@/components/ui";
 import { IncludedSwitch } from "./builder/forms";
-import { AppIconPicker, DelegationForm, FeatureSwitch, SettingForm, type SettingRow } from "./forms";
+import { AppIconPicker, DelegationForm, FeatureSwitch, SettingForm, type SettingRow, DemoDataPanel } from "./forms";
 
 export const metadata: Metadata = { title: "System settings" };
 
@@ -146,6 +146,7 @@ const TABS: Tab[] = [
   },
   { key: "features", label: "Features", sections: [] },
   { key: "delegation", label: "Delegation", sections: [] },
+  { key: "demo", label: "Demo data", sections: [] },
   {
     key: "general",
     label: "General",
@@ -229,6 +230,12 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
               />
             ))
           )}
+        </Card>
+      ) : tab.key === "demo" ? (
+        <Card className="px-5 py-4">
+          <h2 className="mb-1 heading-sm">Demo data</h2>
+          <p className="mb-4 text-sm text-muted">For showing the portal to someone. Sample records are tracked, so they can be removed without touching real work.</p>
+          <DemoDataPanel />
         </Card>
       ) : tab.key === "features" ? (
         <Card className="px-5 py-2">

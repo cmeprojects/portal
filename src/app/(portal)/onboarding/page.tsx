@@ -118,7 +118,7 @@ export default async function MyOnboardingPage() {
                     </>
                   }>
                     {/* Opened details stand out from the list (clear in light and dark). */}
-                    <div className="flex flex-col gap-4 border-t border-brand/30 bg-brand-soft px-5 py-4 text-ink">
+                    <div className="mx-4 mb-4 flex flex-col gap-3 rounded-lg border border-brand/20 bg-brand-soft p-4 text-ink">
                       {item.description ? <p className="text-sm">{item.description}</p> : null}
                       {item.body ? <div className="max-h-[28rem] overflow-y-auto rounded-md border border-line bg-surface p-4 text-sm leading-relaxed whitespace-pre-line">{item.body}</div> : null}
                       {item.link_url || links.has(item.id) ? (

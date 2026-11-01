@@ -30,7 +30,7 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
     </div>
   );
 }
-import { addAppIcon, chooseAppIcon, deleteAppIcon, saveDelegation, saveSetting, setFeature, type WhichApp } from "./actions";
+import { addAppIcon, chooseAppIcon, deleteAppIcon, saveDelegation, saveSetting, setFeature, type WhichApp, runDemoAction } from "./actions";
 
 export function FeatureSwitch({
   feature,
@@ -352,6 +352,47 @@ export function AppIconPicker({ setting, uploads, which = "cars" }: { setting: S
         <p className="mt-1 text-xs text-muted">A square PNG, at least 512 × 512. It fills the icon, so leave a little space around the edges.</p>
       </div>
       {result?.error ? <Notice tone="error">{result.error}</Notice> : result?.message ? <p className="text-sm font-semibold text-good">{result.message}</p> : null}
+    </div>
+  );
+}
+
+// Demo data: load sample records for a demo, delete only those, or clear every task.
+export function DemoDataPanel() {
+  const [state, action, pending] = useActionState(runDemoAction, null);
+  const [confirmText, setConfirmText] = useState("");
+  return (
+    <div className="flex flex-col gap-4">
+      <form action={action} className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <input type="hidden" name="what" value="load" />
+        <div className="min-w-56 flex-1">
+          <p className="font-semibold">Load sample records</p>
+          <p className="text-sm text-muted">12 tasks across the registers in different states, given to active staff in turn, and 3 website enquiries. No emails go out.</p>
+        </div>
+        <Button disabled={pending}>Load sample records</Button>
+      </form>
+      <form action={action} className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <input type="hidden" name="what" value="clear" />
+        <div className="min-w-56 flex-1">
+          <p className="font-semibold">Delete sample records</p>
+          <p className="text-sm text-muted">Only the records loaded here. Real work isn&apos;t touched.</p>
+        </div>
+        <Button variant="outline" disabled={pending}>
+          Delete sample records
+        </Button>
+      </form>
+      <form action={action} className="flex flex-wrap items-end justify-between gap-3">
+        <input type="hidden" name="what" value="clear-all" />
+        <div className="min-w-56 flex-1">
+          <p className="font-semibold text-danger">Delete every task</p>
+          <p className="text-sm text-muted">All tasks, real and sample, with their history. This can&apos;t be undone. Type DELETE to confirm.</p>
+          <input name="confirm" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} aria-label="Type DELETE to confirm" className={`${inputClass} mt-2 max-w-48`} />
+        </div>
+        <Button variant="danger" disabled={pending || confirmText !== "DELETE"}>
+          Delete every task
+        </Button>
+      </form>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
     </div>
   );
 }

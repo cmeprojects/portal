@@ -3,6 +3,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { AUD_PER_USD, DEFAULT_SETTINGS, type Answer, type Audience, type AssistantSettings, type Scope, type Source } from "@/lib/assistant-shared";
 
 // Website and Assistant (cmeprojects). The public website talks to the
@@ -40,7 +41,8 @@ export async function getVisitor(): Promise<Visitor> {
     supabase.from("profiles").select("full_name, email, job_titles(name)").eq("id", userId).maybeSingle(),
   ]);
   if (!role) return { audiences: ["public"], userId: null, name: "", position: "" };
-  const title = (me?.job_titles as { name?: string } | null)?.name ?? "";
+  // Their job title, or the access level when they don't have one.
+  const title = (me?.job_titles as { name?: string } | null)?.name || ROLE_LABELS[role as Role] || "";
   return {
     audiences: role === "manager" || role === "system_admin" ? ["public", "staff", "managers"] : ["public", "staff"],
     userId,

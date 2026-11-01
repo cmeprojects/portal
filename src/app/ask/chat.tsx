@@ -3,7 +3,6 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Credits } from "@/components/ui";
 import type { Answer } from "@/lib/assistant-shared";
 import { askQuestion, deleteChat } from "./actions";
 import { ChatHistory, VisitorFooter } from "./chat-history";
@@ -229,14 +228,18 @@ export function Chat(props: Props) {
             </main>
           )}
 
-          <footer className="flex flex-col items-center gap-1 px-4 pb-4 text-center text-xs text-muted">
+          <footer className="px-4 pb-4 text-center text-xs text-muted">
             {props.urgentPhone && !signedIn ? (
-              <a href={telOf(props.urgentPhone)} className="text-sm text-ink">
-                For urgent support please call <strong className="text-brand">{props.urgentPhone}</strong>
-              </a>
+              <>
+                For urgent support please call{" "}
+                <a href={telOf(props.urgentPhone)} className="font-bold text-brand">
+                  {props.urgentPhone}
+                </a>
+                {" · "}
+              </>
             ) : null}
-            <p>{props.disclaimer} Please don&apos;t type personal or health details.</p>
-            {props.showCredits ? <Credits /> : null}
+            {props.disclaimer}
+            {props.showCredits ? " · Built by cmeproject" : null}
           </footer>
         </div>
       </div>
