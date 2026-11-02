@@ -2,6 +2,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAfterSuccess } from "@/components/use-after-success";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
 import type { FormState } from "@/lib/form";
@@ -32,8 +34,15 @@ export type Can = {
   takeOver: boolean;
 };
 
+// cmeprojects: the action buttons share one panel. Only one form opens at a
+// time; when an action works, its form closes, one message shows at the top
+// and the page reloads its buttons (an escalated task can't be escalated again).
+type Panel = { open: string | null; setOpen: (key: string | null) => void; done: (message: string) => void };
+
 // One button that changes the status, with an optional or required note.
 function StatusButton({
+  id,
+  panel,
   taskId,
   status,
   label,
@@ -41,6 +50,8 @@ function StatusButton({
   note,
   confirmText,
 }: {
+  id: string;
+  panel: Panel;
   taskId: string;
   status: Status;
   label: string;
@@ -49,10 +60,12 @@ function StatusButton({
   confirmText?: string;
 }) {
   const [state, action, pending] = useActionState(changeStatus, null);
-  const [open, setOpen] = useState(false);
-  if (note && !open) {
+  useAfterSuccess(state, panel.done);
+  const busy = pending || (panel.open !== null && panel.open !== id);
+  // Buttons with a note open a small form first; plain ones act straight away.
+  if (note && panel.open !== id) {
     return (
-      <Button type="button" variant={variant} className="w-full" onClick={() => setOpen(true)}>
+      <Button type="button" variant={variant} className="w-full" disabled={busy} onClick={() => panel.setOpen(id)}>
         {label}
       </Button>
     );
@@ -63,25 +76,34 @@ function StatusButton({
       onSubmit={(e) => {
         if (confirmText && !confirm(confirmText)) e.preventDefault();
       }}
-      className="flex flex-col gap-2"
+      className={note ? "flex flex-col gap-2 rounded-md border border-line p-3" : "flex flex-col gap-2"}
     >
-      <Result state={state} />
+      <Result state={state?.error ? state : null} />
       <input type="hidden" name="task_id" value={taskId} />
       <input type="hidden" name="status" value={status} />
-      {confirmText ? <p className="text-sm text-muted">{confirmText}</p> : null}
+      {note && confirmText ? <p className="text-sm text-muted">{confirmText}</p> : null}
       {note ? (
-        <Field label={note.label} htmlFor={`note-${status}`}>
-          <textarea id={`note-${status}`} name="note" rows={2} required={note.required} placeholder={note.placeholder} className={`${inputClass} min-h-20 py-3`} />
+        <Field label={note.label} htmlFor={`note-${id}`}>
+          <textarea id={`note-${id}`} name="note" rows={2} required={note.required} placeholder={note.placeholder} className={`${inputClass} min-h-20 py-3`} />
         </Field>
       ) : null}
-      <Button variant={variant} className="w-full" disabled={pending}>
-        {pending ? "Saving…" : label}
-      </Button>
+      <div className="flex gap-2">
+        <Button variant={variant} className="flex-1" disabled={busy}>
+          {pending ? "Saving…" : label}
+        </Button>
+        {note ? (
+          <Button type="button" variant="outline" onClick={() => panel.setOpen(null)}>
+            Cancel
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }
 
 function ReasonForm({
+  id,
+  panel,
   taskId,
   label,
   reasonLabel,
@@ -91,6 +113,8 @@ function ReasonForm({
   escalateTo,
   variant = "outline",
 }: {
+  id: string;
+  panel: Panel;
   taskId: string;
   label: string;
   reasonLabel: string;
@@ -102,22 +126,22 @@ function ReasonForm({
   variant?: "primary" | "outline" | "danger";
 }) {
   const [state, action, pending] = useActionState(run, null);
-  const [open, setOpen] = useState(false);
-  if (!open) {
+  useAfterSuccess(state, panel.done);
+  if (panel.open !== id) {
     return (
-      <Button type="button" variant={variant} className="w-full" onClick={() => setOpen(true)}>
+      <Button type="button" variant={variant} className="w-full" disabled={panel.open !== null} onClick={() => panel.setOpen(id)}>
         {label}
       </Button>
     );
   }
   return (
     <form action={action} className="flex flex-col gap-2 rounded-md border border-line p-3">
-      <Result state={state} />
+      <Result state={state?.error ? state : null} />
       <input type="hidden" name="task_id" value={taskId} />
       {takeOver ? <input type="hidden" name="take_over" value="1" /> : null}
       {people ? (
-        <Field label="Who should look after it?" htmlFor={`to-${taskId}`}>
-          <select id={`to-${taskId}`} name="to" required defaultValue="" className={inputClass}>
+        <Field label="Who should look after it?" htmlFor={`to-${id}`}>
+          <select id={`to-${id}`} name="to" required defaultValue="" className={inputClass}>
             <option value="" disabled>
               Choose a person
             </option>
@@ -142,14 +166,14 @@ function ReasonForm({
           </label>
         </fieldset>
       ) : null}
-      <Field label={reasonLabel} htmlFor={`reason-${label}`}>
-        <textarea id={`reason-${label}`} name="reason" required rows={2} className={`${inputClass} min-h-20 py-3`} />
+      <Field label={reasonLabel} htmlFor={`reason-${id}`}>
+        <textarea id={`reason-${id}`} name="reason" required rows={2} className={`${inputClass} min-h-20 py-3`} />
       </Field>
       <div className="flex gap-2">
         <Button variant={variant === "danger" ? "danger" : "primary"} className="flex-1" disabled={pending}>
           {pending ? "Saving…" : label}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+        <Button type="button" variant="outline" onClick={() => panel.setOpen(null)}>
           Cancel
         </Button>
       </div>
@@ -158,15 +182,33 @@ function ReasonForm({
 }
 
 export function TaskActions({ taskId, can, people }: { taskId: string; can: Can; people: { id: string; name: string }[] }) {
+  const router = useRouter();
+  const [open, setOpen] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const panel: Panel = {
+    open,
+    setOpen: (key) => {
+      setOpen(key);
+      if (key) setMessage(null);
+    },
+    done: (text) => {
+      setOpen(null);
+      setMessage(text);
+      router.refresh();
+    },
+  };
   const any = Object.entries(can).some(([k, v]) => k !== "completeNeedsApproval" && k !== "managerOwn" && k !== "escalateChoice" && v);
-  if (!any) return null;
+  if (!any) return message ? <Notice tone="success">{message}</Notice> : null;
   return (
     <div className="flex flex-col gap-2">
+      {message ? <Notice tone="success">{message}</Notice> : null}
       {can.approve ? (
         <>
           <p className="text-sm font-semibold">This task is waiting for your approval.</p>
-          <StatusButton taskId={taskId} status="completed" label="Approve and complete" />
+          <StatusButton id="approve" panel={panel} taskId={taskId} status="completed" label="Approve and complete" />
           <StatusButton
+            id="send-back"
+            panel={panel}
             taskId={taskId}
             status="in_progress"
             label="Send back"
@@ -175,9 +217,11 @@ export function TaskActions({ taskId, can, people }: { taskId: string; can: Can;
           />
         </>
       ) : null}
-      {can.start ? <StatusButton taskId={taskId} status="in_progress" label="Start working on it" variant="outline" /> : null}
+      {can.start ? <StatusButton id="start" panel={panel} taskId={taskId} status="in_progress" label="Start working on it" variant="outline" /> : null}
       {can.complete ? (
         <StatusButton
+          id="complete"
+          panel={panel}
           taskId={taskId}
           status="completed"
           label={can.completeNeedsApproval ? "Finished: send for approval" : "Mark as completed"}
@@ -185,15 +229,17 @@ export function TaskActions({ taskId, can, people }: { taskId: string; can: Can;
           confirmText={can.managerOwn ? "You're completing this as a manager, so no approval is needed." : undefined}
         />
       ) : null}
-      {can.resolveEscalation ? <StatusButton taskId={taskId} status="in_progress" label="Escalation dealt with" variant="outline" /> : null}
-      {can.close ? <StatusButton taskId={taskId} status="closed" label="Close the task" variant="outline" /> : null}
+      {can.resolveEscalation ? <StatusButton id="resolve" panel={panel} taskId={taskId} status="in_progress" label="Escalation dealt with" variant="outline" /> : null}
+      {can.close ? <StatusButton id="close" panel={panel} taskId={taskId} status="closed" label="Close the task" variant="outline" /> : null}
       {can.reopen ? (
-        <StatusButton taskId={taskId} status="in_progress" label="Reopen" variant="outline" note={{ label: "Why is it being reopened?", required: true }} />
+        <StatusButton id="reopen" panel={panel} taskId={taskId} status="in_progress" label="Reopen" variant="outline" note={{ label: "Why is it being reopened?", required: true }} />
       ) : null}
-      {can.takeOver ? <ReasonForm taskId={taskId} label="Take it over" reasonLabel="Reason" action={reassignTask} takeOver /> : null}
-      {can.reassign ? <ReasonForm taskId={taskId} label="Reassign" reasonLabel="Reason" action={reassignTask} people={people} /> : null}
+      {can.takeOver ? <ReasonForm id="take-over" panel={panel} taskId={taskId} label="Take it over" reasonLabel="Reason" action={reassignTask} takeOver /> : null}
+      {can.reassign ? <ReasonForm id="reassign" panel={panel} taskId={taskId} label="Reassign" reasonLabel="Reason" action={reassignTask} people={people} /> : null}
       {can.escalate ? (
         <ReasonForm
+          id="escalate"
+          panel={panel}
           taskId={taskId}
           label="Escalate"
           reasonLabel="Why does it need escalating?"

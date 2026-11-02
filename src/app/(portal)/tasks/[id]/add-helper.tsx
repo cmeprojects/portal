@@ -1,15 +1,19 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
+import { useAfterSuccess } from "@/components/use-after-success";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { addHelper } from "../actions";
 
 export function AddHelperForm({ taskId, people }: { taskId: string; people: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState(addHelper, null);
+  const form = useRef<HTMLFormElement>(null);
+  // cmeprojects: once added, clear the choice so it's ready for the next one.
+  useAfterSuccess(state, () => form.current?.reset());
   if (people.length === 0) return null;
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form ref={form} action={action} className="flex flex-col gap-2">
       <input type="hidden" name="task_id" value={taskId} />
       <label htmlFor="helper" className="text-sm font-semibold">
         Tag someone to help out

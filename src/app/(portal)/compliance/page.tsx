@@ -93,7 +93,7 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
               return (
                 <li key={r.id}>
                   {/* Opens in place; the full page is still there for files and checking. */}
-                  <details className="group">
+                  <details name="compliance-person" className="group">
                     <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-page [&::-webkit-details-marker]:hidden">
                       <span className="min-w-48 flex-1">
                         <span className="block font-semibold">{r.full_name || r.email}</span>
@@ -186,7 +186,7 @@ async function Items({ kind }: { kind: ItemKind }) {
         <div className="flex flex-col gap-3">
           {items.map((i) => (
             <Card key={i.id} className="p-0">
-              <details className="group">
+              <details name="compliance-item" className="group">
                 <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
                   <span className={`min-w-48 flex-1 font-semibold ${i.active ? "" : "text-muted"}`}>{i.title}</span>
                   <span className="text-sm text-muted">{forWhom(i)}</span>

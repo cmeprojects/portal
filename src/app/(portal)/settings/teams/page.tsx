@@ -160,7 +160,7 @@ export default async function TeamsPage() {
                     };
                   })}
                 />
-                <details>
+                <details name="team-change">
                   <summary className="cursor-pointer text-sm font-semibold text-brand">Change team</summary>
                   <div className="mt-4">
                     <TeamForm
@@ -186,7 +186,7 @@ export default async function TeamsPage() {
 function WhoIsIn({ people }: { people: { id: string; name: string; email: string; detail: string; leader?: boolean }[] }) {
   if (!people.length) return <p className="text-sm text-muted">No one in this team yet.</p>;
   return (
-    <details className="group rounded-md border border-line">
+    <details name="team-people" className="group rounded-md border border-line">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-semibold">
         <span>
           {people.length} {people.length === 1 ? "person" : "people"} in this team

@@ -124,7 +124,7 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
                       </div>
                     ) : null}
                     {canUploadFor && kind === "upload" ? (
-                      <details className="text-sm">
+                      <details name="upload-for" className="text-sm">
                         <summary className="cursor-pointer text-xs font-semibold text-brand">
                           {s.record_id ? "Upload a new copy" : "Upload"} for {person.full_name?.split(" ")[0] || "them"}
                         </summary>

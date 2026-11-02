@@ -65,7 +65,7 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
         <ol className="mb-5 flex flex-col divide-y divide-line rounded-lg border border-line">
           {fields.map((f, i) => (
             <li key={f.id} className="px-4 py-3">
-              <details>
+              <details name="register-field">
                 <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1">
                   <span className={`flex-1 font-semibold ${f.active ? "" : "text-muted line-through"}`}>{f.label}</span>
                   <Badge tone="grey">{FIELD_TYPE_LABELS[f.type]}</Badge>
@@ -102,7 +102,7 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
             </li>
           ))}
         </ol>
-        <details className="rounded-lg border border-dashed border-field p-4">
+        <details name="register-field" className="rounded-lg border border-dashed border-field p-4">
           <summary className="flex min-h-11 cursor-pointer list-none items-center font-semibold text-brand">+ Add a field</summary>
           <div className="pt-3">
             <AddFieldForm registryId={id} />

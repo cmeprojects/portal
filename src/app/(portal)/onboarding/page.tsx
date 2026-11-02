@@ -195,7 +195,7 @@ function ItemShell({ finished, header, children }: { finished: boolean; header: 
     );
   }
   return (
-    <details>
+    <details name="onboarding-item">
       <summary className={`${row} cursor-pointer list-none`}>{header}</summary>
       {children}
     </details>

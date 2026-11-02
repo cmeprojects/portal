@@ -163,7 +163,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
               return (
                 inline(t) ? (
                   <li key={t.id} className="border-t border-line first:border-t-0">
-                    <details className="group">
+                    <details name="my-task" className="group">
                       <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 hover:bg-page [&::-webkit-details-marker]:hidden">
                         <span className="min-w-56 flex-1">
                           <span className="block text-base font-semibold">{t.title}</span>

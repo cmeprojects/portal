@@ -81,7 +81,7 @@ export async function ManageCars({ base, tabParam }: { base: string; tabParam: s
           <div className="flex flex-col gap-3">
             {carList.map((c) => (
               <Card key={c.id} className="p-0">
-                <details className="group">
+                <details name="car" className="group">
                   <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3">
                     <span className={`min-w-48 flex-1 ${c.active ? "" : "text-muted"}`}>
                       <span className="block font-semibold">{c.name}</span>
@@ -142,7 +142,7 @@ async function CarsOut({ carName, nameOf, when }: { carName: Map<string, string>
                 </span>
                 {t.managers_told_at ? <Badge tone="warn">Not returned overnight</Badge> : null}
               </div>
-              <details>
+              <details name="return-for">
                 <summary className="cursor-pointer text-sm font-semibold text-brand">Return it for them</summary>
                 <div className="pt-3">
                   <ReturnForSomeoneForm tripId={t.id} startOdo={t.start_odo} driver={nameOf.get(t.driver_id) ?? "them"} />
@@ -228,7 +228,7 @@ async function Trips({ carName, nameOf, when }: { carName: Map<string, string>; 
         <ul className="divide-y divide-line">
           {trips.map((t) => (
             <li key={t.id} className="px-5 py-3">
-              <details>
+              <details name="trip">
                 <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <span className="min-w-48 flex-1">
                     <span className="block text-sm font-semibold">

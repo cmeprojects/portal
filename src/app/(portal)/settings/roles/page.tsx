@@ -37,7 +37,7 @@ export default async function RolesPage() {
         <div className="flex flex-col gap-3">
           {titles.map((t) => (
             <Card key={t.id} className="p-0">
-              <details className="group">
+              <details name="role" className="group">
                 <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
                   <span className={`min-w-48 flex-1 font-semibold ${t.active ? "" : "text-muted"}`}>{t.name}</span>
                   <Badge tone="soft">{ROLE_LABELS[t.access_level]}</Badge>

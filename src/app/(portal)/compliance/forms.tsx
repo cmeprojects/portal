@@ -117,6 +117,8 @@ export function ItemForm({ kind, item, teams }: { kind: ItemKind; item?: Complia
 
 export function ReviewForm({ recordId }: { recordId: number }) {
   const [state, action, pending] = useActionState(reviewUpload, null);
+  // cmeprojects: once it's done, show what happened instead of the buttons.
+  if (state?.message && !state.error) return <Notice tone="success">{state.message}</Notice>;
   return (
     <form action={action} className="flex flex-col gap-2">
       <Result state={state} />
@@ -148,6 +150,8 @@ export function UploadForPersonForm({
 }) {
   const [state, action, pending] = useActionState(uploadForPerson, null);
   const [ready, setReady] = useState(false);
+  // cmeprojects: once it's done, show what happened instead of the buttons.
+  if (state?.message && !state.error) return <Notice tone="success">{state.message}</Notice>;
   return (
     <form action={action} className="flex flex-col gap-3">
       <Result state={state} />
