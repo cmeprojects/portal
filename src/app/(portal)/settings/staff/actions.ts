@@ -290,3 +290,13 @@ export async function savePerson(_: FormState, form: FormData): Promise<FormStat
   }
   return { message: done.length ? done.join(" ") : "Nothing has changed." };
 }
+
+// cmeprojects: system admin only. Signs someone out of every phone and
+// computer (a lost phone, a shared login). Their account stays active.
+export async function signOutEverywhere(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(["system_admin"]);
+  const { data, error } = await (await createClient()).rpc("sign_out_everywhere", { p_user_id: text(form, "id") });
+  if (error) return { error: error.code === "PGRST202" ? "This needs the latest database update (update 45)." : friendlyError(error) };
+  const n = Number(data ?? 0);
+  return { message: n ? `Signed out of ${n} device${n === 1 ? "" : "s"}. They can sign in again with their password.` : "They weren't signed in anywhere." };
+}

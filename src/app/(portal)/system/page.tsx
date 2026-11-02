@@ -9,7 +9,7 @@ import { AREAS, AREA_HINTS, AREA_LABELS, type Area } from "@/lib/delegation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader, Tabs } from "@/components/ui";
 import { IncludedSwitch } from "./builder/forms";
-import { AppIconPicker, DelegationForm, FeatureSwitch, SettingForm, type SettingRow, DemoDataPanel } from "./forms";
+import { AppIconPicker, DelegationForm, FeatureSwitch, SettingForm, type SettingRow, DemoDataPanel, SignOutEveryone } from "./forms";
 
 export const metadata: Metadata = { title: "System settings" };
 
@@ -302,6 +302,16 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
             </Card>
           );
         })}
+        {tab.key === "security" && isAdmin ? (
+          <Card className="px-5 py-4">
+            <h2 className="mb-1 heading-sm">Sign everyone out</h2>
+            <p className="mb-4 text-sm text-muted">
+              For a security worry, like a lost phone or a shared password. Everyone is signed out of every device within a minute, except
+              you on this device. Accounts stay active, so people just sign in again. To sign out one person, use their row on the Staff page.
+            </p>
+            <SignOutEveryone />
+          </Card>
+        ) : null}
         </>
       )}
     </>

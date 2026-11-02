@@ -30,7 +30,7 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
     </div>
   );
 }
-import { addAppIcon, chooseAppIcon, deleteAppIcon, saveDelegation, saveSetting, setFeature, type WhichApp, runDemoAction } from "./actions";
+import { addAppIcon, chooseAppIcon, deleteAppIcon, saveDelegation, saveSetting, setFeature, type WhichApp, runDemoAction, signOutEveryone } from "./actions";
 
 export function FeatureSwitch({
   feature,
@@ -394,5 +394,30 @@ export function DemoDataPanel() {
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
     </div>
+  );
+}
+
+// cmeprojects: the Security tab's "Sign everyone out", with a typed confirmation.
+export function SignOutEveryone() {
+  const [state, action, pending] = useActionState(signOutEveryone, null);
+  const [confirmText, setConfirmText] = useState("");
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-end gap-3">
+        <input
+          name="confirm"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          placeholder="Type SIGN OUT"
+          aria-label="Type SIGN OUT to confirm"
+          className={`${inputClass} max-w-48`}
+        />
+        <Button variant="danger" disabled={pending || confirmText !== "SIGN OUT"}>
+          {pending ? "Signing out…" : "Sign everyone out"}
+        </Button>
+      </div>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+    </form>
   );
 }

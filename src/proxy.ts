@@ -5,6 +5,8 @@ import { APP_COOKIE, APP_DAYS_COOKIE, LOCKED_COOKIE, PIN_OFF_COOKIE, PORTAL_LOCK
 
 // Pages anyone can open without signing in.
 // /cron checks its own secret.
+// When this device last checked its sign-in still exists.
+const SESSION_CHECK_COOKIE = "portal_session_checked";
 const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/health", "/cron", "/robots.txt", "/sitemap.xml", "/ask"];
 
 // Keeps the sign-in session fresh on every request and sends signed-out
@@ -57,8 +59,21 @@ export async function proxy(request: NextRequest) {
     response.cookies.getAll().forEach((c) => out.cookies.set(c));
     out.cookies.delete("portal_last_active");
     out.cookies.delete(UNLOCK_COOKIE);
+    out.cookies.delete(SESSION_CHECK_COOKIE);
     return out;
   };
+
+  // cmeprojects: a device signed out from somewhere else (My account, or the
+  // system admin) stops here. Checked on page visits, at most once a minute.
+  if (signedIn && pageVisit && !appPublic) {
+    const checkedAt = Number(request.cookies.get(SESSION_CHECK_COOKIE)?.value ?? 0);
+    if (now - checkedAt > 60_000) {
+      const { data: active, error } = await supabase.rpc("my_session_active");
+      // Before live update 45 the check doesn't exist yet: carry on as before.
+      if (!error && active === false) return signOutTo("?error=signed_out");
+      response.cookies.set(SESSION_CHECK_COOKIE, String(now), { path: "/", httpOnly: true, sameSite: "lax", secure: request.nextUrl.protocol === "https:" });
+    }
+  }
 
   if (signedIn && app && !appPublic) {
     // The Cars app stays signed in for the set number of days, then a full sign-in again.

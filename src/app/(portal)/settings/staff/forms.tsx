@@ -5,7 +5,7 @@ import { startTransition, useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
-import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, savePerson, sendResetLink, setActive } from "./actions";
+import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, savePerson, sendResetLink, setActive, signOutEverywhere } from "./actions";
 
 type Team = { id: string; name: string };
 
@@ -110,6 +110,7 @@ export function PersonEditor({
   const [mfaState, mfaAction, resetting] = useActionState(resetTwoFactor, null);
   const [linkState, linkAction, sendingLink] = useActionState(sendResetLink, null);
   const [pinState, pinAction, clearingPin] = useActionState(clearCarPin, null);
+  const [outState, outAction, signingOut] = useActionState(signOutEverywhere, null);
   // "New starter" is only for people who don't have a role yet.
   const offered = roles.filter((r) => r !== "new_starter" || person.role === "new_starter");
   const choices = offered.includes(person.role) ? offered : [person.role, ...offered];
@@ -121,7 +122,7 @@ export function PersonEditor({
   const label = "text-xs font-semibold tracking-wide text-muted uppercase";
   return (
     <div className="flex flex-col gap-4 border-t border-line pt-4">
-      <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState} />
+      <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState ?? outState} />
       {/* cmeprojects: name, teams and role save together with one button. */}
       <form
         action={saveAction}
@@ -211,6 +212,17 @@ export function PersonEditor({
               <Button variant="outline" disabled={clearingPin}>Clear Cars app PIN</Button>
             </form>
           </>
+        ) : null}
+        {canResetMfa && person.joined && person.active && !person.isMe ? (
+          <form
+            action={outAction}
+            onSubmit={(e) => {
+              if (!confirm(`Sign ${person.full_name || person.email} out of every phone and computer? Their account stays active.`)) e.preventDefault();
+            }}
+          >
+            <input type="hidden" name="id" value={person.id} />
+            <Button variant="outline" disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out of all devices"}</Button>
+          </form>
         ) : null}
         {!person.isMe && !(person.lastManager && !canResetMfa) ? (
           <form

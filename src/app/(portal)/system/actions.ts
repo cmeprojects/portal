@@ -205,3 +205,14 @@ export async function runDemoAction(_: FormState, form: FormData): Promise<FormS
       what === "load" ? `Loaded ${n} sample records (tasks across the registers and website enquiries).` : what === "clear" ? `Deleted ${n} sample records. Real work wasn't touched.` : `Deleted all ${n} tasks.`,
   };
 }
+
+// cmeprojects: system admin only. Signs everyone out of every device except
+// the admin's own; accounts stay active.
+export async function signOutEveryone(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(["system_admin"]);
+  if (text(form, "confirm") !== "SIGN OUT") return { error: "Type SIGN OUT to confirm." };
+  const { data, error } = await (await createClient()).rpc("sign_out_everyone");
+  if (error) return { error: error.code === "PGRST202" ? "This needs the latest database update (update 45)." : friendlyError(error) };
+  const n = Number(data ?? 0);
+  return { message: `Signed out ${n} device${n === 1 ? "" : "s"}. You're still signed in here.` };
+}

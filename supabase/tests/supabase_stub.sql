@@ -20,6 +20,13 @@ create table auth.users (
   raw_user_meta_data jsonb not null default '{}'::jsonb
 );
 
+-- Sign-in sessions (one per device). On Supabase, removing one also removes its refresh tokens.
+create table auth.sessions (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
 $$;

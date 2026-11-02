@@ -7,6 +7,7 @@ import { ROLE_LABELS } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { NameForm, PasswordForm } from "./forms";
 import { TurnOffTwoFactor } from "./two-factor";
+import { OtherDevices } from "./devices";
 
 export const metadata: Metadata = { title: "My account" };
 
@@ -44,9 +45,12 @@ export default async function AccountPage() {
           ) : null}
           {hasMfa && (!mfaRequired || switchedOff) ? <TurnOffTwoFactor factorIds={factorIds} /> : null}
         </Card>
-        <Card className="p-5 lg:col-span-2">
+        <Card className="p-5">
           <h2 className="mb-3 heading-sm">Change password</h2>
           <PasswordForm />
+        </Card>
+        <Card className="p-5">
+          <OtherDevices />
         </Card>
       </div>
     </>

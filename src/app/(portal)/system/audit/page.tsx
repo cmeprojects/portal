@@ -34,6 +34,12 @@ function describe(action: string, details: Record<string, unknown>, entityId: st
       return `Resent the invite to ${who}`;
     case "mfa_reset":
       return `Reset ${who}'s two-factor login`;
+    case "signed_out_everywhere":
+      return `Signed ${who} out of all devices`;
+    case "signed_out_other_devices":
+      return `Signed out of their other devices`;
+    case "signed_out_everyone":
+      return `Signed everyone out of all devices`;
     case "feature_on":
       return `Switched on: ${entityId}`;
     case "feature_off":

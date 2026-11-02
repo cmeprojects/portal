@@ -18,6 +18,7 @@ const ERRORS: Record<string, string> = {
   app: "It's been a while since you last signed in to the Cars app. Please sign in again.",
   pin: "Too many wrong PINs, so you've been signed out. Sign in, then choose a new PIN.",
   expired: "Your sign-in on this device has ended. Please sign in again.",
+  signed_out: "This device was signed out from another device or by the system admin. Please sign in again.",
 };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
