@@ -1,11 +1,11 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
-import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, sendResetLink, setActive, updatePerson, renamePerson, setPersonTeams } from "./actions";
+import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, savePerson, sendResetLink, setActive } from "./actions";
 
 type Team = { id: string; name: string };
 
@@ -104,7 +104,7 @@ export function PersonEditor({
   // Staff admins' role changes go to a manager for approval.
   needsApproval: boolean;
 }) {
-  const [saveState, saveAction, saving] = useActionState(updatePerson, null);
+  const [saveState, saveAction, saving] = useActionState(savePerson, null);
   const [activeState, activeAction, toggling] = useActionState(setActive, null);
   const [inviteState, inviteAction, resending] = useActionState(resendInvite, null);
   const [mfaState, mfaAction, resetting] = useActionState(resetTwoFactor, null);
@@ -113,46 +113,76 @@ export function PersonEditor({
   // "New starter" is only for people who don't have a role yet.
   const offered = roles.filter((r) => r !== "new_starter" || person.role === "new_starter");
   const choices = offered.includes(person.role) ? offered : [person.role, ...offered];
+  const showTeams = !inCoreTeam(person.role) && person.role !== "system_admin" && person.role !== "new_starter" && teams.length > 0;
+  const lockedManager = person.lastManager && !canResetMfa;
+  const conditional = !person.isMe && !lockedManager && person.role === "new_starter" && !!person.missing?.length;
+  const roleEditable = !person.isMe && !lockedManager && !conditional;
 
   const label = "text-xs font-semibold tracking-wide text-muted uppercase";
   return (
     <div className="flex flex-col gap-4 border-t border-line pt-4">
       <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState} />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <NameForm person={person} />
-        {!inCoreTeam(person.role) && person.role !== "system_admin" && person.role !== "new_starter" && teams.length ? <TeamsForm person={person} teams={teams} /> : null}
-      </div>
-      <p className={label}>Role</p>
-      {person.isMe ? (
-        <p className="text-sm text-muted">You can&apos;t change your own role. Ask a manager.</p>
-      ) : person.lastManager && !canResetMfa ? (
-        <p className="text-sm text-muted">
-          They&apos;re the only manager, so their role can&apos;t change and they can&apos;t be deactivated. Add another manager first.
-        </p>
-      ) : person.role === "new_starter" && person.missing?.length ? (
-        <ConditionalRoleForm person={person} roles={offered.filter((r) => r !== "new_starter")} titles={titles} teams={teams} isManager={isManager} />
-      ) : (
-        <form action={saveAction} className="flex flex-wrap items-end gap-3">
-          <input type="hidden" name="id" value={person.id} />
-          <div className="min-w-56 flex-1">
+      {/* cmeprojects: name, teams and role save together with one button. */}
+      <form
+        action={saveAction}
+        onSubmit={(e) => {
+          // Keep what was typed on screen (React resets a form after its action).
+          e.preventDefault();
+          const data = new FormData(e.currentTarget);
+          startTransition(() => saveAction(data));
+        }}
+        className="flex flex-col gap-4"
+      >
+        <input type="hidden" name="id" value={person.id} />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Field label="Name" htmlFor={`name-${person.id}`}>
+            <input id={`name-${person.id}`} name="full_name" defaultValue={person.full_name} maxLength={120} className={inputClass} />
+          </Field>
+          {roleEditable ? (
             <Field label="Role" htmlFor={`role-${person.id}`}>
               <select id={`role-${person.id}`} name="role" defaultValue={roleChoiceValue(person.role, person.job_title_id)} className={inputClass}>
                 <RoleOptions roles={choices} titles={titles} />
               </select>
             </Field>
-          </div>
-          {needsApproval ? (
-            <div className="min-w-60 flex-[2]">
-              <Field label="Reason (optional)" htmlFor={`reason-${person.id}`} hint="Role changes go to a manager to approve.">
-                <input id={`reason-${person.id}`} name="reason" className={inputClass} />
-              </Field>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <p className={label}>Role</p>
+              <p className="text-sm text-muted">
+                {person.isMe
+                  ? "You can't change your own role. Ask a manager."
+                  : lockedManager
+                    ? "They're the only manager, so their role can't change and they can't be deactivated. Add another manager first."
+                    : "Onboarding isn't finished. Give a conditional role below."}
+              </p>
             </div>
-          ) : null}
-          <Button className="h-12" disabled={saving}>
-            {saving ? "Saving…" : needsApproval ? "Send for approval" : "Save"}
-          </Button>
-        </form>
-      )}
+          )}
+        </div>
+        {showTeams ? <input type="hidden" name="has_teams" value="1" /> : null}
+        {showTeams ? (
+          <fieldset className="flex flex-col gap-1">
+            <legend className={`${label} mb-1`}>Teams</legend>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {teams.map((t) => (
+                <label key={t.id} className="flex min-h-9 items-center gap-2 text-sm">
+                  <input type="checkbox" name="teams" value={t.id} defaultChecked={person.teamIds.includes(t.id)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+                  {t.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+        {roleEditable && needsApproval ? (
+          <Field label="Reason for a role change (optional)" htmlFor={`reason-${person.id}`} hint="Role changes go to a manager to approve.">
+            <input id={`reason-${person.id}`} name="reason" className={inputClass} />
+          </Field>
+        ) : null}
+        <Button className="self-start" disabled={saving}>
+          {saving ? "Saving…" : "Save changes"}
+        </Button>
+      </form>
+      {conditional ? (
+        <ConditionalRoleForm person={person} roles={offered.filter((r) => r !== "new_starter")} titles={titles} teams={teams} isManager={isManager} />
+      ) : null}
       <p className={label}>Sign-in and account</p>
       <div className="flex flex-wrap gap-2">
         {!person.joined && person.active ? (
@@ -269,49 +299,6 @@ function ConditionalRoleForm({
       <Button className="self-start" disabled={pending}>
         {pending ? "Saving…" : isManager ? "Give conditional role" : "Send to a manager for approval"}
       </Button>
-    </form>
-  );
-}
-
-function NameForm({ person }: { person: PersonRow }) {
-  const [state, action, pending] = useActionState(renamePerson, null);
-  return (
-    <form action={action} className="flex flex-col gap-2">
-      <input type="hidden" name="id" value={person.id} />
-      <label htmlFor={`name-${person.id}`} className="text-xs font-semibold tracking-wide text-muted uppercase">
-        Name
-      </label>
-      <div className="flex gap-2">
-        <input id={`name-${person.id}`} name="full_name" defaultValue={person.full_name} maxLength={120} className={`${inputClass} min-w-0 flex-1`} />
-        <Button size="sm" variant="outline" disabled={pending} className="h-11">
-          {pending ? "Saving…" : "Save"}
-        </Button>
-      </div>
-      <Result state={state} />
-    </form>
-  );
-}
-
-function TeamsForm({ person, teams }: { person: PersonRow; teams: Team[] }) {
-  const [state, action, pending] = useActionState(setPersonTeams, null);
-  return (
-    <form action={action} className="flex flex-col gap-2">
-      <input type="hidden" name="id" value={person.id} />
-      <p className="text-xs font-semibold tracking-wide text-muted uppercase">Teams</p>
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {teams.map((t) => (
-          <label key={t.id} className="flex min-h-9 items-center gap-2 text-sm">
-            <input type="checkbox" name="teams" value={t.id} defaultChecked={person.teamIds.includes(t.id)} className="h-5 w-5 accent-[var(--brand-primary)]" />
-            {t.name}
-          </label>
-        ))}
-      </div>
-      <div>
-        <Button size="sm" variant="outline" disabled={pending}>
-          {pending ? "Saving…" : "Save teams"}
-        </Button>
-      </div>
-      <Result state={state} />
     </form>
   );
 }

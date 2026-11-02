@@ -175,7 +175,8 @@ export default async function StaffPage() {
           const status = !p.active ? "Deactivated" : row.joined ? "Active" : "Invite sent";
           return (
             <Card key={p.id} className="p-0">
-              <details className="group">
+              {/* cmeprojects: same name = only one person open at a time. */}
+              <details name="staff-person" className="group">
                 <summary className="flex min-h-16 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand" aria-hidden="true">
                     {(p.full_name || p.email).split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}

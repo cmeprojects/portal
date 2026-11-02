@@ -267,3 +267,26 @@ export async function setPersonTeams(_: FormState, form: FormData): Promise<Form
   if (!changed) return { message: "Nothing has changed." };
   return { message: ask ? "Sent to a manager to approve." : "Teams saved." };
 }
+
+// cmeprojects: one Save for a person's row. Saves the name, teams and role
+// that were on the form, each with its own rules, and says what changed.
+export async function savePerson(_: FormState, form: FormData): Promise<FormState> {
+  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const id = text(form, "id");
+  const supabase = await createClient();
+  const { data: current } = await supabase.from("profiles").select("full_name").eq("id", id).single();
+  if (!current) return { error: "Person not found." };
+
+  const steps: (() => Promise<FormState>)[] = [];
+  if (form.has("full_name") && text(form, "full_name").slice(0, 120) !== (current.full_name ?? "")) steps.push(() => renamePerson(null, form));
+  if (form.has("has_teams")) steps.push(() => setPersonTeams(null, form));
+  if (form.has("role") && id !== me.id) steps.push(() => updatePerson(null, form));
+
+  const done: string[] = [];
+  for (const step of steps) {
+    const result = await step();
+    if (result?.error) return { error: done.length ? `${done.join(" ")} But: ${result.error}` : result.error };
+    if (result?.message && result.message !== "Nothing has changed.") done.push(result.message);
+  }
+  return { message: done.length ? done.join(" ") : "Nothing has changed." };
+}
