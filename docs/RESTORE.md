@@ -55,6 +55,13 @@ The whole system as it is now: every module, updates 1 to 45 applied.
 - **Code:** branch `restore-update-45` (commit `8b8fad4`).
 - **Database:** run `supabase/live-updates/undo-46.sql` (safe to run again).
 
+## Before the cmeprojects Control Centre (after live update 47)
+
+Everything up to the colourful platform dashboard and round 3.
+
+- **Code:** branch `restore-update-47` (commit `83fa23b`).
+- **Database:** nothing new yet; updates 46 and 47 have their own undo files.
+
 ## Habit for every big change
 
 1. Make a branch from `main` named `restore-update-NN` before starting.
