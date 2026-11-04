@@ -48,6 +48,13 @@ change. Nothing here deletes your people, tasks, forms or cars.
 - **Code:** branch `restore-update-41` (commit `f83556e`).
 - **Database:** run `supabase/live-updates/undo-42.sql`.
 
+## Before the settings and features revamp (after live update 45)
+
+The whole system as it is now: every module, updates 1 to 45 applied.
+
+- **Code:** branch `restore-update-45` (commit `8b8fad4`).
+- **Database:** run the `undo-NN.sql` files of the revamp's updates (46 and up), newest first.
+
 ## Habit for every big change
 
 1. Make a branch from `main` named `restore-update-NN` before starting.
