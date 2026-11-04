@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { SettingForm } from "../../system/forms";
+import { withSettingDrafts } from "@/lib/drafts";
 
 export const metadata: Metadata = { title: "Due dates (SLA)" };
 
@@ -25,7 +26,9 @@ export default async function SlaPage() {
     .from("app_settings")
     .select("key, label, description, value")
     .in("key", KEYS);
-  const ordered = KEYS.flatMap((k) => (settings ?? []).filter((s) => s.key === k));
+  // Saved but not deployed: shown as they'll be (cmeprojects).
+  const withDrafts = await withSettingDrafts(settings ?? []);
+  const ordered = KEYS.flatMap((k) => withDrafts.filter((s) => s.key === k));
 
   return (
     <>

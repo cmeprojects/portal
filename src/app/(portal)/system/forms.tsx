@@ -8,6 +8,8 @@ import { ROLE_LABELS, ROLES } from "@/lib/roles";
 import { CHOICES } from "@/lib/setting-choices";
 import { FileUpload } from "@/components/file-upload";
 import { PRIORITIES, PRIORITY_LABELS } from "@/lib/tasks";
+import { useDirty } from "@/components/use-dirty";
+import { useAfterSuccess } from "@/components/use-after-success";
 
 // Days per priority (blank = no default due date for that priority).
 export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Record<string, number> | null; prefix?: string; placeholder?: Record<string, number> }) {
@@ -30,62 +32,270 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
     </div>
   );
 }
-import { addAppIcon, chooseAppIcon, deleteAppIcon, saveDelegation, saveSetting, setFeature, type WhichApp, runDemoAction, signOutEveryone } from "./actions";
+import { addAppIcon, applyPreset, chooseAppIcon, deleteAppIcon, saveDelegationRule, saveNotifications, saveSetting, setFeature, type WhichApp, runDemoAction, signOutEveryone } from "./actions";
 
+// cmeprojects: one feature switch. Pressing it saves a draft; it goes live on Deploy.
 export function FeatureSwitch({
   feature,
+  part = false,
 }: {
-  feature: { key: string; label: string; description: string | null; enabled: boolean; premium?: boolean; included?: boolean };
+  feature: { key: string; label: string; description: string | null; on: boolean; pending?: boolean; premium?: boolean };
+  // A part of a feature (indented, smaller).
+  part?: boolean;
 }) {
   const [state, action, pending] = useActionState(setFeature, null);
-  // A premium add-on that isn't in the plan counts as off.
-  const on = feature.enabled && feature.included !== false;
+  const [, start] = useTransition();
   return (
     <form
-      action={action}
       onSubmit={(e) => {
+        e.preventDefault();
         if (
           feature.key === "two_factor" &&
-          feature.enabled &&
+          feature.on &&
           !confirm("Turn off two-factor login for everyone, including system admins? Accounts will only be protected by passwords.")
         ) {
-          e.preventDefault();
+          return;
         }
+        const data = new FormData(e.currentTarget);
+        start(() => action(data));
       }}
-      className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-4 first:border-t-0"
+      className={`flex flex-wrap items-center justify-between gap-3 py-3 ${part ? "pl-4 sm:pl-8" : ""}`}
     >
       <input type="hidden" name="key" value={feature.key} />
-      <input type="hidden" name="enabled" value={on ? "false" : "true"} />
-      <div className="min-w-56 flex-1">
-        <p className="flex flex-wrap items-center gap-2 font-semibold">
+      <input type="hidden" name="enabled" value={feature.on ? "false" : "true"} />
+      <div className="min-w-48 flex-1">
+        <p className={`flex flex-wrap items-center gap-2 ${part ? "text-sm font-semibold" : "font-semibold"}`}>
           {feature.label}
-          {feature.premium ? (
-            <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">Premium</span>
-          ) : null}
+          {feature.premium ? <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">Premium</span> : null}
+          {feature.pending ? <NotLiveBadge /> : null}
         </p>
         {feature.description ? <p className="text-sm text-muted">{feature.description}</p> : null}
-        {feature.premium ? (
-          <p className="text-sm text-muted">Paid add-on: switch it on only for companies that have it in their plan. Off hides it everywhere; records are kept.</p>
-        ) : null}
         {state?.error ? <p className="text-sm font-semibold text-danger">{state.error}</p> : null}
+        {state?.message && !pending ? <p role="status" className="text-sm font-semibold text-good">✓ {state.message}</p> : null}
       </div>
       <button
         role="switch"
-        aria-checked={on}
-        aria-label={`${feature.label}: ${on ? "on" : "off"}`}
+        aria-checked={feature.on}
+        aria-label={`${feature.label}: ${feature.on ? "on" : "off"}`}
         disabled={pending}
         className={`flex h-10 min-w-24 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
-          on ? "bg-brand text-brand-fg" : "border border-field bg-surface text-muted"
+          feature.on ? "bg-brand text-brand-fg" : "border border-field bg-surface text-muted"
         }`}
       >
-        <span aria-hidden="true" className={`h-3 w-3 rounded-full ${on ? "bg-brand-fg" : "bg-muted"}`} />
-        {on ? "On" : "Off"}
+        <span aria-hidden="true" className={`h-3 w-3 rounded-full ${feature.on ? "bg-brand-fg" : "bg-muted"}`} />
+        {feature.on ? "On" : "Off"}
       </button>
     </form>
   );
 }
 
-export type SettingRow = { key: string; label: string; description: string | null; value: unknown };
+// ---------------------------------------------------------------------------
+// Delegation: who looks after an area
+// ---------------------------------------------------------------------------
+
+export type DelegationMode = "admin" | "managers" | "selected";
+export type DelegationValue = { mode: DelegationMode; people: string[] };
+export type PersonChoice = { id: string; name: string; role: string };
+
+export function whoText(v: DelegationValue, choices: PersonChoice[]): string {
+  if (v.mode === "managers") return "all managers";
+  if (v.mode === "selected") {
+    const names = v.people.map((id) => choices.find((c) => c.id === id)?.name).filter(Boolean) as string[];
+    return names.length ? names.join(", ") : "chosen people";
+  }
+  return "only you";
+}
+
+export function DelegationPicker({
+  area,
+  label,
+  hint,
+  value,
+  pending: isDraft,
+  choices,
+  onSaved,
+}: {
+  area: string;
+  label: string;
+  hint?: string;
+  value: DelegationValue;
+  pending?: boolean;
+  choices: PersonChoice[];
+  onSaved?: () => void;
+}) {
+  const [state, action, pending] = useActionState(saveDelegationRule, null);
+  const [, start] = useTransition();
+  const [mode, setMode] = useState<DelegationMode>(value.mode);
+  const { ref, dirty, markClean } = useDirty();
+  useAfterSuccess(state, () => {
+    markClean();
+    onSaved?.();
+  });
+  const radio = (m: DelegationMode, text: string) => (
+    <label className="flex min-h-10 items-center gap-2 text-sm">
+      <input type="radio" name="mode" value={m} checked={mode === m} onChange={() => setMode(m)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+      {text}
+    </label>
+  );
+  return (
+    <form
+      ref={ref}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        start(() => action(data));
+      }}
+      className="flex flex-col gap-2"
+    >
+      <input type="hidden" name="area" value={area} />
+      <div>
+        <p className="flex flex-wrap items-center gap-2 font-semibold">
+          {label}
+          {isDraft ? <NotLiveBadge /> : null}
+        </p>
+        {hint ? <p className="text-sm text-muted">{hint}</p> : null}
+      </div>
+      <fieldset className="flex flex-wrap gap-x-5">
+        <legend className="sr-only">Who looks after it</legend>
+        {radio("admin", "Only me (system admin)")}
+        {radio("managers", "All managers")}
+        {radio("selected", "Selected people")}
+      </fieldset>
+      {mode === "selected" ? (
+        <fieldset className="flex flex-col rounded-md border border-line px-3 py-1">
+          <legend className="sr-only">Choose managers and staff admins</legend>
+          {choices.length === 0 ? <p className="py-2 text-sm text-muted">There are no active managers or staff admins yet.</p> : null}
+          {choices.map((c) => (
+            <label key={c.id} className="flex min-h-10 items-center gap-2 text-sm">
+              <input type="checkbox" name="people" value={c.id} defaultChecked={value.people.includes(c.id)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+              {c.name} <span className="text-muted">· {c.role}</span>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button size="sm" variant="outline" disabled={pending || !dirty}>{pending ? "Saving…" : "Save"}</Button>
+      </div>
+      <SaveResult state={state} pending={pending} dirty={dirty} />
+    </form>
+  );
+}
+
+// "Looked after by: … · Change" with a pop-up to change it, on a feature row.
+export function LookedAfterBy(props: { area: string; label: string; hint?: string; value: DelegationValue; pending?: boolean; choices: PersonChoice[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="text-muted">
+        {props.label.split(" (")[0]}: looked after by <strong className="text-ink">{whoText(props.value, props.choices)}</strong>
+      </span>
+      {props.pending ? <NotLiveBadge /> : null}
+      <button type="button" onClick={() => setOpen(true)} className="font-semibold text-brand underline">
+        Change
+      </button>
+      {open ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center" onClick={() => setOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-label={`Who looks after ${props.label}`} className="flex w-full max-w-lg flex-col gap-3 rounded-xl border border-line bg-surface p-5 text-ink shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <DelegationPicker {...props} />
+            <Button type="button" variant="outline" className="self-start" onClick={() => setOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Package presets: one press sets the main switches (as drafts).
+export function PresetButtons({ presets }: { presets: { key: string; label: string; hint: string }[] }) {
+  const [state, action, pending] = useActionState(applyPreset, null);
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        {presets.map((p) => (
+          <form key={p.key} action={action}>
+            <input type="hidden" name="preset" value={p.key} />
+            <button
+              disabled={pending}
+              title={p.hint}
+              className="flex min-h-11 flex-col items-start rounded-md border border-field bg-surface px-4 py-2 text-left text-sm hover:border-brand"
+            >
+              <span className="font-semibold">{p.label}</span>
+              <span className="text-xs text-muted">{p.hint}</span>
+            </button>
+          </form>
+        ))}
+      </div>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.message && !pending ? <p role="status" className="text-sm font-semibold text-good">✓ {state.message}</p> : null}
+    </div>
+  );
+}
+
+// One group on the Notifications tab: bell and email for each notification.
+export function NotificationGroupForm({
+  group,
+  items,
+}: {
+  group: string;
+  items: { code: string; label: string; channels: ("bell" | "email")[]; bell: boolean; email: boolean }[];
+}) {
+  const [state, action, pending] = useActionState(saveNotifications, null);
+  const [, start] = useTransition();
+  const { ref, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
+  return (
+    <form
+      ref={ref}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        start(() => action(data));
+      }}
+      className="flex flex-col gap-2"
+    >
+      <input type="hidden" name="group" value={group} />
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs text-muted uppercase">
+            <th className="py-2 font-semibold">Notification</th>
+            <th className="w-20 py-2 text-center font-semibold">Bell</th>
+            <th className="w-20 py-2 text-center font-semibold">Email</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {items.map((i) => (
+            <tr key={i.code}>
+              <td className="py-2 pr-2">{i.label}</td>
+              {(["bell", "email"] as const).map((c) => (
+                <td key={c} className="py-2 text-center">
+                  {i.channels.includes(c) ? (
+                    <input
+                      type="checkbox"
+                      name={`${i.code}.${c}`}
+                      defaultChecked={i[c]}
+                      aria-label={`${i.label}: ${c}`}
+                      className="h-5 w-5 accent-[var(--brand-primary)]"
+                    />
+                  ) : (
+                    <span className="text-muted" aria-label="Not sent this way">–</span>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div>
+        <Button size="sm" variant="outline" disabled={pending || !dirty}>{pending ? "Saving…" : "Save"}</Button>
+      </div>
+      <SaveResult state={state} pending={pending} dirty={dirty} />
+    </form>
+  );
+}
+
+export type SettingRow = { key: string; label: string; description: string | null; value: unknown; pending?: boolean };
 
 // Text that can be left blank (to hide it).
 const OPTIONAL_TEXT = ["brand.support_contact", "brand.announcement", "people.invite_message", "website.closed_text"];
@@ -114,15 +324,28 @@ export function kindOf(key: string): SettingKind {
 
 export function SettingForm({ setting, people = [] }: { setting: SettingRow; people?: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState(saveSetting, null);
+  const [, start] = useTransition();
+  const { ref, dirty, markClean, markDirty } = useDirty();
   const kind = kindOf(setting.key);
   const id = `s-${setting.key}`;
+  useAfterSuccess(state, markClean);
 
   return (
-    <form action={action} className="flex flex-col gap-2 border-t border-line py-4 first:border-t-0">
+    <form
+      ref={ref}
+      onSubmit={(e) => {
+        // Keep what's on screen (no automatic form reset after saving).
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        start(() => action(data));
+      }}
+      className="flex flex-col gap-2 border-t border-line py-4 first:border-t-0"
+    >
       <input type="hidden" name="key" value={setting.key} />
       <input type="hidden" name="kind" value={kind} />
-      <label htmlFor={kind === "roles" || kind === "people" ? undefined : id} className="font-semibold">
+      <label htmlFor={kind === "roles" || kind === "people" ? undefined : id} className="flex flex-wrap items-center gap-2 font-semibold">
         {setting.label}
+        {setting.pending ? <NotLiveBadge /> : null}
       </label>
       {setting.description ? <p className="-mt-1 text-sm text-muted">{setting.description}</p> : null}
       <div className="flex flex-wrap items-center gap-3">
@@ -185,7 +408,7 @@ export function SettingForm({ setting, people = [] }: { setting: SettingRow; peo
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <FileUpload id={id} bucket="branding" folder="logo" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" maxMb={2} shrink={false} />
+              <FileUpload id={id} bucket="branding" folder="logo" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" maxMb={2} shrink={false} onUploaded={markDirty} />
               <p className="mt-1 text-xs text-muted">
                 {setting.key === "brand.logo_mark_url"
                   ? "A square version for the menu and phone icon. PNG or SVG with a see-through background works best."
@@ -227,49 +450,30 @@ export function SettingForm({ setting, people = [] }: { setting: SettingRow; peo
             className={`${inputClass} ${kind === "number" ? "max-w-32" : "max-w-md"}`}
           />
         )}
-        <Button variant="outline" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+        <Button variant="outline" disabled={pending || !dirty}>{pending ? "Saving…" : "Save"}</Button>
       </div>
-      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-      {state?.message ? <p className="text-sm font-semibold text-good">{state.message}</p> : null}
+      <SaveResult state={state} pending={pending} dirty={dirty} />
     </form>
   );
 }
 
-// One manager's delegated areas of System settings.
-export function DelegationForm({
-  manager,
-  areas,
-  current,
-}: {
-  manager: { id: string; name: string };
-  areas: { key: string; label: string; hint?: string }[];
-  current: string[];
-}) {
-  const [state, action, pending] = useActionState(saveDelegation, null);
-  return (
-    <form action={action} className="flex flex-col gap-2 border-t border-line pt-4 first:border-t-0 first:pt-0">
-      <input type="hidden" name="user_id" value={manager.id} />
-      <fieldset className="flex flex-col gap-1">
-        <legend className="mb-1 font-semibold">{manager.name}</legend>
-        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-          {areas.map((a) => (
-            <label key={a.key} className="flex items-start gap-3 py-1 text-sm">
-              <input type="checkbox" name="areas" value={a.key} defaultChecked={current.includes(a.key)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-primary)]" />
-              <span>
-                <span className="block font-medium">{a.label}</span>
-                {a.hint ? <span className="block text-muted">{a.hint}</span> : null}
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
-        {state?.error ? <span className="text-sm text-danger">{state.error}</span> : null}
-        {state?.message ? <span className="text-sm text-good">{state.message}</span> : null}
-      </div>
-    </form>
-  );
+// cmeprojects: shown next to anything saved but not deployed yet.
+export function NotLiveBadge() {
+  return <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-ink">Not live yet</span>;
+}
+
+// The result of a Save: green when saved (until something changes again).
+export function SaveResult({ state, pending, dirty }: { state: { error?: string; message?: string } | null; pending: boolean; dirty: boolean }) {
+  if (pending) return null;
+  if (state?.error) return <Notice tone="error">{state.error}</Notice>;
+  if (state?.message && !dirty) {
+    return (
+      <p role="status" className="text-sm font-semibold text-good">
+        ✓ {state.message}
+      </p>
+    );
+  }
+  return null;
 }
 
 // cmeprojects: the Cars app icon. Tap one to use it; uploaded pictures stay as

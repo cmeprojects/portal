@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { getMyAdminAreas } from "@/lib/settings";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -31,7 +32,8 @@ export default async function RegistersPage() {
     (overview
       ? Number(((counts ?? []) as { registry_id: string; open_tasks: number }[]).find((c) => c.registry_id === id)?.open_tasks ?? 0)
       : (openTasks ?? []).filter((t) => t.registry_id === id).length) + (records ?? []).filter((r) => r.registry_id === id).length;
-  const canCreate = profile.role === "manager" || profile.role === "system_admin";
+  // Adding registers follows Delegation (all managers by default) (cmeprojects).
+  const canCreate = profile.role === "system_admin" || (await getMyAdminAreas(profile.role)).includes("registers");
   // Managers change the registers they're named on; the system admin changes any.
   const { data: mine } = canCreate ? await supabase.from("registry_managers").select("registry_id").eq("user_id", profile.id) : { data: [] };
   const manages = (id: string) => profile.role === "system_admin" || (mine ?? []).some((m) => m.registry_id === id);

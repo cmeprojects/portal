@@ -1,7 +1,9 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
+import { formBuilderOn } from "@/lib/feature-parts";
+
 import { createClient } from "@/lib/supabase/server";
 import { formsOn, loadForm } from "@/lib/forms";
 import { getBranding } from "@/lib/branding";
@@ -13,6 +15,8 @@ export const metadata: Metadata = { title: "Edit form" };
 export default async function EditFormPage({ params }: PageProps<"/forms/[id]/edit">) {
   const { profile, features } = await requireSession();
   if (!formsOn(features)) notFound();
+  // Form builder off: only the system admin changes forms (cmeprojects).
+  if (profile.role !== "system_admin" && !formBuilderOn(features)) redirect("/forms");
   const def = await loadForm((await params).id);
   if (!def) notFound();
   const supabase = await createClient();

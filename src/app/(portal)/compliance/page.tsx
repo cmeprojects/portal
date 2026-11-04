@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { SectionTabs } from "@/components/section-tabs";
+import { compliancePartOn } from "@/lib/feature-parts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -18,16 +19,23 @@ const TABS = ["progress", "read", "training", "upload"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function CompliancePage({ searchParams }: PageProps<"/compliance">) {
-  const { profile: me } = await requireSession();
+  const { profile: me, features } = await requireSession();
   const rules = await getPeopleRules();
   if (!seesCompliance(me.role, rules)) redirect("/");
   const manages = canManageCompliance(me.role, rules);
   const params = await searchParams;
   const asked = String(params.tab ?? "progress") as Tab;
-  const tab: Tab = TABS.includes(asked) && (asked === "progress" || manages) ? asked : "progress";
+  // Each part can be switched off (cmeprojects): its tab is hidden, except for the system admin.
+  const admin = me.role === "system_admin";
+  const open = (t: Tab) => t === "progress" || admin || compliancePartOn(features, t);
+  const tab: Tab = TABS.includes(asked) && (asked === "progress" || manages) && open(asked) ? asked : "progress";
 
   const tabs = manages
-    ? TABS.map((t) => ({ href: `/compliance?tab=${t}`, text: t === "progress" ? "Progress" : KIND_TAB[t], current: t === tab }))
+    ? TABS.filter(open).map((t) => ({
+        href: `/compliance?tab=${t}`,
+        text: t === "progress" ? "Progress" : `${KIND_TAB[t]}${compliancePartOn(features, t) ? "" : " (off)"}`,
+        current: t === tab,
+      }))
     : [];
 
   return (

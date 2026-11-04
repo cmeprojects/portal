@@ -4,12 +4,15 @@ import { notFound, redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { canMakeForms, formUrl, formsOn } from "@/lib/forms";
+import { canMakeForms, formUrl, formsOn, getFormsToFill } from "@/lib/forms";
+import { formBuilderOn, onboardingOn } from "@/lib/feature-parts";
+
 import { getPeople } from "@/lib/register-data";
 import { getTimeZone } from "@/lib/settings";
 import { env } from "@/lib/env";
 import type { FormInfo } from "@/lib/form-types";
-import { Card, PageHeader } from "@/components/ui";
+import { Card, Notice, PageHeader, buttonClass } from "@/components/ui";
+import Link from "next/link";
 import { LiveRefresh } from "@/components/live-refresh";
 import { FormsList, NewFormForm, type ManagedForm } from "./list";
 
@@ -74,13 +77,38 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
     };
   });
 
-  // Nothing to manage here: their forms are in My onboarding.
-  if (!canMake && !rows.length) redirect("/onboarding");
+  // cmeprojects: forms to fill in are listed here for everyone (and in My
+  // onboarding while a compliance part is on).
+  const toFill = await getFormsToFill(profile.id);
+  const builderOff = !formBuilderOn(features);
+  if (!canMake && !rows.length && !toFill.length && onboardingOn(features)) redirect("/onboarding");
 
   return (
     <>
       <LiveRefresh tables={["forms", "form_completions", "form_responses"]} />
-      <PageHeader title="Forms" intro="The forms you make and send. Forms for you to fill in are in My onboarding." />
+      <PageHeader title="Forms" intro={canMake || rows.length ? "Forms to fill in, and the forms you make and send." : "Forms for you to fill in."} />
+
+      <section className="flex flex-col gap-3">
+        <h2 className="heading-sm">To fill in · {toFill.length}</h2>
+        {toFill.length === 0 ? (
+          <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">Nothing to fill in right now.</p>
+        ) : (
+          <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
+            {toFill.map((f) => (
+              <li key={f.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <span className="min-w-48 flex-1">
+                  <span className="block font-semibold">{f.title}</span>
+                  {f.due_date ? <span className="block text-sm text-muted">Due {day.format(new Date(`${f.due_date}T12:00:00Z`))}</span> : null}
+                </span>
+                <Link href={`/forms/${f.id}`} className={buttonClass("primary")}>
+                  {f.started ? "Carry on" : "Answer now"}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      {builderOff && admin ? <Notice>The Form builder is switched off: only you can make or change forms. Published forms still work.</Notice> : null}
 
       {canMake || rows.length ? (
         <section className="flex flex-col gap-3">

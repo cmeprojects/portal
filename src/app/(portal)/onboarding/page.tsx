@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import { requireSession } from "@/lib/session";
+import { formsInOnboarding, onboardingOn } from "@/lib/feature-parts";
+import { redirect } from "next/navigation";
 import { getFormsToFill } from "@/lib/forms";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/registers";
@@ -22,9 +24,14 @@ export const metadata: Metadata = { title: "My onboarding" };
 const KINDS: ItemKind[] = ["read", "training", "upload", "form"];
 
 export default async function MyOnboardingPage() {
-  const { profile } = await requireSession();
+  const { profile, features } = await requireSession();
+  // Only while at least one compliance part is on (cmeprojects); forms follow Forms.
+  if (!onboardingOn(features)) redirect(features.forms === true ? "/forms" : "/");
   const supabase = await createClient();
-  const [{ data: rows }, sentForms] = await Promise.all([supabase.rpc("compliance_status", { p_user: profile.id }), getFormsToFill(profile.id)]);
+  const [{ data: rows }, sentForms] = await Promise.all([
+    supabase.rpc("compliance_status", { p_user: profile.id }),
+    formsInOnboarding(features) ? getFormsToFill(profile.id) : Promise.resolve([]),
+  ]);
   const status = (rows ?? []) as StatusRow[];
   const ids = status.map((s) => s.item_id);
   const [{ data: itemRows }, { data: records }] = await Promise.all([

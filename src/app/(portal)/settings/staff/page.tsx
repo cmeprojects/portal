@@ -2,6 +2,7 @@
 import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { rolesOn, teamsOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assignableRoles, inCoreTeam, JOB_TITLE_COLUMNS, ROLE_HELP, ROLE_LABELS, ROLES, type JobTitle, type Role } from "@/lib/roles";
@@ -32,7 +33,10 @@ async function joinedIds(): Promise<Set<string> | null> {
 }
 
 export default async function StaffPage() {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me, features } = await requireRole(PEOPLE_MANAGERS);
+  // Teams or Roles switched off: hidden from everyone but the system admin (cmeprojects).
+  const showTeams = me.role === "system_admin" || teamsOn(features);
+  const showTitles = me.role === "system_admin" || rolesOn(features);
   const supabase = await createClient();
   // Seeing this page clears "approved / declined" alerts from your bell.
   await supabase.rpc("mark_request_updates_seen", { p_kind: "role" });
@@ -53,7 +57,7 @@ export default async function StaffPage() {
       .eq("status", "pending")
       .order("requested_at"),
   ]);
-  const titles = (titleRows ?? []) as JobTitle[];
+  const titles = showTitles ? ((titleRows ?? []) as JobTitle[]) : [];
   const activeManagers = (people ?? []).filter((p) => p.role === "manager" && p.active).length;
   // New starters: what's still missing from onboarding.
   const missingFor = new Map(
@@ -206,7 +210,7 @@ export default async function StaffPage() {
                     </span>
                   ) : null}
                   <span className="w-40 text-sm text-muted">
-                    {inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team"}
+                    {!showTeams ? "" : inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team"}
                   </span>
                   <Badge tone={status === "Active" ? "good" : status === "Invite sent" ? "soft" : "grey"}>{status}</Badge>
                   <span className="text-sm font-semibold text-brand group-open:hidden">{row.editable ? "Edit" : "View"}</span>
@@ -218,7 +222,7 @@ export default async function StaffPage() {
                       person={row}
                       roles={roles}
                       titles={titles}
-                      teams={teams ?? []}
+                      teams={showTeams ? (teams ?? []) : []}
                       isManager={me.role === "manager" || me.role === "system_admin"}
                       canResetMfa={me.role === "system_admin"}
                       canHelpSignIn={canHelpSignIn(me.role, rules) && (me.role === "system_admin" || p.role !== "system_admin")}

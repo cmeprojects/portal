@@ -24,15 +24,19 @@ export const getRequiredWhen = cache(async (): Promise<RequiredWhen> => {
   return data?.value === "create" ? "create" : "complete";
 });
 
-// The System settings areas the signed-in person looks after: everything for
-// the system admin, the delegated ones for a manager, none for anyone else.
+// The areas the signed-in person looks after: everything for the system
+// admin; for managers and staff admins, what the Delegation tab gives them.
 export const getMyAdminAreas = cache(async (role: Role): Promise<Area[]> => {
   if (role === "system_admin") return [...AREAS];
-  if (role !== "manager") return [];
+  if (role !== "manager" && role !== "staff_admin") return [];
   const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_admin_areas");
+  if (!error) return ((data ?? []) as string[]).filter(isArea);
+  // Before live update 46: named managers only, and every manager adds registers and job titles.
+  if (role !== "manager") return [];
   const { data: claims } = await supabase.auth.getClaims();
-  const { data } = await supabase.from("admin_delegations").select("areas").eq("user_id", claims?.claims?.sub ?? "").maybeSingle();
-  return ((data?.areas ?? []) as string[]).filter(isArea);
+  const { data: old } = await supabase.from("admin_delegations").select("areas").eq("user_id", claims?.claims?.sub ?? "").maybeSingle();
+  return [...new Set([...((old?.areas ?? []) as string[]).filter(isArea), "registers", "roles"] as Area[])];
 });
 
 // Minutes without activity before people are signed out (0 = never).

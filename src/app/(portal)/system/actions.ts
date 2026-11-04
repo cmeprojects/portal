@@ -13,19 +13,17 @@ import { friendlyError } from "@/lib/db-error";
 import { isRole } from "@/lib/roles";
 import { slaFromForm } from "@/lib/tasks";
 import { text, type FormState } from "@/lib/form";
+import { draftOf, saveDraft } from "@/lib/drafts";
+import { PRESETS, PRESET_SWITCHES } from "./options";
+import { NOTIFICATION_GROUPS, asChannelMap, type Channel } from "@/lib/notification-catalogue";
 
+// A feature switch is saved as a draft too (switching on a premium add-on
+// also includes it in the plan when deployed).
 export async function setFeature(_: FormState, form: FormData): Promise<FormState> {
   await requireRole(["system_admin"]);
-  const key = text(form, "key");
-  const enabled = text(form, "enabled") === "true";
-  const supabase = await createClient();
-  // Switching on a premium add-on also includes it in this company's plan.
-  const { data: current } = await supabase.from("features").select("*").eq("key", key).maybeSingle();
-  const values = enabled && current?.premium === true ? { enabled, included: true } : { enabled };
-  const { data, error } = await supabase.from("features").update(values).eq("key", key).select("label").single();
-  if (error) return { error: friendlyError(error) };
+  const result = await saveDraft("feature", text(form, "key"), { enabled: text(form, "enabled") === "true" });
   revalidatePath("/", "layout");
-  return { message: `${data.label} is now ${enabled ? "on" : "off"}.` };
+  return result;
 }
 
 // Settings are stored as JSON. The form says what kind of value each one is.
@@ -100,25 +98,10 @@ export async function saveSetting(_: FormState, form: FormData): Promise<FormSta
   const { value, error: problem } = parse(text(form, "kind"), form);
   if (problem) return { error: problem };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("app_settings").update({ value }).eq("key", key).select("key");
-  if (error) return { error: friendlyError(error) };
-  if (!data?.length) return { error: "You don't have permission to change this setting." };
+  // cmeprojects: saved as a draft; it goes live when deployed.
+  const result = await saveDraft("setting", key, value);
   revalidatePath("/", "layout");
-  return { message: "Saved." };
-}
-
-// The system admin hands areas of System settings to a named manager.
-export async function saveDelegation(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(["system_admin"]);
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("set_delegation", {
-    p_user_id: text(form, "user_id"),
-    p_areas: form.getAll("areas").map(String).filter(isArea),
-  });
-  if (error) return { error: friendlyError(error) };
-  revalidatePath("/system");
-  return { message: "Saved." };
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,10 +134,10 @@ async function setIcon(which: WhichApp, icon: string, uploads?: string[]): Promi
     const { data, error } = await supabase.from("app_settings").update({ value: uploads }).eq("key", k.uploads).select("key");
     if (error || !data?.length) return { error: error ? friendlyError(error) : "You don't have permission to change this setting." };
   }
-  const { data, error } = await supabase.from("app_settings").update({ value: icon }).eq("key", k.icon).select("key");
-  if (error || !data?.length) return { error: error ? friendlyError(error) : "You don't have permission to change this setting." };
+  // The icon in use is a setting, so it's a draft until deployed (uploads are kept straight away).
+  const result = await saveDraft("setting", k.icon, icon);
   revalidatePath("/", "layout");
-  return {};
+  return result ?? {};
 }
 
 export async function chooseAppIcon(icon: string, which: WhichApp = "cars"): Promise<Result> {
@@ -215,4 +198,56 @@ export async function signOutEveryone(_: FormState, form: FormData): Promise<For
   if (error) return { error: error.code === "PGRST202" ? "This needs the latest database update (update 45)." : friendlyError(error) };
   const n = Number(data ?? 0);
   return { message: `Signed out ${n} device${n === 1 ? "" : "s"}. You're still signed in here.` };
+}
+
+// ---------------------------------------------------------------------------
+// cmeprojects settings revamp: delegation per area, package presets, notifications
+// ---------------------------------------------------------------------------
+
+// Who looks after an area: only the system admin, all managers, or chosen people.
+export async function saveDelegationRule(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(["system_admin"]);
+  const area = text(form, "area");
+  if (!isArea(area)) return { error: "Something went wrong. Please refresh and try again." };
+  const mode = text(form, "mode");
+  const people = mode === "selected" ? form.getAll("people").map(String).filter((v) => /^[0-9a-f-]{36}$/.test(v)) : [];
+  if (mode === "selected" && !people.length) return { error: "Choose at least one manager or staff admin." };
+  const result = await saveDraft("delegation", area, { mode: ["admin", "managers", "selected"].includes(mode) ? mode : "admin", people });
+  revalidatePath("/", "layout");
+  return result;
+}
+
+// Package presets set the main switches for a budget in one go (as drafts).
+export async function applyPreset(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(["system_admin"]);
+  const preset = PRESETS[text(form, "preset")];
+  if (!preset) return { error: "Choose a package." };
+  for (const key of PRESET_SWITCHES) {
+    const r = await saveDraft("feature", key, { enabled: preset.on.includes(key) });
+    if (r?.error) return r;
+  }
+  revalidatePath("/", "layout");
+  return { message: `${preset.label} set. Not live yet: press Deploy to make it live.` };
+}
+
+// One group of the Notifications tab: bell and email for each notification.
+export async function saveNotifications(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(["system_admin"]);
+  const group = NOTIFICATION_GROUPS.find((g) => g.key === text(form, "group"));
+  if (!group) return { error: "Something went wrong. Please refresh and try again." };
+  const supabase = await createClient();
+  const draft = await draftOf("setting", "notify.channels");
+  const live = draft ? null : (await supabase.from("app_settings").select("value").eq("key", "notify.channels").maybeSingle()).data?.value;
+  const map = { ...asChannelMap(draft ? draft.value : live) };
+  for (const item of group.items) {
+    const next: Partial<Record<Channel, boolean>> = { ...map[item.code] };
+    for (const c of item.channels) next[c] = form.get(`${item.code}.${c}`) === "on";
+    // Keep only what's switched off; anything not listed is on.
+    const off = Object.fromEntries(Object.entries(next).filter(([, v]) => v === false));
+    if (Object.keys(off).length) map[item.code] = off;
+    else delete map[item.code];
+  }
+  const result = await saveDraft("setting", "notify.channels", map);
+  revalidatePath("/", "layout");
+  return result;
 }

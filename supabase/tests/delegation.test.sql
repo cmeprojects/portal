@@ -22,7 +22,10 @@ reset role;
 select test.act_as('owner@example.com');
 set role authenticated;
 select public.set_delegation(test.pid('boss@example.com'), array['branding', 'messages', 'audit']);
-select test.refused($$select public.set_delegation(test.pid('office@example.com'), array['branding'])$$, 'only managers can be delegated to');
+-- Staff admins can be delegated to as well (settings revamp); then taken off again.
+select public.set_delegation(test.pid('office@example.com'), array['branding']);
+select test.ok(exists (select 1 from public.delegation_rules where area = 'branding' and test.pid('office@example.com') = any (people)), 'a staff admin can be delegated to');
+select public.set_delegation(test.pid('office@example.com'), array[]::text[]);
 select test.refused($$select public.set_delegation(test.pid('boss2@example.com'), array['security'])$$, 'security can''t be delegated');
 reset role;
 
@@ -45,12 +48,15 @@ set role authenticated;
 select test.ok((select count(*) from public.audit_log) = 0, 'other managers can''t read the change log');
 reset role;
 
--- No longer a manager: the delegation goes.
+-- No longer a manager or staff admin: the delegation stops working.
 select test.act_as('owner@example.com');
 set role authenticated;
-update public.profiles set role = 'staff_admin' where email = 'boss@example.com';
+update public.profiles set role = 'support_worker' where email = 'boss@example.com';
 reset role;
-select test.ok(not exists (select 1 from public.admin_delegations), 'a role change removes the delegation');
+select test.act_as('boss@example.com');
+set role authenticated;
+select test.ok(not public.can_admin_area('branding'), 'a role change ends the delegation');
+reset role;
 
 \o
 \echo 'All delegation tests passed.'

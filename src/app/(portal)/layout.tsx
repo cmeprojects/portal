@@ -17,6 +17,9 @@ import { navFor } from "@/components/nav";
 import { getNavAccess } from "@/lib/nav-access";
 import { signOut } from "@/app/login/actions";
 import { LiveRefresh } from "@/components/live-refresh";
+import { DeployBar } from "@/components/deploy-bar";
+import { describeDrafts, getDrafts } from "@/lib/drafts";
+import { asChannelMap, channelOn, type ChannelMap } from "@/lib/notification-catalogue";
 
 // Frame for every page after sign-in: the company's sidebar on desktop, a top
 // bar with a drop-down menu on phones.
@@ -29,12 +32,17 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   ]);
   // When they last signed in (password, link or code): the inactivity timer never starts earlier than this.
   const signedInAt = Math.max(0, ...((claims?.claims?.amr ?? []) as { timestamp?: number }[]).map((a) => (a.timestamp ?? 0) * 1000));
+  // Which bell notifications are switched on (Settings → Notifications, cmeprojects).
+  const channels = await getChannels();
+  const bellOn = (code: string) => channelOn(channels, code, "bell");
   const [taskItems, requestItems, notices] = await Promise.all([
-    features.tasks !== false ? newTasksForMe() : Promise.resolve([]),
-    requestUpdatesForMe(),
+    features.tasks !== false ? newTasksForMe(bellOn) : Promise.resolve([]),
+    bellOn("people_request") ? requestUpdatesForMe() : Promise.resolve([]),
     noticesForMe(),
   ]);
   const bellItems = [...notices, ...requestItems, ...taskItems];
+  // Settings saved but not deployed yet (only people who can change settings have any).
+  const draftLines = ["system_admin", "manager", "staff_admin"].includes(profile.role) ? await describeDrafts(await getDrafts()) : [];
   // Their role changed (while signed in): a banner until they've seen it.
   const roleChange = notices.find((n) => n.kind === "role_changed");
 
@@ -84,6 +92,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
             {brand.announcement}
           </div>
         ) : null}
+        <DeployBar items={draftLines} />
         {children}
       </main>
     </div>
@@ -99,11 +108,15 @@ const ALERT_WORDS: Record<string, string> = {
 
 // Tasks newly given to the signed-in person, and due date alerts, newest
 // first, for the bell.
-async function newTasksForMe(): Promise<BellItem[]> {
+const ALERT_CODES: Record<string, string> = { reminder: "task_reminder", due_today: "task_due_today", overdue: "task_overdue", escalated: "task_escalated" };
+
+async function newTasksForMe(bellOn: (code: string) => boolean): Promise<BellItem[]> {
   const supabase = await createClient();
   const [{ data }, { data: alertRows }] = await Promise.all([supabase.rpc("my_new_tasks"), supabase.rpc("my_due_alerts")]);
-  const fresh = (data ?? []) as { task_id: string; kind: "assigned" | "helping"; actor_id: string | null; at: string }[];
-  const alerts = (alertRows ?? []) as { task_id: string; step: string; at: string }[];
+  const fresh = ((data ?? []) as { task_id: string; kind: "assigned" | "helping"; actor_id: string | null; at: string }[]).filter((f) =>
+    bellOn(f.kind === "helping" ? "helper_added" : "task_assigned"),
+  );
+  const alerts = ((alertRows ?? []) as { task_id: string; step: string; at: string }[]).filter((a) => bellOn(ALERT_CODES[a.step] ?? "task_reminder"));
   if (!fresh.length && !alerts.length) return [];
   const ids = [...new Set([...fresh.map((f) => f.task_id), ...alerts.map((a) => a.task_id)])];
   const [{ data: tasks }, registries, people, timeZone] = await Promise.all([
@@ -201,4 +214,10 @@ async function noticesForMe(): Promise<(BellItem & { kind?: string })[]> {
     detail: [n.body, when.format(new Date(n.created_at))].filter(Boolean).join(" · "),
     tone: NOTICE_TONE[n.kind],
   }));
+}
+
+// The live notification switches (only what's been switched off is stored).
+async function getChannels(): Promise<ChannelMap> {
+  const { data } = await (await createClient()).from("app_settings").select("value").eq("key", "notify.channels").maybeSingle();
+  return asChannelMap(data?.value);
 }

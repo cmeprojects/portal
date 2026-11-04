@@ -1,7 +1,10 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
-import { requireRole } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { getMyAdminAreas } from "@/lib/settings";
+import { rolesOn } from "@/lib/feature-parts";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { JOB_TITLE_COLUMNS, ROLE_HELP, ROLE_LABELS, type JobTitle } from "@/lib/roles";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -10,7 +13,9 @@ import { JobTitleForm, NewJobTitleForm } from "./forms";
 export const metadata: Metadata = { title: "Roles" };
 
 export default async function RolesPage() {
-  await requireRole(["manager", "system_admin"]);
+  // Job titles: the system admin always; others when Roles is on and the area is theirs (cmeprojects).
+  const { profile, features } = await requireSession();
+  if (profile.role !== "system_admin" && !(rolesOn(features) && (await getMyAdminAreas(profile.role)).includes("roles"))) redirect("/");
   const supabase = await createClient();
   const [{ data: rows }, { data: people }] = await Promise.all([
     supabase.from("job_titles").select(JOB_TITLE_COLUMNS).order("sort_order").order("name"),

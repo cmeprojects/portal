@@ -53,7 +53,7 @@ change. Nothing here deletes your people, tasks, forms or cars.
 The whole system as it is now: every module, updates 1 to 45 applied.
 
 - **Code:** branch `restore-update-45` (commit `8b8fad4`).
-- **Database:** run the `undo-NN.sql` files of the revamp's updates (46 and up), newest first.
+- **Database:** run `supabase/live-updates/undo-46.sql` (safe to run again).
 
 ## Habit for every big change
 

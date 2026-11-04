@@ -157,8 +157,12 @@ export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|logo\\.(?:png|svg)|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)"],
 };
 
-// A public setting, so it can be read before anyone signs in.
+// A public check, so it can be read before anyone signs in: the website is the
+// front page only while the Assistant is on (cmeprojects; update 46).
 async function websiteIsFrontPage(supabase: ReturnType<typeof createServerClient>): Promise<boolean> {
-  const { data } = await supabase.from("app_settings").select("value").eq("key", "website.front_page").maybeSingle();
-  return data?.value === true;
+  const { data, error } = await supabase.rpc("website_front_page");
+  if (!error) return data === true;
+  // Before live update 46: the setting alone.
+  const { data: setting } = await supabase.from("app_settings").select("value").eq("key", "website.front_page").maybeSingle();
+  return setting?.value === true;
 }

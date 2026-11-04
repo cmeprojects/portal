@@ -75,6 +75,8 @@ export async function updatePerson(_: FormState, form: FormData): Promise<FormSt
   const { data: current } = await supabase.from("profiles").select("role, job_title_id").eq("id", id).single();
   if (!current) return { error: "Person not found." };
   if (current.role === choice.role && current.job_title_id === choice.titleId) return { message: "Nothing has changed." };
+  // Roles (job titles) switched off: the same access level keeps their job title.
+  if (form.get("titles_off") === "1" && current.role === choice.role) return { message: "Nothing has changed." };
 
   // Staff admins (HR) send role changes to a manager for approval (if the
   // system admin's rules say so; a new starter's first role usually doesn't).

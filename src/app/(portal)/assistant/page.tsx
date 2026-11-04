@@ -7,7 +7,8 @@ import { getMyAdminAreas } from "@/lib/settings";
 import { assistantUsage } from "@/lib/assistant";
 import { AssistantUsageCard } from "@/components/assistant-usage";
 import { SectionTabs } from "@/components/section-tabs";
-import { SettingForm, type SettingRow } from "../system/forms";
+import { NotLiveBadge, SettingForm, type SettingRow } from "../system/forms";
+import { getDrafts, withSettingDrafts } from "@/lib/drafts";
 import { createClient } from "@/lib/supabase/server";
 import { AUDIENCE_LABELS, AUDIENCES, DEFAULT_SETTINGS, type AssistantSettings } from "@/lib/assistant-shared";
 import { Badge, Button, Card, Notice, PageHeader, inputClass } from "@/components/ui";
@@ -25,6 +26,8 @@ export default async function AssistantPage() {
   const admin = profile.role === "system_admin";
   // The system admin, or a manager given "Website" (where it looks, and documents).
   if (!admin && !(await getMyAdminAreas(profile.role)).includes("website")) redirect("/");
+  // Delegated people only while the website is on; the system admin always.
+  if (!admin && !features.assistant) redirect("/");
   const supabase = await createClient();
   const [{ data: settings }, { data: docs }, { data: questions }, { data: siteRows }, usage] = await Promise.all([
     supabase.from("assistant_settings").select("*").maybeSingle(),
@@ -33,7 +36,11 @@ export default async function AssistantPage() {
     supabase.from("app_settings").select("key, label, description, value").or("key.like.website.%,key.like.assistant.%").order("key"),
     admin ? assistantUsage() : Promise.resolve(null),
   ]);
-  const s = { ...DEFAULT_SETTINGS, ...(settings ?? {}), monthly_limit_aud: Number(settings?.monthly_limit_aud ?? DEFAULT_SETTINGS.monthly_limit_aud) } as AssistantSettings & { credit_aud?: number; credit_since?: string | null };
+  // Saved but not deployed parts are shown as they'll be (cmeprojects).
+  const drafts = (await getDrafts()).filter((d) => d.kind === "website");
+  const draftParts = Object.assign({}, ...drafts.map((d) => d.value as Record<string, unknown>));
+  const pendingPart = (part: string) => drafts.some((d) => d.key === part);
+  const s = { ...DEFAULT_SETTINGS, ...(settings ?? {}), ...draftParts, monthly_limit_aud: Number(draftParts.monthly_limit_aud ?? settings?.monthly_limit_aud ?? DEFAULT_SETTINGS.monthly_limit_aud) } as AssistantSettings & { credit_aud?: number; credit_since?: string | null };
   const unanswered = (questions ?? []).filter((q) => !q.answered);
   const log = [...unanswered, ...(questions ?? []).filter((q) => q.answered)].slice(0, 30);
   // The public website's settings, in groups.
@@ -43,7 +50,7 @@ export default async function AssistantPage() {
     { title: "Search engines (SEO)", keys: ["website.site_url", "website.seo_title", "website.seo_description"] },
     { title: "Enquiries", keys: ["assistant.enquiry_roles", "assistant.intake_roles"] },
   ];
-  const settingRows = (siteRows ?? []) as SettingRow[];
+  const settingRows = await withSettingDrafts((siteRows ?? []) as SettingRow[]);
 
   return (
     <>
@@ -79,7 +86,7 @@ export default async function AssistantPage() {
 
       {admin ? (
         <section className="flex flex-col gap-2">
-          <h2 className="heading-sm">Landing page</h2>
+          <h2 className="flex items-center gap-2 heading-sm">Landing page {pendingPart("landing") ? <NotLiveBadge /> : null}</h2>
           <Card className="p-4">
             <LandingForm s={s} />
           </Card>
@@ -87,7 +94,7 @@ export default async function AssistantPage() {
       ) : null}
 
       <section className="flex flex-col gap-2">
-        <h2 className="heading-sm">Where it looks for answers</h2>
+        <h2 className="flex items-center gap-2 heading-sm">Where it looks for answers {pendingPart("answers") ? <NotLiveBadge /> : null}</h2>
         <Card className="p-4">
           <AnswersForm s={s} aiReady={Boolean(process.env.ANTHROPIC_API_KEY)} />
         </Card>
@@ -141,7 +148,7 @@ export default async function AssistantPage() {
 
       {admin ? (
         <section className="flex flex-col gap-2">
-          <h2 className="heading-sm">Model, limits and credit</h2>
+          <h2 className="flex items-center gap-2 heading-sm">Model, limits and credit {pendingPart("limits") ? <NotLiveBadge /> : null}</h2>
           <Card className="flex flex-col gap-4 p-4">
             <TestAiButton />
             <LimitsForm s={s} />

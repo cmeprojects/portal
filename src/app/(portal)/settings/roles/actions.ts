@@ -10,7 +10,8 @@ import { text, type FormState } from "@/lib/form";
 
 const PAGE = "/settings/roles";
 // Managers (and the system admin) look after job titles.
-const TITLE_EDITORS = ["manager", "system_admin"] as const;
+// The database checks the "Roles" delegation (cmeprojects); these roles may try.
+const TITLE_EDITORS = ["manager", "staff_admin", "system_admin"] as const;
 
 function fields(form: FormData) {
   const access_level = text(form, "access_level");

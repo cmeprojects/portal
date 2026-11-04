@@ -9,7 +9,7 @@ import { getMenuFeatures, getReportFeatures } from "@/lib/custom-features";
 import { requireSession } from "@/lib/session";
 import { getBranding, initialsOf } from "@/lib/branding";
 import { canUseCars } from "@/lib/cars";
-import { canMakeForms } from "@/lib/forms";
+import { onboardingOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
 
@@ -40,8 +40,8 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     adminAreas,
     customFeatures,
     featureReports,
-    // Forms: for those who make forms (everyone else answers theirs in My onboarding).
-    forms: features.forms === true && role !== "new_starter" && (await canMakeForms()),
+    // Forms: everyone sees the forms to fill in there; makers also manage theirs (cmeprojects).
+    forms: features.forms === true && (role !== "new_starter" || !onboardingOn(features)),
     // The website's Assistant is for every staff member; enquiries for those the system admin chose.
     assistant: features.assistant === true && role !== "new_starter",
     enquiries: features.assistant === true && (await canSeeEnquiries()),

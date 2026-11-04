@@ -50,10 +50,14 @@ export const getSession = cache(async (): Promise<Session | null> => {
   if (!access || !access.active || !profile) redirect("/deactivated");
   if (access.mfa_required && !access.mfa_ok) redirect("/mfa");
 
+  // A premium feature only counts as on if it's included in the plan, and a
+  // part of a feature (cmeprojects) only while its feature is on too.
+  const own = new Map((features ?? []).map((f) => [f.key as string, Boolean(f.enabled) && f.included !== false]));
   return {
     profile,
-    // A premium feature only counts as on if it's included in the plan.
-    features: Object.fromEntries((features ?? []).map((f) => [f.key, Boolean(f.enabled) && f.included !== false])),
+    features: Object.fromEntries(
+      (features ?? []).map((f) => [f.key, Boolean(own.get(f.key)) && (!f.parent || own.get(f.parent) === true)]),
+    ),
     mfaRequired: access.mfa_required,
   };
 });

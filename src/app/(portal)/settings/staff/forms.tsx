@@ -135,13 +135,20 @@ export function PersonEditor({
         className="flex flex-col gap-4"
       >
         <input type="hidden" name="id" value={person.id} />
+        {/* Roles (job titles) switched off: keep their job title unless the access level changes. */}
+        {titles.length === 0 ? <input type="hidden" name="titles_off" value="1" /> : null}
         <div className="grid gap-4 lg:grid-cols-2">
           <Field label="Name" htmlFor={`name-${person.id}`}>
             <input id={`name-${person.id}`} name="full_name" defaultValue={person.full_name} maxLength={120} className={inputClass} />
           </Field>
           {roleEditable ? (
             <Field label="Role" htmlFor={`role-${person.id}`}>
-              <select id={`role-${person.id}`} name="role" defaultValue={roleChoiceValue(person.role, person.job_title_id)} className={inputClass}>
+              <select
+                id={`role-${person.id}`}
+                name="role"
+                defaultValue={roleChoiceValue(person.role, titles.some((t) => t.id === person.job_title_id) ? person.job_title_id : null)}
+                className={inputClass}
+              >
                 <RoleOptions roles={choices} titles={titles} />
               </select>
             </Field>

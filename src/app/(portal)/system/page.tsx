@@ -7,18 +7,51 @@ import { redirect } from "next/navigation";
 import { getMyAdminAreas } from "@/lib/settings";
 import { AREAS, AREA_HINTS, AREA_LABELS, type Area } from "@/lib/delegation";
 import { createClient } from "@/lib/supabase/server";
+import { getDrafts, withSettingDrafts, type Draft } from "@/lib/drafts";
+import { NOTIFICATION_GROUPS, asChannelMap, channelOn } from "@/lib/notification-catalogue";
+import { ROLE_LABELS, isRole } from "@/lib/roles";
 import { Card, Notice, PageHeader, Tabs } from "@/components/ui";
 import { IncludedSwitch } from "./builder/forms";
-import { AppIconPicker, DelegationForm, FeatureSwitch, SettingForm, type SettingRow, DemoDataPanel, SignOutEveryone } from "./forms";
+import { PRESETS } from "./options";
+import {
+  AppIconPicker,
+  DelegationPicker,
+  DemoDataPanel,
+  FeatureSwitch,
+  LookedAfterBy,
+  NotLiveBadge,
+  NotificationGroupForm,
+  PresetButtons,
+  SettingForm,
+  SignOutEveryone,
+  type DelegationValue,
+  type PersonChoice,
+  type SettingRow,
+} from "./forms";
 
 export const metadata: Metadata = { title: "System settings" };
 
+// cmeprojects settings revamp. Tabs for the system admin: Features (one row
+// per feature, with its parts and settings), Notifications, Delegation,
+// General and Demo data. People given an area see only those settings.
+
 // area: who can open it besides the system admin (none = system admin only).
 type Section = { title: string; intro?: string; area?: Area; keys: (key: string) => boolean };
-type Tab = { key: string; label: string; sections: Section[] };
 
-// Invites are always general now, so that switch isn't shown.
-const HIDDEN = ["people.general_invites_only", "vehicles.app_icon_uploads", "staff_app.icon_uploads", "vehicles.separate_app"];
+// One row on the Features tab. switches[0] is the main switch (unless always on); the rest are its parts.
+type Row = {
+  id: string;
+  label: string;
+  intro: string;
+  always?: boolean;
+  switches: string[];
+  sections: Section[];
+  areas: Area[];
+  links?: { href: string; text: string }[];
+};
+
+// Settings shown elsewhere or not at all.
+const HIDDEN = ["people.general_invites_only", "vehicles.app_icon_uploads", "staff_app.icon_uploads", "vehicles.separate_app", "notify.channels"];
 const MESSAGES = ["brand.support_contact", "brand.announcement", "people.invite_message"];
 // Settings that read best in a set order (others follow, A to Z).
 const ORDER = [
@@ -48,270 +81,411 @@ const ORDER = [
   "vehicles.app_days",
   "vehicles.app_name",
   "vehicles.app_icon",
-  "vehicles.separate_app",
   "staff_app.name",
   "staff_app.icon",
   "staff_app.cars",
 ];
 const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
 
-const TABS: Tab[] = [
+const ROWS: Row[] = [
   {
-    key: "branding",
-    label: "Branding",
-    sections: [
-      { title: "Name and logo", intro: "Shown on every page, the sign-in page and in emails.", area: "branding", keys: (k) => /^brand\.(company_name|portal_name|logo_url|logo_mark_url)$/.test(k) },
-      { title: "Colours", area: "branding", keys: (k) => k.startsWith("brand.color_") },
-      { title: "Wording", intro: "The words your company uses.", area: "branding", keys: (k) => k.startsWith("wording.") },
+    id: "tasks",
+    label: "Tasks and registers",
+    intro: "Always on. Due dates, reminders, escalation and required fields. Managers also set due dates on the Due dates (SLA) page.",
+    always: true,
+    switches: ["auto_escalation", "attachments"],
+    sections: [{ title: "Task settings", area: "tasks", keys: (k) => k.startsWith("tasks.") }],
+    areas: ["tasks", "registers"],
+    links: [
+      { href: "/settings/sla", text: "Due dates (SLA)" },
+      { href: "/registers", text: "Registers" },
     ],
   },
   {
-    key: "messages",
-    label: "Messages",
-    sections: [{ title: "Messages to staff", intro: "Leave any of these blank to hide them.", area: "messages", keys: (k) => MESSAGES.includes(k) }],
+    id: "people",
+    label: "People, clients and scoreboard",
+    intro:
+      "Always on: invite, give a role, change names, reset links, two-factor reset, Cars PIN, sign out of all devices, deactivate. Clients and the scoreboard are always on. Teams and Roles can be switched off; you can still manage them while they're off.",
+    always: true,
+    switches: ["teams", "roles"],
+    sections: [{ title: "People rules", intro: "Approvals, who can invite, what new starters can do, who sees the scoreboard.", area: "people", keys: (k) => k.startsWith("people.") && !MESSAGES.includes(k) }],
+    areas: ["people", "roles"],
   },
   {
-    key: "people",
-    label: "People",
-    sections: [
-      { title: "People rules", intro: "Who needs a manager's approval, who can invite, and what new starters can do.", area: "people", keys: (k) => k.startsWith("people.") && !MESSAGES.includes(k) },
-      {
-        title: "Compliance",
-        intro: "Onboarding documents, trainings and uploads. Staff admins always manage them; you can add other roles. Who sees the Compliance report is here too (and on the Reports tab).",
-        area: "compliance",
-        keys: (k) => k.startsWith("compliance.") || k === "reports.compliance_roles",
-      },
-    ],
+    id: "compliance",
+    label: "Compliance and onboarding",
+    intro: "Each part can be switched off. My onboarding only shows while at least one part is on. A part that's off never holds up anyone's onboarding.",
+    switches: ["compliance", "compliance_read", "compliance_training", "compliance_upload", "compliance_forms"],
+    sections: [{ title: "Compliance settings", area: "compliance", keys: (k) => k.startsWith("compliance.") || k === "reports.compliance_roles" }],
+    areas: ["compliance"],
+    links: [{ href: "/compliance", text: "Compliance" }],
   },
   {
-    key: "tasks",
-    label: "Tasks",
-    sections: [
-      { title: "Tasks", intro: "Due dates, reminders, escalation and required fields. Managers can also change due dates on the Due dates (SLA) page.", area: "tasks", keys: (k) => k.startsWith("tasks.") },
-    ],
-  },
-  {
-    key: "reports",
-    label: "Reports",
-    sections: [
-      {
-        title: "Who sees which reports",
-        intro: "The system admin always sees every report. Car reports are set on the Cars tab.",
-        area: "reports",
-        keys: (k) => k.startsWith("reports."),
-      },
-    ],
-  },
-  {
-    key: "cars",
-    label: "Cars",
-    sections: [
-      {
-        title: "Cars",
-        intro: "Company cars and trips. Car managers add cars, clients and purposes of use, and choose whether trips have a client, on Manage cars. You can give these settings to a manager on the Delegation tab.",
-        area: "vehicles",
-        keys: (k) => k.startsWith("vehicles.") && !k.startsWith("vehicles.app_"),
-      },
-      {
-        title: "Cars app on the phone",
-        intro: "What staff see on their home screen after adding the Cars app. Changes show on phones that add the app from now on.",
-        area: "vehicles",
-        keys: (k) => k.startsWith("vehicles.app_") || k === "vehicles.separate_app",
-      },
-    ],
-  },
-  {
-    key: "security",
-    label: "Security",
-    sections: [
-      { title: "Two-factor login", intro: "Which roles need it while it's switched on (system admins always do), and which methods people can use.", keys: (k) => k.startsWith("security.mfa") },
-      { title: "Signing out", keys: (k) => k === "security.idle_minutes" },
-    ],
-  },
-  {
-    key: "staff-app",
-    label: "Staff app",
-    sections: [
-      {
-        title: "Staff app",
-        intro: "One phone app for staff with the features you choose. Tick Show in the staff app on each feature in the Feature builder. Staff get it from the Apps page in the menu. With Cars in the Staff app, staff are only offered this one app (phones that already have the Cars app keep it working).",
-        keys: (k) => k.startsWith("staff_app."),
-      },
-    ],
-  },
-  {
-    key: "forms",
+    id: "forms",
     label: "Forms",
-    sections: [{ title: "Forms", intro: "Who can make forms (the system admin always can). Each form is controlled by the person who made it and anyone they share it with.", keys: (k) => k.startsWith("forms.") }],
+    intro: "With the Form builder off, forms already published still work, and staff fill them in from the Forms menu.",
+    switches: ["forms", "form_builder"],
+    sections: [{ title: "Who can make and manage forms", intro: "The system admin always can.", keys: (k) => k.startsWith("forms.") }],
+    areas: [],
+    links: [{ href: "/forms", text: "Forms" }],
   },
-  { key: "features", label: "Features", sections: [] },
-  { key: "delegation", label: "Delegation", sections: [] },
-  { key: "demo", label: "Demo data", sections: [] },
   {
-    key: "general",
-    label: "General",
+    id: "cars",
+    label: "Cars and Cars app",
+    intro: "Company cars and trips. Car managers add cars, clients and purposes on Manage cars.",
+    switches: ["vehicles"],
     sections: [
-      { title: "Region", keys: (k) => k.startsWith("region.") },
-      { title: "Records", intro: "Records are never deleted when a feature is switched off.", keys: (k) => k.startsWith("records.") },
+      { title: "Cars", area: "vehicles", keys: (k) => k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") },
+      { title: "Cars app on the phone", area: "vehicles", keys: (k) => k.startsWith("vehicles.app_") },
     ],
+    areas: ["vehicles"],
+  },
+  {
+    id: "staff-app",
+    label: "Staff app",
+    intro: "One phone app for staff with the features you choose. Tick Show in the staff app on each built feature.",
+    switches: ["staff_app"],
+    sections: [{ title: "Staff app", keys: (k) => k.startsWith("staff_app.") }],
+    areas: [],
+  },
+  {
+    id: "assistant",
+    label: "Website, Assistant and enquiries",
+    intro: "They go together. Off: the sign-in page is the front page, and enquiries stop. Website settings stay open to you either way.",
+    switches: ["assistant"],
+    sections: [],
+    areas: ["website"],
+    links: [{ href: "/assistant", text: "Website settings" }],
+  },
+  {
+    id: "reports",
+    label: "Reports and exports",
+    intro: "Each report only shows while its feature is on (car reports with Cars, the compliance report with Compliance).",
+    switches: ["reports"],
+    sections: [{ title: "Who sees which reports", area: "reports", keys: (k) => k.startsWith("reports.") && k !== "reports.compliance_roles" }],
+    areas: ["reports"],
+  },
+  {
+    id: "sign-in",
+    label: "Sign-in",
+    intro: "Two-factor login and the ways people can sign in.",
+    switches: ["two_factor", "sign_in_magic_link", "sign_in_google"],
+    sections: [{ title: "Two-factor login", intro: "Which roles need it (system admins always do) and which methods people can use.", keys: (k) => k.startsWith("security.mfa") }],
+    areas: [],
   },
 ];
+
+// Settings that aren't about one feature.
+const GENERAL: Section[] = [
+  { title: "Name and logo", intro: "Shown on every page, the sign-in page and in emails.", area: "branding", keys: (k) => /^brand\.(company_name|portal_name|logo_url|logo_mark_url)$/.test(k) },
+  { title: "Colours", area: "branding", keys: (k) => k.startsWith("brand.color_") },
+  { title: "Wording", intro: "The words your company uses.", area: "branding", keys: (k) => k.startsWith("wording.") },
+  { title: "Messages to staff", intro: "Leave any of these blank to hide them.", area: "messages", keys: (k) => MESSAGES.includes(k) },
+  { title: "Signing out", keys: (k) => k === "security.idle_minutes" },
+  { title: "Region", keys: (k) => k.startsWith("region.") },
+  { title: "Records", intro: "Records are never deleted when a feature is switched off.", keys: (k) => k.startsWith("records.") },
+];
+
+const ADMIN_TABS = [
+  { key: "features", label: "Features" },
+  { key: "notifications", label: "Notifications" },
+  { key: "delegation", label: "Delegation" },
+  { key: "general", label: "General" },
+  { key: "demo", label: "Demo data" },
+];
+
+type FeatureRowData = { key: string; label: string; description: string | null; enabled: boolean; included?: boolean; premium?: boolean };
 
 export default async function SystemPage({ searchParams }: PageProps<"/system">) {
   const { profile } = await requireSession();
   const isAdmin = profile.role === "system_admin";
   const areas = await getMyAdminAreas(profile.role);
-  // Delegated managers see only the sections they were given.
   const canSee = (sec: Section) => isAdmin || (sec.area !== undefined && areas.includes(sec.area));
-  const { features: on } = await requireSession();
-  // Car settings only while Cars is switched on (and in the plan).
-  const tabs = TABS.filter(
-    (t) => (t.key !== "cars" || on.vehicles === true) && (t.key !== "staff-app" || on.staff_app === true) && (t.key !== "forms" || on.forms === true) && (t.sections.length ? t.sections.some(canSee) : isAdmin),
-  );
-  if (!tabs.length) redirect("/");
+  const allSections = [...ROWS.flatMap((r) => r.sections), ...GENERAL];
+  if (!isAdmin && !allSections.some(canSee)) redirect("/");
+
   const { tab: asked } = await searchParams;
-  const tab = tabs.find((t) => t.key === asked) ?? tabs.find((t) => t.key !== "features") ?? tabs[0];
+  const tab = isAdmin ? (ADMIN_TABS.find((t) => t.key === asked) ?? ADMIN_TABS[0]).key : "mine";
   const supabase = await createClient();
-  const [{ data: features }, { data: settings }, { data: managers }, { data: delegations }, { data: built }] = await Promise.all([
+  const [{ data: features }, { data: settings }, { data: people }, rulesResult, { data: built }, drafts] = await Promise.all([
     supabase.from("features").select("*").order("sort_order"),
     supabase.from("app_settings").select("key, label, description, value").order("key"),
-    supabase.from("profiles").select("id, full_name, email").eq("role", "manager").eq("active", true).order("full_name"),
-    isAdmin ? supabase.from("admin_delegations").select("user_id, areas") : Promise.resolve({ data: [] }),
+    supabase.from("profiles").select("id, full_name, email, role").in("role", ["manager", "staff_admin"]).eq("active", true).order("full_name"),
+    isAdmin ? supabase.from("delegation_rules").select("area, mode, people") : Promise.resolve({ data: [], error: null }),
     isAdmin ? supabase.from("custom_features").select("id, name, status, enabled").order("sort_order").order("name") : Promise.resolve({ data: [] }),
+    getDrafts(),
   ]);
-  const rows = ((settings ?? []) as SettingRow[]).filter((s) => !HIDDEN.includes(s.key));
+  const rows = (await withSettingDrafts((settings ?? []) as SettingRow[])).filter((s) => !HIDDEN.includes(s.key));
   const uploadsOf = (key: string) => {
     const v = (settings ?? []).find((s) => s.key === key)?.value;
     return Array.isArray(v) ? (v as string[]) : [];
   };
+  const draftOf = (kind: Draft["kind"], key: string) => drafts.find((d) => d.kind === kind && d.key === key);
+
+  // A feature as it will be once deployed.
+  const featureState = (key: string) => {
+    const f = (features ?? []).find((x) => x.key === key) as FeatureRowData | undefined;
+    if (!f) return null;
+    const d = draftOf("feature", key);
+    const on = d ? (d.value as { enabled?: boolean }).enabled === true : f.enabled && f.included !== false;
+    return { key, label: f.label, description: f.description, on, pending: Boolean(d), premium: f.premium === true };
+  };
+
+  const choices: PersonChoice[] = (people ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email, role: isRole(p.role) ? ROLE_LABELS[p.role] : p.role }));
+  const rulesMissing = isAdmin && Boolean(rulesResult.error);
+  const delegation = (area: Area): { value: DelegationValue; pending: boolean } => {
+    const d = draftOf("delegation", area);
+    const live = (rulesResult.data ?? []).find((r: { area: string }) => r.area === area) as { mode: DelegationValue["mode"]; people: string[] } | undefined;
+    const v = (d?.value ?? live ?? { mode: "admin", people: [] }) as DelegationValue;
+    return { value: { mode: v.mode ?? "admin", people: v.people ?? [] }, pending: Boolean(d) };
+  };
+
+  const settingsFor = (sec: Section, scope: string) => {
+    const list = rows.filter((s) => sec.keys(s.key)).sort((x, y) => rank(x.key) - rank(y.key) || x.key.localeCompare(y.key));
+    if (!list.length) return null;
+    return (
+      <div key={`${scope}-${sec.title}`} className="flex flex-col">
+        <h3 className="pt-3 font-semibold">{sec.title}</h3>
+        {sec.intro ? <p className="text-sm text-muted">{sec.intro}</p> : null}
+        <div className="mt-1">
+          {list.map((s) =>
+            s.key === "vehicles.app_icon" || s.key === "staff_app.icon" ? (
+              <AppIconPicker
+                key={s.key}
+                setting={s}
+                which={s.key === "staff_app.icon" ? "staff" : "cars"}
+                uploads={uploadsOf(s.key === "staff_app.icon" ? "staff_app.icon_uploads" : "vehicles.app_icon_uploads")}
+              />
+            ) : (
+              <SettingForm key={s.key} setting={s} people={choices.filter((c) => c.role === ROLE_LABELS.manager)} />
+            ),
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const two = featureState("two_factor");
+  const tabs = ADMIN_TABS.map((t) => ({ href: `/system?tab=${t.key}`, text: t.label, current: t.key === tab }));
 
   return (
     <>
-      <SectionTabs section="settings" current={tab.key === "features" ? "/system?tab=features" : "/system"} />
+      <SectionTabs section="settings" current="/system" />
       <PageHeader
         eyebrow="System"
-        title={tab.key === "features" ? "Features" : "System settings"}
+        title="System settings"
         intro={
           isAdmin
-            ? "Only system admins can see this page (and managers you delegate areas to). Every change is recorded in the change log."
-            : "The areas the system admin has asked you to look after. Every change is recorded in the change log."
+            ? "Saving keeps a change as a draft. Press Deploy (in the yellow bar) to make saved changes live together. Every change is in the change log."
+            : "The areas the system admin has asked you to look after. Saved changes go live when you deploy them."
         }
-
       />
 
-      {isAdmin && features?.find((f) => f.key === "two_factor")?.enabled === false ? (
+      {isAdmin && two && !two.on ? (
         <Notice tone="error">
-          Two-factor login is switched off. Nobody is asked for a code when signing in, including system admins. Turn it back on
-          under Features before real staff start using the portal.
+          Two-factor login is switched off. Nobody is asked for a code when signing in, including system admins. Turn it back on under
+          Features → Sign-in before real staff start using the portal.
         </Notice>
       ) : null}
+      {rulesMissing ? <Notice tone="error">Run the latest database update (update 46) to use Delegation and Deploy.</Notice> : null}
 
-      {/* Features has its own tab at the top (Settings row). */}
-      {tab.key !== "features" ? <Tabs label="Settings" items={tabs.filter((t) => t.key !== "features").map((t) => ({ href: `/system?tab=${t.key}`, text: t.label, current: t.key === tab.key }))} /> : null}
+      {isAdmin ? <Tabs label="Settings" items={tabs} /> : null}
 
-      {tab.key === "delegation" ? (
-        <Card className="flex flex-col gap-4 p-5">
-          <div>
-            <h2 className="heading-sm">Delegation</h2>
-            <p className="text-sm text-muted">
-              Let a named manager look after parts of System settings. Security, Features, General and Delegation always stay
-              with you, and so does making system admins. Their changes show in the change log under their name.
-            </p>
+      {tab === "features" ? (
+        <>
+          <Card className="flex flex-col gap-3 px-5 py-4">
+            <div>
+              <h2 className="heading-sm">Packages</h2>
+              <p className="text-sm text-muted">One press sets the main switches to match a budget. You can still change them one by one below.</p>
+            </div>
+            <PresetButtons presets={Object.entries(PRESETS).map(([key, p]) => ({ key, label: p.label, hint: p.hint }))} />
+          </Card>
+          <div className="flex flex-col gap-3">
+            {ROWS.map((row) => {
+              const states = row.switches.map(featureState).filter((f): f is NonNullable<ReturnType<typeof featureState>> => Boolean(f));
+              const main = row.always ? null : states[0];
+              const parts = row.always ? states : states.slice(1);
+              const rowPending =
+                states.some((s) => s.pending) ||
+                row.sections.some((sec) => rows.some((r) => sec.keys(r.key) && r.pending)) ||
+                row.areas.some((a) => delegation(a).pending);
+              return (
+                <Card key={row.id} className="p-0">
+                  <details name="feature-row" className="group">
+                    <summary className="flex min-h-16 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 [&::-webkit-details-marker]:hidden">
+                      <span className="min-w-48 flex-1">
+                        <span className="flex flex-wrap items-center gap-2 font-semibold">
+                          {row.label}
+                          {main?.premium ? <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">Premium</span> : null}
+                          {rowPending ? <NotLiveBadge /> : null}
+                        </span>
+                        <span className="block text-sm text-muted">{row.intro}</span>
+                      </span>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${row.always || main?.on ? "bg-good-soft text-ink" : "bg-page text-muted"}`}
+                      >
+                        {row.always ? "Always on" : main?.on ? "On" : "Off"}
+                      </span>
+                      <span className="text-sm font-semibold text-brand group-open:hidden">Open</span>
+                      <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
+                    </summary>
+                    <div className="flex flex-col gap-1 border-t border-line px-5 pb-5">
+                      {main ? <FeatureSwitch feature={main} /> : null}
+                      {parts.length ? (
+                        <div className="divide-y divide-line rounded-md border border-line px-3">
+                          {parts.map((p) => (
+                            <FeatureSwitch key={p.key} feature={p} part={Boolean(main)} />
+                          ))}
+                        </div>
+                      ) : null}
+                      {row.id === "assistant" || row.id === "tasks" || row.links ? (
+                        <p className="flex flex-wrap gap-x-4 pt-2 text-sm">
+                          {(row.links ?? []).map((l) => (
+                            <Link key={l.href} href={l.href} className="font-semibold text-brand underline">
+                              Open {l.text}
+                            </Link>
+                          ))}
+                        </p>
+                      ) : null}
+                      {row.areas.length && !rulesMissing ? (
+                        <div className="flex flex-col gap-1 pt-2">
+                          {row.areas.map((a) => (
+                            <LookedAfterBy key={a} area={a} label={AREA_LABELS[a]} hint={AREA_HINTS[a]} {...delegation(a)} choices={choices} />
+                          ))}
+                        </div>
+                      ) : null}
+                      {row.sections.map((sec) => settingsFor(sec, row.id))}
+                    </div>
+                  </details>
+                </Card>
+              );
+            })}
+            <Card className="p-0">
+              <details name="feature-row" className="group">
+                <summary className="flex min-h-16 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 [&::-webkit-details-marker]:hidden">
+                  <span className="min-w-48 flex-1">
+                    <span className="flex flex-wrap items-center gap-2 font-semibold">
+                      Built features
+                      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">Premium</span>
+                    </span>
+                    <span className="block text-sm text-muted">
+                      Made in the Feature builder. Only you build them; what managers may manage is set on each feature. These switches act straight away.
+                    </span>
+                  </span>
+                  <span className="text-sm font-semibold text-brand group-open:hidden">Open</span>
+                  <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
+                </summary>
+                <div className="border-t border-line px-5 pb-4">
+                  <p className="pt-3 text-sm">
+                    <Link href="/system/builder" className="font-semibold text-brand underline">
+                      Open the Feature builder
+                    </Link>
+                  </p>
+                  {(built ?? []).length === 0 ? <p className="py-3 text-sm text-muted">None yet. Make one, like Fluid intake, in the Feature builder.</p> : null}
+                  <ul className="mt-1">
+                    {(built ?? []).map((f) => (
+                      <li key={f.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3 first:border-t-0">
+                        <span className="min-w-48 flex-1 font-semibold">
+                          {f.name} {f.status === "published" ? null : <span className="rounded-full bg-page px-2 py-0.5 text-xs font-semibold text-muted">Draft</span>}
+                        </span>
+                        <Link href={`/system/builder/${f.id}`} className="text-sm font-semibold text-brand underline">
+                          Edit
+                        </Link>
+                        {f.status === "published" ? <IncludedSwitch id={f.id} enabled={f.enabled} /> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            </Card>
           </div>
-          {(managers ?? []).length === 0 ? (
-            <p className="text-sm text-muted">There are no active managers yet.</p>
-          ) : (
-            (managers ?? []).map((m) => (
-              <DelegationForm
-                key={m.id}
-                manager={{ id: m.id, name: m.full_name || m.email }}
-                areas={AREAS.filter((a) => a !== "vehicles" || on.vehicles === true).map((a) => ({ key: a, label: AREA_LABELS[a], hint: AREA_HINTS[a] }))}
-                current={((delegations ?? []).find((d) => d.user_id === m.id)?.areas ?? []) as string[]}
-              />
-            ))
+        </>
+      ) : tab === "notifications" ? (
+        <>
+          {(() => {
+            const email = featureState("email_notifications");
+            return email ? (
+              <Card className="px-5 py-2">
+                <FeatureSwitch feature={{ ...email, label: "Emails", description: "Main switch for every email the portal sends. The bell still works when it's off." }} />
+              </Card>
+            ) : null;
+          })()}
+          <div className="flex flex-col gap-3">
+            {NOTIFICATION_GROUPS.filter((g) => !g.feature || featureState(g.feature)?.on).map((g) => {
+              const setting = rows.find((r) => r.key === "notify.channels") ?? (settings ?? []).find((r) => r.key === "notify.channels");
+              const d = draftOf("setting", "notify.channels");
+              const map = asChannelMap(d ? d.value : setting?.value);
+              return (
+                <Card key={g.key} className="p-0">
+                  <details name="notification-group" className="group">
+                    <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
+                      <span className="min-w-48 flex-1 font-semibold">{g.label}</span>
+                      {d ? <NotLiveBadge /> : null}
+                      <span className="text-sm text-muted">
+                        {g.items.filter((i) => i.channels.some((c) => channelOn(map, i.code, c))).length} of {g.items.length} on
+                      </span>
+                      <span className="text-sm font-semibold text-brand group-open:hidden">Open</span>
+                      <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
+                    </summary>
+                    <div className="border-t border-line px-5 pb-4">
+                      <NotificationGroupForm
+                        group={g.key}
+                        items={g.items.map((i) => ({ ...i, bell: channelOn(map, i.code, "bell"), email: channelOn(map, i.code, "email") }))}
+                      />
+                    </div>
+                  </details>
+                </Card>
+              );
+            })}
+          </div>
+          <p className="text-sm text-muted">Groups for features that are off aren&apos;t shown: nothing is sent for them.</p>
+        </>
+      ) : tab === "delegation" ? (
+        <Card className="flex flex-col gap-1 px-5 py-4">
+          <h2 className="heading-sm">Delegation</h2>
+          <p className="text-sm text-muted">
+            Who looks after each area besides you: all managers, or the managers and staff admins you choose. Security, Features,
+            Notifications, Demo data and General always stay with you, and so does making system admins.
+          </p>
+          {rulesMissing ? null : (
+            <div className="mt-2 flex flex-col divide-y divide-line">
+              {AREAS.filter((a) => a !== "vehicles" || featureState("vehicles")?.on).map((a) => (
+                <div key={a} className="py-4">
+                  <DelegationPicker area={a} label={AREA_LABELS[a]} hint={AREA_HINTS[a]} {...delegation(a)} choices={choices} />
+                </div>
+              ))}
+            </div>
           )}
         </Card>
-      ) : tab.key === "demo" ? (
+      ) : tab === "demo" ? (
         <Card className="px-5 py-4">
           <h2 className="mb-1 heading-sm">Demo data</h2>
-          <p className="mb-4 text-sm text-muted">For showing the portal to someone. Sample records are tracked, so they can be removed without touching real work.</p>
+          <p className="mb-4 text-sm text-muted">For showing the portal to someone. Sample records are tracked, so they can be removed without touching real work. These act straight away.</p>
           <DemoDataPanel />
         </Card>
-      ) : tab.key === "features" ? (
-        <Card className="px-5 py-2">
-          <h2 className="pt-3 heading-sm">Features</h2>
-          <p className="text-sm text-muted">Switching a feature off hides it and blocks it in the database. Its records stay and can still be read.</p>
-          <div className="mt-2">
-            {(features ?? []).map((f) => (
-              <FeatureSwitch
-                key={f.key}
-                feature={{ key: f.key, label: f.label, description: f.description, enabled: f.enabled, premium: f.premium === true, included: f.included !== false }}
-              />
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-            <h3 className="font-semibold">Features you built</h3>
-            <Link href="/system/builder" className="text-sm font-semibold text-brand underline">
-              Open the Feature builder
-            </Link>
-          </div>
-          <p className="text-sm text-muted">Premium add-ons made in the Feature builder. A new feature is a draft until you publish it; then switch it on or off here.</p>
-          {(built ?? []).length === 0 ? <p className="py-3 text-sm text-muted">None yet. Make one, like Fluid intake, in the Feature builder.</p> : null}
-          <ul className="mt-1 mb-2">
-            {(built ?? []).map((f) => (
-              <li key={f.id} className="flex flex-wrap items-center gap-3 border-t border-line py-3 first:border-t-0">
-                <span className="min-w-48 flex-1">
-                  <span className="flex flex-wrap items-center gap-2 font-semibold">
-                    {f.name}
-                    <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">Premium</span>
-                    {f.status === "published" ? null : <span className="rounded-full bg-page px-2 py-0.5 text-xs font-semibold text-muted">Draft</span>}
-                  </span>
-                  <span className="block text-sm text-muted">{f.status === "published" ? "Off hides it everywhere; entries are kept." : "Publish it in the Feature builder to switch it on."}</span>
-                </span>
-                <Link href={`/system/builder/${f.id}`} className="text-sm font-semibold text-brand underline">
-                  Edit
-                </Link>
-                {f.status === "published" ? <IncludedSwitch id={f.id} enabled={f.enabled} /> : null}
-              </li>
-            ))}
-          </ul>
-        </Card>
       ) : (
+        // General (system admin), or everything a delegated person looks after.
         <>
-        {tab.sections.filter(canSee).map((section) => {
-          const list = rows.filter((s) => section.keys(s.key)).sort((x, y) => rank(x.key) - rank(y.key) || x.key.localeCompare(y.key));
-          if (!list.length) return null;
-          return (
-            <Card key={section.title} className="px-5 py-2">
-              <h2 className="pt-3 heading-sm">{section.title}</h2>
-              {section.intro ? <p className="text-sm text-muted">{section.intro}</p> : null}
-              <div className="mt-2">
-                {list.map((s) =>
-                  s.key === "vehicles.app_icon" || s.key === "staff_app.icon" ? (
-                    <AppIconPicker
-                      key={s.key}
-                      setting={s}
-                      which={s.key === "staff_app.icon" ? "staff" : "cars"}
-                      uploads={uploadsOf(s.key === "staff_app.icon" ? "staff_app.icon_uploads" : "vehicles.app_icon_uploads")}
-                    />
-                  ) : (
-                    <SettingForm key={s.key} setting={s} people={(managers ?? []).map((m) => ({ id: m.id, name: m.full_name || m.email }))} />
-                  ),
-                )}
-              </div>
+          {(tab === "general" ? GENERAL : allSections)
+            .filter(canSee)
+            .map((sec) => {
+              const body = settingsFor(sec, tab);
+              return body ? (
+                <Card key={sec.title} className="px-5 py-2">
+                  {body}
+                </Card>
+              ) : null;
+            })}
+          {tab === "general" ? (
+            <Card className="px-5 py-4">
+              <h2 className="mb-1 heading-sm">Sign everyone out</h2>
+              <p className="mb-4 text-sm text-muted">
+                For a security worry, like a lost phone or a shared password. Everyone is signed out of every device within a minute, except you
+                on this device. Accounts stay active. This acts straight away.
+              </p>
+              <SignOutEveryone />
             </Card>
-          );
-        })}
-        {tab.key === "security" && isAdmin ? (
-          <Card className="px-5 py-4">
-            <h2 className="mb-1 heading-sm">Sign everyone out</h2>
-            <p className="mb-4 text-sm text-muted">
-              For a security worry, like a lost phone or a shared password. Everyone is signed out of every device within a minute, except
-              you on this device. Accounts stay active, so people just sign in again. To sign out one person, use their row on the Staff page.
-            </p>
-            <SignOutEveryone />
-          </Card>
-        ) : null}
+          ) : null}
         </>
       )}
     </>

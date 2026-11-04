@@ -79,7 +79,7 @@ replacing Supabase is a 4 to 8 week rewrite and isn't recommended.
 
 ## 4. Live database updates
 
-Applied to Engaged Care: **updates 1 to 45** (see `supabase/live-updates/README.md`).
+Applied to Engaged Care: **updates 1 to 45** (46, the settings revamp, is ready to run) (see `supabase/live-updates/README.md`).
 Recent ones: 36 website and Assistant, 37 quick fixes, 38 website v2, 39
 limited tasks, 40 website round 2, 41 enquiry intake, 42 About and SEO, 43
 demo data, 44 Reports and exports premium, 45 sign out other devices.
@@ -163,9 +163,29 @@ A$290 (15 staff). One-time licence and instalment options are in document 14.
 Client-specific notes (the proposal, budget and negotiation) are kept outside
 the repo. Ask the owner for the latest proposal document.
 
-## 8. In progress: settings and features revamp (agreed spec)
+## 8. Settings and features revamp (built: update 46)
 
-Restore point: branch `restore-update-45` (commit `8b8fad4`). Updates 46 and up.
+Restore point: branch `restore-update-45` (commit `8b8fad4`); database undo:
+`supabase/live-updates/undo-46.sql`. Migration
+`20261221000001_settings_revamp.sql`, tests `supabase/tests/settings_revamp.test.sql`.
+
+How it's built:
+- **Drafts:** table `settings_drafts` (kind setting | feature | delegation | website);
+  `save_draft()`, `deploy_drafts()`, `discard_drafts()`. App: `src/lib/drafts.ts`,
+  `src/app/(portal)/deploy-actions.ts`, `src/components/deploy-bar.tsx` (yellow
+  bar, pop-ups), `src/components/use-dirty.ts` (greyed-out Save).
+- **Feature parts:** `features.parent`; `feature_enabled()` needs the parent on.
+  App rules in `src/lib/feature-parts.ts`; session features are parent-aware.
+- **Delegation:** table `delegation_rules` (area, mode admin | managers | selected,
+  people); `can_admin_area()` and `my_admin_areas()`. Registers and job titles
+  follow the `registers` and `roles` areas (all managers by default).
+- **Notifications:** setting `notify.channels` (only what's switched off);
+  triggers on `notifications` and `email_outbox`; catalogue in
+  `src/lib/notification-catalogue.ts`; computed bell items filtered in the layout.
+- **Front page:** `website_front_page()` (setting and Assistant on).
+- Settings page: `src/app/(portal)/system/page.tsx` (ROWS and GENERAL lists).
+
+The agreed spec:
 
 **Settings tabs:** Features, Notifications, Delegation, General (branding,
 messages, security, tasks, people rules), Website settings (always shown to the

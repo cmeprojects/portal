@@ -1,11 +1,14 @@
 // Staff Portal · © cmeproject. All rights reserved.
 
-// Areas of System settings the system admin can hand to a named manager.
-// Security, Features, General and Delegation always stay with the system admin.
-export const AREAS = ["branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit"] as const;
+// Areas the system admin can hand to all managers or to chosen managers and
+// staff admins (cmeprojects settings revamp). Security, Features,
+// Notifications, Demo data, General and Delegation always stay with the system admin.
+export const AREAS = ["registers", "roles", "branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit"] as const;
 export type Area = (typeof AREAS)[number];
 
 export const AREA_LABELS: Record<Area, string> = {
+  registers: "Adding registers (new registers and their set-up)",
+  roles: "Roles (adding and changing job titles)",
   branding: "Branding (name, logos, colours, wording)",
   messages: "Messages (support contact, announcement, invite note)",
   people: "People rules",
@@ -19,6 +22,8 @@ export const AREA_LABELS: Record<Area, string> = {
 
 // What each area lets the manager do, shown under it on the Delegation tab.
 export const AREA_HINTS: Record<Area, string> = {
+  registers: "Make new registers (like Incidents or Complaints) and set up their fields. Using registers doesn't need this.",
+  roles: "Add job titles and choose which access level each one has. Giving people a role doesn't need this.",
   branding: "Change the company name, portal name, logos, colours, and the words the portal uses (for example Client or Participant).",
   messages: "Edit the support contact on the sign-in page, the announcement banner for all staff, and the note in welcome invites.",
   people: "Which staff admin changes need a manager's approval, who can send invites, what new starters can do, who sees the Scoreboard, who can help staff sign in (reset links, two-factor, Cars app PIN), and when a task counts as stuck.",

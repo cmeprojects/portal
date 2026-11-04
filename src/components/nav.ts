@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Role } from "@/lib/roles";
 import { seesDashboard } from "@/lib/dashboard";
+import { onboardingOn, rolesOn, teamsOn } from "@/lib/feature-parts";
 
 // cmeprojects: the menu is a short list of sections. Pages in the same
 // section share a row of tabs at the top (see SectionTabs), so the menu
@@ -58,8 +59,9 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       : [],
     people: [
       peopleManager && { href: "/settings/staff", text: "Staff" },
-      peopleManager && { href: "/settings/teams", text: "Teams" },
-      (role === "manager" || admin) && { href: "/settings/roles", text: "Roles" },
+      // Switched off: only the system admin still sees them (cmeprojects).
+      peopleManager && (admin || teamsOn(features)) && { href: "/settings/teams", text: "Teams" },
+      (admin || (rolesOn(features) && (access.adminAreas ?? []).includes("roles"))) && { href: "/settings/roles", text: "Roles" },
       peopleManager && { href: "/settings/clients", text: "Clients" },
       access.seesCompliance && { href: "/compliance", text: "Compliance" },
       !peopleManager && access.canInvite && { href: "/invite", text: "Invite staff" },
@@ -73,8 +75,8 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
     settings: [
       (role === "manager" || admin) && { href: "/settings/sla", text: "Due dates (SLA)" },
       (admin || settingsAreas.length > 0) && { href: "/system", text: "System settings" },
-      admin && { href: "/system?tab=features", text: "Features" },
-      features.assistant === true && (admin || (access.adminAreas ?? []).includes("website")) && { href: "/assistant", text: "Website settings" },
+      // The system admin always sees Website settings (to set it up before switching it on).
+      (admin || (features.assistant === true && (access.adminAreas ?? []).includes("website"))) && { href: "/assistant", text: "Website settings" },
       (admin || (access.adminAreas ?? []).includes("audit")) && { href: "/system/audit", text: "Change log" },
       admin && { href: "/system/builder", text: "Feature builder" },
       admin && { href: "/system/health", text: "System health" },
@@ -97,7 +99,8 @@ export function navFor(
   access: NavAccess = { newStarterTasks: false, canInvite: false, seesCompliance: false },
 ): NavGroup[] {
   const mine: NavItem[] = [
-    ...(role !== "system_admin" && features.compliance !== false ? [{ href: "/onboarding", label: "My onboarding" }] : []),
+    // Only while at least one compliance part is on.
+    ...(role !== "system_admin" && onboardingOn(features) ? [{ href: "/onboarding", label: "My onboarding" }] : []),
     { href: "/account", label: "My account" },
   ];
 

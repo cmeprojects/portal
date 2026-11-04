@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireSession } from "@/lib/session";
+import { formBuilderOn } from "@/lib/feature-parts";
 import { friendlyError } from "@/lib/db-error";
 import { isRole } from "@/lib/roles";
 import { text, type FormState } from "@/lib/form";
@@ -39,7 +40,9 @@ type Draft = {
 // Saves the form and its questions in order. Removed questions that already
 // have answers are hidden (kept in old replies), never deleted.
 export async function saveForm(id: string, draft: Draft): Promise<Result & { ids?: Record<string, string> }> {
-  await requireSession();
+  const { profile, features } = await requireSession();
+  // Form builder off: only the system admin changes forms (cmeprojects).
+  if (profile.role !== "system_admin" && !formBuilderOn(features)) return { error: "The Form builder is switched off. Ask the system admin." };
   const f = draft.form;
   if (!f.title.trim()) return { error: "Give the form a name." };
   const questions = draft.questions.filter((q) => !q.archived);

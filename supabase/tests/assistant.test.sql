@@ -18,6 +18,8 @@ grant execute on all functions in schema test to authenticated;
 
 select test.act_as('owner@example.com');
 set role authenticated;
+-- The website and Assistant are on (enquiry notifications follow the switch).
+update public.features set enabled = true, included = true where key = 'assistant';
 insert into public.assistant_documents (title, audience, body) values
   ('Cancellation Policy', 'public', E'Please cancel at least two days before a visit.\n\nShort notice cancellations may be charged.'),
   ('Medication Policy', 'staff', E'Staff must record every medication given to a client in the register.'),

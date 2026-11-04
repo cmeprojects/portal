@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { onboardingOn } from "@/lib/feature-parts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
@@ -22,6 +23,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 // New starters' home until a staff admin gives them a role.
 async function Welcome({ name }: { name: string }) {
   const brand = await getBranding();
+  const { features } = await requireSession();
   return (
     <>
       <PageHeader
@@ -34,7 +36,9 @@ async function Welcome({ name }: { name: string }) {
           A staff admin will set up your role and team. Once they have, your tasks will show here. You don&apos;t need to do anything
           for now.
         </p>
-        <p className="text-sm"><Link href="/onboarding" className="font-semibold text-brand underline">Go to My onboarding</Link> to read our policies, complete trainings and upload your documents.</p>
+        {onboardingOn(features) ? (
+          <p className="text-sm"><Link href="/onboarding" className="font-semibold text-brand underline">Go to My onboarding</Link> to read our policies, complete trainings and upload your documents.</p>
+        ) : null}
       </Card>
     </>
   );

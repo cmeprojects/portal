@@ -1,14 +1,17 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireRole } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { getMyAdminAreas } from "@/lib/settings";
+import { redirect } from "next/navigation";
 import { Card, PageHeader } from "@/components/ui";
 import { CreateRegistryForm } from "../setup-forms";
 
 export const metadata: Metadata = { title: "New register" };
 
 export default async function NewRegisterPage() {
-  await requireRole(["manager", "system_admin"]);
+  const { profile } = await requireSession();
+  if (profile.role !== "system_admin" && !(await getMyAdminAreas(profile.role)).includes("registers")) redirect("/registers");
   return (
     <>
       <Link href="/registers" className="text-sm font-semibold text-brand">

@@ -2,6 +2,8 @@
 import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { teamsOn } from "@/lib/feature-parts";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { inCoreTeam, ROLE_LABELS, type Role } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
@@ -14,7 +16,9 @@ export const metadata: Metadata = { title: "Teams" };
 type TeamValue = { members: string[]; leader: string | null };
 
 export default async function TeamsPage() {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me, features } = await requireRole(PEOPLE_MANAGERS);
+  // Teams switched off: only the system admin can still manage them (cmeprojects).
+  if (me.role !== "system_admin" && !teamsOn(features)) redirect("/settings/staff");
   const supabase = await createClient();
   // Seeing this page clears "approved / declined" alerts from your bell.
   await supabase.rpc("mark_request_updates_seen", { p_kind: "team" });

@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { getMyAdminAreas } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -35,7 +36,7 @@ function refresh(id: string) {
 
 export async function createRegistry(_: FormState, form: FormData): Promise<FormState> {
   const { profile } = await requireTaskAccess();
-  if (!["manager", "system_admin"].includes(profile.role)) return { error: "Only managers and the system admin can create registers." };
+  if (profile.role !== "system_admin" && !(await getMyAdminAreas(profile.role)).includes("registers")) return { error: "Only people the system admin chose can add registers." };
   const name = text(form, "name");
   const prefix = text(form, "prefix").toUpperCase();
   const kind = text(form, "kind") === "records" ? "records" : "tasks";

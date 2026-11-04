@@ -9,6 +9,7 @@ import { friendlyError } from "@/lib/db-error";
 import { text, type FormState } from "@/lib/form";
 import { AUDIENCES } from "@/lib/assistant-shared";
 import { readScanned } from "@/lib/assistant";
+import { saveDraft } from "@/lib/drafts";
 
 // The Assistant's settings and document library (system admin only; the
 // database checks it again).
@@ -79,10 +80,10 @@ export async function saveAssistantSettings(_: FormState, form: FormData): Promi
       log_questions: form.get("log_questions") === "on",
     };
   } else return { error: "Something went wrong. Please refresh and try again." };
-  const { error } = await (await createClient()).from("assistant_settings").update(row).eq("id", true);
-  if (error) return { error: friendlyError(error) };
+  // cmeprojects: saved as a draft; it goes live when deployed.
+  const result = await saveDraft("website", part, row);
   refresh();
-  return { message: "Saved." };
+  return result;
 }
 
 const MAX_BYTES = 10 * 1024 * 1024;

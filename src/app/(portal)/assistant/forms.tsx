@@ -5,6 +5,9 @@ import { useActionState, useState, useTransition, type ReactNode } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { AUDIENCE_LABELS, AUDIENCES, SCOPE_LABELS, type AssistantSettings, type Scope } from "@/lib/assistant-shared";
 import { addDocument, saveAssistantSettings, testAiConnection } from "./actions";
+import { useDirty } from "@/components/use-dirty";
+import { useAfterSuccess } from "@/components/use-after-success";
+import { SaveResult } from "../system/forms";
 
 const box = "h-5 w-5 shrink-0 accent-[var(--brand-primary)]";
 const tick = (name: string, on: boolean, label: string) => (
@@ -23,8 +26,11 @@ const area = (name: string, value: string, rows = 2, max?: number) => (
 function PartForm({ part, children }: { part: "landing" | "answers" | "limits"; children: ReactNode }) {
   const [state, action, pending] = useActionState(saveAssistantSettings, null);
   const [, start] = useTransition();
+  const { ref, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   return (
     <form
+      ref={ref}
       onSubmit={(e) => {
         e.preventDefault();
         const data = new FormData(e.currentTarget);
@@ -34,15 +40,10 @@ function PartForm({ part, children }: { part: "landing" | "answers" | "limits"; 
     >
       <input type="hidden" name="part" value={part} />
       {children}
-      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <div className="flex items-center gap-3">
-        <Button disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
-        {state?.message && !pending ? (
-          <span role="status" className="text-sm font-semibold text-good">
-            ✓ {state.message}
-          </span>
-        ) : null}
+        <Button disabled={pending || !dirty}>{pending ? "Saving…" : "Save"}</Button>
       </div>
+      <SaveResult state={state} pending={pending} dirty={dirty} />
     </form>
   );
 }
