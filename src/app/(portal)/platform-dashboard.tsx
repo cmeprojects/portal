@@ -143,14 +143,14 @@ function Hover({ children, details, label }: { children: ReactNode; details: Rea
 
 function Tile({ label, value, note, href }: { label: string; value: string | number; note?: string; href?: string }) {
   const body = (
-    <div className="flex h-full flex-col gap-0.5 rounded-lg border border-line border-l-4 bg-surface px-4 py-3" style={{ borderLeftColor: BRAND }}>
+    <div className="flex h-full flex-col gap-0.5 rounded-lg border border-line border-l-4 border-l-brand bg-surface px-4 py-3 transition duration-200 hover:-translate-y-1 hover:border-l-danger hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none">
       <span className="text-xs font-medium tracking-wide text-muted uppercase">{label}</span>
       <span className="text-2xl font-semibold text-ink tabular-nums">{value}</span>
       {note ? <span className="text-xs text-muted">{note}</span> : null}
     </div>
   );
   return href ? (
-    <Link href={href} className="block rounded-lg hover:shadow-sm">
+    <Link href={href} className="block rounded-lg focus-visible:outline-2 focus-visible:outline-brand">
       {body}
     </Link>
   ) : (
