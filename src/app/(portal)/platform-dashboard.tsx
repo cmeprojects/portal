@@ -15,10 +15,15 @@ import { PageHeader } from "@/components/ui";
 // spending and recent changes. Hover (or tab to) any panel for the details.
 
 const DAY = 86_400_000;
-const C = { blue: "#2563eb", teal: "#0d9488", amber: "#f59e0b", purple: "#7c3aed", green: "#16a34a", red: "#dc2626", pink: "#db2777", sky: "#0284c7" };
-const LEVEL_COLOUR: Record<Level, string> = { ok: C.green, warn: C.amber, full: C.red };
+// The company's own colours (they follow Branding), with green, amber and red
+// kept for status only.
+const BRAND = "var(--accent)";
+const BRAND_LIGHT = "var(--brand-accent)";
+const GOOD = "var(--good)";
+const WARN = "var(--warn)";
+const BAD = "var(--bad)";
+const LEVEL_COLOUR: Record<Level, string> = { ok: GOOD, warn: WARN, full: BAD };
 const LEVEL_WORD: Record<Level, string> = { ok: "Plenty of room", warn: "Getting full", full: "Nearly full" };
-const PALETTE = [C.blue, C.teal, C.amber, C.purple, C.pink, C.sky];
 
 type Health = { database_bytes: number; files: { bucket: string; files: number; bytes: number }[] };
 
@@ -70,6 +75,13 @@ async function loadPlatform() {
   const fileCount = (health?.files ?? []).reduce((s, f) => s + Number(f.files), 0);
   const when = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone });
   const main = (features ?? []).filter((f) => !f.parent && f.premium);
+  // Each module with its parts, as staff see it (the system admin always sees everything).
+  const isOn = (f: { enabled: boolean; included: boolean | null }) => f.enabled && f.included !== false;
+  const modules = main.map((m) => {
+    const parts = (features ?? []).filter((f) => f.parent === m.key);
+    return { key: m.key, label: m.label, on: isOn(m), parts: parts.length, partsOn: parts.filter(isOn).length };
+  });
+  const core = (features ?? []).filter((f) => ["teams", "roles", "attachments", "auto_escalation", "two_factor"].includes(f.key)).map((f) => ({ key: f.key, label: f.label, on: isOn(f) }));
 
   return {
     people: people ?? [],
@@ -84,7 +96,8 @@ async function loadPlatform() {
     failed: (emails ?? []).filter((e) => !e.sent_at && e.last_error).length,
     waiting: (emails ?? []).filter((e) => !e.sent_at && !e.last_error).length,
     usage,
-    main,
+    modules,
+    core,
     drafts: drafts ?? 0,
     changes: (changes ?? []).map((c) => ({ ...c, at: when.format(new Date(c.created_at)) })),
     storage: health
@@ -101,30 +114,26 @@ async function loadPlatform() {
 // Pieces
 // ---------------------------------------------------------------------------
 
-// A panel with a coloured header strip and icon, like a report card.
-function Panel({ title, colour, icon, children, className = "" }: { title: string; colour: string; icon: ReactNode; children: ReactNode; className?: string }) {
+function Panel({ title, children, action, className = "" }: { title: string; children: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <section className={`flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-sm ${className}`}>
-      <div className="h-1" style={{ background: colour }} aria-hidden="true" />
-      <header className="flex items-center gap-3 px-5 pt-4">
-        <span className="grid size-9 place-items-center rounded-full text-white" style={{ background: colour }} aria-hidden="true">
-          {icon}
-        </span>
-        <h2 className="heading-sm">{title}</h2>
+    <section className={`flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 ${className}`}>
+      <header className="flex items-center justify-between gap-2 border-b border-line pb-2">
+        <h2 className="text-sm font-semibold tracking-wide text-ink uppercase">{title}</h2>
+        {action}
       </header>
-      <div className="flex flex-1 flex-col gap-3 p-5">{children}</div>
+      {children}
     </section>
   );
 }
 
-// Hover or focus to see more (keyboard friendly, no JavaScript).
-function Hover({ children, details }: { children: ReactNode; details: ReactNode }) {
+// Hover or focus to see more. Opens above everything (no panel clips it).
+function Hover({ children, details, label }: { children: ReactNode; details: ReactNode; label: string }) {
   return (
-    <div tabIndex={0} className="group relative rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand">
+    <div tabIndex={0} aria-label={label} className="group/hover relative rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand">
       {children}
       <div
         role="tooltip"
-        className="pointer-events-none invisible absolute top-full left-1/2 z-30 mt-2 w-72 -translate-x-1/2 rounded-lg border border-line bg-surface p-3 text-left text-xs text-ink opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus:visible group-focus:opacity-100"
+        className="pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-2 w-72 -translate-x-1/2 rounded-md border border-line bg-surface p-3 text-left text-xs text-ink opacity-0 shadow-xl transition-opacity group-hover/hover:visible group-hover/hover:opacity-100 group-focus/hover:visible group-focus/hover:opacity-100"
       >
         {details}
       </div>
@@ -132,23 +141,16 @@ function Hover({ children, details }: { children: ReactNode; details: ReactNode 
   );
 }
 
-function Tile({ label, value, note, colour, icon, href }: { label: string; value: string | number; note?: string; colour: string; icon: ReactNode; href?: string }) {
+function Tile({ label, value, note, href }: { label: string; value: string | number; note?: string; href?: string }) {
   const body = (
-    <div className="flex h-full items-center gap-4 rounded-xl border p-4 shadow-sm" style={{ borderColor: `${colour}55`, background: `${colour}14` }}>
-      <span className="grid size-12 shrink-0 place-items-center rounded-full text-white" style={{ background: colour }} aria-hidden="true">
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm text-muted">{label}</span>
-        <span className="block text-3xl font-semibold tabular-nums" style={{ color: colour }}>
-          {value}
-        </span>
-        {note ? <span className="block text-xs text-muted">{note}</span> : null}
-      </span>
+    <div className="flex h-full flex-col gap-0.5 rounded-lg border border-line border-l-4 bg-surface px-4 py-3" style={{ borderLeftColor: BRAND }}>
+      <span className="text-xs font-medium tracking-wide text-muted uppercase">{label}</span>
+      <span className="text-2xl font-semibold text-ink tabular-nums">{value}</span>
+      {note ? <span className="text-xs text-muted">{note}</span> : null}
     </div>
   );
   return href ? (
-    <Link href={href} className="block rounded-xl hover:ring-2 hover:ring-brand/30">
+    <Link href={href} className="block rounded-lg hover:shadow-sm">
       {body}
     </Link>
   ) : (
@@ -156,88 +158,81 @@ function Tile({ label, value, note, colour, icon, href }: { label: string; value
   );
 }
 
-// A half-circle gauge: green, amber and red zones, a coloured fill and a needle.
+// A small half-circle gauge, coloured by how full it is.
 function Gauge({ pct, colour }: { pct: number; colour: string }) {
-  const cx = 100;
-  const cy = 100;
-  const r = 80;
+  const cx = 60;
+  const cy = 60;
+  const r = 48;
   const at = (p: number) => {
     const a = Math.PI * (1 - p);
     return `${(cx + r * Math.cos(a)).toFixed(2)} ${(cy - r * Math.sin(a)).toFixed(2)}`;
   };
   const arc = (p0: number, p1: number) => `M ${at(p0)} A ${r} ${r} 0 0 1 ${at(p1)}`;
   const p = Math.max(0, Math.min(1, pct / 100));
-  const a = Math.PI * (1 - p);
   return (
-    <svg viewBox="0 0 200 118" className="w-full max-w-60" aria-hidden="true">
-      <path d={arc(0, 0.75)} stroke={C.green} strokeOpacity="0.25" strokeWidth="18" fill="none" />
-      <path d={arc(0.75, 0.9)} stroke={C.amber} strokeOpacity="0.3" strokeWidth="18" fill="none" />
-      <path d={arc(0.9, 1)} stroke={C.red} strokeOpacity="0.3" strokeWidth="18" fill="none" />
-      {p > 0.002 ? <path d={arc(0, p)} stroke={colour} strokeWidth="18" strokeLinecap="round" fill="none" /> : null}
-      <line x1={cx} y1={cy} x2={cx + 62 * Math.cos(a)} y2={cy - 62 * Math.sin(a)} stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      <circle cx={cx} cy={cy} r="6" fill="currentColor" />
-      <text x="20" y="116" fontSize="10" fill="currentColor" opacity="0.6">0%</text>
-      <text x="165" y="116" fontSize="10" fill="currentColor" opacity="0.6">100%</text>
+    <svg viewBox="0 0 120 66" className="w-32" aria-hidden="true">
+      <path d={arc(0, 1)} stroke="var(--line)" strokeWidth="10" fill="none" strokeLinecap="round" />
+      {p > 0.004 ? <path d={arc(0, p)} stroke={colour} strokeWidth="10" fill="none" strokeLinecap="round" /> : null}
     </svg>
   );
 }
 
-function GaugeCard({ title, used, limit, colourFor, detail, icon, href }: { title: string; used: string; limit: string; colourFor: number; detail: ReactNode; icon: ReactNode; href: string }) {
-  const lv = level(colourFor);
+function Meter({ title, pct, used, limit, details, href }: { title: string; pct: number; used: string; limit: string; details: ReactNode; href: string }) {
+  const lv = level(pct);
   const colour = LEVEL_COLOUR[lv];
   return (
-    <Panel title={title} colour={colour} icon={icon}>
-      <Hover details={detail}>
-        <div className="flex flex-col items-center gap-1 text-ink">
-          <Gauge pct={colourFor} colour={colour} />
-          <p className="text-2xl font-semibold tabular-nums" style={{ color: colour }}>
-            {colourFor < 1 && colourFor > 0 ? "<1" : Math.round(colourFor)}%
-          </p>
-          <p className="text-sm text-muted">
-            {used} of {limit}
-          </p>
-          <span className="rounded-full px-3 py-1 text-xs font-semibold text-white" style={{ background: colour }}>
-            {LEVEL_WORD[lv]}
+    <Hover label={`${title}: ${used} of ${limit}`} details={details}>
+      <Link href={href} className="flex items-center gap-3 rounded-md p-2 hover:bg-page">
+        <div className="relative">
+          <Gauge pct={pct} colour={colour} />
+          <span className="absolute inset-x-0 bottom-0 text-center text-sm font-semibold text-ink tabular-nums">
+            {pct > 0 && pct < 1 ? "<1" : Math.round(pct)}%
           </span>
         </div>
-      </Hover>
-      <Link href={href} className="mt-auto text-center text-sm font-semibold text-brand underline">
-        Details
+        <div className="min-w-0">
+          <p className="font-semibold text-ink">{title}</p>
+          <p className="text-xs text-muted">
+            {used} of {limit}
+          </p>
+          <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: colour }}>
+            <span className="size-2 rounded-full" style={{ background: colour }} />
+            {LEVEL_WORD[lv]}
+          </p>
+        </div>
       </Link>
-    </Panel>
+    </Hover>
   );
 }
 
-// Tasks per week: a line chart with dots; hover a dot for its numbers.
+// Tasks per week: a calm line chart in the brand colour; hover a dot for numbers.
 function LineChart({ rows }: { rows: { label: string; value: number; done: number }[] }) {
   const w = 560;
-  const h = 200;
-  const pad = { l: 32, r: 12, t: 12, b: 34 };
+  const h = 180;
+  const pad = { l: 28, r: 24, t: 10, b: 28 };
   const max = Math.max(4, ...rows.map((r) => r.value));
   const x = (i: number) => pad.l + (i * (w - pad.l - pad.r)) / Math.max(1, rows.length - 1);
   const y = (v: number) => h - pad.b - (v * (h - pad.t - pad.b)) / max;
   const line = (key: "value" | "done") => rows.map((r, i) => `${i ? "L" : "M"} ${x(i).toFixed(1)} ${y(r[key]).toFixed(1)}`).join(" ");
-  const ticks = [0, Math.round(max / 2), max];
   return (
     <div className="flex flex-col gap-2">
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full text-ink" role="img" aria-label="Tasks created and finished each week, last 8 weeks">
-        {ticks.map((t) => (
+        {[0, Math.round(max / 2), max].map((t) => (
           <g key={t}>
-            <line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} stroke="currentColor" strokeOpacity="0.1" />
-            <text x={pad.l - 6} y={y(t) + 4} fontSize="11" textAnchor="end" fill="currentColor" opacity="0.6">
+            <line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} stroke="var(--line)" />
+            <text x={pad.l - 6} y={y(t) + 4} fontSize="10" textAnchor="end" fill="var(--muted)">
               {t}
             </text>
           </g>
         ))}
-        <path d={`${line("value")} L ${x(rows.length - 1)} ${h - pad.b} L ${x(0)} ${h - pad.b} Z`} fill={C.blue} opacity="0.1" />
-        <path d={line("value")} fill="none" stroke={C.blue} strokeWidth="3" strokeLinejoin="round" />
-        <path d={line("done")} fill="none" stroke={C.green} strokeWidth="2.5" strokeDasharray="6 5" strokeLinejoin="round" />
+        <path d={`${line("value")} L ${x(rows.length - 1)} ${h - pad.b} L ${x(0)} ${h - pad.b} Z`} fill={BRAND} opacity="0.08" />
+        <path d={line("value")} fill="none" stroke={BRAND} strokeWidth="2.5" strokeLinejoin="round" />
+        <path d={line("done")} fill="none" stroke={BRAND_LIGHT} strokeWidth="2" strokeDasharray="5 4" strokeLinejoin="round" />
         {rows.map((r, i) => (
           <g key={r.label}>
-            <circle cx={x(i)} cy={y(r.value)} r="6" fill="white" stroke={C.blue} strokeWidth="3">
+            <circle cx={x(i)} cy={y(r.value)} r="4.5" fill="var(--surface)" stroke={BRAND} strokeWidth="2.5">
               <title>{`Week of ${r.label}: ${r.value} created, ${r.done} finished`}</title>
             </circle>
-            <text x={x(i)} y={h - 12} fontSize="11" textAnchor="middle" fill="currentColor" opacity="0.7">
+            <text x={x(i)} y={h - 8} fontSize="10" textAnchor="middle" fill="var(--muted)">
               {r.label}
             </text>
           </g>
@@ -245,54 +240,32 @@ function LineChart({ rows }: { rows: { label: string; value: number; done: numbe
       </svg>
       <p className="flex flex-wrap gap-4 text-xs text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="h-1 w-5 rounded" style={{ background: C.blue }} /> Created
+          <span className="h-0.5 w-5" style={{ background: BRAND }} /> Created
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-1 w-5 rounded border-t-2 border-dashed" style={{ borderColor: C.green }} /> Finished
+          <span className="w-5 border-t-2 border-dashed" style={{ borderColor: BRAND_LIGHT }} /> Finished
         </span>
-        <span>Hover a dot for the numbers.</span>
       </p>
     </div>
   );
 }
 
-function ColourBars({ rows }: { rows: { label: string; value: number }[] }) {
+function Bars({ rows }: { rows: { label: string; value: number }[] }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
-    <ul className="flex flex-col gap-3">
-      {rows.map((r, i) => (
-        <li key={r.label} className="grid grid-cols-[7.5rem_1fr_2.5rem] items-center gap-3 text-sm" title={`${r.label}: ${r.value}`}>
+    <ul className="flex flex-col gap-2.5">
+      {rows.map((r) => (
+        <li key={r.label} className="grid grid-cols-[7rem_1fr_2rem] items-center gap-3 text-sm" title={`${r.label}: ${r.value}`}>
           <span className="truncate text-muted">{r.label}</span>
-          <span className="h-4 overflow-hidden rounded-full bg-page" aria-hidden="true">
-            <span className="block h-full rounded-full" style={{ width: `${(r.value / max) * 100}%`, background: PALETTE[i % PALETTE.length] }} />
+          <span className="h-2.5 overflow-hidden rounded-full bg-page" aria-hidden="true">
+            <span className="block h-full rounded-full" style={{ width: `${(r.value / max) * 100}%`, background: BRAND }} />
           </span>
-          <span className="text-right font-semibold tabular-nums">{r.value}</span>
+          <span className="text-right font-medium tabular-nums">{r.value}</span>
         </li>
       ))}
     </ul>
   );
 }
-
-// Small icons (stroke, currentColor).
-const Icon = ({ d }: { d: string }) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-  </svg>
-);
-const I = {
-  people: <Icon d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />,
-  signin: <Icon d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />,
-  invite: <Icon d="M4 4h16v16H4zM22 6l-10 7L2 6" />,
-  draft: <Icon d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />,
-  db: <Icon d="M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />,
-  files: <Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6" />,
-  ai: <Icon d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" />,
-  chart: <Icon d="M3 3v18h18M7 15l4-4 3 3 5-6" />,
-  bell: <Icon d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" />,
-  mail: <Icon d="M4 4h16v16H4zM22 6l-10 7L2 6" />,
-  grid: <Icon d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />,
-  log: <Icon d="M12 8v4l3 3M3 12a9 9 0 1 0 9-9" />,
-};
 
 // ---------------------------------------------------------------------------
 // The dashboard
@@ -305,183 +278,180 @@ export async function PlatformDashboard({ name }: { name: string }) {
 
 function PlatformView({ name, d }: { name: string; d: Awaited<ReturnType<typeof loadPlatform>> }) {
   const s = d.storage;
-  const dbPct = s ? (s.database.used / s.database.limit) * 100 : 0;
-  const filePct = s ? (s.files.used / s.files.limit) * 100 : 0;
   const ai = d.usage;
-  const aiPct = ai && ai.limitAud > 0 ? (ai.monthAud / ai.limitAud) * 100 : 0;
   const totalEmails = d.sent + d.failed + d.waiting;
+  const modulesOn = d.modules.filter((m) => m.on).length;
 
   return (
     <>
       <PageHeader
         title={`Platform${name ? ` · ${name.split(" ")[0]}` : ""}`}
-        intro="How the portal is doing. You're never given tasks; everyone's work is under Tasks in the menu. Hover any panel for details."
+        intro="How the portal is doing. You're never given tasks; everyone's work is under Tasks. Hover a meter for details."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Tile label="Active people" value={d.active.length} note={`${d.people.length - d.active.length} deactivated`} colour={C.blue} icon={I.people} href="/settings/staff" />
-        <Tile label="Signed in, last 7 days" value={d.signed7} note={`${d.signed30} in the last 30 days`} colour={C.teal} icon={I.signin} />
-        <Tile label="Invited, not joined yet" value={d.neverJoined} note="Resend from the Staff page" colour={C.amber} icon={I.invite} href="/settings/staff" />
-        <Tile label="Settings not live yet" value={d.drafts} note="Saved, waiting for Deploy" colour={C.purple} icon={I.draft} href="/system" />
+        <Tile label="Active people" value={d.active.length} note={`${d.people.length - d.active.length} deactivated`} href="/settings/staff" />
+        <Tile label="Signed in · 7 days" value={d.signed7} note={`${d.signed30} in the last 30 days`} />
+        <Tile label="Invited, not joined" value={d.neverJoined} note="Resend from the Staff page" href="/settings/staff" />
+        <Tile label="Not live yet" value={d.drafts} note="Saved settings waiting for Deploy" href="/system" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {s ? (
-          <>
-            <GaugeCard
-              title="Database"
-              icon={I.db}
-              used={bytes(s.database.used)}
-              limit={bytes(s.database.limit)}
-              colourFor={dbPct}
-              href="/system/health"
-              detail={
+      <Panel title="Capacity" action={<Link href="/system/health" className="text-xs font-semibold text-brand underline">System health</Link>}>
+        <div className="grid gap-2 md:grid-cols-3">
+          {s ? (
+            <>
+              <Meter
+                title="Database"
+                pct={(s.database.used / s.database.limit) * 100}
+                used={bytes(s.database.used)}
+                limit={bytes(s.database.limit)}
+                href="/system/health"
+                details={
+                  <div className="flex flex-col gap-1">
+                    <p className="font-semibold">Database · Supabase {s.plan === "pro" ? "Pro" : "Free"}</p>
+                    <p>
+                      {bytes(s.database.used)} of {bytes(s.database.limit)} ({((s.database.used / s.database.limit) * 100).toFixed(1)}%)
+                    </p>
+                    <p className="text-muted">Tasks, people, trips, forms and settings. Text is small, so this grows slowly.</p>
+                  </div>
+                }
+              />
+              <Meter
+                title="File storage"
+                pct={(s.files.used / s.files.limit) * 100}
+                used={bytes(s.files.used)}
+                limit={bytes(s.files.limit)}
+                href="/system/health"
+                details={
+                  <div className="flex flex-col gap-1.5">
+                    <p className="font-semibold">
+                      {s.files.count.toLocaleString("en-AU")} files · {bytes(s.files.used)}
+                    </p>
+                    <ul className="flex flex-col gap-0.5">
+                      {s.files.buckets
+                        .filter((b) => Number(b.files) > 0)
+                        .map((b) => (
+                          <li key={b.bucket} className="flex justify-between gap-2">
+                            <span>{BUCKET_LABELS[b.bucket] ?? b.bucket}</span>
+                            <span className="tabular-nums text-muted">{bytes(Number(b.bytes))}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                }
+              />
+            </>
+          ) : (
+            <p className="text-sm text-muted md:col-span-2">Database and file storage: run the latest database updates, then refresh.</p>
+          )}
+          <Meter
+            title="Assistant this month"
+            pct={ai && ai.limitAud > 0 ? (ai.monthAud / ai.limitAud) * 100 : 0}
+            used={ai ? `A$${ai.monthAud.toFixed(2)}` : "A$0"}
+            limit={ai ? `A$${ai.limitAud}` : "no limit"}
+            href="/assistant"
+            details={
+              ai ? (
                 <div className="flex flex-col gap-1">
-                  <p className="font-semibold">Database ({s.plan === "pro" ? "Supabase Pro" : "Supabase Free"})</p>
+                  <p className="font-semibold">Spending against the monthly limit</p>
                   <p>
-                    {bytes(s.database.used)} used of {bytes(s.database.limit)} ({dbPct.toFixed(1)}%).
+                    {ai.questionsMonth} questions this month{ai.leftAud !== null ? ` · about A$${ai.leftAud.toFixed(2)} credit left` : ""}
                   </p>
-                  <p className="text-muted">Tasks, people, trips, forms and settings. Text is small, so this grows slowly.</p>
+                  <p className="text-muted">At the limit, it answers from your documents without the AI.</p>
                 </div>
-              }
-            />
-            <GaugeCard
-              title="File storage"
-              icon={I.files}
-              used={bytes(s.files.used)}
-              limit={bytes(s.files.limit)}
-              colourFor={filePct}
-              href="/system/health"
-              detail={
-                <div className="flex flex-col gap-1">
-                  <p className="font-semibold">
-                    {s.files.count.toLocaleString("en-AU")} files · {bytes(s.files.used)} of {bytes(s.files.limit)}
-                  </p>
-                  <ul className="flex flex-col gap-0.5">
-                    {s.files.buckets
-                      .filter((b) => Number(b.files) > 0)
-                      .map((b, i) => (
-                        <li key={b.bucket} className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5">
-                            <span className="size-2 rounded-full" style={{ background: PALETTE[i % PALETTE.length] }} />
-                            {BUCKET_LABELS[b.bucket] ?? b.bucket}
-                          </span>
-                          <span className="tabular-nums">{bytes(Number(b.bytes))}</span>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              }
-            />
-          </>
-        ) : (
-          <Panel title="Database and file storage" colour={C.sky} icon={I.db} className="md:col-span-2">
-            <p className="text-sm text-muted">Not available yet: run the latest database updates, then refresh.</p>
-          </Panel>
-        )}
-        <GaugeCard
-          title="Assistant this month"
-          icon={I.ai}
-          used={ai ? `A$${ai.monthAud.toFixed(2)}` : "A$0"}
-          limit={ai ? `A$${ai.limitAud}` : "no limit set"}
-          colourFor={aiPct}
-          href="/assistant"
-          detail={
-            ai ? (
-              <div className="flex flex-col gap-1">
-                <p className="font-semibold">Spending against the monthly limit</p>
-                <p>
-                  A${ai.monthAud.toFixed(2)} of A${ai.limitAud} · {ai.questionsMonth} questions this month
-                </p>
-                {ai.leftAud !== null ? <p>Credit left: about A${ai.leftAud.toFixed(2)}</p> : null}
-                <p className="text-muted">At the limit, it answers from your documents without the AI.</p>
+              ) : (
+                <p>The Assistant isn&apos;t set up yet.</p>
+              )
+            }
+          />
+        </div>
+      </Panel>
+
+      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+        <Panel title="Tasks each week">
+          <LineChart rows={d.weeks} />
+        </Panel>
+        <Panel title="People by access level">
+          {d.byRole.length ? <Bars rows={d.byRole} /> : <p className="text-sm text-muted">Nobody yet.</p>}
+          <div className="mt-auto grid grid-cols-2 gap-2 border-t border-line pt-3 text-sm">
+            <div>
+              <p className="text-xs text-muted">Bell notices · 30 days</p>
+              <p className="font-semibold tabular-nums">{d.bells}</p>
+            </div>
+            <Hover label={`Emails: ${d.sent} sent, ${d.waiting} waiting, ${d.failed} failed`} details={<p>{d.sent} sent, {d.waiting} waiting, {d.failed} failed in the last 30 days. Failed emails are retried.</p>}>
+              <p className="text-xs text-muted">Emails · 30 days</p>
+              <p className="font-semibold tabular-nums">
+                {d.sent} sent{d.failed ? <span className="text-danger"> · {d.failed} failed</span> : null}
+              </p>
+              <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-page" aria-hidden="true">
+                {totalEmails ? (
+                  <>
+                    <span style={{ width: `${(d.sent / totalEmails) * 100}%`, background: GOOD }} />
+                    <span style={{ width: `${(d.waiting / totalEmails) * 100}%`, background: WARN }} />
+                    <span style={{ width: `${(d.failed / totalEmails) * 100}%`, background: BAD }} />
+                  </>
+                ) : null}
               </div>
-            ) : (
-              <p>The Assistant isn&apos;t set up yet.</p>
-            )
-          }
-        />
+            </Hover>
+          </div>
+        </Panel>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <Panel title="Tasks each week" colour={C.blue} icon={I.chart}>
-          <LineChart rows={d.weeks} />
-        </Panel>
-        <Panel title="Active people by access level" colour={C.teal} icon={I.people}>
-          {d.byRole.length ? <ColourBars rows={d.byRole} /> : <p className="text-sm text-muted">Nobody yet.</p>}
-        </Panel>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Panel title="Bell notices" colour={C.pink} icon={I.bell}>
-          <p className="text-3xl font-semibold tabular-nums" style={{ color: C.pink }}>
-            {d.bells}
-          </p>
-          <p className="text-sm text-muted">Sent in the last 30 days</p>
-        </Panel>
-        <Panel title="Emails, 30 days" colour={C.sky} icon={I.mail}>
-          <Hover
-            details={
-              <p>
-                {d.sent} sent, {d.waiting} waiting, {d.failed} failed. Failed emails are retried; see System health if the number grows.
-              </p>
-            }
-          >
-            <div className="flex h-4 overflow-hidden rounded-full bg-page" aria-label={`${d.sent} sent, ${d.waiting} waiting, ${d.failed} failed`}>
-              {totalEmails ? (
-                <>
-                  <span style={{ width: `${(d.sent / totalEmails) * 100}%`, background: C.green }} />
-                  <span style={{ width: `${(d.waiting / totalEmails) * 100}%`, background: C.amber }} />
-                  <span style={{ width: `${(d.failed / totalEmails) * 100}%`, background: C.red }} />
-                </>
-              ) : null}
-            </div>
-            <p className="mt-2 flex flex-wrap gap-3 text-xs">
-              <span style={{ color: C.green }}>● {d.sent} sent</span>
-              <span style={{ color: C.amber }}>● {d.waiting} waiting</span>
-              <span style={{ color: C.red }}>● {d.failed} failed</span>
+        <Panel
+          title={`Modules · ${modulesOn} of ${d.modules.length} on`}
+          action={<Link href="/system" className="text-xs font-semibold text-brand underline">Change in Features</Link>}
+        >
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {d.modules.map((m) => (
+              <li
+                key={m.key}
+                className={`flex items-center gap-3 rounded-md border px-3 py-2 ${m.on ? "border-line bg-brand-soft" : "border-dashed border-line bg-surface"}`}
+              >
+                <span
+                  className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold ${m.on ? "bg-good text-white" : "border border-field text-muted"}`}
+                  aria-hidden="true"
+                >
+                  {m.on ? "✓" : "–"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className={`block text-sm font-medium ${m.on ? "text-ink" : "text-muted"}`}>{m.label}</span>
+                  <span className="block text-xs text-muted">
+                    {m.on ? (m.parts ? `On · ${m.partsOn} of ${m.parts} parts` : "On for staff") : "Off for staff · you still see it"}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {d.core.length ? (
+            <p className="flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-3 text-xs text-muted">
+              <span className="font-semibold text-ink">Core:</span>
+              {d.core.map((c) => (
+                <span key={c.key} className="inline-flex items-center gap-1">
+                  <span className={`size-1.5 rounded-full ${c.on ? "bg-good" : "bg-field"}`} aria-hidden="true" />
+                  {c.label}
+                  <span className="sr-only">{c.on ? " on" : " off"}</span>
+                </span>
+              ))}
             </p>
-          </Hover>
+          ) : null}
         </Panel>
-        <Panel title="Modules" colour={C.purple} icon={I.grid} className="lg:col-span-2">
-          <ul className="flex flex-wrap gap-2">
-            {d.main.map((f) => {
-              const on = f.enabled && f.included !== false;
-              return (
-                <li key={f.key}>
-                  <Link
-                    href="/system"
-                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold"
-                    style={on ? { background: `${C.green}1a`, borderColor: `${C.green}66`, color: C.green } : undefined}
-                    title={on ? `${f.label} is on` : `${f.label} is off for staff (you still see it)`}
-                  >
-                    <span className="size-2 rounded-full" style={{ background: on ? C.green : "currentColor" }} />
-                    {f.label}
-                  </Link>
-                </li>
-              );
-            })}
+        <Panel title="Recent changes" action={<Link href="/system/audit" className="text-xs font-semibold text-brand underline">Change log</Link>}>
+          <ul className="flex flex-col divide-y divide-line text-sm">
+            {d.changes.length === 0 ? <li className="py-2 text-muted">Nothing yet.</li> : null}
+            {d.changes.map((c) => (
+              <li key={c.id} className="flex flex-col py-2">
+                <span className="first-letter:uppercase">{c.action.replaceAll("_", " ")}</span>
+                <span className="text-xs text-muted">
+                  {c.entity_id ? `${c.entity_id} · ` : ""}
+                  {c.at}
+                </span>
+              </li>
+            ))}
           </ul>
         </Panel>
       </div>
-
-      <Panel title="Recent changes" colour={C.amber} icon={I.log}>
-        <ul className="flex flex-col divide-y divide-line text-sm">
-          {d.changes.length === 0 ? <li className="py-2 text-muted">Nothing yet.</li> : null}
-          {d.changes.map((c) => (
-            <li key={c.id} className="flex flex-wrap justify-between gap-2 py-2">
-              <span>
-                {c.action.replaceAll("_", " ")}
-                {c.entity_id ? ` · ${c.entity_id}` : ""}
-              </span>
-              <span className="text-muted">{c.at}</span>
-            </li>
-          ))}
-        </ul>
-        <Link href="/system/audit" className="text-sm font-semibold text-brand underline">
-          Open the change log
-        </Link>
-      </Panel>
     </>
   );
 }
+
