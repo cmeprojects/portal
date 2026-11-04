@@ -77,14 +77,19 @@ export type PeopleRules = {
   accessResetRoles: Role[];
   // Roles that may only raise General tasks and questions.
   limitedTaskRoles: Role[];
+  // With no active staff admin, managers do the staff admin's Compliance work (cmeprojects).
+  hasStaffAdmin: boolean;
 };
 
 export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("app_settings")
-    .select("key, value")
-    .or("key.like.people.%,key.eq.compliance.manager_roles,key.eq.reports.roles,key.eq.reports.compliance_roles,key.eq.tasks.registers_roles,key.eq.tasks.limited_roles");
+  const [{ data }, { count: staffAdmins }] = await Promise.all([
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .or("key.like.people.%,key.eq.compliance.manager_roles,key.eq.reports.roles,key.eq.reports.compliance_roles,key.eq.tasks.registers_roles,key.eq.tasks.limited_roles"),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "staff_admin").eq("active", true),
+  ]);
   // people.access_reset_roles is included by "people.%".
   const on = (k: string, fallback: boolean) => {
     const v = data?.find((r) => r.key === k)?.value;
@@ -108,6 +113,7 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
     registersRoles: roles("tasks.registers_roles", ["team_leader", "manager", "staff_admin"]),
     accessResetRoles: roles("people.access_reset_roles", []),
     limitedTaskRoles: roles("tasks.limited_roles", ["support_worker"]),
+    hasStaffAdmin: (staffAdmins ?? 0) > 0,
   };
 });
 
@@ -117,10 +123,10 @@ export const canSeeReports = (role: Role, rules: PeopleRules) => role === "syste
 export const canHelpSignIn = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.accessResetRoles.includes(role);
 export const canSeeRegisters = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.registersRoles.includes(role);
 export const canSeeComplianceReport = (role: Role, rules: PeopleRules) =>
-  role === "system_admin" || rules.complianceReportRoles.includes(role);
+  role === "system_admin" || rules.complianceReportRoles.includes(role) || (role === "manager" && !rules.hasStaffAdmin);
 export const canSeeScoreboard = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.scoreboardRoles.includes(role);
 export const canManageCompliance = (role: Role, rules: PeopleRules) =>
-  role === "system_admin" || rules.complianceRoles.includes(role);
+  role === "system_admin" || rules.complianceRoles.includes(role) || (role === "manager" && !rules.hasStaffAdmin);
 // Who sees onboarding progress (not the files): Compliance managers, managers and team leaders.
 export const seesCompliance = (role: Role, rules: PeopleRules) =>
   canManageCompliance(role, rules) || role === "manager" || role === "team_leader";

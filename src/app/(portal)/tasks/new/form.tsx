@@ -60,7 +60,12 @@ export function NewTaskForm({
 }) {
   const [state, action, pending] = useActionState(createTask, null);
   // System admins can't take tasks, so they start with the first person in the list.
-  const [assignee, setAssignee] = useState(people.some((p) => p.id === meId) ? meId : (people[0]?.id ?? ""));
+  // A question goes to someone else, so you aren't in the list for questions (cmeprojects).
+  const [kind, setKind] = useState<"question" | "task">(askChoice ? "question" : "task");
+  const others = people.filter((p) => p.id !== meId);
+  const choices = kind === "question" ? others : people;
+  const [picked, setAssignee] = useState(askChoice ? (others[0]?.id ?? "") : people.some((p) => p.id === meId) ? meId : (people[0]?.id ?? ""));
+  const assignee = choices.some((p) => p.id === picked) ? picked : (choices[0]?.id ?? "");
   const [registryId, setRegistryId] = useState(
     registries.find((r) => r.id === initialRegistryId)?.id ?? registries.find((r) => r.is_default)?.id ?? registries[0]?.id ?? "",
   );
@@ -85,11 +90,11 @@ export function NewTaskForm({
           <legend className="mb-1 text-sm font-medium">What is it?</legend>
           <div className="flex flex-wrap gap-4">
             <label className="flex min-h-10 items-center gap-2 text-sm">
-              <input type="radio" name="kind" value="question" defaultChecked className="h-5 w-5 accent-[var(--brand-primary)]" />
+              <input type="radio" name="kind" value="question" checked={kind === "question"} onChange={() => setKind("question")} className="h-5 w-5 accent-[var(--brand-primary)]" />
               A question (tagged Staff question)
             </label>
             <label className="flex min-h-10 items-center gap-2 text-sm">
-              <input type="radio" name="kind" value="task" className="h-5 w-5 accent-[var(--brand-primary)]" />
+              <input type="radio" name="kind" value="task" checked={kind === "task"} onChange={() => setKind("task")} className="h-5 w-5 accent-[var(--brand-primary)]" />
               A general task
             </label>
           </div>
@@ -183,7 +188,7 @@ export function NewTaskForm({
       <div className="grid gap-5 md:grid-cols-2">
         <Field label="Who will look after it?" htmlFor="assigned_to">
           <select id="assigned_to" name="assigned_to" value={assignee} onChange={(e) => setAssignee(e.target.value)} className={inputClass}>
-            {people.map((p) => (
+            {choices.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.id === meId ? `${p.name} (me)` : p.name} · {p.detail}
               </option>

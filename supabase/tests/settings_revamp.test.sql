@@ -42,7 +42,7 @@ select test.ok(public.save_draft('setting', 'notify.channels', '{"task_assigned"
 select test.ok((select count(*) from public.settings_drafts) = 4, 'four drafts waiting');
 select test.ok(public.deploy_drafts() = 4, 'deploy makes all four live');
 select test.ok((select value from public.app_settings where key = 'brand.company_name') = '"Engaged Care Melbourne"', 'the setting is live');
-select test.ok(not public.feature_enabled('roles'), 'Roles is off');
+select test.ok(not public.feature_live('roles'), 'Roles is off');
 select test.ok((select people from public.delegation_rules where area = 'branding') = array[test.pid('office@example.com')], 'only the staff admin was kept (a support worker can''t be delegated to)');
 select test.ok((select count(*) from public.audit_log where action = 'settings_deployed') = 1, 'the deploy is in the change log');
 reset role;

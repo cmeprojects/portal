@@ -32,7 +32,7 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
     </div>
   );
 }
-import { addAppIcon, applyPreset, chooseAppIcon, deleteAppIcon, saveDelegationRule, saveNotifications, saveSetting, setFeature, type WhichApp, runDemoAction, signOutEveryone } from "./actions";
+import { addAppIcon, applyPreset, chooseAppIcon, deleteAppIcon, saveDelegationRule, saveNotifications, saveSetting, saveShares, setFeature, type WhichApp, runDemoAction, signOutEveryone } from "./actions";
 
 // cmeprojects: one feature switch. Pressing it saves a draft; it goes live on Deploy.
 export function FeatureSwitch({
@@ -622,6 +622,41 @@ export function SignOutEveryone() {
       </div>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+    </form>
+  );
+}
+
+// cmeprojects: a manager shares one of their areas with staff admins.
+export function ShareAreaForm({ area, label, staff, current }: { area: string; label: string; staff: { id: string; name: string }[]; current: string[] }) {
+  const [state, action, pending] = useActionState(saveShares, null);
+  const [, start] = useTransition();
+  const { ref, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
+  return (
+    <form
+      ref={ref}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        start(() => action(data));
+      }}
+      className="flex flex-col gap-2 border-t border-line py-3 first:border-t-0"
+    >
+      <input type="hidden" name="area" value={area} />
+      <p className="font-semibold">{label}</p>
+      <fieldset className="flex flex-wrap gap-x-5">
+        <legend className="sr-only">Staff admins who also look after {label}</legend>
+        {staff.map((p) => (
+          <label key={p.id} className="flex min-h-10 items-center gap-2 text-sm">
+            <input type="checkbox" name="people" value={p.id} defaultChecked={current.includes(p.id)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+            {p.name}
+          </label>
+        ))}
+      </fieldset>
+      <div>
+        <Button size="sm" variant="outline" disabled={pending || !dirty}>{pending ? "Saving…" : "Save"}</Button>
+      </div>
+      <SaveResult state={state} pending={pending} dirty={dirty} />
     </form>
   );
 }

@@ -53,10 +53,17 @@ export const getSession = cache(async (): Promise<Session | null> => {
   // A premium feature only counts as on if it's included in the plan, and a
   // part of a feature (cmeprojects) only while its feature is on too.
   const own = new Map((features ?? []).map((f) => [f.key as string, Boolean(f.enabled) && f.included !== false]));
+  // The system admin is never locked out by a switch, except two-factor login,
+  // emails and auto-escalation, which apply to everyone (cmeprojects).
+  const admin = profile.role === "system_admin";
+  const EVERYONE = ["two_factor", "email_notifications", "auto_escalation"];
   return {
     profile,
     features: Object.fromEntries(
-      (features ?? []).map((f) => [f.key, Boolean(own.get(f.key)) && (!f.parent || own.get(f.parent) === true)]),
+      (features ?? []).map((f) => [
+        f.key,
+        (admin && !EVERYONE.includes(f.key)) || (Boolean(own.get(f.key)) && (!f.parent || own.get(f.parent) === true)),
+      ]),
     ),
     mfaRequired: access.mfa_required,
   };
@@ -79,6 +86,7 @@ export async function requireRole(roles: Role[]): Promise<Session> {
 // the system admin lets them use tasks).
 export async function requireTaskAccess(): Promise<Session> {
   const session = await requireSession();
+  if (session.profile.role === "external") redirect("/");
   if (session.profile.role === "new_starter" && !(await getPeopleRules()).newStarterTasks) redirect("/");
   return session;
 }

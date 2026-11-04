@@ -10,6 +10,7 @@ import { friendlyError } from "@/lib/db-error";
 import { CHOICE_COLOURS, FIELD_TYPES, keyFromLabel, type ChoiceColour, type FieldType } from "@/lib/registers";
 import { text, type FormState } from "@/lib/form";
 import { slaFromForm } from "@/lib/tasks";
+import { isRole } from "@/lib/roles";
 
 const PREFIX = /^[A-Z0-9]{2,6}$/;
 const on = (form: FormData, name: string) => form.get(name) === "on";
@@ -212,4 +213,16 @@ export async function setRegistryApproval(form: FormData) {
   const supabase = await createClient();
   await supabase.from("registries").update({ requires_approval: text(form, "on") === "true" }).eq("id", id).eq("kind", "tasks");
   refresh(id);
+}
+
+// cmeprojects: who may create tasks in this register (none ticked: everyone
+// who can raise tasks, as before). The register's managers set it.
+export async function saveCreateRoles(_: FormState, form: FormData): Promise<FormState> {
+  await requireTaskAccess();
+  const roles = form.getAll("roles").map(String).filter((r) => isRole(r) && r !== "system_admin" && r !== "external");
+  const { data, error } = await (await createClient()).from("registries").update({ create_roles: roles }).eq("id", text(form, "id")).select("id");
+  if (error) return { error: error.code === "PGRST204" || error.code === "42703" ? "This needs the latest database update (update 47)." : friendlyError(error) };
+  if (!data?.length) return { error: "Only this register's managers can change this." };
+  revalidatePath("/registers");
+  return { message: roles.length ? "Saved. Only the ticked roles can create tasks here." : "Saved. Everyone who can raise tasks can use this register." };
 }

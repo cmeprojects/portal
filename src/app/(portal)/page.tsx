@@ -8,6 +8,7 @@ import { getPeopleRules } from "@/lib/settings";
 import { getBranding } from "@/lib/branding";
 import { Card, PageHeader } from "@/components/ui";
 import { DashboardView } from "./dashboard-view";
+import { PlatformDashboard } from "./platform-dashboard";
 import { MyTasksView } from "./my-tasks-view";
 
 export const metadata: Metadata = { title: "Home" };
@@ -17,6 +18,16 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const { profile } = await requireSession();
   const params = await searchParams;
   if (profile.role === "new_starter" && !(await getPeopleRules()).newStarterTasks) return <Welcome name={profile.full_name} />;
+  // cmeprojects: the system admin's home is the platform; external contractors have nothing yet.
+  if (profile.role === "system_admin") return <PlatformDashboard name={profile.full_name} />;
+  if (profile.role === "external") {
+    return (
+      <>
+        <PageHeader title={`Welcome${profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}`} />
+        <Card className="max-w-2xl p-5 text-sm">Your account is ready. There&apos;s nothing here for you yet; we&apos;ll let you know when there is.</Card>
+      </>
+    );
+  }
   return seesDashboard(profile.role) ? <DashboardView params={params} /> : <MyTasksView basePath="/" params={params} />;
 }
 

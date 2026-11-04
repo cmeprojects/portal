@@ -23,6 +23,7 @@ import {
   NotificationGroupForm,
   PresetButtons,
   SettingForm,
+  ShareAreaForm,
   SignOutEveryone,
   type DelegationValue,
   type PersonChoice,
@@ -74,6 +75,9 @@ const ORDER = [
   "vehicles.manager_roles",
   "vehicles.report_roles",
   "vehicles.weekly_recipients",
+  "vehicles.weekly_day",
+  "vehicles.weekly_hour",
+  "vehicles.weekly_period",
   "vehicles.client_field",
   "vehicles.odo_photo",
   "vehicles.undo_minutes",
@@ -135,8 +139,8 @@ const ROWS: Row[] = [
     intro: "Company cars and trips. Car managers add cars, clients and purposes on Manage cars.",
     switches: ["vehicles"],
     sections: [
-      { title: "Cars", area: "vehicles", keys: (k) => k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") },
-      { title: "Cars app on the phone", area: "vehicles", keys: (k) => k.startsWith("vehicles.app_") },
+      { title: "Cars", area: "vehicles", keys: (k) => k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") && !k.startsWith("vehicles.weekly_") },
+      { title: "Weekly mileage report", intro: "Who gets it, which day, from what hour, and what it covers.", area: "vehicles", keys: (k) => k.startsWith("vehicles.weekly_") },
     ],
     areas: ["vehicles"],
   },
@@ -145,7 +149,11 @@ const ROWS: Row[] = [
     label: "Staff app",
     intro: "One phone app for staff with the features you choose. Tick Show in the staff app on each built feature.",
     switches: ["staff_app"],
-    sections: [{ title: "Staff app", keys: (k) => k.startsWith("staff_app.") }],
+    sections: [
+      { title: "Staff app", keys: (k) => k.startsWith("staff_app.") },
+      // The Cars app's settings live with the phone apps (cmeprojects).
+      { title: "Cars app on the phone", area: "vehicles", keys: (k) => k.startsWith("vehicles.app_") },
+    ],
     areas: [],
   },
   {
@@ -202,7 +210,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   const areas = await getMyAdminAreas(profile.role);
   const canSee = (sec: Section) => isAdmin || (sec.area !== undefined && areas.includes(sec.area));
   const allSections = [...ROWS.flatMap((r) => r.sections), ...GENERAL];
-  if (!isAdmin && !allSections.some(canSee)) redirect("/");
+  if (!isAdmin && !allSections.some(canSee) && !(profile.role === "manager" && areas.length)) redirect("/");
 
   const { tab: asked } = await searchParams;
   const tab = isAdmin ? (ADMIN_TABS.find((t) => t.key === asked) ?? ADMIN_TABS[0]).key : "mine";
@@ -264,6 +272,12 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
       </div>
     );
   };
+
+  // Managers can share their areas with staff admins (cmeprojects).
+  const SHAREABLE: Area[] = ["branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "registers"];
+  const myShareable = profile.role === "manager" ? areas.filter((a) => SHAREABLE.includes(a)) : [];
+  const { data: shares } = myShareable.length ? await supabase.from("delegation_shares").select("area, user_id") : { data: [] };
+  const staffAdmins = choices.filter((c) => c.role === ROLE_LABELS.staff_admin);
 
   const two = featureState("two_factor");
   const tabs = ADMIN_TABS.map((t) => ({ href: `/system?tab=${t.key}`, text: t.label, current: t.key === tab }));
@@ -476,6 +490,28 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
                 </Card>
               ) : null;
             })}
+          {tab === "mine" && myShareable.length ? (
+            <Card className="px-5 py-4">
+              <h2 className="mb-1 heading-sm">Share with staff admins</h2>
+              <p className="mb-2 text-sm text-muted">
+                Staff admins you tick also look after that area, for as long as you do. Roles and the change log can&apos;t be shared. This acts
+                straight away.
+              </p>
+              {staffAdmins.length === 0 ? (
+                <p className="text-sm text-muted">There are no active staff admins.</p>
+              ) : (
+                myShareable.map((a) => (
+                  <ShareAreaForm
+                    key={a}
+                    area={a}
+                    label={AREA_LABELS[a]}
+                    staff={staffAdmins.map((p) => ({ id: p.id, name: p.name }))}
+                    current={(shares ?? []).filter((x) => x.area === a).map((x) => x.user_id as string)}
+                  />
+                ))
+              )}
+            </Card>
+          ) : null}
           {tab === "general" ? (
             <Card className="px-5 py-4">
               <h2 className="mb-1 heading-sm">Sign everyone out</h2>

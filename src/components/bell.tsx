@@ -6,14 +6,14 @@ import Link from "next/link";
 import { markAllSeen } from "./bell-actions";
 
 // A task given to you, or the answer to a change you asked for.
-export type BellItem = { key: string; href: string; title: string; detail: string; tone?: "good" | "danger" };
+export type BellItem = { key: string; href: string; title: string; detail: string; tone?: "good" | "danger"; read?: boolean };
 
-// The bell beside the logo: tasks newly given to you, and approvals or
-// declines of your requests. Opening one clears it.
+// The bell beside the logo: tasks given to you, notices and answers to your
+// requests. Read ones stay in the list (cmeprojects); new ones are bold and counted.
 export function Bell({ items }: { items: BellItem[] }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
-  const count = items.length;
+  const count = items.filter((i) => !i.read).length;
   const words = count ? `${count} new for you` : "Nothing new";
 
   useEffect(() => {
@@ -53,21 +53,24 @@ export function Bell({ items }: { items: BellItem[] }) {
       {open ? (
         <div className="absolute top-full right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-line bg-surface text-ink shadow-lg md:fixed md:top-4 md:right-auto md:left-[238px] md:mt-0">
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
-            <p className="heading-sm">New for you</p>
+            <p className="heading-sm">Notifications{count ? ` · ${count} new` : ""}</p>
             {count ? (
               <form action={markAllSeen}>
                 <button className="min-h-9 text-xs font-medium text-brand underline">Mark all as seen</button>
               </form>
             ) : null}
           </div>
-          {count === 0 ? (
+          {items.length === 0 ? (
             <p className="px-4 py-5 text-sm text-muted">You&apos;re all caught up.</p>
           ) : (
             <ul className="max-h-96 divide-y divide-line overflow-y-auto">
               {items.map((i) => (
                 <li key={i.key}>
-                  <Link href={i.href} onClick={() => setOpen(false)} className="block px-4 py-3 hover:bg-page">
-                    <span className={`block text-sm font-semibold ${i.tone === "good" ? "text-good" : i.tone === "danger" ? "text-danger" : ""}`}>
+                  <Link href={i.href} onClick={() => setOpen(false)} className={`block px-4 py-3 hover:bg-page ${i.read ? "" : "bg-brand-soft/40"}`}>
+                    <span
+                      className={`block text-sm ${i.read ? "font-normal text-muted" : "font-semibold"} ${!i.read && i.tone === "good" ? "text-good" : !i.read && i.tone === "danger" ? "text-danger" : ""}`}
+                    >
+                      {i.read ? null : <span className="sr-only">New: </span>}
                       {i.title}
                     </span>
                     <span className="block text-xs text-muted">{i.detail}</span>

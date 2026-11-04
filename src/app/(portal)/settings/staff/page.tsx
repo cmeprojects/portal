@@ -20,6 +20,7 @@ const ROLE_TONE: Record<Role, "dark" | "soft" | "grey"> = {
   manager: "soft",
   team_leader: "soft",
   support_worker: "grey",
+  external: "grey",
 };
 
 // Who has signed in at least once (from the sign-in system).

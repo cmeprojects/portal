@@ -45,7 +45,9 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
   const admin = role === "system_admin";
   const peopleManager = role === "manager" || role === "staff_admin" || admin;
   const cars = features.vehicles === true && role !== "new_starter";
-  const settingsAreas = (access.adminAreas ?? []).filter((a) => a !== "audit");
+  // Areas with settings on the System settings page (registers, roles, the
+  // website and the change log have their own pages) (cmeprojects).
+  const settingsAreas = (access.adminAreas ?? []).filter((a) => !["audit", "registers", "roles", "website"].includes(a));
   const tabs: (Tab | false)[] = {
     tasks: [
       { href: seesDashboard(role) ? "/my-tasks" : "/", text: "My tasks" },
@@ -73,7 +75,8 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       ...(features.reports !== false ? (access.featureReports ?? []) : []).map((f) => ({ href: `/reports/f/${f.slug}`, text: f.label })),
     ],
     settings: [
-      (role === "manager" || admin) && { href: "/settings/sla", text: "Due dates (SLA)" },
+      // The system admin sets due dates in Features → Tasks; managers here.
+      role === "manager" && { href: "/settings/sla", text: "Due dates (SLA)" },
       (admin || settingsAreas.length > 0) && { href: "/system", text: "System settings" },
       // The system admin always sees Website settings (to set it up before switching it on).
       (admin || (features.assistant === true && (access.adminAreas ?? []).includes("website"))) && { href: "/assistant", text: "Website settings" },
@@ -104,27 +107,31 @@ export function navFor(
     { href: "/account", label: "My account" },
   ];
 
+  // External contractors (for later): nothing yet but their account.
+  if (role === "external") return [{ items: [{ href: "/", label: "Home" }] }, { items: [{ href: "/account", label: "My account" }] }];
+
   // New starters: just their welcome page and onboarding until they have a role.
   if (role === "new_starter" && !access.newStarterTasks) {
     return [{ items: [{ href: "/", label: "Home" }] }, { items: mine }];
   }
 
   const dashboard = seesDashboard(role);
+  const admin = role === "system_admin";
+  // Tools as their own part of the menu: built features, cars and the apps.
+  const tools: NavItem[] = [
+    ...(access.customFeatures ?? []).map((f) => ({ href: `/f/${f.slug}`, label: f.label })),
+    ...sectionItem("cars", role, features, access),
+    ...(access.appsLabel ? [{ href: "/apps", label: access.appsLabel }] : []),
+  ];
   return [
     {
       items: [
-        ...(dashboard ? [{ href: "/", label: "Dashboard" }] : []),
-        ...sectionItem("tasks", role, features, access, dashboard ? "Tasks" : "My tasks"),
+        // Your tasks and questions are on your home page (cmeprojects); the
+        // system admin's home is the platform, with everyone's tasks under Tasks.
+        { href: "/", label: admin ? "Dashboard" : dashboard ? "Dashboard" : "Home", match: dashboard && !admin ? ["/", "/my-tasks"] : undefined },
+        ...(admin ? [{ href: "/tasks", label: "Tasks", match: ["/tasks", "/my-tasks"] }] : []),
         // Who sees Registers is set by the system admin (System settings → Tasks).
         ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),
-        // Managers get one "Tools" item; everyone else sees them in order.
-        ...(access.tools
-          ? [{ href: "/tools", label: "Tools", match: ["/tools", "/f/", "/cars", "/apps"] }]
-          : [
-              ...(access.customFeatures ?? []).map((f) => ({ href: `/f/${f.slug}`, label: f.label })),
-              ...sectionItem("cars", role, features, access),
-              ...(access.appsLabel ? [{ href: "/apps", label: access.appsLabel }] : []),
-            ]),
         ...(access.forms ? [{ href: "/forms", label: "Forms", match: ["/forms"] }] : []),
         ...(access.enquiries ? [{ href: "/enquiries", label: "Enquiries" }] : []),
         ...(access.assistant ? [{ href: "/ask", label: "Assistant" }] : []),
@@ -134,6 +141,7 @@ export function navFor(
         ...sectionItem("settings", role, features, access),
       ],
     },
+    ...(tools.length ? [{ heading: "Tools", items: tools }] : []),
     { items: mine },
   ];
 }

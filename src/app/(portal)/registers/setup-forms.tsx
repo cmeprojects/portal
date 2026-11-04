@@ -6,7 +6,8 @@ import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { CHOICE_COLOUR_CLASS, CHOICE_COLOUR_LABELS, CHOICE_COLOURS, FIELD_TYPE_LABELS, FIELD_TYPES, type FieldType, type Registry, type RegistryField } from "@/lib/registers";
 import type { FormState } from "@/lib/form";
 import { SlaInputs } from "../system/forms";
-import { addField, createRegistry, saveManagers, saveRegistrySettings, updateField } from "./setup-actions";
+import { addField, createRegistry, saveCreateRoles, saveManagers, saveRegistrySettings, updateField } from "./setup-actions";
+import { ROLE_LABELS } from "@/lib/roles";
 
 const check = "h-5 w-5 accent-[var(--brand-primary)]";
 
@@ -247,6 +248,31 @@ export function EditFieldForm({ field }: { field: RegistryField }) {
       <Button variant="outline" className="self-start" disabled={pending}>
         {pending ? "Saving…" : "Save field"}
       </Button>
+    </form>
+  );
+}
+
+// cmeprojects: who may create tasks in this register.
+export function CreateRolesForm({ id, current }: { id: string; current: string[] }) {
+  const [state, action, pending] = useActionState(saveCreateRoles, null);
+  const choices = ["support_worker", "team_leader", "manager", "staff_admin"] as const;
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="id" value={id} />
+      <fieldset className="flex flex-wrap gap-x-5">
+        <legend className="sr-only">Who can create tasks</legend>
+        {choices.map((r) => (
+          <label key={r} className="flex min-h-10 items-center gap-2 text-sm">
+            <input type="checkbox" name="roles" value={r} defaultChecked={current.includes(r)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+            {ROLE_LABELS[r]}
+          </label>
+        ))}
+      </fieldset>
+      <div>
+        <Button size="sm" variant="outline" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+      </div>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.message && !pending ? <p role="status" className="text-sm font-semibold text-good">✓ {state.message}</p> : null}
     </form>
   );
 }

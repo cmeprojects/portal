@@ -54,3 +54,11 @@ export const getAssets = cache(async (): Promise<AssetOption[]> => {
     return { id: r.id, label: `${refLabel(reg?.prefix, r.ref_number)} · ${r.title}`, archived: r.archived };
   });
 });
+
+// cmeprojects: who may create tasks in each register (empty: as before).
+// Read on its own so pages still work before live update 47.
+export const getCreateRoles = cache(async (): Promise<Map<string, string[]>> => {
+  const { data, error } = await (await createClient()).from("registries").select("id, create_roles");
+  if (error) return new Map();
+  return new Map((data ?? []).map((r) => [r.id as string, (r.create_roles ?? []) as string[]]));
+});

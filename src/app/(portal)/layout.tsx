@@ -44,7 +44,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   // Settings saved but not deployed yet (only people who can change settings have any).
   const draftLines = ["system_admin", "manager", "staff_admin"].includes(profile.role) ? await describeDrafts(await getDrafts()) : [];
   // Their role changed (while signed in): a banner until they've seen it.
-  const roleChange = notices.find((n) => n.kind === "role_changed");
+  const roleChange = notices.find((n) => n.kind === "role_changed" && !n.read);
 
   const footer = (
     <div className="flex flex-wrap items-center justify-between gap-3 md:flex-col md:items-start">
@@ -199,10 +199,11 @@ async function noticesForMe(): Promise<(BellItem & { kind?: string })[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("notifications")
-    .select("id, kind, title, body, created_at")
-    .is("seen_at", null)
+    .select("id, kind, title, body, created_at, seen_at")
+    // Read ones stay for 30 days (cmeprojects); unread ones always show.
+    .or(`seen_at.is.null,created_at.gte.${new Date(Date.now() - 30 * 86_400_000).toISOString()}`)
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(40);
   if (!data?.length) return [];
   const timeZone = await getTimeZone();
   const when = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone });
@@ -213,6 +214,7 @@ async function noticesForMe(): Promise<(BellItem & { kind?: string })[]> {
     title: n.title,
     detail: [n.body, when.format(new Date(n.created_at))].filter(Boolean).join(" · "),
     tone: NOTICE_TONE[n.kind],
+    read: Boolean(n.seen_at),
   }));
 }
 

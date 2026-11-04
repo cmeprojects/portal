@@ -251,3 +251,23 @@ export async function saveNotifications(_: FormState, form: FormData): Promise<F
   revalidatePath("/", "layout");
   return result;
 }
+
+// cmeprojects: a manager shares an area the system admin gave them with
+// staff admins (acts straight away; the database checks it).
+export async function saveShares(_: FormState, form: FormData): Promise<FormState> {
+  const { profile } = await requireSession();
+  if (profile.role !== "manager") return { error: "Only managers share areas." };
+  const area = text(form, "area");
+  const wanted = new Set(form.getAll("people").map(String));
+  const supabase = await createClient();
+  const { data: now, error: readError } = await supabase.from("delegation_shares").select("user_id").eq("area", area);
+  if (readError) return { error: readError.code === "42P01" || readError.code === "PGRST205" ? "This needs the latest database update (update 47)." : friendlyError(readError) };
+  const current = new Set((now ?? []).map((s) => s.user_id as string));
+  for (const id of new Set([...wanted, ...current])) {
+    if (wanted.has(id) === current.has(id)) continue;
+    const { error } = await supabase.rpc("share_area", { p_area: area, p_user: id, p_on: wanted.has(id) });
+    if (error) return { error: friendlyError(error) };
+  }
+  revalidatePath("/system");
+  return { message: "Saved. This takes effect straight away." };
+}

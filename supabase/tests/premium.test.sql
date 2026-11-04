@@ -22,12 +22,13 @@ select test.act_as('owner@example.com');
 set role authenticated;
 update public.features set included = false, enabled = false where key = 'vehicles';
 reset role;
-select test.ok(not public.feature_enabled('vehicles'), 'the system admin can take Cars out of the plan');
+-- feature_live: what's really on (the system admin themselves is never locked out).
+select test.ok(not public.feature_live('vehicles'), 'the system admin can take Cars out of the plan');
 select test.act_as('owner@example.com');
 set role authenticated;
 update public.features set included = true, enabled = true where key = 'vehicles';
 reset role;
-select test.ok(public.feature_enabled('vehicles'), 'and put it back in');
+select test.ok(public.feature_live('vehicles'), 'and put it back in');
 
 -- Not in the plan (set by cmeproject in the database, not signed in as anyone).
 select set_config('request.jwt.claims', '', false);

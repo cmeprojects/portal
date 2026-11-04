@@ -8,7 +8,8 @@ import { getFields, getPeople, getRegistries } from "@/lib/register-data";
 import { FIELD_TYPE_LABELS } from "@/lib/registers";
 import { getSla } from "@/lib/settings";
 import { Badge, Card, Notice, PageHeader } from "@/components/ui";
-import { AddFieldForm, EditFieldForm, ManagersForm, RegistrySettingsForm } from "../../setup-forms";
+import { getCreateRoles } from "@/lib/register-data";
+import { AddFieldForm, CreateRolesForm, EditFieldForm, ManagersForm, RegistrySettingsForm } from "../../setup-forms";
 import { moveField } from "../../setup-actions";
 
 export const metadata: Metadata = { title: "Set up register" };
@@ -44,6 +45,14 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
         <Card className="p-5">
           <h2 className="mb-4 heading-sm">Settings</h2>
           <RegistrySettingsForm registry={registry} companySla={sla.days as Record<string, number>} />
+        </Card>
+        <Card className="p-5">
+          <h2 className="mb-1 heading-sm">Who can create tasks here</h2>
+          <p className="mb-3 text-sm text-muted">
+            Tick the roles that may create tasks in this register (its managers always can). Nothing ticked: everyone who can raise tasks, as
+            before. This is how support workers can use a register besides General.
+          </p>
+          <CreateRolesForm id={registry.id} current={(await getCreateRoles()).get(registry.id) ?? []} />
         </Card>
         <Card className="p-5">
           <h2 className="mb-1 heading-sm">Managers</h2>

@@ -79,7 +79,7 @@ replacing Supabase is a 4 to 8 week rewrite and isn't recommended.
 
 ## 4. Live database updates
 
-Applied to Engaged Care: **updates 1 to 45** (46, the settings revamp, is ready to run) (see `supabase/live-updates/README.md`).
+Applied to Engaged Care: **updates 1 to 45** (46 and 47 are ready to run, in order) (see `supabase/live-updates/README.md`).
 Recent ones: 36 website and Assistant, 37 quick fixes, 38 website v2, 39
 limited tasks, 40 website round 2, 41 enquiry intake, 42 About and SEO, 43
 demo data, 44 Reports and exports premium, 45 sign out other devices.
@@ -232,6 +232,31 @@ data and General stay with the system admin.
 
 **Notifications tab:** grouped by feature (expandable), Bell and Email switch
 per notification, starting at today's behaviour.
+
+## 8b. Round 3 (update 47)
+
+Migration `20261222000001_round3.sql`, tests `supabase/tests/round3.test.sql`,
+undo `supabase/live-updates/undo-47.sql`.
+
+- **The system admin is never locked out by switches:** `feature_live()` is what's
+  really on; `feature_enabled()` is true for the system admin except
+  two_factor, email_notifications, auto_escalation. Session features in the app
+  match. Notifications, onboarding parts, team leaders and the front page use
+  `feature_live()`.
+- **External contractor (allied health)** access level `external`: signs in,
+  no permissions (`is_member()` is false), Home and My account only.
+- **Who creates tasks per register:** `registries.create_roles` (empty: as before;
+  the register's managers always can). Set on the register's Set up page.
+- **Weekly mileage report:** settings `vehicles.weekly_day`, `weekly_hour`,
+  `weekly_period` (last 7 days, last week Mon–Sun, last 14 days, month so far).
+- **Sharing:** a delegated manager shares areas with staff admins
+  (`delegation_shares`, `share_area()`); not Roles or the change log.
+- **No active staff admin:** managers do Compliance (and see its report).
+- App: bell keeps read notices for 30 days, unread bold and counted; menu has
+  no Tasks item (tasks are on Home/Dashboard) except Tasks for the system admin
+  (`/tasks`); Tools is its own menu group; the system admin's home is the
+  platform dashboard (`platform-dashboard.tsx`); questions leave yourself out
+  of "who looks after it"; Cars app settings sit with the Staff app.
 
 ## 9. Future plans
 

@@ -7,6 +7,8 @@ export const ROLES = [
   "manager",
   "staff_admin",
   "system_admin",
+  // cmeprojects: for later (allied health). No access to anything yet.
+  "external",
 ] as const;
 
 export type Role = (typeof ROLES)[number];
@@ -18,6 +20,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   manager: "Manager",
   staff_admin: "Staff admin",
   system_admin: "System admin",
+  external: "External contractor (allied health)",
 };
 
 export const ROLE_HELP: Record<Role, string> = {
@@ -27,6 +30,7 @@ export const ROLE_HELP: Record<Role, string> = {
   manager: "In the core team: sees every team's tasks. Approvals, reports and due-date SLAs. Invites people, changes roles and teams, and adds job titles.",
   staff_admin: "In the core team, like HR: invites people and manages their details. Role and team changes go to a manager to approve. Doesn't see other people's tasks.",
   system_admin: "Everything, plus System settings. The only role that can create system admins. Hidden from other staff and never given tasks.",
+  external: "For later: allied health and other outside practitioners. They can sign in, but have no access to anything yet.",
 };
 
 // Access levels someone may give out: managers and staff admins (HR) give any
