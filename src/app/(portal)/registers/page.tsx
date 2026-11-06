@@ -8,12 +8,13 @@ import { canSeeRegisters, getPeopleRules } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { getRegistries } from "@/lib/register-data";
 import { DONE } from "@/lib/tasks";
-import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
+import { Badge, Card, Notice, PageHeader, buttonClass } from "@/components/ui";
 import { setRegistryApproval } from "./setup-actions";
 
 export const metadata: Metadata = { title: "Registers" };
 
-export default async function RegistersPage() {
+export default async function RegistersPage({ searchParams }: PageProps<"/registers">) {
+  const { deleted } = await searchParams;
   const { profile } = await requireTaskAccess();
   // Who sees Registers is set by the system admin (System settings → Tasks).
   if (!canSeeRegisters(profile.role, await getPeopleRules())) redirect("/");
@@ -58,6 +59,7 @@ export default async function RegistersPage() {
           ) : null
         }
       />
+      {deleted ? <Notice tone="success">Register deleted.</Notice> : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {registries.map((r) => (
           <Card key={r.id} className="flex h-full flex-col hover:border-brand">

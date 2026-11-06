@@ -226,3 +226,13 @@ export async function saveCreateRoles(_: FormState, form: FormData): Promise<For
   revalidatePath("/registers");
   return { message: roles.length ? "Saved. Only the ticked roles can create tasks here." : "Saved. Everyone who can raise tasks can use this register." };
 }
+
+// cmeprojects: delete a register that has never been used (the database checks
+// it's unused and who may). Used registers are turned off instead.
+export async function deleteRegister(_: FormState, form: FormData): Promise<FormState> {
+  await requireTaskAccess();
+  const { error } = await (await createClient()).rpc("delete_unused_registry", { p_registry_id: text(form, "id") });
+  if (error) return { error: error.code === "PGRST202" ? "This needs the latest database update (update 52)." : friendlyError(error) };
+  revalidatePath("/registers");
+  redirect("/registers?deleted=1");
+}

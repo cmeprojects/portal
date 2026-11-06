@@ -9,7 +9,9 @@ import { FIELD_TYPE_LABELS } from "@/lib/registers";
 import { getSla } from "@/lib/settings";
 import { Badge, Card, Notice, PageHeader } from "@/components/ui";
 import { getCreateRoles } from "@/lib/register-data";
-import { AddFieldForm, CreateRolesForm, EditFieldForm, ManagersForm, RegistrySettingsForm } from "../../setup-forms";
+import { AddFieldForm, CreateRolesForm, DeleteRegisterForm, EditFieldForm, ManagersForm, RegistrySettingsForm } from "../../setup-forms";
+import { requireSession } from "@/lib/session";
+import { getMyAdminAreas } from "@/lib/settings";
 import { moveField } from "../../setup-actions";
 
 export const metadata: Metadata = { title: "Set up register" };
@@ -120,6 +122,36 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
           </div>
         </details>
       </Card>
+      {await DeleteSection({ id: registry.id, name: registry.name, isDefault: registry.is_default })}
     </>
+  );
+}
+
+// cmeprojects: delete an unused register, or explain why a used one is turned off instead.
+async function DeleteSection({ id, name, isDefault }: { id: string; name: string; isDefault: boolean }) {
+  if (isDefault) return null;
+  const { profile } = await requireSession();
+  if (profile.role !== "system_admin" && !(await getMyAdminAreas(profile.role)).includes("registers")) return null;
+  const supabase = await createClient();
+  const [{ count: tasks }, { count: items }] = await Promise.all([
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("registry_id", id),
+    supabase.from("records").select("id", { count: "exact", head: true }).eq("registry_id", id),
+  ]);
+  const used = (tasks ?? 0) + (items ?? 0);
+  return (
+    <Card className="border-danger/40 p-5">
+      <h2 className="mb-1 heading-sm">Delete this register</h2>
+      {used ? (
+        <p className="text-sm text-muted">
+          It has {used} task{used === 1 ? "" : "s"} or item{used === 1 ? "" : "s"}, so it can&apos;t be deleted: the history is kept for audits.
+          To stop using it, untick <strong>Register is in use</strong> in Settings above. It&apos;s then hidden and takes no new tasks.
+        </p>
+      ) : (
+        <>
+          <p className="mb-3 text-sm text-muted">It has never been used, so it can be deleted with its fields. This can&apos;t be undone (you can add it again from the templates).</p>
+          <DeleteRegisterForm id={id} name={name} />
+        </>
+      )}
+    </Card>
   );
 }

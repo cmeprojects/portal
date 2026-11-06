@@ -6,7 +6,7 @@ import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { CHOICE_COLOUR_CLASS, CHOICE_COLOUR_LABELS, CHOICE_COLOURS, FIELD_TYPE_LABELS, FIELD_TYPES, type FieldType, type Registry, type RegistryField } from "@/lib/registers";
 import type { FormState } from "@/lib/form";
 import { SlaInputs } from "../system/forms";
-import { addField, createRegistry, saveCreateRoles, saveManagers, saveRegistrySettings, updateField } from "./setup-actions";
+import { addField, createRegistry, deleteRegister, saveCreateRoles, saveManagers, saveRegistrySettings, updateField } from "./setup-actions";
 import { ROLE_LABELS } from "@/lib/roles";
 
 const check = "h-5 w-5 accent-[var(--brand-primary)]";
@@ -273,6 +273,27 @@ export function CreateRolesForm({ id, current }: { id: string; current: string[]
       </div>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message && !pending ? <p role="status" className="text-sm font-semibold text-good">✓ {state.message}</p> : null}
+    </form>
+  );
+}
+
+// cmeprojects: delete an unused register, after typing its name.
+export function DeleteRegisterForm({ id, name }: { id: string; name: string }) {
+  const [state, action, pending] = useActionState(deleteRegister, null);
+  const [typed, setTyped] = useState("");
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="id" value={id} />
+      <label htmlFor="confirm-delete" className="text-sm">
+        Type <strong>{name}</strong> to confirm.
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <input id="confirm-delete" value={typed} onChange={(e) => setTyped(e.target.value)} className={`${inputClass} max-w-sm`} autoComplete="off" />
+        <Button variant="danger" disabled={pending || typed.trim() !== name}>
+          {pending ? "Deleting…" : "Delete this register"}
+        </Button>
+      </div>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
     </form>
   );
 }

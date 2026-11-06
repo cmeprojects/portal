@@ -79,7 +79,7 @@ replacing Supabase is a 4 to 8 week rewrite and isn't recommended.
 
 ## 4. Live database updates
 
-Applied to Engaged Care: **updates 1 to 49** (see `supabase/live-updates/README.md`).
+Applied to Engaged Care: **updates 1 to 51** (see `supabase/live-updates/README.md`).
 Recent ones: 36 website and Assistant, 37 quick fixes, 38 website v2, 39
 limited tasks, 40 website round 2, 41 enquiry intake, 42 About and SEO, 43
 demo data, 44 Reports and exports premium, 45 sign out other devices.
