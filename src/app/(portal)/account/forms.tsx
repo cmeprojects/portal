@@ -26,6 +26,9 @@ export function PasswordForm() {
     <form action={action} className="flex flex-col gap-3">
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+      <Field label="Current password" htmlFor="current-password" hint="Or a 6-digit code from your authenticator app, if you use one.">
+        <input id="current-password" name="current" type="password" autoComplete="current-password" required className={inputClass} />
+      </Field>
       <PasswordFields label="New password" />
       <Button variant="outline" className="self-start" disabled={pending}>Save password</Button>
     </form>

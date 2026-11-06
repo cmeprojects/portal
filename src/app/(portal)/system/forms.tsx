@@ -605,6 +605,7 @@ export function DemoDataPanel() {
 export function SignOutEveryone() {
   const [state, action, pending] = useActionState(signOutEveryone, null);
   const [confirmText, setConfirmText] = useState("");
+  const [secret, setSecret] = useState("");
   return (
     <form action={action} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
@@ -616,7 +617,17 @@ export function SignOutEveryone() {
           aria-label="Type SIGN OUT to confirm"
           className={`${inputClass} max-w-48`}
         />
-        <Button variant="danger" disabled={pending || confirmText !== "SIGN OUT"}>
+        <input
+          name="secret"
+          type="password"
+          autoComplete="current-password"
+          value={secret}
+          onChange={(e) => setSecret(e.target.value)}
+          placeholder="Your password or 6-digit code"
+          aria-label="Your password, or a 6-digit code from your authenticator app"
+          className={`${inputClass} max-w-64`}
+        />
+        <Button variant="danger" disabled={pending || confirmText !== "SIGN OUT" || !secret}>
           {pending ? "Signing out…" : "Sign everyone out"}
         </Button>
       </div>

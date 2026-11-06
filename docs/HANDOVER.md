@@ -258,7 +258,23 @@ undo `supabase/live-updates/undo-47.sql`.
   platform dashboard (`platform-dashboard.tsx`); questions leave yourself out
   of "who looks after it"; Cars app settings sit with the Staff app.
 
+## 8c. Security round (update 48)
+
+- Two-factor login per person: `profiles.mfa_exempt`, `set_mfa_exempt()` (system
+  admin only; system admins always need it). Staff page button.
+- Changing your password asks for the current one (or an authenticator code):
+  `src/lib/reauth.ts` `confirmIdentity()`. The reset-link page
+  (`/set-password`) uses `setNewPasswordAfterReset` and doesn't ask.
+- Sign everyone out needs SIGN OUT typed plus your password or code.
+- The menu's first item is "Dashboard" for everyone.
+
 ## 9. Future plans
+
+Next agreed: the cmeprojects Control Centre (all clients on one dashboard,
+client detail, Open portal, licensing with signed keys, hourly checks,
+monthly reports, maintenance checklist, Dependabot, backups outside Supabase).
+Restore point before it: branch `restore-update-47`.
+
 
 - **Client tracking for allied health** (next module): behaviour ABC charts,
   fluid, food, bowel, sleep, PRN medication log (alongside the pharmacy chart,

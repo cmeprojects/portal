@@ -4,6 +4,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { confirmIdentity } from "@/lib/reauth";
 import { sendPasswordReset } from "@/lib/email/password-reset";
 import { EMAIL, text, type FormState } from "@/lib/form";
 
@@ -46,6 +47,9 @@ export async function finishWelcome(_: FormState, form: FormData): Promise<FormS
 }
 
 export async function changePassword(_: FormState, form: FormData): Promise<FormState> {
+  // cmeprojects: your current password (or an authenticator code) first.
+  const check = await confirmIdentity(String(form.get("current") ?? ""));
+  if (!check.ok) return { error: check.error };
   const supabase = await createClient();
   const problem = await setPassword(supabase, form);
   if (problem) return { error: problem };
@@ -69,4 +73,13 @@ export async function requestPasswordReset(_: FormState, form: FormData): Promis
   // Branded email through Resend once it's set up; Supabase's email until then.
   await sendPasswordReset(email);
   return { message: `If ${email} has an account, we've emailed a link to set a new password. Check your junk folder too.` };
+}
+
+// After a password reset link (Forgot password): they've proved it's them by
+// email, so no current password is asked for.
+export async function setNewPasswordAfterReset(_: FormState, form: FormData): Promise<FormState> {
+  const supabase = await createClient();
+  const problem = await setPassword(supabase, form);
+  if (problem) return { error: problem };
+  return { message: "Password saved." };
 }

@@ -14,6 +14,7 @@ import { isRole } from "@/lib/roles";
 import { slaFromForm } from "@/lib/tasks";
 import { text, type FormState } from "@/lib/form";
 import { draftOf, saveDraft } from "@/lib/drafts";
+import { confirmIdentity } from "@/lib/reauth";
 import { PRESETS, PRESET_SWITCHES } from "./options";
 import { NOTIFICATION_GROUPS, asChannelMap, type Channel } from "@/lib/notification-catalogue";
 
@@ -194,6 +195,9 @@ export async function runDemoAction(_: FormState, form: FormData): Promise<FormS
 export async function signOutEveryone(_: FormState, form: FormData): Promise<FormState> {
   await requireRole(["system_admin"]);
   if (text(form, "confirm") !== "SIGN OUT") return { error: "Type SIGN OUT to confirm." };
+  // cmeprojects: prove it's you first (password or authenticator code).
+  const check = await confirmIdentity(String(form.get("secret") ?? ""));
+  if (!check.ok) return { error: check.error };
   const { data, error } = await (await createClient()).rpc("sign_out_everyone");
   if (error) return { error: error.code === "PGRST202" ? "This needs the latest database update (update 45)." : friendlyError(error) };
   const n = Number(data ?? 0);

@@ -302,3 +302,14 @@ export async function signOutEverywhere(_: FormState, form: FormData): Promise<F
   const n = Number(data ?? 0);
   return { message: n ? `Signed out of ${n} device${n === 1 ? "" : "s"}. They can sign in again with their password.` : "They weren't signed in anywhere." };
 }
+
+// cmeprojects: system admin only. Let one person off two-factor login (or ask
+// for it again). System admins always need it.
+export async function setMfaExempt(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(["system_admin"]);
+  const exempt = text(form, "exempt") === "true";
+  const { error } = await (await createClient()).rpc("set_mfa_exempt", { p_user_id: text(form, "id"), p_exempt: exempt });
+  if (error) return { error: error.code === "PGRST202" ? "This needs the latest database update (update 48)." : friendlyError(error) };
+  revalidatePath(PAGE);
+  return { message: exempt ? "Two-factor login is no longer needed for them." : "Two-factor login is needed for them again (if their role needs it)." };
+}

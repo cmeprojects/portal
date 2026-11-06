@@ -58,6 +58,10 @@ export default async function StaffPage() {
       .eq("status", "pending")
       .order("requested_at"),
   ]);
+  // Who the system admin let off two-factor login (read on its own: before update 48 there's no such column).
+  const exemptRows = me.role === "system_admin" ? await supabase.from("profiles").select("id, mfa_exempt") : null;
+  const mfaExemptOf = (id: string): boolean | null =>
+    exemptRows && !exemptRows.error ? Boolean((exemptRows.data ?? []).find((r) => r.id === id)?.mfa_exempt) : null;
   const titles = showTitles ? ((titleRows ?? []) as JobTitle[]) : [];
   const activeManagers = (people ?? []).filter((p) => p.role === "manager" && p.active).length;
   // New starters: what's still missing from onboarding.
@@ -176,6 +180,7 @@ export default async function StaffPage() {
             isMe: p.id === me.id,
             editable: roles.includes(p.role as Role) || p.id === me.id,
             teamIds: (memberships ?? []).filter((m) => m.user_id === p.id).map((m) => m.team_id),
+            mfaExempt: mfaExemptOf(p.id),
           };
           const status = !p.active ? "Deactivated" : row.joined ? "Active" : "Invite sent";
           return (

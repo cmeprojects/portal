@@ -5,7 +5,7 @@ import { startTransition, useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
-import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, savePerson, sendResetLink, setActive, signOutEverywhere } from "./actions";
+import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, savePerson, sendResetLink, setActive, setMfaExempt, signOutEverywhere } from "./actions";
 
 type Team = { id: string; name: string };
 
@@ -80,6 +80,8 @@ export type PersonRow = {
   editable: boolean;
   // The teams they're in (core-team roles, like managers and staff admins, don't need one).
   teamIds: string[];
+  // Let off two-factor login by the system admin (cmeprojects; null before update 48).
+  mfaExempt?: boolean | null;
 };
 
 export function PersonEditor({
@@ -111,6 +113,7 @@ export function PersonEditor({
   const [linkState, linkAction, sendingLink] = useActionState(sendResetLink, null);
   const [pinState, pinAction, clearingPin] = useActionState(clearCarPin, null);
   const [outState, outAction, signingOut] = useActionState(signOutEverywhere, null);
+  const [mfaExState, mfaExAction, savingMfaEx] = useActionState(setMfaExempt, null);
   // "New starter" is only for people who don't have a role yet.
   const offered = roles.filter((r) => r !== "new_starter" || person.role === "new_starter");
   const choices = offered.includes(person.role) ? offered : [person.role, ...offered];
@@ -122,7 +125,7 @@ export function PersonEditor({
   const label = "text-xs font-semibold tracking-wide text-muted uppercase";
   return (
     <div className="flex flex-col gap-4 border-t border-line pt-4">
-      <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState ?? outState} />
+      <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState ?? outState ?? mfaExState} />
       {/* cmeprojects: name, teams and role save together with one button. */}
       <form
         action={saveAction}
@@ -219,6 +222,15 @@ export function PersonEditor({
               <Button variant="outline" disabled={clearingPin}>Clear Cars app PIN</Button>
             </form>
           </>
+        ) : null}
+        {canResetMfa && person.role !== "system_admin" && person.mfaExempt !== null && person.mfaExempt !== undefined ? (
+          <form action={mfaExAction}>
+            <input type="hidden" name="id" value={person.id} />
+            <input type="hidden" name="exempt" value={person.mfaExempt ? "false" : "true"} />
+            <Button variant="outline" disabled={savingMfaEx} title="Only you can change this. System admins always need two-factor login.">
+              {person.mfaExempt ? "Ask for two-factor login again" : "Let them off two-factor login"}
+            </Button>
+          </form>
         ) : null}
         {canResetMfa && person.joined && person.active && !person.isMe ? (
           <form

@@ -128,7 +128,7 @@ export function navFor(
       items: [
         // Your tasks and questions are on your home page (cmeprojects); the
         // system admin's home is the platform, with everyone's tasks under Tasks.
-        { href: "/", label: admin ? "Dashboard" : dashboard ? "Dashboard" : "Home", match: dashboard && !admin ? ["/", "/my-tasks"] : undefined },
+        { href: "/", label: "Dashboard", match: dashboard && !admin ? ["/", "/my-tasks"] : undefined },
         ...(admin ? [{ href: "/tasks", label: "Tasks", match: ["/tasks", "/my-tasks"] }] : []),
         // Who sees Registers is set by the system admin (System settings → Tasks).
         ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),

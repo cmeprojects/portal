@@ -5,10 +5,10 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { Button, Notice, buttonClass } from "@/components/ui";
 import { PasswordFields } from "@/components/password-fields";
-import { changePassword } from "@/app/account/actions";
+import { setNewPasswordAfterReset } from "@/app/account/actions";
 
 export function SetPasswordForm() {
-  const [state, action, pending] = useActionState(changePassword, null);
+  const [state, action, pending] = useActionState(setNewPasswordAfterReset, null);
   if (state?.message) {
     return (
       <div className="flex flex-col gap-4">
