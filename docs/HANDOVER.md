@@ -287,6 +287,20 @@ undo `supabase/live-updates/undo-47.sql`.
 - The first person in a new copy becomes its system admin (add yourself in
   Supabase → Authentication → Users).
 
+## 8e. Copies as of now
+
+- **Development** = the original project (Supabase engagedcare-portal; Vercel
+  project of engagedcare-cmeproject.vercel.app), branch `dev`, label
+  DEVELOPMENT. Keeps the Engaged Care colours and logo for now; test data only.
+- **Demo (and backup)** = the copy made from the fresh install, branch `main`,
+  label DEMO, </>cmeprojects branding.
+- **Engaged Care company copy**: made fresh later (client-engagedcare, Pro,
+  fresh install + `supabase/companies/engaged-care.sql`), branch `release`.
+- The code base is neutral: tests use `supabase/tests/sample-company.sql`;
+  Engaged Care documents and the simulation live in `docs/clients/engaged-care/`
+  (document generators in the chat scratchpad still write to
+  `docs/deliverables`; point them at the client folder for client documents).
+
 ## 9. Future plans
 
 Next agreed: the cmeprojects Control Centre (all clients on one dashboard,

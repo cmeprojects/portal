@@ -1813,7 +1813,7 @@ alter table public.registry_fields
   add column option_colors jsonb not null default '{}'::jsonb
     check (jsonb_typeof(option_colors) = 'object');
 
--- Starting colours for Engaged Care's risk register (managers can change them).
+-- Starting colours for a risk register, if there is one (managers can change them).
 update public.registry_fields f
    set option_colors = '{"Low": "green", "Medium": "yellow", "High": "orange", "Extreme": "red"}'
   from public.registries r
@@ -10702,8 +10702,8 @@ insert into public.app_settings (key, value, label, description, is_public) valu
   ('website.mission', '""', 'Our mission', 'Shown on the About page.', true),
   ('website.vision', '""', 'Our vision', 'Shown on the About page.', true),
   ('website.services', '[]', 'Our services', 'One per line, shown on the About page.', true),
-  ('website.site_url', '""', 'Website address', 'The address people use, for example https://engagedcare.com.au. Used by search engines.', true),
-  ('website.seo_title', '""', 'Title in search results', 'About 50 to 60 characters, for example: Engaged Care Melbourne | NDIS support services.', true),
+  ('website.site_url', '""', 'Website address', 'The address people use, for example https://yourcompany.com.au. Used by search engines.', true),
+  ('website.seo_title', '""', 'Title in search results', 'About 50 to 60 characters, for example: Your Company | NDIS support services in your area.', true),
   ('website.seo_description', '""', 'Description in search results', 'About 150 characters: who you are, what you do and where.', true)
 on conflict (key) do nothing;
 

@@ -21,12 +21,17 @@ system admin on every copy.
 
 ## The copies
 
-| Copy | Branch | Database | Branding | Data |
+| Copy | Branch | Supabase / Vercel project | Branding | Data |
 |---|---|---|---|---|
-| Development | `dev` | `cme-dev` (Free) | </>cmeprojects | test data only |
-| Demo | `main` | `cme-demo` (Free) | </>cmeprojects | sample data only |
-| Engaged Care | `release` (for now `main`) | its own project | Engaged Care | real |
+| Development | `dev` | the original project (engagedcare-portal, rename to `cme-dev`) | the Engaged Care look for now | test data only |
+| Demo (and backup) | `main` | the copy made from the fresh install (`cme-demo`) | </>cmeprojects | sample data only |
+| Engaged Care (when ready) | `release` | a new `client-engagedcare` project (Pro), fresh install + `supabase/companies/engaged-care.sql` | Engaged Care | real |
 | New clients | `release` | `client-<name>` (Pro) | theirs | real |
+
+Development keeps the Engaged Care colours and logo while it's being built.
+When Engaged Care is ready to go live, their company copy is made fresh (it
+never shares Development's database), and Development switches to the
+</>cmeprojects look.
 
 The **reproduction copy is the code**: `supabase/install/fresh-install.sql`
 rebuilds an empty database at any time (tested on every build).

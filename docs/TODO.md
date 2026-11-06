@@ -1,9 +1,9 @@
 # To do (cmeprojects)
 
-Staff Portal for Engaged Care. Ideas and suggestions we've agreed to come back
+Staff Portal. Ideas and suggestions we've agreed to come back
 to. When asked for a summary, include everything here.
 
-Live database updates applied to Engaged Care: 1 to 35.
+Which live updates each copy has: see supabase/live-updates/README.md. Start with docs/HANDOVER.md.
 
 ## Customise the portal (aim: as much control as WordPress)
 
@@ -57,7 +57,7 @@ Suggested order: Pages and Menu editor first (offer a clickable preview).
 - Printed Tasks report: make the "Opened and completed by month" chart
   smaller when printed.
 
-## Website and Assistant ("Engaged Care Assistant")
+## Website and Assistant
 
 Version 1 is built (live update 36, premium, off until switched on):
 the public website at /ask (ask anything, answers from uploaded documents with

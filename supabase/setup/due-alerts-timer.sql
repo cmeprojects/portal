@@ -14,7 +14,7 @@ create extension if not exists pg_net;
 do $$
 declare
   -- ▼ This company's portal address (no slash at the end).
-  v_site text := 'https://engagedcare-portal-beta.vercel.app';
+  v_site text := 'https://your-portal-address.vercel.app';  -- change to this copy's address
   v_secret text := encode(extensions.gen_random_bytes(32), 'hex');
 begin
   delete from vault.secrets where name in ('cron_secret', 'portal_url');

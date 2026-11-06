@@ -31,7 +31,7 @@ Setting up a new company takes about 30–45 minutes. You need:
 ## 1. Create the Supabase project
 
 1. Go to **supabase.com** → **New project**.
-2. **Name:** for example `engagedcare-portal`.
+2. **Name:** for example `client-sunrisecare` (see docs/ENVIRONMENTS.md).
 3. **Region:** **Sydney (ap-southeast-2)** so the data stays in Australia.
 4. **Database password:** make a long one and keep it in a password manager.
 5. Wait for the project to finish setting up.
@@ -45,7 +45,7 @@ Pick **one** way:
 1. In Supabase, open **SQL Editor** → **New query**.
 2. Open each file in `supabase/migrations/` in order (oldest first), paste
    it all in and click **Run**.
-3. Make a copy of `supabase/companies/engaged-care.sql` for the new company
+3. Use the setup wizard (or a copy of `supabase/companies/cmeprojects.sql`) for the new company
    (for example `supabase/companies/acme.sql`), change the name, colours and
    registries, then paste it in and click **Run**.
 
@@ -75,7 +75,7 @@ In Supabase, open **Authentication**:
 2. **Multi-Factor:** make sure **TOTP (authenticator app)** is enabled.
 3. **URL Configuration**
    - **Site URL:** the portal's web address, for example
-     `https://engagedcare.cmeproject.com` (use `http://localhost:3000`
+     `https://portal.yourcompany.com.au` (use `http://localhost:3000`
      until it's live).
    - **Redirect URLs:** add `https://<portal address>/**` and
      `http://localhost:3000/**`.
@@ -113,7 +113,7 @@ In Supabase → **Project Settings → API Keys** copy:
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret key (or the legacy "service_role" key). **Keep this private.** |
 | `NEXT_PUBLIC_SITE_URL` | The portal's web address |
 | `RESEND_API_KEY` | resend.com → API Keys (task emails). **Keep this private.** |
-| `EMAIL_FROM` | Who task emails come from, for example `Engaged Care <tasks@engagedcare.com.au>`. The domain must be verified in Resend. |
+| `EMAIL_FROM` | Who task emails come from, for example `Your Company <tasks@yourcompany.com.au>`. The domain must be verified in Resend. |
 
 Until `RESEND_API_KEY` is set, task emails wait in a queue and nothing is
 lost; they're sent once it's added.
@@ -128,7 +128,7 @@ computer, which is never committed.
 2. **Environment Variables:** add the settings from step 5.
 3. Click **Deploy**.
 4. **Settings → Domains:** add the company's address, for example
-   `engagedcare.cmeproject.com` or `portal.engagedcare.com.au`.
+   `yourcompany.cmeprojects.com` or `portal.yourcompany.com.au`.
 5. Put that address in Supabase's Site URL and Redirect URLs (step 3.3), and
    in `NEXT_PUBLIC_SITE_URL`, then redeploy.
 
