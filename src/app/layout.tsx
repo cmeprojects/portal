@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
+import { connection } from "next/server";
 import { Figtree, Jost } from "next/font/google";
 import { getBranding } from "@/lib/branding";
 import "./globals.css";
@@ -27,6 +28,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // cmeprojects: every page shows this copy's own settings, so pages are made when
+  // someone visits, never while building (a build has no database to read).
+  await connection();
   const brand = await getBranding();
   const label = process.env.NEXT_PUBLIC_ENV_LABEL?.trim();
   const style = {

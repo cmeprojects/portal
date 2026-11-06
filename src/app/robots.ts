@@ -1,11 +1,14 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 import { siteBase } from "./ask/seo";
 
 // cmeprojects: search engines may read the public website (the front page and
 // /ask pages) and nothing else: the staff portal stays out of search results
 // (its pages also say "noindex").
 export default async function robots(): Promise<MetadataRoute.Robots> {
+  // cmeprojects: made when asked for, not while building (a build has no database).
+  await connection();
   const base = await siteBase().catch(() => "");
   return {
     rules: [{ userAgent: "*", allow: ["/$", "/ask", "/ask/about", "/ask/get-started"], disallow: ["/"] }],

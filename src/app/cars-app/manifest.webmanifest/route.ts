@@ -1,9 +1,11 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { NextResponse } from "next/server";
+import { NextResponse, connection } from "next/server";
 import { getBranding, getCarsAppLook } from "@/lib/branding";
 
 // What a phone needs to install the Cars app: its name, icon and colours.
 export async function GET() {
+  // cmeprojects: made when asked for, not while building (a build has no database).
+  await connection();
   const [brand, look] = await Promise.all([getBranding(), getCarsAppLook()]);
   return NextResponse.json(
     {

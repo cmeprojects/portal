@@ -1,11 +1,13 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { NextResponse } from "next/server";
+import { NextResponse, connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBranding, getStaffAppLook } from "@/lib/branding";
 
 // What a phone needs to install the Staff app: its name, icon and colours,
 // and (on Android) long-press shortcuts to what's inside.
 export async function GET() {
+  // cmeprojects: made when a phone asks for it, not while building (builds have no database).
+  await connection();
   const [brand, look] = await Promise.all([getBranding(), getStaffAppLook()]);
   // Read before anyone signs in, so with the server's own access (names only).
   const { data } = await createAdminClient()
