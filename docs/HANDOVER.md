@@ -268,6 +268,25 @@ undo `supabase/live-updates/undo-47.sql`.
 - Sign everyone out needs SIGN OUT typed plus your password or code.
 - The menu's first item is "Dashboard" for everyone.
 
+## 8d. Copies, fresh install, templates and the wizard (updates 50 and 51)
+
+- One product, many copies: see `docs/ENVIRONMENTS.md` (naming, branches dev →
+  main → release, steps for a new copy). Guide for the owner:
+  `docs/deliverables/20 New company setup guide.docx`.
+- `supabase/install/fresh-install.sql`: the whole database for a new, empty copy
+  in one paste (built by `scripts/build-install.sh`; the full access level list
+  is created up front so it runs in one transaction). `npm run test:db` checks
+  it's current, runs in one go and holds no client content.
+- `supabase/companies/cmeprojects.sql` + `public/companies/cmeprojects/`:
+  </>cmeprojects branding for Demo and Development. `NEXT_PUBLIC_ENV_LABEL`
+  shows a DEVELOPMENT/DEMO bar.
+- Register templates: `register_templates` (8 standard NDIS registers),
+  `add_register_from_template()`; page `/registers/templates`.
+- Setup wizard `/setup` (system admin): opens on `/` while
+  `setup.completed` is false (new copies only; copies in use are marked done).
+- The first person in a new copy becomes its system admin (add yourself in
+  Supabase → Authentication → Users).
+
 ## 9. Future plans
 
 Next agreed: the cmeprojects Control Centre (all clients on one dashboard,

@@ -45,7 +45,18 @@ export default async function RegistersPage() {
       <PageHeader
         title="Registers"
         intro="Every task lives in one place. Each register shows its own tasks with its own columns."
-        action={canCreate ? <Link href="/registers/new" className={buttonClass("primary")}>+ New register</Link> : null}
+        action={
+          canCreate ? (
+            <div className="flex flex-wrap gap-2">
+              <Link href="/registers/templates" className={buttonClass("outline")}>
+                + From a template
+              </Link>
+              <Link href="/registers/new" className={buttonClass("primary")}>
+                + New register
+              </Link>
+            </div>
+          ) : null
+        }
       />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {registries.map((r) => (

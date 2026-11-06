@@ -1,4 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { onboardingOn } from "@/lib/feature-parts";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -19,7 +21,12 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   if (profile.role === "new_starter" && !(await getPeopleRules()).newStarterTasks) return <Welcome name={profile.full_name} />;
   // cmeprojects: the system admin's home is the platform; external contractors have nothing yet.
-  if (profile.role === "system_admin") return <PlatformDashboard name={profile.full_name} />;
+  if (profile.role === "system_admin") {
+    // A new, empty copy opens the setup wizard first (cmeprojects).
+    const { data: setup } = await (await createClient()).from("app_settings").select("value").eq("key", "setup.completed").maybeSingle();
+    if (setup && setup.value === false) redirect("/setup");
+    return <PlatformDashboard name={profile.full_name} />;
+  }
   if (profile.role === "external") {
     return (
       <>
