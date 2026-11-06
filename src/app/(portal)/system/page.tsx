@@ -99,7 +99,7 @@ const ROWS: Row[] = [
     always: true,
     switches: ["auto_escalation", "attachments"],
     sections: [{ title: "Task settings", area: "tasks", keys: (k) => k.startsWith("tasks.") }],
-    areas: ["tasks", "registers"],
+    areas: ["tasks", "registers", "register_setup"],
     links: [
       { href: "/settings/sla", text: "Due dates (SLA)" },
       { href: "/registers", text: "Registers" },
@@ -459,7 +459,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
           <h2 className="heading-sm">Delegation</h2>
           <p className="text-sm text-muted">
             Who looks after each area besides you: all managers, or the managers and staff admins you choose. Security, Features,
-            Notifications, Demo data and General always stay with you, and so does making system admins.
+            Notifications, Demo data and General always stay with you, and so does making system admins. Whatever you choose, you always have full access to everything.
           </p>
           {rulesMissing ? null : (
             <div className="mt-2 flex flex-col divide-y divide-line">

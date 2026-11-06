@@ -97,13 +97,19 @@ export type DelegationMode = "admin" | "managers" | "selected";
 export type DelegationValue = { mode: DelegationMode; people: string[] };
 export type PersonChoice = { id: string; name: string; role: string };
 
-export function whoText(v: DelegationValue, choices: PersonChoice[]): string {
-  if (v.mode === "managers") return "all managers";
+// For "Setting up registers", the first choice means each register's own
+// managers (the system admin always has full access) (cmeprojects).
+const ADMIN_WORDS: Record<string, { option: string; who: string }> = {
+  register_setup: { option: "Each register's own managers only", who: "each register's own managers" },
+};
+
+export function whoText(v: DelegationValue, choices: PersonChoice[], area?: string): string {
+  if (v.mode === "managers") return area === "register_setup" ? "all managers (every register)" : "all managers";
   if (v.mode === "selected") {
     const names = v.people.map((id) => choices.find((c) => c.id === id)?.name).filter(Boolean) as string[];
     return names.length ? names.join(", ") : "chosen people";
   }
-  return "only you";
+  return (area && ADMIN_WORDS[area]?.who) || "only you";
 }
 
 export function DelegationPicker({
@@ -157,7 +163,7 @@ export function DelegationPicker({
       </div>
       <fieldset className="flex flex-wrap gap-x-5">
         <legend className="sr-only">Who looks after it</legend>
-        {radio("admin", "Only me (system admin)")}
+        {radio("admin", ADMIN_WORDS[area]?.option ?? "Only me (system admin)")}
         {radio("managers", "All managers")}
         {radio("selected", "Selected people")}
       </fieldset>
@@ -187,7 +193,7 @@ export function LookedAfterBy(props: { area: string; label: string; hint?: strin
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <span className="text-muted">
-        {props.label.split(" (")[0]}: looked after by <strong className="text-ink">{whoText(props.value, props.choices)}</strong>
+        {props.label.split(" (")[0]}: looked after by <strong className="text-ink">{whoText(props.value, props.choices, props.area)}</strong>
       </span>
       {props.pending ? <NotLiveBadge /> : null}
       <button type="button" onClick={() => setOpen(true)} className="font-semibold text-brand underline">

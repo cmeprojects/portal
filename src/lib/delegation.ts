@@ -3,11 +3,12 @@
 // Areas the system admin can hand to all managers or to chosen managers and
 // staff admins (cmeprojects settings revamp). Security, Features,
 // Notifications, Demo data, General and Delegation always stay with the system admin.
-export const AREAS = ["registers", "roles", "branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit"] as const;
+export const AREAS = ["registers", "register_setup", "roles", "branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit"] as const;
 export type Area = (typeof AREAS)[number];
 
 export const AREA_LABELS: Record<Area, string> = {
   registers: "Adding registers (new registers and their set-up)",
+  register_setup: "Setting up registers (change any register)",
   roles: "Roles (adding and changing job titles)",
   branding: "Branding (name, logos, colours, wording)",
   messages: "Messages (support contact, announcement, invite note)",
@@ -23,6 +24,7 @@ export const AREA_LABELS: Record<Area, string> = {
 // What each area lets the manager do, shown under it on the Delegation tab.
 export const AREA_HINTS: Record<Area, string> = {
   registers: "Make new registers (like Incidents or Complaints) and set up their fields. Using registers doesn't need this.",
+  register_setup: "Change every register's settings, fields, managers and who can create tasks in it, not only the registers they manage. Seeing and approving tasks doesn't change.",
   roles: "Add job titles and choose which access level each one has. Giving people a role doesn't need this.",
   branding: "Change the company name, portal name, logos, colours, and the words the portal uses (for example Client or Participant).",
   messages: "Edit the support contact on the sign-in page, the announcement banner for all staff, and the note in welcome invites.",

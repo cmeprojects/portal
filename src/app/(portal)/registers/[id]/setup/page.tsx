@@ -21,7 +21,9 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
   const registry = (await getRegistries()).find((r) => r.id === id);
   if (!registry) notFound();
   const supabase = await createClient();
-  const { data: manages } = await supabase.rpc("manages_registry", { p_registry_id: id });
+  // Its managers, or people given "Setting up registers" (cmeprojects; before update 49, managers only).
+  const setup = await supabase.rpc("can_setup_registry", { p_registry_id: id });
+  const { data: manages } = setup.error ? await supabase.rpc("manages_registry", { p_registry_id: id }) : setup;
   if (!manages) redirect(`/registers/${id}`);
 
   const [allFields, people, { data: managers }, sla] = await Promise.all([

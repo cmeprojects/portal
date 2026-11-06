@@ -54,7 +54,8 @@ export async function describeDrafts(drafts: Draft[]): Promise<{ key: string; te
       text = `${(features ?? []).find((f) => f.key === d.key)?.label ?? d.key}: switch ${on ? "on" : "off"}`;
     } else if (d.kind === "delegation") {
       const mode = (d.value as { mode?: string })?.mode;
-      const who = mode === "managers" ? "all managers" : mode === "selected" ? "selected people" : "only the system admin";
+      const who =
+        mode === "managers" ? "all managers" : mode === "selected" ? "selected people" : d.key === "register_setup" ? "each register's own managers" : "only the system admin";
       text = `Who looks after ${isArea(d.key) ? AREA_LABELS[d.key].split(" (")[0].toLowerCase() : d.key}: ${who}`;
     } else text = WEBSITE_PARTS[d.key] ?? "Website settings";
     return { key: `${d.kind}:${d.key}`, text, when: d.saved_at };

@@ -30,12 +30,13 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
   }
 
   const supabase = await createClient();
-  const [fields, people, assets, timeZone, { data: manages }] = await Promise.all([
+  const [fields, people, assets, timeZone, { data: manages }, setupResult] = await Promise.all([
     getFields(),
     getPeople(),
     getAssets(),
     getTimeZone(),
     supabase.rpc("manages_registry", { p_registry_id: id }),
+    supabase.rpc("can_setup_registry", { p_registry_id: id }),
   ]);
   const table = await registerTable(registry, fields, people, assets, filter, todayIn(timeZone));
   const records = registry.kind === "records";
@@ -71,7 +72,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
         action={
           <div className="flex flex-wrap gap-2 print:hidden">
             <PrintButton />
-            {manages ? (
+            {(setupResult.error ? manages : setupResult.data) ? (
               <Link href={`/registers/${id}/setup`} className={buttonClass("outline")}>
                 Set up
               </Link>

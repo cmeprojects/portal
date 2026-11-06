@@ -36,7 +36,9 @@ export default async function RegistersPage() {
   const canCreate = profile.role === "system_admin" || (await getMyAdminAreas(profile.role)).includes("registers");
   // Managers change the registers they're named on; the system admin changes any.
   const { data: mine } = canCreate ? await supabase.from("registry_managers").select("registry_id").eq("user_id", profile.id) : { data: [] };
-  const manages = (id: string) => profile.role === "system_admin" || (mine ?? []).some((m) => m.registry_id === id);
+  // Set up any register with "Setting up registers" (cmeprojects).
+  const setsUpAll = profile.role !== "system_admin" && (await getMyAdminAreas(profile.role)).includes("register_setup");
+  const manages = (id: string) => profile.role === "system_admin" || setsUpAll || (mine ?? []).some((m) => m.registry_id === id);
 
   return (
     <>

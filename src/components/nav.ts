@@ -47,7 +47,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
   const cars = features.vehicles === true && role !== "new_starter";
   // Areas with settings on the System settings page (registers, roles, the
   // website and the change log have their own pages) (cmeprojects).
-  const settingsAreas = (access.adminAreas ?? []).filter((a) => !["audit", "registers", "roles", "website"].includes(a));
+  const settingsAreas = (access.adminAreas ?? []).filter((a) => !["audit", "registers", "register_setup", "roles", "website"].includes(a));
   const tabs: (Tab | false)[] = {
     tasks: [
       { href: seesDashboard(role) ? "/my-tasks" : "/", text: "My tasks" },
