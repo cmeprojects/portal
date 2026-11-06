@@ -11,7 +11,7 @@ A **brand-new** copy doesn't need these: use `supabase/install/fresh-install.sql
 
 | Copy | Supabase project | Updates applied |
 |---|---|---|
-| Development (the original copy, still with the Engaged Care look) | engagedcare-portal (rename to cme-dev) | 1 to 52 |
+| Development (the original copy, still with the Engaged Care look) | cme-dev (was engagedcare-portal) | 1 to 52 |
 | Demo | the copy made from the fresh install | all (fresh install) |
 
 Add a row for each new client copy. Run newer files in order on each.

@@ -23,7 +23,7 @@ system admin on every copy.
 
 | Copy | Branch | Supabase / Vercel project | Branding | Data |
 |---|---|---|---|---|
-| Development | `dev` | the original project (engagedcare-portal, rename to `cme-dev`) | the Engaged Care look for now | test data only |
+| Development | `dev` | `cme-dev` (the original project, renamed) | the Engaged Care look for now | test data only |
 | Demo (and backup) | `main` | the copy made from the fresh install (`cme-demo`) | </>cmeprojects | sample data only |
 | Engaged Care (when ready) | `release` | a new `client-engagedcare` project (Pro), fresh install + `supabase/companies/engaged-care.sql` | Engaged Care | real |
 | New clients | `release` | `client-<name>` (Pro) | theirs | real |

@@ -289,9 +289,9 @@ undo `supabase/live-updates/undo-47.sql`.
 
 ## 8e. Copies as of now
 
-- **Development** = the original project (Supabase engagedcare-portal; Vercel
-  project of engagedcare-cmeproject.vercel.app), branch `dev`, label
-  DEVELOPMENT. Keeps the Engaged Care colours and logo for now; test data only.
+- **Development** = the original project, renamed `cme-dev` in Vercel and
+  Supabase (address engagedcare-cmeproject.vercel.app), branch `dev`, label
+  DEVELOPMENT (set and redeployed). Keeps the Engaged Care colours and logo for now; test data only.
 - **Demo (and backup)** = the copy made from the fresh install, branch `main`,
   label DEMO, </>cmeprojects branding.
 - **Engaged Care company copy**: made fresh later (client-engagedcare, Pro,
@@ -302,6 +302,9 @@ undo `supabase/live-updates/undo-47.sql`.
   `docs/deliverables`; point them at the client folder for client documents).
 
 ## 9. Future plans
+
+Working rule: all new work goes to `dev` only; releases are pull requests
+dev → main (Demo) → release (clients), see the setup guide.
 
 Next agreed: the cmeprojects Control Centre (all clients on one dashboard,
 client detail, Open portal, licensing with signed keys, hourly checks,
