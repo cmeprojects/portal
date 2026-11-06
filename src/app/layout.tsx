@@ -28,6 +28,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const brand = await getBranding();
+  const label = process.env.NEXT_PUBLIC_ENV_LABEL?.trim();
   const style = {
     "--brand-primary": brand.colorPrimary,
     "--brand-dark": brand.colorDark,
@@ -39,7 +40,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        {/* cmeprojects: which copy this is, on every page including sign-in (set NEXT_PUBLIC_ENV_LABEL in Vercel, e.g. DEVELOPMENT or DEMO; never on client copies). */}
+        {label ? (
+          <div role="note" className="bg-warn-soft px-3 py-1 text-center text-xs font-semibold tracking-widest text-warn uppercase print:hidden">
+            {label} copy · not for real client data
+          </div>
+        ) : null}
+        {children}
+      </body>
     </html>
   );
 }

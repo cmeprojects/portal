@@ -3,9 +3,9 @@
 -- A sample company for the database tests only (cmeprojects). Never run on a real copy.
 -- It has the standard registers, so tests can use them.
 
-update public.organisation set name = 'Sample Care Co';
+update public.organisation set name = 'EfrenMelbaCare';
 
-update public.app_settings set value = '"Sample Care Co"' where key = 'brand.company_name';
+update public.app_settings set value = '"EfrenMelbaCare"' where key = 'brand.company_name';
 update public.app_settings set value = '"Staff Portal"' where key = 'brand.portal_name';
 update public.app_settings set value = '"#134F8E"'      where key = 'brand.color_primary';
 update public.app_settings set value = '"#0F2F57"'      where key = 'brand.color_dark';

@@ -31,8 +31,8 @@ reset role;
 -- The system admin saves drafts: nothing is live until deployed.
 select test.act_as('owner@example.com');
 set role authenticated;
-select test.ok(public.save_draft('setting', 'brand.company_name', '"Sample Care Co Melbourne"') = 'saved', 'a setting is saved as a draft');
-select test.ok((select value from public.app_settings where key = 'brand.company_name') <> '"Sample Care Co Melbourne"', 'and isn''t live yet');
+select test.ok(public.save_draft('setting', 'brand.company_name', '"EfrenMelbaCare Melbourne"') = 'saved', 'a setting is saved as a draft');
+select test.ok((select value from public.app_settings where key = 'brand.company_name') <> '"EfrenMelbaCare Melbourne"', 'and isn''t live yet');
 select test.ok(public.save_draft('delegation', 'branding', jsonb_build_object('mode', 'selected', 'people', jsonb_build_array(test.pid('office@example.com'), test.pid('sam@example.com')))) = 'saved', 'branding goes to selected people');
 select test.refused($$select public.save_draft('delegation', 'tasks', '{"mode": "selected", "people": []}')$$, 'selected needs at least one person');
 select test.ok(public.save_draft('feature', 'teams', '{"enabled": false}') = 'saved', 'Teams switched off as a draft');
@@ -41,7 +41,7 @@ select test.ok(public.save_draft('feature', 'roles', '{"enabled": false}') = 'sa
 select test.ok(public.save_draft('setting', 'notify.channels', '{"task_assigned": {"bell": false}}') = 'saved', 'a notification switched off as a draft');
 select test.ok((select count(*) from public.settings_drafts) = 4, 'four drafts waiting');
 select test.ok(public.deploy_drafts() = 4, 'deploy makes all four live');
-select test.ok((select value from public.app_settings where key = 'brand.company_name') = '"Sample Care Co Melbourne"', 'the setting is live');
+select test.ok((select value from public.app_settings where key = 'brand.company_name') = '"EfrenMelbaCare Melbourne"', 'the setting is live');
 select test.ok(not public.feature_live('roles'), 'Roles is off');
 select test.ok((select people from public.delegation_rules where area = 'branding') = array[test.pid('office@example.com')], 'only the staff admin was kept (a support worker can''t be delegated to)');
 select test.ok((select count(*) from public.audit_log where action = 'settings_deployed') = 1, 'the deploy is in the change log');

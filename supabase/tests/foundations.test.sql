@@ -163,7 +163,7 @@ reset role;
 select test.act_as('owner@example.com');
 set role authenticated;
 update public.features set enabled = true where key = 'vehicles';
-update public.app_settings set value = '"Sample Care Co Melbourne"' where key = 'brand.company_name';
+update public.app_settings set value = '"EfrenMelbaCare Melbourne"' where key = 'brand.company_name';
 update public.profiles set role = 'staff_admin' where email = 'boss@example.com';
 select test.ok((select count(*) from public.audit_log where action = 'feature_on') = 1,
   'system admin switched a feature on, and it was logged');

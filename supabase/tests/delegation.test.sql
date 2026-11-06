@@ -31,7 +31,7 @@ reset role;
 
 select test.act_as('boss@example.com');
 set role authenticated;
-update public.app_settings set value = '"Sample Care Co Melbourne"' where key = 'brand.company_name';
+update public.app_settings set value = '"EfrenMelbaCare Melbourne"' where key = 'brand.company_name';
 update public.app_settings set value = '"Office closed Monday"' where key = 'brand.announcement';
 select test.refused($$update public.app_settings set value = '[]' where key = 'security.mfa_required_roles'$$, 'a delegate can''t change security');
 select test.refused($$update public.app_settings set value = '"x"' where key = 'region.timezone'$$, 'or general settings');
@@ -40,7 +40,7 @@ select test.refused($$update public.app_settings set value = 'true' where key = 
 select test.refused($$update public.features set enabled = false where key = 'tasks'$$, 'or feature switches');
 select test.ok((select count(*) from public.audit_log) > 0, 'with Change log, they can read it');
 reset role;
-select test.ok((select value #>> '{}' = 'Sample Care Co Melbourne' from public.app_settings where key = 'brand.company_name'),
+select test.ok((select value #>> '{}' = 'EfrenMelbaCare Melbourne' from public.app_settings where key = 'brand.company_name'),
   'a delegated manager changes branding');
 
 select test.act_as('boss2@example.com');
