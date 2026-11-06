@@ -23,7 +23,7 @@ export default async function InstallCarsAppPage({ searchParams }: PageProps<"/c
   const { profile, features } = await requireSession();
   if (!canUseCars(profile.role, features)) redirect("/");
   const [brand, rules, params, offered] = await Promise.all([getBranding(), getCarRules(), searchParams, carsAppOffered(features)]);
-  // Cars is inside the Staff app: that's the one app staff get (EC Apps).
+  // Cars is inside the Staff app: that's the one app staff get (the company's Apps page).
   if (!offered) redirect("/apps");
   const manages = canManageCars(profile.role, rules);
   const appUrl = `${env.siteUrl}/cars-app`;

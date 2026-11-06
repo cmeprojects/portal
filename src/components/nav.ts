@@ -31,7 +31,7 @@ export type NavAccess = {
   enquiries?: boolean;
   // Managers: built features, Cars and the apps under one "Tools" item.
   tools?: boolean;
-  // "EC Apps": the company's phone apps this person can use (none = no menu item).
+  // "YC Apps" (company initials + Apps): the company's phone apps this person can use (none = no menu item).
   appsLabel?: string;
   // Areas of System settings delegated to this manager.
   adminAreas?: string[];

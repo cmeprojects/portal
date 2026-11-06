@@ -27,3 +27,27 @@ for test in supabase/tests/*.test.sql; do
   dropdb "$DB"
   trap - EXIT
 done
+
+# cmeprojects: the fresh install file is current, runs in one go (as Supabase's
+# SQL Editor runs it), and with the cmeprojects company file holds nothing from any client.
+echo "== fresh install"
+expected=$(mktemp)
+cp supabase/install/fresh-install.sql "$expected"
+bash scripts/build-install.sh > /dev/null
+if ! cmp -s "$expected" supabase/install/fresh-install.sql; then
+  echo "FAILED: supabase/install/fresh-install.sql is out of date. Run scripts/build-install.sh and commit it."
+  exit 1
+fi
+rm -f "$expected"
+DB="portal_fresh_$$"
+createdb "$DB"
+trap 'dropdb --if-exists "$DB"' EXIT
+psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/supabase_stub.sql > /dev/null
+psql -X -q -1 -v ON_ERROR_STOP=1 -d "$DB" -f supabase/install/fresh-install.sql > /dev/null 2>&1 \
+  || { echo "FAILED: the fresh install doesn't run in one go"; exit 1; }
+psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/companies/cmeprojects.sql > /dev/null
+leftovers=$(psql -X -q -At -d "$DB" -c "select count(*) from (select to_jsonb(t)::text x from public.app_settings t union all select to_jsonb(r)::text from public.registries r union all select to_jsonb(o)::text from public.organisation o) s where x ilike '%engaged%' or x ilike '%derrimut%'")
+[ "$leftovers" = "0" ] || { echo "FAILED: client wording in a fresh copy"; exit 1; }
+dropdb "$DB"
+trap - EXIT
+echo "  ok - the fresh install is current, runs in one go and holds no client content"

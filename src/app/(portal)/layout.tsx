@@ -77,6 +77,12 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
       {/* Menus, settings, the bell and task lists stay current; pages refresh when you come back to them. */}
       <LiveRefresh tables={["app_settings", "features", "live_signals", "notifications", "tasks", "people_change_requests", "profiles"]} onShow />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
+        {/* cmeprojects: which copy this is (set NEXT_PUBLIC_ENV_LABEL in Vercel, e.g. DEVELOPMENT or DEMO). */}
+        {process.env.NEXT_PUBLIC_ENV_LABEL ? (
+          <div role="note" className="rounded-md bg-warn-soft px-3 py-1.5 text-center text-xs font-semibold tracking-widest text-warn uppercase print:hidden">
+            {process.env.NEXT_PUBLIC_ENV_LABEL} copy · not for real client data
+          </div>
+        ) : null}
         {roleChange ? (
           <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-good/40 bg-good-soft px-4 py-3 text-sm text-ink print:hidden">
             <span className="min-w-0 flex-1">

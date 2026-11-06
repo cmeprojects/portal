@@ -119,7 +119,7 @@ export const getStaffAppLook = cache(async (): Promise<StaffAppLook> => {
   return look;
 });
 
-// The company's initials, e.g. "EC" for Engaged Care (for "EC Apps" and the icons).
+// The company's initials, e.g. "YC" for Your Company (for "YC Apps" and the icons).
 export const initialsOf = (name: string) =>
   name
     .split(/\s+/)

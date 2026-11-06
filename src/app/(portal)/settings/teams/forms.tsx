@@ -21,7 +21,7 @@ export function NewTeamForm() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-60 flex-1">
           <Field label="Team name" htmlFor="team-name">
-            <input id="team-name" name="name" required placeholder="e.g. Derrimut house" className={inputClass} />
+            <input id="team-name" name="name" required placeholder="e.g. North team" className={inputClass} />
           </Field>
         </div>
         <Button className="h-12" disabled={pending}>Add team</Button>

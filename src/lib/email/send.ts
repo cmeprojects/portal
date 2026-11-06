@@ -5,7 +5,7 @@ export type Address = { email: string; name?: string };
 export type Message = { to: Address; cc: Address[]; subject: string; html: string; text: string };
 
 function fromAddress(): Address {
-  // For example: "Engaged Care <tasks@engagedcare.com.au>"
+  // For example: "Your Company <tasks@yourcompany.com.au>"
   const raw = process.env.EMAIL_FROM ?? "Staff Portal <no-reply@example.com>";
   const m = raw.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
   return m ? { name: m[1], email: m[2] } : { email: raw.trim() };
