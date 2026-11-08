@@ -10,7 +10,6 @@ export function NewFeatureForm() {
   const [state, action, pending] = useActionState(createFeature, null);
   return (
     <form action={action} className="flex flex-col gap-3">
-      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <Field label="Name" htmlFor="nf-name">
           <input id="nf-name" name="name" required maxLength={60} placeholder="e.g. Fluid intake, Fridge temperatures" className={inputClass} />
@@ -21,6 +20,7 @@ export function NewFeatureForm() {
             <option value="fluid">The Fluid intake example</option>
           </select>
         </Field>
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
         <Button disabled={pending}>{pending ? "Creating…" : "Create draft"}</Button>
       </div>
       <p className="text-xs text-muted">It starts as a draft: staff don&apos;t see it until you publish it.</p>

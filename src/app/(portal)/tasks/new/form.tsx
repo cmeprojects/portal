@@ -87,7 +87,6 @@ export function NewTaskForm({
 
   return (
     <form action={action} className="flex flex-col gap-5">
-      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {askChoice ? (
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-medium">What is it?</legend>
@@ -217,6 +216,7 @@ export function NewTaskForm({
         We&apos;ll email the person looking after it and copy in the helpers. Photos and files can be added once the
         task is created.
       </p>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <Button className="min-h-12 self-start px-8 text-base" disabled={pending}>
         {pending ? "Creating…" : "Create task"}
       </Button>

@@ -21,8 +21,8 @@ export function SetPasswordForm() {
   }
   return (
     <form action={action} className="flex flex-col gap-4">
-      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <PasswordFields label="New password" />
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <Button className="min-h-12 text-base" disabled={pending}>
         {pending ? "Saving…" : "Save new password"}
       </Button>

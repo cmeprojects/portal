@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { SearchButton } from "@/components/command-palette";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -76,6 +77,7 @@ export function Sidebar({
         <div className="flex items-center justify-between gap-2">
           {brandMark}
           <div className="-mr-2 flex shrink-0 items-center">
+          <SearchButton variant="icon" />
           {bell}
           <button
             type="button"
@@ -93,6 +95,9 @@ export function Sidebar({
         </div>
 
         <div id="main-menu" className={`${open ? "flex" : "hidden"} flex-1 flex-col gap-4 md:flex`}>
+          <div className="max-md:hidden">
+            <SearchButton variant="box" />
+          </div>
           <nav aria-label="Main" className="flex flex-col gap-0.5">
             {groups.map((group, i) => (
               <div key={group.heading ?? i} className={`flex flex-col gap-0.5 ${i > 0 && !group.heading ? "mt-2 border-t border-side-active pt-2" : ""}`}>

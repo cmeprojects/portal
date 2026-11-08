@@ -2,7 +2,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
-import { ToastOnMount } from "@/components/toast";
+import { ErrorMessage, ToastOnMount } from "@/components/toast";
 
 // Buttons: crisp corners, white with a thin border; the main action filled.
 // 44px tall on phones (easy to tap during a shift), compact on bigger screens.
@@ -68,8 +68,10 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "error" | 
     error: "border-danger/25 bg-danger-soft text-danger",
     success: "border-good/25 bg-good-soft text-good",
   };
+  const box = `rounded-lg border px-4 py-3 text-sm leading-relaxed ${tones[tone]}`;
+  if (tone === "error") return <ErrorMessage className={box}>{children}</ErrorMessage>;
   return (
-    <p role={tone === "error" ? "alert" : "status"} className={`rounded-lg border px-4 py-3 text-sm leading-relaxed ${tones[tone]}`}>
+    <p role="status" className={box}>
       {children}
     </p>
   );

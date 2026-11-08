@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // cmeprojects: a short message at the bottom of the screen ("Saved.") for
 // actions whose form closes when they work, so the person still sees that
@@ -71,4 +71,19 @@ export function ToastOnMount({ text }: { text: string }) {
     toast(text);
   }, [text]);
   return null;
+}
+
+// cmeprojects: an error message that brings itself into view when it appears,
+// so it's never missed below the fold. Used by <Notice tone="error">.
+export function ErrorMessage({ className, children }: { className: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const text = typeof children === "string" ? children : "";
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [text]);
+  return (
+    <p ref={ref} role="alert" className={className}>
+      {children}
+    </p>
+  );
 }

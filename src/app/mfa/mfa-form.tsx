@@ -144,7 +144,6 @@ export function MfaForm({ methods }: { methods: MfaMethods }) {
   if (mode.kind === "enroll-phone") {
     return (
       <form onSubmit={addPhone} className="flex flex-col gap-5">
-        {error ? <Notice tone="error">{error}</Notice> : null}
         <Field label="Your mobile number" htmlFor="phone" hint="We'll text you a code each time you sign in.">
           <input
             id="phone"
@@ -158,6 +157,7 @@ export function MfaForm({ methods }: { methods: MfaMethods }) {
             className={`${inputClass} h-14 text-lg`}
           />
         </Field>
+        {error ? <Notice tone="error">{error}</Notice> : null}
         <Button className="min-h-12 text-base" disabled={busy}>
           {busy ? "Sending…" : "Text me a code"}
         </Button>

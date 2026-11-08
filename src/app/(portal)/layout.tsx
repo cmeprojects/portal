@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { CommandPalette } from "@/components/command-palette";
 import { photoLinks } from "@/lib/avatars";
 import { Avatar } from "@/components/avatar";
 import Link from "next/link";
@@ -15,7 +16,7 @@ import { ROLE_LABELS } from "@/lib/roles";
 import { BrandMark } from "@/components/brand-mark";
 import { Sidebar } from "@/components/sidebar";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { navFor } from "@/components/nav";
+import { navFor, sectionTabs } from "@/components/nav";
 import { getNavAccess } from "@/lib/nav-access";
 import { signOut } from "@/app/login/actions";
 import { LiveRefresh } from "@/components/live-refresh";
@@ -96,10 +97,19 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
     </div>
   );
 
+  const navAccess = await getNavAccess(profile.role);
+  const groups = navFor(profile.role, features, navAccess);
+  // cmeprojects: search (Ctrl+K) covers the pages in this person's own menu.
+  const tabPages = (["tasks", "cars", "people", "reports", "settings"] as const).flatMap((sec) =>
+    sectionTabs(sec, profile.role, features, navAccess).map((t) => ({ label: t.text, href: t.href })),
+  );
+  const searchPages = [...groups.flatMap((g) => g.items.map((it) => ({ label: it.label, href: it.href }))), ...tabPages].filter(
+    (p, i, all) => all.findIndex((x) => x.href === p.href && x.label === p.label) === i,
+  );
   return (
     <div className="min-h-screen md:grid md:grid-cols-[230px_minmax(0,1fr)] print:block">
       <Sidebar
-        groups={navFor(profile.role, features, await getNavAccess(profile.role))}
+        groups={groups}
         brandMark={<BrandMark brand={brand} />}
         bell={<Bell items={bellItems} />}
         footer={
@@ -109,6 +119,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
           </>
         }
       />
+      <CommandPalette pages={searchPages} people={["manager", "staff_admin", "system_admin"].includes(profile.role)} registers={Boolean(navAccess.seesRegisters)} />
       <IdleLogout minutes={idleMinutes} signedInAt={signedInAt} />
       {/* Menus, settings, the bell and task lists stay current; pages refresh when you come back to them. */}
       <LiveRefresh tables={["app_settings", "features", "live_signals", "notifications", "tasks", "people_change_requests", "profiles"]} onShow />

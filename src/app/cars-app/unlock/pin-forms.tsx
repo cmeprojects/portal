@@ -72,13 +72,13 @@ export function SetPinForm({ base }: { base: string }) {
   return (
     <form action={action} className="flex flex-col gap-4">
       <input type="hidden" name="base" value={base} />
-      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <Field label="New PIN (4 numbers)" htmlFor="pin">
         <input id="pin" name="pin" type="password" inputMode="numeric" pattern="\d{4}" maxLength={4} autoComplete="new-password" required className={pinInput} />
       </Field>
       <Field label="Type it again" htmlFor="pin2">
         <input id="pin2" name="pin2" type="password" inputMode="numeric" pattern="\d{4}" maxLength={4} autoComplete="new-password" required className={pinInput} />
       </Field>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <Button className="min-h-14 text-lg" disabled={pending}>
         {pending ? "Saving…" : "Save PIN"}
       </Button>
