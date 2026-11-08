@@ -11,14 +11,14 @@ import {
   DONE,
   PRIORITY_CLASS,
   PRIORITY_LABELS,
-  STATUS_LABELS,
+  STATUS_CLASS, STATUS_LABELS,
   dueState,
   formatDue,
   todayIn,
   type Priority,
   type Status,
 } from "@/lib/tasks";
-import { Badge, Card, Notice } from "@/components/ui";
+import { Card, Notice } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { PrintHeader } from "@/components/print-header";
 import { getBranding } from "@/lib/branding";
@@ -205,7 +205,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
         <p className="text-sm font-semibold text-muted">{ref}</p>
         <h1 className="heading">{task.title}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>{STATUS_LABELS[task.status]}</Badge>
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${STATUS_CLASS[task.status]}`}>{STATUS_LABELS[task.status]}</span>
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${PRIORITY_CLASS[task.priority]}`}>
             {PRIORITY_LABELS[task.priority]} priority
           </span>

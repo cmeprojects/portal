@@ -21,6 +21,7 @@ export type OngoingRow = {
   priority: string;
   priorityClass: string;
   status: string;
+  statusClass?: string;
   // The status itself (e.g. awaiting_approval), for the quick actions.
   statusKey: string;
   due: string;
@@ -128,7 +129,9 @@ export function OngoingTable({
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${t.priorityClass}`}>{t.priority}</span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{t.status}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${t.statusClass ?? ""}`}>{t.status}</span>
+                  </td>
                   <td className={`px-4 py-3 whitespace-nowrap ${t.dueClass}`}>{t.due}</td>
                 </tr>
                 {open ? (

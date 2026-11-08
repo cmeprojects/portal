@@ -29,7 +29,7 @@ export default async function RolesPage() {
       <SectionTabs section="people" current="/settings/roles" />
       <PageHeader
         title="Roles"
-        intro="Add the roles your organisation uses, like Nurse or House coordinator. Each role is linked to an access level, which decides what the person can see and do."
+        intro="Job titles like Nurse or House coordinator, each linked to an access level."
       />
       <Card className="p-5">
         <h2 className="mb-4 heading-sm">Add a role</h2>

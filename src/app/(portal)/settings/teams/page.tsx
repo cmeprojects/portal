@@ -61,7 +61,7 @@ export default async function TeamsPage() {
       <SectionTabs section="people" current="/settings/teams" />
       <PageHeader
         title="Teams"
-        intro="Support workers can be in several teams. A team leader leads one team and sees everyone's tasks in it. Managers and staff admins are the core team, which works across every team."
+        intro="Group your staff. A team leader sees their team's tasks; managers and staff admins work across all teams."
       />
 
       {(requests ?? []).length ? (

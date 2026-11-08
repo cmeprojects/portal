@@ -182,7 +182,7 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
         <OffForStaff session={session} feature="staff_app" name="The Staff app" />
         <PageHeader
           title={title}
-          intro={`${brand.companyName}'s apps for your phone. They're free, there's nothing to download from an app store, and they update themselves. One PIN opens them all.`}
+          intro={`${brand.companyName}'s phone apps: free, no app store needed, and one PIN opens them all.`}
           action={prints ? <PrintButton label="Print posters and stickers" /> : undefined}
         />
       </div>

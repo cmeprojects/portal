@@ -9,7 +9,7 @@ import {
   DONE,
   PRIORITY_CLASS,
   PRIORITY_LABELS,
-  STATUS_LABELS,
+  STATUS_CLASS, STATUS_LABELS,
   dueState,
   endOfWeek,
   formatDue,
@@ -128,6 +128,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
       priorityClass: PRIORITY_CLASS[t.priority],
       status: STATUS_LABELS[t.status],
       statusKey: t.status,
+      statusClass: STATUS_CLASS[t.status],
       due: formatDue(t.due_date, today, t.status),
       dueClass: due === "overdue" ? "font-semibold text-danger" : due === "today" ? "text-warn" : "text-muted",
     };

@@ -9,7 +9,7 @@ import {
   DONE,
   PRIORITY_CLASS,
   PRIORITY_LABELS,
-  STATUS_LABELS,
+  STATUS_CLASS, STATUS_LABELS,
   dueState,
   endOfWeek,
   formatDue,
@@ -172,7 +172,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
                           </span>
                         </span>
                         {t.title.startsWith("Staff question") ? <span className="inline-flex rounded-full bg-page px-3 py-1 text-xs font-semibold">Staff question</span> : null}
-                        <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">{STATUS_LABELS[t.status]}</span>
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${STATUS_CLASS[t.status]}`}>{STATUS_LABELS[t.status]}</span>
                         <span className="text-sm font-semibold text-brand group-open:hidden">Open</span>
                         <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
                       </summary>
@@ -224,7 +224,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${PRIORITY_CLASS[t.priority]}`}>
                       {PRIORITY_LABELS[t.priority]}
                     </span>
-                    <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${STATUS_CLASS[t.status]}`}>
                       {STATUS_LABELS[t.status]}
                     </span>
                     <span

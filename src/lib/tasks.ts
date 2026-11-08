@@ -22,6 +22,17 @@ export const STATUS_LABELS: Record<Status, string> = {
   closed: "Closed",
 };
 
+// cmeprojects: one colour per status everywhere: grey = not started or closed,
+// blue = being worked on, red = escalated, amber = waiting, green = done.
+export const STATUS_CLASS: Record<Status, string> = {
+  assigned: "bg-page text-muted ring-1 ring-line ring-inset",
+  in_progress: "bg-brand-soft text-brand",
+  escalated: "bg-danger-soft text-danger",
+  awaiting_approval: "bg-warn-soft text-warn",
+  completed: "bg-good-soft text-good",
+  closed: "bg-page text-muted ring-1 ring-line ring-inset",
+};
+
 // Badge colours: priority is told apart by lightness as well as hue.
 export const PRIORITY_CLASS: Record<Priority, string> = {
   low: "bg-page text-muted ring-1 ring-line ring-inset",

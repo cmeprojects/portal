@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { requireTaskAccess } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
-import { PRIORITY_CLASS, PRIORITY_LABELS, STATUS_LABELS, dueState, formatDue, todayIn, type Priority, type Status } from "@/lib/tasks";
+import { PRIORITY_CLASS, PRIORITY_LABELS, STATUS_CLASS, STATUS_LABELS, dueState, formatDue, todayIn, type Priority, type Status } from "@/lib/tasks";
 import { getAssets, getFields, getPeople, getRegistries } from "@/lib/register-data";
 import type { Registry } from "@/lib/registers";
 import { parseFilter, registerTable } from "@/lib/register-rows";
@@ -122,14 +122,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
 }
 
 // Status colours: escalated and waiting for approval stand out.
-const STATUS_TONE: Record<Status, string> = {
-  assigned: "bg-page text-muted ring-1 ring-line ring-inset",
-  in_progress: "bg-brand-soft text-brand",
-  escalated: "bg-danger-soft text-danger",
-  awaiting_approval: "bg-warn-soft text-warn",
-  completed: "bg-good-soft text-good",
-  closed: "bg-page text-muted ring-1 ring-line ring-inset",
-};
+const STATUS_TONE = STATUS_CLASS;
 
 type OverviewRow = {
   ref: string;

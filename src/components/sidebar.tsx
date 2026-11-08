@@ -5,6 +5,46 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavGroup } from "@/components/nav";
+import {
+  BarChart3,
+  Car,
+  CircleUser,
+  ClipboardList,
+  FolderKanban,
+  GraduationCap,
+  Inbox,
+  LayoutDashboard,
+  ListChecks,
+  MessageCircle,
+  Puzzle,
+  Settings,
+  Smartphone,
+  Trophy,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+
+// cmeprojects: one line icon per menu item (built features and anything new get a puzzle piece).
+const ICONS: Record<string, LucideIcon> = {
+  Dashboard: LayoutDashboard,
+  Home: LayoutDashboard,
+  "My tasks": ListChecks,
+  Tasks: ListChecks,
+  Registers: FolderKanban,
+  Forms: ClipboardList,
+  Enquiries: Inbox,
+  Assistant: MessageCircle,
+  People: Users,
+  Scoreboard: Trophy,
+  Reports: BarChart3,
+  Settings: Settings,
+  Cars: Car,
+  "My onboarding": GraduationCap,
+  "My account": CircleUser,
+};
+function iconFor(label: string, href: string): LucideIcon {
+  return ICONS[label] ?? (href === "/apps" ? Smartphone : Puzzle);
+}
 
 function isActive(path: string, href: string) {
   return href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
@@ -67,10 +107,14 @@ export function Sidebar({
                       href={item.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? "page" : undefined}
-                      className={`flex min-h-11 items-center rounded-lg px-3 text-sm transition-colors md:min-h-9 ${
+                      className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm transition-colors md:min-h-9 ${
                         active ? "bg-side-active font-semibold text-side-fg" : "font-medium text-side-muted hover:bg-side-hover hover:text-side-fg"
                       }`}
                     >
+                      {(() => {
+                        const Icon = iconFor(item.label, item.href);
+                        return <Icon aria-hidden="true" className="size-[18px] shrink-0 opacity-90" strokeWidth={1.75} />;
+                      })()}
                       {item.label}
                     </Link>
                   );

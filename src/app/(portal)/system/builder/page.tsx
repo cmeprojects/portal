@@ -25,7 +25,7 @@ export default async function BuilderPage() {
       <SectionTabs section="settings" current="/system/builder" />
       <PageHeader
         title="Feature builder"
-        intro="Build your own features: a form staff fill in from the menu or their phone, with the date, time and their name recorded, and its own report. Only you can build them."
+        intro="Build your own forms for staff, each with its own report."
       />
       <Card className="p-5">
         <h2 className="mb-3 heading-sm">New feature</h2>
