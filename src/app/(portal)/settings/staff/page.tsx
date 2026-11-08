@@ -119,7 +119,7 @@ export default async function StaffPage() {
       <SectionTabs section="people" current="/settings/staff" />
       <PageHeader
         title="Staff & roles"
-        intro="Invite people with any email address (no Microsoft account needed). Put people into teams on the Teams page. Deactivating someone stops them signing in straight away; their tasks and history stay."
+        intro="Invite people with any email address. Put people into teams on the Teams page. Deactivating someone stops them signing in straight away; their tasks and history stay."
       />
 
       {(requests ?? []).length ? (

@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 import { connection } from "next/server";
 import { Figtree, Jost } from "next/font/google";
 import { getBranding } from "@/lib/branding";
+import { Toaster } from "@/components/toast";
+import { ConfirmHost } from "@/components/confirm";
 import "./globals.css";
 
 // Jost for headings (geometric capitals), Figtree for everything you read and type.
@@ -52,6 +54,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         ) : null}
         {children}
+        <Toaster />
+        <ConfirmHost />
       </body>
     </html>
   );

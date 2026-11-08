@@ -60,7 +60,9 @@ export default async function AboutPage() {
           </section>
         ) : null}
         {!site.aboutIntro && !site.mission && !site.vision && !site.services.length ? (
-          <p className="text-muted">More about us is coming soon.</p>
+          <p className="text-muted">
+            {brand.companyName} provides NDIS supports. Ask us anything about what we offer, or get started and we&apos;ll be in touch.
+          </p>
         ) : null}
         <div className="flex flex-wrap gap-3">
           <Link href="/ask" className="inline-flex min-h-11 items-center rounded-full bg-brand px-5 text-sm font-semibold text-brand-fg">

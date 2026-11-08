@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { confirmSubmit } from "@/components/confirm";
 import { useActionState } from "react";
 import { Button, Notice } from "@/components/ui";
 import { signOutOtherDevices } from "./device-actions";
@@ -11,9 +12,7 @@ export function OtherDevices() {
   return (
     <form
       action={action}
-      onSubmit={(e) => {
-        if (!confirm("Sign out every other phone and computer? This device stays signed in.")) e.preventDefault();
-      }}
+      onSubmit={confirmSubmit("Sign out every other phone and computer? This device stays signed in.", { action: "Sign them out" })}
       className="flex flex-col gap-3"
     >
       <h2 className="heading-sm">Other devices</h2>

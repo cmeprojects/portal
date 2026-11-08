@@ -18,6 +18,8 @@ export type Profile = {
 export type Session = {
   profile: Profile;
   features: Record<string, boolean>;
+  // What's really switched on for everyone (the system admin's own view skips the switches).
+  live: Record<string, boolean>;
   // Whether this person's role must use two-factor login right now.
   mfaRequired: boolean;
 };
@@ -57,8 +59,10 @@ export const getSession = cache(async (): Promise<Session | null> => {
   // emails and auto-escalation, which apply to everyone (cmeprojects).
   const admin = profile.role === "system_admin";
   const EVERYONE = ["two_factor", "email_notifications", "auto_escalation"];
+  const liveOn = (f: { key: string; parent?: string | null }) => Boolean(own.get(f.key)) && (!f.parent || own.get(f.parent) === true);
   return {
     profile,
+    live: Object.fromEntries((features ?? []).map((f) => [f.key, liveOn(f)])),
     features: Object.fromEntries(
       (features ?? []).map((f) => [
         f.key,

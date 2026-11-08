@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { confirmSubmit } from "@/components/confirm";
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -248,7 +249,10 @@ export function Builder({
                 </Section>
               ) : entryCount === 0 ? (
                 <Section title="Draft">
-                  <form action={deleteDraft}>
+                  <form
+                    action={deleteDraft}
+                    onSubmit={confirmSubmit(`Delete "${feature.name || "this draft"}"? This can't be undone.`, { action: "Delete" })}
+                  >
                     <input type="hidden" name="id" value={feature.id} />
                     <Button variant="danger">Delete this draft</Button>
                   </form>

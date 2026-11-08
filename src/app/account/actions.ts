@@ -59,9 +59,11 @@ export async function changePassword(_: FormState, form: FormData): Promise<Form
 export async function updateMyName(_: FormState, form: FormData): Promise<FormState> {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) redirect("/login");
   const fullName = text(form, "full_name");
   if (!fullName) return { error: "Tell us your name." };
-  const { error } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", claims?.claims?.sub ?? "");
+  const { error } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", userId);
   if (error) return { error: "We couldn't save your name." };
   revalidatePath("/", "layout");
   return { message: "Name saved." };

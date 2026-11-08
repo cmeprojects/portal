@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
+import { OffForStaff } from "@/components/off-for-staff";
 import { createClient } from "@/lib/supabase/server";
 import { canMakeForms, formUrl, formsOn, getFormsToFill } from "@/lib/forms";
 import { formBuilderOn, onboardingOn } from "@/lib/feature-parts";
@@ -23,7 +24,8 @@ const qr = (url: string) => QRCode.toString(url, { type: "svg", margin: 1, error
 // cmeprojects: Forms. Everyone sees the forms sent to them; makers (and people
 // a form is shared with) see their forms, each expanding to a snapshot.
 export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
-  const { profile, features } = await requireSession();
+  const session = await requireSession();
+  const { profile, features } = session;
   if (!formsOn(features)) notFound();
   const supabase = await createClient();
   const [canMake, timeZone, people, { open }] = await Promise.all([canMakeForms(), getTimeZone(), getPeople(), searchParams]);
@@ -86,6 +88,7 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
   return (
     <>
       <LiveRefresh tables={["forms", "form_completions", "form_responses"]} />
+      <OffForStaff session={session} feature="forms" name="Forms" />
       <PageHeader title="Forms" intro={canMake || rows.length ? "Forms to fill in, and the forms you make and send." : "Forms for you to fill in."} />
 
       <section className="flex flex-col gap-3">

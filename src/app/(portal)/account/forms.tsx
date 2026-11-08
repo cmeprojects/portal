@@ -15,7 +15,7 @@ export function NameForm({ name }: { name: string }) {
       <Field label="Your name" htmlFor="full_name">
         <input id="full_name" name="full_name" defaultValue={name} required className={inputClass} />
       </Field>
-      <Button variant="outline" className="self-start" disabled={pending}>Save name</Button>
+      <Button variant="outline" className="self-start" disabled={pending}>{pending ? "Saving…" : "Save name"}</Button>
     </form>
   );
 }
@@ -30,7 +30,7 @@ export function PasswordForm() {
         <input id="current-password" name="current" type="password" autoComplete="current-password" required className={inputClass} />
       </Field>
       <PasswordFields label="New password" />
-      <Button variant="outline" className="self-start" disabled={pending}>Save password</Button>
+      <Button variant="outline" className="self-start" disabled={pending}>{pending ? "Saving…" : "Save password"}</Button>
     </form>
   );
 }

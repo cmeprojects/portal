@@ -37,9 +37,12 @@ export async function invitePerson(_: FormState, form: FormData): Promise<FormSt
 
   const { data: existing } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, joined_at, active")
     .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
-    .maybeSingle();
+    .maybeSingle<{ id: string; joined_at: string | null; active: boolean }>();
+  // cmeprojects: say what's actually going on and what to do instead.
+  if (existing && !existing.active) return { error: `${email} has an account that's turned off. Find them in the list below and turn it back on.` };
+  if (existing && !existing.joined_at) return { error: `${email} has already been invited. Find them in the list below and use Resend invite.` };
   if (existing) return { error: `${email} already has an account.` };
 
   // The database checks the invitation first (who may invite which role).

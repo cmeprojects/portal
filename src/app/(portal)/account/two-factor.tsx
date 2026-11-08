@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { askConfirm } from "@/components/confirm";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -13,7 +14,7 @@ export function TurnOffTwoFactor({ factorIds }: { factorIds: string[] }) {
   const [error, setError] = useState("");
 
   async function turnOff() {
-    if (!confirm("Turn off two-factor login for your account?")) return;
+    if (!(await askConfirm("Turn off two-factor login for your account?", { action: "Turn it off" }))) return;
     setBusy(true);
     setError("");
     const supabase = createClient();

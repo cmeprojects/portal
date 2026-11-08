@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { askConfirm, confirmSubmit } from "@/components/confirm";
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Notice, inputClass } from "@/components/ui";
@@ -47,16 +48,16 @@ export function FeatureSwitch({
   const [, start] = useTransition();
   return (
     <form
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
+        const data = new FormData(e.currentTarget);
         if (
           feature.key === "two_factor" &&
           feature.on &&
-          !confirm("Turn off two-factor login for everyone, including system admins? Accounts will only be protected by passwords.")
+          !(await askConfirm("Turn off two-factor login for everyone, including system admins? Accounts will only be protected by passwords.", { action: "Turn it off" }))
         ) {
           return;
         }
-        const data = new FormData(e.currentTarget);
         start(() => action(data));
       }}
       className={`flex flex-wrap items-center justify-between gap-3 py-3 ${part ? "pl-4 sm:pl-8" : ""}`}
@@ -530,7 +531,7 @@ export function AppIconPicker({ setting, uploads, which = "cars" }: { setting: S
                   type="button"
                   disabled={pending}
                   aria-label={`Delete ${t.label}`}
-                  onClick={() => confirm(`Delete ${t.label}?`) && run(() => deleteAppIcon(t.value, which))}
+                  onClick={() => void askConfirm(`Delete ${t.label}?`, { action: "Delete" }).then((ok) => ok && run(() => deleteAppIcon(t.value, which)))}
                   className="absolute -top-2 -right-2 flex size-8 items-center justify-center rounded-full border border-line bg-surface text-danger shadow-sm hover:bg-danger-soft"
                 >
                   ×
@@ -580,7 +581,11 @@ export function DemoDataPanel() {
         </div>
         <Button disabled={pending}>Load sample records</Button>
       </form>
-      <form action={action} className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+      <form
+        action={action}
+        onSubmit={confirmSubmit("Delete the sample records? Real work isn't touched.", { action: "Delete sample records" })}
+        className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4"
+      >
         <input type="hidden" name="what" value="clear" />
         <div className="min-w-56 flex-1">
           <p className="font-semibold">Delete sample records</p>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
+import { OffForStaff } from "@/components/off-for-staff";
 import { canManageCars, canUseCars, getCarRules } from "@/lib/cars";
 import { getBranding, getCarsAppLook, getStaffAppLook, initialsOf } from "@/lib/branding";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
@@ -26,7 +27,8 @@ const qr = (url: string) => QRCode.toString(url, { type: "svg", margin: 1, error
 // cmeprojects: the company's phone apps (the Cars app and the Staff app),
 // with how to put each on a phone, and QR stickers for those who print them.
 export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
-  const { profile, features } = await requireSession();
+  const session = await requireSession();
+  const { profile, features } = session;
   // ?sticker=car-<id> or f-<slug>: just that one sticker, to print.
   const query = await searchParams;
   const only = typeof query.sticker === "string" ? query.sticker : "";
@@ -177,6 +179,7 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
   return (
     <>
       <div className="print:hidden">
+        <OffForStaff session={session} feature="staff_app" name="The Staff app" />
         <PageHeader
           title={title}
           intro={`${brand.companyName}'s apps for your phone. They're free, there's nothing to download from an app store, and they update themselves. One PIN opens them all.`}

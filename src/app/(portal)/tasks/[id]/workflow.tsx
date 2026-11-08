@@ -1,9 +1,9 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { confirmSubmit } from "@/components/confirm";
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAfterSuccess } from "@/components/use-after-success";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
 import type { FormState } from "@/lib/form";
@@ -39,6 +39,17 @@ export type Can = {
 // and the page reloads its buttons (an escalated task can't be escalated again).
 type Panel = { open: string | null; setOpen: (key: string | null) => void; done: (message: string) => void };
 
+// cmeprojects: report success from inside the action itself. The button that
+// was pressed often disappears once the task moves on (Start, Approve), so a
+// check after the page updates would never run and no message would show.
+function useStepAction(run: (prev: FormState, form: FormData) => Promise<FormState>, panel: Panel) {
+  return useActionState(async (prev: FormState, form: FormData) => {
+    const result = await run(prev, form);
+    if (result?.message && !result.error) panel.done(result.message);
+    return result;
+  }, null);
+}
+
 // One button that changes the status, with an optional or required note.
 function StatusButton({
   id,
@@ -59,8 +70,7 @@ function StatusButton({
   note?: { label: string; required: boolean; placeholder?: string };
   confirmText?: string;
 }) {
-  const [state, action, pending] = useActionState(changeStatus, null);
-  useAfterSuccess(state, panel.done);
+  const [state, action, pending] = useStepAction(changeStatus, panel);
   const busy = pending || (panel.open !== null && panel.open !== id);
   // Buttons with a note open a small form first; plain ones act straight away.
   if (note && panel.open !== id) {
@@ -73,9 +83,7 @@ function StatusButton({
   return (
     <form
       action={action}
-      onSubmit={(e) => {
-        if (confirmText && !confirm(confirmText)) e.preventDefault();
-      }}
+      onSubmit={confirmText ? confirmSubmit(confirmText, { action: label, danger: false }) : undefined}
       className={note ? "flex flex-col gap-2 rounded-md border border-line p-3" : "flex flex-col gap-2"}
     >
       <Result state={state?.error ? state : null} />
@@ -125,8 +133,7 @@ function ReasonForm({
   escalateTo?: boolean;
   variant?: "primary" | "outline" | "danger";
 }) {
-  const [state, action, pending] = useActionState(run, null);
-  useAfterSuccess(state, panel.done);
+  const [state, action, pending] = useStepAction(run, panel);
   if (panel.open !== id) {
     return (
       <Button type="button" variant={variant} className="w-full" disabled={panel.open !== null} onClick={() => panel.setOpen(id)}>

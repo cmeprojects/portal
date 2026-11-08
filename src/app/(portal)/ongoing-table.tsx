@@ -122,7 +122,8 @@ export function OngoingTable({
                       {t.title}
                     </button>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-muted">{t.register}</td>
+                  {/* cmeprojects: long register names wrap, so the Due column stays on screen. */}
+                  <td className="max-w-44 px-4 py-3 text-muted">{t.register}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{t.assignee}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${t.priorityClass}`}>{t.priority}</span>

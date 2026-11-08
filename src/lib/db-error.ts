@@ -5,6 +5,8 @@ import type { PostgrestError } from "@supabase/supabase-js";
 // (raised in the database) are already written for people to read.
 export function friendlyError(error: PostgrestError | null, fallback = "That didn't save. Please try again."): string {
   if (!error) return fallback;
+  // cmeprojects: point people to where the missing answers go.
+  if (error.code === "P0001" && error.message.startsWith("Fill these in first:")) return `${error.message}. Open Edit details on this task to add them.`;
   if (error.code === "P0001") return error.message;
   if (error.code === "23505") return "That name (or prefix) is already in use.";
   if (error.code === "42501") return "You don't have permission to do that.";

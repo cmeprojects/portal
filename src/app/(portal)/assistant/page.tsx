@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
+import { OffForStaff } from "@/components/off-for-staff";
 import { getMyAdminAreas } from "@/lib/settings";
 import { assistantUsage } from "@/lib/assistant";
 import { AssistantUsageCard } from "@/components/assistant-usage";
@@ -22,7 +23,8 @@ const when = (iso: string) => new Intl.DateTimeFormat("en-AU", { day: "numeric",
 // cmeprojects: the system admin's side of the website's Assistant: the
 // documents it answers from, its wording and limits, and what people asked.
 export default async function AssistantPage() {
-  const { profile, features } = await requireSession();
+  const session = await requireSession();
+  const { profile, features } = session;
   const admin = profile.role === "system_admin";
   // The system admin, or a manager given "Website" (where it looks, and documents).
   if (!admin && !(await getMyAdminAreas(profile.role)).includes("website")) redirect("/");
@@ -55,6 +57,7 @@ export default async function AssistantPage() {
   return (
     <>
       <SectionTabs section="settings" current="/assistant" />
+      <OffForStaff session={session} feature="assistant" name="The Assistant" />
       <PageHeader
         title="Website settings"
         intro={admin ? "The public website and its Assistant: the landing page, where it looks for answers, its documents and what it costs." : "Where the website's Assistant looks for answers, and the documents it answers from."}

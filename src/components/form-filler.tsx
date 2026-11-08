@@ -80,7 +80,7 @@ export function FormFiller({ form, questions, brand, contact, userId, mode, draf
 
       {done ? (
         <div className="flex flex-col gap-3 rounded-lg border border-good/40 bg-good-soft p-4">
-          <p className="font-semibold">{done}</p>
+          <p role="status" className="font-semibold">{done}</p>
           {form.repeatable || mode === "preview" ? (
             <Button
               type="button"
@@ -159,7 +159,7 @@ function ContactFooter({ formId, contact, preview }: { formId: string; contact: 
           </Button>
         ) : null}
       </div>
-      {result?.message ? <p className="font-semibold text-good">{result.message}</p> : null}
+      {result?.message ? <p role="status" className="font-semibold text-good">{result.message}</p> : null}
       {open && !result?.message ? (
         <div className="flex flex-col gap-2 rounded-md border border-line bg-page p-3">
           <label htmlFor={`ask-${formId}`} className="font-semibold">

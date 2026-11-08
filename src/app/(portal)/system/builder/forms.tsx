@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { confirmSubmit } from "@/components/confirm";
 import { useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { createFeature, setFeatureIncluded, deleteDraft } from "./actions";
@@ -53,9 +54,7 @@ export function DeleteFeatureButton({ id, name }: { id: string; name: string }) 
   return (
     <form
       action={deleteDraft}
-      onSubmit={(e) => {
-        if (!confirm(`Delete "${name}"? This can't be undone.`)) e.preventDefault();
-      }}
+      onSubmit={confirmSubmit(`Delete "${name}"? This can't be undone.`, { action: "Delete" })}
     >
       <input type="hidden" name="id" value={id} />
       <button className="text-sm font-semibold text-danger underline">Delete</button>

@@ -9,6 +9,14 @@ import { formBuilderOn } from "@/lib/feature-parts";
 import { friendlyError } from "@/lib/db-error";
 import { isRole } from "@/lib/roles";
 import { text, type FormState } from "@/lib/form";
+
+// cmeprojects: the system admin can build forms while Forms is switched off, but
+// staff can't open them, so nothing is sent until it's on for everyone.
+const OFF_FOR_STAFF = "Forms is switched off for your staff, so they couldn't open it. Turn Forms on in Settings → Features first.";
+async function formsLiveForStaff(): Promise<boolean> {
+  const { data } = await (await createClient()).rpc("feature_live", { p_key: "forms" });
+  return data !== false;
+}
 import { QTYPES, hasOptions, type FormAnswers, type FormInfo, type FormQuestion } from "@/lib/form-types";
 
 // Forms (cmeprojects). The database checks who may do what (the maker and
@@ -171,6 +179,7 @@ export async function copyForm(id: string): Promise<Result> {
 
 export async function sendForm(id: string, choice: { users: string[]; team: string; everyone: boolean; due: string }): Promise<Result> {
   await requireSession();
+  if (!(await formsLiveForStaff())) return { error: OFF_FOR_STAFF };
   const supabase = await createClient();
   if (choice.due !== undefined) {
     await supabase.from("forms").update({ due_date: /^\d{4}-\d{2}-\d{2}$/.test(choice.due) ? choice.due : null }).eq("id", id);
@@ -190,6 +199,7 @@ export async function sendForm(id: string, choice: { users: string[]; team: stri
 
 export async function remindForm(id: string): Promise<Result> {
   await requireSession();
+  if (!(await formsLiveForStaff())) return { error: OFF_FOR_STAFF };
   const { data, error } = await (await createClient()).rpc("remind_form", { p_form: id });
   if (error) return { error: friendlyError(error) };
   refresh(id);
@@ -199,6 +209,7 @@ export async function remindForm(id: string): Promise<Result> {
 
 export async function formToCompliance(id: string, roles: string[], teams: string[]): Promise<Result> {
   await requireSession();
+  if (!(await formsLiveForStaff())) return { error: OFF_FOR_STAFF };
   const { error } = await (await createClient()).rpc("form_to_compliance", {
     p_form: id,
     p_roles: roles.filter(isRole).filter((r) => r !== "system_admin"),

@@ -3,6 +3,7 @@
 
 import { useActionState, useRef } from "react";
 import { closeParentDetails, useAfterSuccess } from "@/components/use-after-success";
+import { toast } from "@/components/toast";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import type { Option } from "@/components/field-input";
 import { addFollowUpAction } from "../actions";
@@ -11,7 +12,7 @@ export function FollowUpForm({ parentId, people, today }: { parentId: string; pe
   const [state, action, pending] = useActionState(addFollowUpAction, null);
   const form = useRef<HTMLFormElement>(null);
   // cmeprojects: once saved, fold the section away; the page shows the change.
-  useAfterSuccess(state, () => { form.current?.reset(); closeParentDetails(form.current); });
+  useAfterSuccess(state, (message) => { form.current?.reset(); closeParentDetails(form.current); toast(message); });
   return (
     <form ref={form} action={action} className="flex flex-col gap-3">
       <input type="hidden" name="parent_id" value={parentId} />

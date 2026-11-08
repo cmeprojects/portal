@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { askConfirm } from "@/components/confirm";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -43,7 +44,7 @@ export function ChatHistory({ chats, current, onClose, onOpen, onNew, onDelete, 
             <button
               type="button"
               aria-label={`Delete ${c.title}`}
-              onClick={() => confirm("Delete this chat?") && onDelete(c.id)}
+              onClick={() => void askConfirm("Delete this chat?", { action: "Delete" }).then((ok) => ok && onDelete(c.id))}
               className="rounded px-2 py-2 text-xs text-muted opacity-60 hover:text-danger group-hover:opacity-100"
             >
               ✕

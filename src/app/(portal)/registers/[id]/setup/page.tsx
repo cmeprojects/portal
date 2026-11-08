@@ -143,7 +143,7 @@ async function DeleteSection({ id, name, isDefault }: { id: string; name: string
       <h2 className="mb-1 heading-sm">Delete this register</h2>
       {used ? (
         <p className="text-sm text-muted">
-          It has {used} task{used === 1 ? "" : "s"} or item{used === 1 ? "" : "s"}, so it can&apos;t be deleted: the history is kept for audits.
+          It has {(tasks ?? 0) > 0 ? `${tasks} task${tasks === 1 ? "" : "s"}` : `${items} item${items === 1 ? "" : "s"}`}, so it can&apos;t be deleted: the history is kept for audits.
           To stop using it, untick <strong>Register is in use</strong> in Settings above. It&apos;s then hidden and takes no new tasks.
         </p>
       ) : (

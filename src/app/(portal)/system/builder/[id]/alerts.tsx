@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { askConfirm } from "@/components/confirm";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
@@ -299,7 +300,7 @@ function AlertEditor({ draft, feature, fields, staff, onClose }: { draft: AlertD
           Cancel
         </Button>
         {a.id.startsWith("new-") ? null : (
-          <Button type="button" variant="danger" disabled={pending} className="ml-auto" onClick={() => confirm("Delete this alert?") && run(() => deleteAlert(a.id))}>
+          <Button type="button" variant="danger" disabled={pending} className="ml-auto" onClick={() => void askConfirm("Delete this alert?", { action: "Delete" }).then((ok) => ok && run(() => deleteAlert(a.id)))}>
             Delete
           </Button>
         )}

@@ -3,6 +3,7 @@
 
 import { useActionState, useRef } from "react";
 import { closeParentDetails, useAfterSuccess } from "@/components/use-after-success";
+import { toast } from "@/components/toast";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FieldInput, type Option } from "@/components/field-input";
 import type { Details, Registry, RegistryField } from "@/lib/registers";
@@ -38,7 +39,7 @@ export function EditDetailsForm({
   const [state, action, pending] = useActionState(updateTaskDetails, null);
   const form = useRef<HTMLFormElement>(null);
   // cmeprojects: once saved, fold the section away; the page shows the change.
-  useAfterSuccess(state, () => { form.current?.reset(); closeParentDetails(form.current); });
+  useAfterSuccess(state, (message) => { form.current?.reset(); closeParentDetails(form.current); toast(message); });
   return (
     <form ref={form} action={action} className="flex flex-col gap-5">
       <input type="hidden" name="task_id" value={task.id} />

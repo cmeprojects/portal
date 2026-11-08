@@ -10,7 +10,7 @@ import { canManageCompliance, getPeopleRules, seesCompliance } from "@/lib/setti
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { ITEM_COLUMNS, KIND_TAB, isDone, stateBadges, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
 import { formatDate } from "@/lib/registers";
-import { Badge, Card, PageHeader, Tabs } from "@/components/ui";
+import { Badge, Card, Notice, PageHeader, Tabs } from "@/components/ui";
 import { ItemForm } from "./forms";
 
 export const metadata: Metadata = { title: "Compliance" };
@@ -90,13 +90,16 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
           <p className="text-sm text-muted">Documents expired or expiring</p>
         </Card>
       </div>
+      {rows.length > 0 && rows.every((r) => r.total === 0) ? (
+        <Notice tone="info">Nothing is set up for onboarding yet. Add documents to read, trainings or uploads using the tabs above, and everyone&apos;s progress shows here.</Notice>
+      ) : null}
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
           <p className="px-5 py-4 text-sm text-muted">No one to show yet.</p>
         ) : (
           <ul className="divide-y divide-line">
             {rows.map((r) => {
-              const pct = r.total ? Math.round((r.done / r.total) * 100) : 100;
+              const pct = r.total ? Math.round((r.done / r.total) * 100) : 0;
               const flags = r.status.filter((s) => ["expired", "expiring", "rejected", "submitted"].includes(s.state));
               return (
                 <li key={r.id}>
@@ -116,12 +119,17 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
                         {flags.some((s) => s.state === "expiring") ? <Badge tone="warn">Expiring</Badge> : null}
                         {flags.some((s) => s.state === "rejected") ? <Badge tone="warn">Sent back</Badge> : null}
                       </span>
-                      <span className="flex w-40 items-center gap-2">
-                        <span className="h-2 flex-1 overflow-hidden rounded-full bg-page">
-                          <span className="block h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+                      {/* cmeprojects: no bar when nothing applies to them, so an empty set-up doesn't look finished. */}
+                      {r.total ? (
+                        <span className="flex w-40 items-center gap-2" aria-label={`${r.done} of ${r.total} done`}>
+                          <span className="h-2 flex-1 overflow-hidden rounded-full bg-page">
+                            <span className={`block h-full rounded-full ${r.done === r.total ? "bg-good" : "bg-brand"}`} style={{ width: `${pct}%` }} />
+                          </span>
+                          <span className="w-12 text-right text-sm tabular-nums">{`${r.done}/${r.total}`}</span>
                         </span>
-                        <span className="w-12 text-right text-sm tabular-nums">{r.total ? `${r.done}/${r.total}` : "—"}</span>
-                      </span>
+                      ) : (
+                        <span className="w-40 text-right text-sm text-muted">Nothing set yet</span>
+                      )}
                     </summary>
                     <div className="border-t border-brand/30 bg-brand-soft px-5 py-4 text-ink">
                       {r.status.length === 0 ? (

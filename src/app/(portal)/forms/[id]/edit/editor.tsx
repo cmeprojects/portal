@@ -56,7 +56,12 @@ export function FormEditor({
       if (then) {
         const t = await then();
         setResult(t);
-        if (!t.error) setForm((f) => ({ ...f, status: "published", enabled: true }));
+        if (!t.error) {
+          // cmeprojects: publishing is saved too, so it mustn't show as an unsaved change.
+          const published = { ...form, status: "published" as const, enabled: true };
+          setForm(published);
+          setBaseline(JSON.stringify({ f: published, q: saved }));
+        }
       } else setResult(r);
       router.refresh();
     });

@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { confirmSubmit } from "@/components/confirm";
 import { startTransition, useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
@@ -199,7 +200,7 @@ export function PersonEditor({
         {!person.joined && person.active ? (
           <form action={inviteAction}>
             <input type="hidden" name="id" value={person.id} />
-            <Button variant="outline" disabled={resending}>Resend invite</Button>
+            <Button variant="outline" disabled={resending}>{resending ? "Sending…" : "Resend invite"}</Button>
           </form>
         ) : null}
         {canHelpSignIn && person.joined && person.active && !person.isMe ? (
@@ -210,16 +211,17 @@ export function PersonEditor({
             </form>
             <form
               action={mfaAction}
-              onSubmit={(e) => {
-                if (!confirm(`Reset two-factor login for ${person.full_name || person.email}? They'll set it up again next time they sign in.`)) e.preventDefault();
-              }}
+              onSubmit={confirmSubmit(`Reset two-factor login for ${person.full_name || person.email}? They'll set it up again next time they sign in.`, { action: "Reset it" })}
             >
               <input type="hidden" name="id" value={person.id} />
-              <Button variant="outline" disabled={resetting}>Reset two-factor login</Button>
+              <Button variant="outline" disabled={resetting}>{resetting ? "Resetting…" : "Reset two-factor login"}</Button>
             </form>
-            <form action={pinAction}>
+            <form
+              action={pinAction}
+              onSubmit={confirmSubmit(`Clear ${person.full_name || person.email}'s Cars app PIN? They'll choose a new one next time they open the app.`, { action: "Clear PIN" })}
+            >
               <input type="hidden" name="id" value={person.id} />
-              <Button variant="outline" disabled={clearingPin}>Clear Cars app PIN</Button>
+              <Button variant="outline" disabled={clearingPin}>{clearingPin ? "Clearing…" : "Clear Cars app PIN"}</Button>
             </form>
           </>
         ) : null}
@@ -235,9 +237,7 @@ export function PersonEditor({
         {canResetMfa && person.joined && person.active && !person.isMe ? (
           <form
             action={outAction}
-            onSubmit={(e) => {
-              if (!confirm(`Sign ${person.full_name || person.email} out of every phone and computer? Their account stays active.`)) e.preventDefault();
-            }}
+            onSubmit={confirmSubmit(`Sign ${person.full_name || person.email} out of every phone and computer? Their account stays active.`, { action: "Sign them out" })}
           >
             <input type="hidden" name="id" value={person.id} />
             <Button variant="outline" disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out of all devices"}</Button>
@@ -246,11 +246,7 @@ export function PersonEditor({
         {!person.isMe && !(person.lastManager && !canResetMfa) ? (
           <form
             action={activeAction}
-            onSubmit={(e) => {
-              if (person.active && !confirm(`Deactivate ${person.full_name || person.email}? They won't be able to sign in. Their history stays.`)) {
-                e.preventDefault();
-              }
-            }}
+            onSubmit={person.active ? confirmSubmit(`Deactivate ${person.full_name || person.email}? They won't be able to sign in. Their history stays.`, { action: "Deactivate" }) : undefined}
           >
             <input type="hidden" name="id" value={person.id} />
             <input type="hidden" name="active" value={person.active ? "false" : "true"} />

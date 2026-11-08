@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { askConfirm } from "@/components/confirm";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
@@ -104,7 +105,7 @@ export function DeployBar({ items }: { items: DraftLine[] }) {
               <Button
                 variant="outline"
                 disabled={pending}
-                onClick={() => confirm(`Throw away ${words}? Nothing that's live changes.`) && run(discardDrafts)}
+                onClick={() => void askConfirm(`Throw away ${words}? Nothing that's live changes.`, { action: "Throw away" }).then((ok) => ok && run(discardDrafts))}
               >
                 Discard
               </Button>
