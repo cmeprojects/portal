@@ -63,6 +63,9 @@ export async function createTask(_: FormState, form: FormData): Promise<FormStat
     p_review_date: review,
   });
   if (error || !id) return { error: friendlyError(error, "We couldn't create the task. Please try again.") };
+  // cmeprojects: the client it's about (optional; copies before live update 54 ignore it).
+  const clientId = text(form, "client_id");
+  if (/^[0-9a-f-]{36}$/.test(clientId)) await supabase.rpc("set_task_client", { p_task: id, p_client: clientId });
 
   await flushOutbox(id);
   revalidatePath("/");
@@ -96,6 +99,11 @@ export async function updateTaskDetails(_: FormState, form: FormData): Promise<F
     p_details: detailsFromForm(form, await fieldsOf(task.registry_id)),
   });
   if (error) return { error: friendlyError(error) };
+  if (form.has("client_id")) {
+    const clientId = text(form, "client_id");
+    const { error: clientError } = await supabase.rpc("set_task_client", { p_task: taskId, p_client: /^[0-9a-f-]{36}$/.test(clientId) ? clientId : null });
+    if (clientError) return { error: friendlyError(clientError) };
+  }
   revalidatePath(`/tasks/${taskId}`);
   return { message: "Saved." };
 }

@@ -29,12 +29,17 @@ export function EditDetailsForm({
   fields,
   people,
   assets,
+  clients = [],
+  clientId = "",
 }: {
   task: EditableTask;
   registry: Registry;
   fields: RegistryField[];
   people: Option[];
   assets: Option[];
+  // cmeprojects: who the task is about (names only).
+  clients?: { id: string; name: string }[];
+  clientId?: string;
 }) {
   const [state, action, pending] = useActionState(updateTaskDetails, null);
   const form = useRef<HTMLFormElement>(null);
@@ -64,6 +69,18 @@ export function EditDetailsForm({
           <input type="hidden" name="review_date" value={task.review_date ?? ""} />
         )}
       </div>
+      {clients.length ? (
+        <Field label="Client (optional)" htmlFor="e-client">
+          <select id="e-client" name="client_id" defaultValue={clientId} className={`${inputClass} md:max-w-md`}>
+            <option value="">No client</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      ) : null}
       <PriorityPicker value={task.priority} />
       {!task.isAction
         ? fields.map((f) => <FieldInput key={f.id} field={f} value={task.details[f.key]} people={people} assets={assets} />)

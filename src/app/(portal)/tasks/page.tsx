@@ -1,13 +1,20 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import { requireRole } from "@/lib/session";
+import { redirect } from "next/navigation";
+import { requireSession } from "@/lib/session";
+import { hasHomeDashboard, seesDashboard } from "@/lib/dashboard";
 import { DashboardView } from "../dashboard-view";
+import { MyTasksView } from "../my-tasks-view";
 
 export const metadata: Metadata = { title: "Tasks" };
 
-// cmeprojects: everyone's tasks, for the system admin (whose home is the
-// platform dashboard). Everyone else has their tasks on their own home page.
+// cmeprojects: the task lists, for everyone whose home is a Dashboard. People
+// who oversee tasks (system admin, managers, team leaders) see everyone's (or
+// their team's); staff admins see their own. Support workers' tasks are on
+// their home page.
 export default async function TasksPage({ searchParams }: PageProps<"/tasks">) {
-  await requireRole(["system_admin"]);
-  return <DashboardView params={await searchParams} />;
+  const { profile } = await requireSession();
+  if (!hasHomeDashboard(profile.role)) redirect("/");
+  const params = await searchParams;
+  return seesDashboard(profile.role) ? <DashboardView params={params} /> : <MyTasksView basePath="/tasks" params={params} />;
 }

@@ -1,6 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Role } from "@/lib/roles";
-import { seesDashboard } from "@/lib/dashboard";
+import { hasHomeDashboard, myTasksHref } from "@/lib/dashboard";
 import { onboardingOn, rolesOn, teamsOn } from "@/lib/feature-parts";
 
 // cmeprojects: the menu is a short list of sections. Pages in the same
@@ -50,7 +50,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
   const settingsAreas = (access.adminAreas ?? []).filter((a) => !["audit", "registers", "register_setup", "roles", "website"].includes(a));
   const tabs: (Tab | false)[] = {
     tasks: [
-      { href: seesDashboard(role) ? "/my-tasks" : "/", text: "My tasks" },
+      { href: myTasksHref(role), text: "My tasks" },
     ],
     cars: cars
       ? [
@@ -115,8 +115,6 @@ export function navFor(
     return [{ items: [{ href: "/", label: "Home" }] }, { items: mine }];
   }
 
-  const dashboard = seesDashboard(role);
-  const admin = role === "system_admin";
   // Tools as their own part of the menu: built features, cars and the apps.
   const tools: NavItem[] = [
     ...(access.customFeatures ?? []).map((f) => ({ href: `/f/${f.slug}`, label: f.label })),
@@ -128,8 +126,10 @@ export function navFor(
       items: [
         // Your tasks and questions are on your home page (cmeprojects); the
         // system admin's home is the platform, with everyone's tasks under Tasks.
-        { href: "/", label: "Dashboard", match: dashboard && !admin ? ["/", "/my-tasks"] : undefined },
-        ...(admin ? [{ href: "/tasks", label: "Tasks", match: ["/tasks", "/my-tasks"] }] : []),
+        // cmeprojects: Dashboard is a role overview; Tasks holds the task lists.
+        // Support workers' home is My tasks.
+        { href: "/", label: hasHomeDashboard(role) ? "Dashboard" : "My tasks", match: hasHomeDashboard(role) ? undefined : ["/", "/my-tasks"] },
+        ...(hasHomeDashboard(role) ? [{ href: "/tasks", label: "Tasks", match: ["/tasks", "/my-tasks"] }] : []),
         // Who sees Registers is set by the system admin (System settings → Tasks).
         ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),
         ...(access.forms ? [{ href: "/forms", label: "Forms", match: ["/forms"] }] : []),

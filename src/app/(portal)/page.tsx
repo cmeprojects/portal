@@ -5,17 +5,16 @@ import { onboardingOn } from "@/lib/feature-parts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
-import { seesDashboard } from "@/lib/dashboard";
 import { getPeopleRules } from "@/lib/settings";
 import { getBranding } from "@/lib/branding";
 import { Card, PageHeader } from "@/components/ui";
-import { DashboardView } from "./dashboard-view";
+import { RoleDashboard, WorkerReminders, hasRoleDashboard } from "./role-dashboard";
 import { PlatformDashboard } from "./platform-dashboard";
 import { MyTasksView } from "./my-tasks-view";
 
 export const metadata: Metadata = { title: "Home" };
 
-// Home: the dashboard for people who oversee others, My tasks for everyone else.
+// Home: a role dashboard for people who oversee others, My tasks for everyone else.
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const { profile } = await requireSession();
   const params = await searchParams;
@@ -35,7 +34,15 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       </>
     );
   }
-  return seesDashboard(profile.role) ? <DashboardView params={params} /> : <MyTasksView basePath="/" params={params} />;
+  // cmeprojects: managers, staff admins and team leaders get their role's
+  // dashboard (their task lists are under Tasks); support workers get My tasks.
+  if (hasRoleDashboard(profile.role)) return <RoleDashboard />;
+  return (
+    <>
+      <WorkerReminders />
+      <MyTasksView basePath="/" params={params} />
+    </>
+  );
 }
 
 // New starters' home until a staff admin gives them a role.

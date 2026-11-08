@@ -151,7 +151,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
   return (
     <>
       <PageHeader
-        title="Dashboard"
+        title="Tasks"
         intro={`${firstName ? `Hi ${firstName}. ` : ""}${scope}`}
         action={
           features.tasks !== false ? (
@@ -269,7 +269,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
       <Card id="all" className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-line px-5 py-3">
           <h2 className="heading-sm">All ongoing tasks · {filtered.length}</h2>
-          <form className="grid gap-2 sm:grid-cols-[1fr_1fr_1.5fr_auto_auto] sm:items-center" role="search" action="/#all">
+          <form className="grid gap-2 sm:grid-cols-[1fr_1fr_1.5fr_auto_auto] sm:items-center" role="search" action="/tasks#all">
             <label className="sr-only" htmlFor="d-register">Register</label>
             <select id="d-register" name="register" defaultValue={register} className={inputClass}>
               <option value="">All registers</option>
@@ -294,7 +294,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
             <input id="d-q" name="q" type="search" defaultValue={one(params.q)} placeholder="Search by title" className={inputClass} />
             <button className={buttonClass("outline")}>Show</button>
             {register || person || q ? (
-              <Link href="/#all" className="min-h-11 content-center px-2 text-sm text-muted underline">
+              <Link href="/tasks#all" className="min-h-11 content-center px-2 text-sm text-muted underline">
                 Clear
               </Link>
             ) : null}

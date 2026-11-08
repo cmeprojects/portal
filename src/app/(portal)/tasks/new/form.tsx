@@ -45,6 +45,7 @@ export function NewTaskForm({
   sla,
   weekdaysOnly,
   askChoice = false,
+  clients = [],
 }: {
   registries: Registry[];
   fields: RegistryField[];
@@ -57,6 +58,8 @@ export function NewTaskForm({
   weekdaysOnly: boolean;
   // Limited roles choose between a general task and a question.
   askChoice?: boolean;
+  // The company's clients (names only), to say who a task is about (cmeprojects).
+  clients?: { id: string; name: string }[];
 }) {
   const [state, action, pending] = useActionState(createTask, null);
   // System admins can't take tasks, so they start with the first person in the list.
@@ -197,6 +200,18 @@ export function NewTaskForm({
         </Field>
         <PeopleChecklist name="helpers" label="Helpers (optional)" people={people} exclude={[assignee]} />
       </div>
+      {clients.length ? (
+        <Field label="Client (optional)" htmlFor="client_id" hint="Who this task is about. The client's team leader sees it on their dashboard.">
+          <select id="client_id" name="client_id" defaultValue="" className={`${inputClass} md:max-w-md`}>
+            <option value="">No client</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      ) : null}
 
       <p className="text-sm text-muted">
         We&apos;ll email the person looking after it and copy in the helpers. Photos and files can be added once the

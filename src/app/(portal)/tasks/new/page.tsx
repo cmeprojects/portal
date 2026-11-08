@@ -52,6 +52,9 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
     );
   }
 
+  // cmeprojects: client names for "who is this about" (empty before live update 54).
+  const { data: clientRows } = await (await createClient()).rpc("clients_to_pick");
+  const clients = ((clientRows ?? []) as { id: string; name: string }[]);
   return (
     <>
       <SectionTabs section="tasks" current="/tasks/new" />
@@ -75,6 +78,7 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
           sla={sla.days}
           weekdaysOnly={sla.weekdaysOnly}
           askChoice={limited}
+          clients={clients}
         />
       </Card>
     </>

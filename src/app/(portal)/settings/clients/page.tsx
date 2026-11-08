@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { SectionTabs } from "@/components/section-tabs";
 import { AddClientForm, ClientRow } from "../../cars/manage/forms";
+import { ClientTeamsForm } from "./team-form";
 
 export const metadata: Metadata = { title: "Clients" };
 
@@ -14,6 +15,11 @@ export default async function ClientsPage() {
   const supabase = await createClient();
   const { data } = await supabase.from("car_clients").select("id, name, reference, active").order("active", { ascending: false }).order("name");
   const clients = data ?? [];
+  // cmeprojects: which team looks after each client (hidden before live update 54).
+  const [{ data: teams }, { data: links, error: linkError }] = await Promise.all([
+    supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
+    supabase.from("client_teams").select("client_id, team_id"),
+  ]);
   return (
     <>
       <SectionTabs section="people" current="/settings/clients" />
@@ -34,6 +40,23 @@ export default async function ClientsPage() {
               <ClientRow key={c.id} client={c} />
             ))}
           </ul>
+        </Card>
+      ) : null}
+      {!linkError && clients.some((c) => c.active) ? (
+        <Card className="p-4">
+          <h2 className="heading-sm">Which team looks after each client</h2>
+          <p className="mb-2 text-sm text-muted">Team leaders see their team&apos;s clients, with their open tasks, on their dashboard.</p>
+          {teams?.length ? (
+            <div className="divide-y divide-line">
+              {clients
+                .filter((c) => c.active)
+                .map((c) => (
+                  <ClientTeamsForm key={c.id} clientId={c.id} name={c.name} teams={teams} chosen={(links ?? []).filter((l) => l.client_id === c.id).map((l) => l.team_id)} />
+                ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">Add teams on the Teams page first.</p>
+          )}
         </Card>
       ) : null}
     </>

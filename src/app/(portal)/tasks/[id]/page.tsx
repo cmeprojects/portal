@@ -113,6 +113,14 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   const brand = await getBranding();
   // Files open through short-lived private links.
   const fileLinks = new Map<number, string>();
+  // cmeprojects: the client this task is about (read on its own so copies
+  // before live update 54 still work).
+  const [{ data: clientName }, { data: clientRow }, { data: clientRows }] = await Promise.all([
+    supabase.rpc("task_client", { p_task: id }),
+    supabase.from("tasks").select("client_id").eq("id", id).maybeSingle(),
+    supabase.rpc("clients_to_pick"),
+  ]);
+  const clients = (clientRows ?? []) as { id: string; name: string }[];
   await Promise.all(
     (files ?? []).map(async (f) => {
       const { data } = await supabase.storage.from("task-files").createSignedUrl(f.file_path, 3600);
@@ -257,6 +265,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
                   fields={fieldsForTaskForm(fields.filter((f) => f.active), requiredWhen)}
                   people={activePeople}
                   assets={assets.filter((a) => !a.archived)}
+                  clients={clients}
+                  clientId={(clientRow as { client_id?: string | null } | null)?.client_id ?? ""}
                 />
               </div>
             </details>
@@ -386,6 +396,12 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
               <Label>Looked after by</Label>
               <dd className="font-semibold">{nameOf(task.assigned_to)}</dd>
             </div>
+            {clientName ? (
+              <div>
+                <Label>Client</Label>
+                <dd className="font-semibold">{clientName as string}</dd>
+              </div>
+            ) : null}
             <div>
               <Label>Helpers</Label>
               <dd>{helperIds.length ? helperIds.map(nameOf).join(", ") : "No helpers yet"}</dd>
