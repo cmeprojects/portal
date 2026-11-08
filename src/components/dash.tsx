@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 
 // cmeprojects: the dashboard building blocks (panels, number tiles, gauges and
 // charts), shared by every role's dashboard so they all look the same. New
@@ -37,11 +38,17 @@ export function Hover({ children, details, label }: { children: ReactNode; detai
   );
 }
 
-export function Tile({ label, value, note, href }: { label: string; value: string | number; note?: string; href?: string }) {
+// cmeprojects: a number tile. An icon says what it's about; tone colours the
+// number when it needs attention (red = act now, amber = soon, green = good).
+const TONE = { danger: "text-danger", warn: "text-warn", good: "text-good" } as const;
+export function Tile({ label, value, note, href, icon: Icon, tone }: { label: string; value: string | number; note?: string; href?: string; icon?: LucideIcon; tone?: keyof typeof TONE }) {
   const body = (
     <div className="flex h-full flex-col gap-0.5 rounded-lg border border-line border-l-4 border-l-brand bg-surface px-4 py-3 transition duration-200 hover:-translate-y-1 hover:border-l-danger hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none">
-      <span className="text-xs font-medium tracking-wide text-muted uppercase">{label}</span>
-      <span className="text-2xl font-semibold text-ink tabular-nums">{value}</span>
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium tracking-wide text-muted uppercase">{label}</span>
+        {Icon ? <Icon aria-hidden="true" className="size-4 shrink-0 text-muted" strokeWidth={1.75} /> : null}
+      </span>
+      <span className={`text-2xl font-semibold tabular-nums ${tone && (tone === "good" || (value !== 0 && value !== "0")) ? TONE[tone] : "text-ink"}`}>{value}</span>
       {note ? <span className="text-xs text-muted">{note}</span> : null}
     </div>
   );

@@ -1,12 +1,59 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { EmptyState } from "@/components/ui";
+import { Inbox } from "lucide-react";
 import Link from "next/link";
 import type { Table } from "@/lib/register-rows";
 import { CHOICE_COLOUR_CLASS } from "@/lib/registers";
 
 export function DataTable({ table, empty }: { table: Table; empty: string }) {
-  if (table.rows.length === 0) return <p className="p-6 text-sm text-muted">{empty}</p>;
+  if (table.rows.length === 0) return <EmptyState icon={Inbox} title={empty} />;
+  const [refCol, titleCol, ...rest] = table.columns;
   return (
-    <div className="overflow-x-auto">
+    <>
+    {/* cmeprojects: on a phone each row is a small card instead of a wide table. */}
+    <ul className="divide-y divide-line md:hidden">
+      {table.rows.map((row) => {
+        const title = titleCol ? row.cells[titleCol.key]?.text : row.cells[refCol.key]?.text;
+        const body = (
+          <>
+            {titleCol ? <span className="block text-xs text-muted">{row.cells[refCol.key]?.text}</span> : null}
+            <span className="block font-semibold text-ink">{title || "—"}</span>
+            <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+              {rest
+                .filter((c) => row.cells[c.key]?.text)
+                .slice(0, 5)
+                .map((c) => {
+                  const cell = row.cells[c.key]!;
+                  return (
+                    <div key={c.key} className="contents">
+                      <dt className="text-muted">{c.label}</dt>
+                      <dd className={`min-w-0 ${cell.tone === "danger" ? "font-semibold text-danger" : ""}`}>
+                        {cell.badge ? (
+                          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHOICE_COLOUR_CLASS[cell.badge]}`}>{cell.text}</span>
+                        ) : (
+                          <span className="line-clamp-2">{cell.text}</span>
+                        )}
+                      </dd>
+                    </div>
+                  );
+                })}
+            </dl>
+          </>
+        );
+        return (
+          <li key={row.id}>
+            {row.href ? (
+              <Link href={row.href} className="block px-4 py-3 hover:bg-page">
+                {body}
+              </Link>
+            ) : (
+              <div className="px-4 py-3">{body}</div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+    <div className="hidden overflow-x-auto md:block">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="text-left text-xs uppercase tracking-wide text-muted">
@@ -42,5 +89,6 @@ export function DataTable({ table, empty }: { table: Table; empty: string }) {
         </tbody>
       </table>
     </div>
+    </>
   );
 }

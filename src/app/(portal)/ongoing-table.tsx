@@ -85,7 +85,27 @@ export function OngoingTable({
   const [openId, setOpenId] = useState<string | null>(null);
   const [ctx] = useState<Ctx>(() => ({ names: new Map(names), timeZone }));
   return (
-    <div className="overflow-x-auto">
+    <>
+    {/* cmeprojects: on a phone each task is a small card that opens the task. */}
+    <ul className="divide-y divide-line md:hidden">
+      {rows.map((t) => (
+        <li key={t.id}>
+          <Link href={`/tasks/${t.id}`} className="block px-4 py-3 hover:bg-page">
+            <span className="block text-xs text-muted">
+              {t.ref} · {t.register}
+            </span>
+            <span className="block font-semibold text-ink">{t.title}</span>
+            <span className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+              <span className={`inline-flex rounded-full px-2.5 py-0.5 font-semibold ${t.statusClass ?? ""}`}>{t.status}</span>
+              <span className={`inline-flex rounded-full px-2.5 py-0.5 font-semibold ${t.priorityClass}`}>{t.priority}</span>
+              <span className={t.dueClass}>{t.due}</span>
+            </span>
+            <span className="mt-1 block text-sm text-muted">{t.assignee}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+    <div className="hidden overflow-x-auto md:block">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="text-left text-xs tracking-wider text-muted uppercase">
@@ -147,6 +167,7 @@ export function OngoingTable({
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 

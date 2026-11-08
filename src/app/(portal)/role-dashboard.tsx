@@ -10,6 +10,7 @@ import { isDone, type ItemState } from "@/lib/compliance";
 import { formsOn } from "@/lib/forms";
 import { Bars, LineChart, Panel, Tile } from "@/components/dash";
 import { PageHeader } from "@/components/ui";
+import { AlertTriangle, BadgeCheck, Car, Clock, FileWarning, Inbox, ListChecks, MailQuestion, Siren, Upload, UserPlus, Users } from "lucide-react";
 
 // cmeprojects: each role's dashboard, in the same style as the system admin's.
 //   Manager:     the whole operation.
@@ -44,24 +45,33 @@ const Empty = ({ children }: { children: ReactNode }) => <p className="text-sm t
 // Tasks (manager)
 // ---------------------------------------------------------------------------
 
-const openTasks: Piece = async ({ supabase }) => ({
-  tile: <Tile label="Open tasks" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).not("status", "in", `(${DONE.join(",")})`))} href="/tasks" />,
-});
+const openTasks: Piece = async ({ supabase, today }) => {
+  const [open, thisWeek, lastWeek] = await Promise.all([
+    count(supabase.from("tasks").select("id", { count: "exact", head: true }).not("status", "in", `(${DONE.join(",")})`)),
+    count(supabase.from("tasks").select("id", { count: "exact", head: true }).gte("created_at", plus(today, -6))),
+    count(supabase.from("tasks").select("id", { count: "exact", head: true }).gte("created_at", plus(today, -13)).lt("created_at", plus(today, -6))),
+  ]);
+  const diff = thisWeek - lastWeek;
+  const note = `${thisWeek} new this week${diff ? ` (${diff > 0 ? `${diff} more` : `${-diff} fewer`} than last week)` : ""}`;
+  return { tile: <Tile label="Open tasks" value={open} note={note} icon={ListChecks} href="/tasks" /> };
+};
 const overdueTasks: Piece = async ({ supabase, today }) => ({
   tile: (
     <Tile
       label="Overdue"
       value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).not("status", "in", `(${DONE.join(",")})`).lt("due_date", today))}
       note="Past their due date"
+      icon={AlertTriangle}
+      tone="danger"
       href="/tasks#all"
     />
   ),
 });
 const awaitingApproval: Piece = async ({ supabase }) => ({
-  tile: <Tile label="Waiting for approval" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "awaiting_approval"))} note="Finished, needs a manager" href="/tasks" />,
+  tile: <Tile label="Waiting for approval" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "awaiting_approval"))} note="Finished, needs a manager" icon={BadgeCheck} tone="warn" href="/tasks" />,
 });
 const escalated: Piece = async ({ supabase }) => ({
-  tile: <Tile label="Escalated" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "escalated"))} note="Someone asked for help" href="/tasks" />,
+  tile: <Tile label="Escalated" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "escalated"))} note="Someone asked for help" icon={Siren} tone="danger" href="/tasks" />,
 });
 
 const workload: Piece = async ({ supabase }) => {
@@ -121,28 +131,28 @@ const onboardingDone: Piece = async ({ supabase, features, complianceReport }) =
   const { data } = await supabase.from("profiles").select("onboarded_at").eq("active", true).not("role", "in", "(system_admin,external)");
   const all = data?.length ?? 0;
   const done = (data ?? []).filter((p) => p.onboarded_at).length;
-  return { tile: <Tile label="Onboarding complete" value={all ? `${Math.round((done / all) * 100)}%` : "–"} note={`${done} of ${all} staff`} href="/compliance" /> };
+  return { tile: <Tile label="Onboarding complete" value={all ? `${Math.round((done / all) * 100)}%` : "–"} note={`${done} of ${all} staff`} icon={Users} tone={all && done === all ? "good" : undefined} href="/compliance" /> };
 };
 
 const documentsExpiring: Piece = async ({ supabase, today, features, complianceReport }) => {
   if (!onboardingOn(features) || !complianceReport) return null;
   const n = await count(supabase.from("compliance_records").select("id", { count: "exact", head: true }).in("status", ["accepted", "submitted", "done"]).lte("expires_on", plus(today, 30)));
-  return { tile: <Tile label="Documents expiring" value={n} note="Expired or due in 30 days" href="/compliance" /> };
+  return { tile: <Tile label="Documents expiring" value={n} note="Expired or due in 30 days" icon={FileWarning} tone={n ? "warn" : undefined} href="/compliance" /> };
 };
 
 const uploadsToCheck: Piece = async ({ supabase, features, complianceReport }) => {
   if (!onboardingOn(features) || !complianceReport) return null;
-  return { tile: <Tile label="Uploads to check" value={await count(supabase.from("compliance_records").select("id", { count: "exact", head: true }).eq("status", "submitted"))} note="Sent by staff, not checked yet" href="/compliance" /> };
+  return { tile: <Tile label="Uploads to check" value={await count(supabase.from("compliance_records").select("id", { count: "exact", head: true }).eq("status", "submitted"))} note="Sent by staff, not checked yet" icon={Upload} tone="warn" href="/compliance" /> };
 };
 
 const invitesPending: Piece = async ({ supabase }) => ({
-  tile: <Tile label="Invites not accepted" value={await count(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("active", true).is("joined_at", null))} note="Haven't signed in yet" href="/settings/staff" />,
+  tile: <Tile label="Invites not accepted" value={await count(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("active", true).is("joined_at", null))} note="Haven't signed in yet" icon={MailQuestion} href="/settings/staff" />,
 });
 
 const newStarters: Piece = async ({ supabase }) => {
   const { data } = await supabase.from("profiles").select("id, full_name, email, joined_at").eq("active", true).eq("role", "new_starter").order("full_name").limit(8);
   return {
-    tile: <Tile label="New starters" value={data?.length ?? 0} note="Waiting for a role" href="/settings/staff" />,
+    tile: <Tile label="New starters" value={data?.length ?? 0} note="Waiting for a role" icon={UserPlus} href="/settings/staff" />,
     panel: (
       <Panel title="New starters" action={<Link href="/compliance" className="text-xs font-semibold text-brand underline">Onboarding</Link>}>
         {data?.length ? (
@@ -237,12 +247,12 @@ const recentlyJoined: Piece = async ({ supabase, today }) => {
 
 const newEnquiries: Piece = async ({ supabase, today, features }) => {
   if (features.assistant !== true) return null;
-  return { tile: <Tile label="New enquiries" value={await count(supabase.from("website_enquiries").select("id", { count: "exact", head: true }).gte("created_at", plus(today, -7)))} note="From the website, last 7 days" href="/enquiries" /> };
+  return { tile: <Tile label="New enquiries" value={await count(supabase.from("website_enquiries").select("id", { count: "exact", head: true }).gte("created_at", plus(today, -7)))} note="From the website, last 7 days" icon={Inbox} href="/enquiries" /> };
 };
 
 const carsOut: Piece = async ({ supabase, features }) => {
   if (features.vehicles !== true) return null;
-  return { tile: <Tile label="Cars out now" value={await count(supabase.from("car_trips").select("id", { count: "exact", head: true }).is("returned_at", null))} href="/reports/cars" /> };
+  return { tile: <Tile label="Cars out now" value={await count(supabase.from("car_trips").select("id", { count: "exact", head: true }).is("returned_at", null))} icon={Car} href="/reports/cars" /> };
 };
 
 // ---------------------------------------------------------------------------
@@ -267,8 +277,8 @@ const teamTasks: Piece = async ({ supabase, me, today }) => {
   return {
     tile: (
       <>
-        <Tile label="Team open tasks" value={open.length} note={`${memberIds.length} in your team`} href="/tasks" />
-        <Tile label="Team overdue" value={open.filter((t) => t.due_date && t.due_date < today).length} href="/tasks#all" />
+        <Tile label="Team open tasks" value={open.length} note={`${memberIds.length} in your team`} icon={ListChecks} href="/tasks" />
+        <Tile label="Team overdue" value={open.filter((t) => t.due_date && t.due_date < today).length} icon={AlertTriangle} tone="danger" href="/tasks#all" />
       </>
     ),
     panel: (
@@ -280,7 +290,7 @@ const teamTasks: Piece = async ({ supabase, me, today }) => {
 };
 
 const escalatedToMe: Piece = async ({ supabase, me }) => ({
-  tile: <Tile label="Escalated to you" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "escalated").eq("escalated_to", me))} href="/tasks" />,
+  tile: <Tile label="Escalated to you" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "escalated").eq("escalated_to", me))} icon={Siren} tone="danger" href="/tasks" />,
 });
 
 const teamOnboarding: Piece = async ({ supabase, me, features }) => {
@@ -289,7 +299,7 @@ const teamOnboarding: Piece = async ({ supabase, me, features }) => {
   if (!memberIds.length) return null;
   const { data } = await supabase.from("profiles").select("onboarded_at").in("id", memberIds).eq("active", true);
   const done = (data ?? []).filter((p) => p.onboarded_at).length;
-  return { tile: <Tile label="Team onboarding" value={`${done} of ${data?.length ?? 0}`} note="Finished their onboarding" href="/compliance" /> };
+  return { tile: <Tile label="Team onboarding" value={`${done} of ${data?.length ?? 0}`} note="Finished their onboarding" icon={Clock} href="/compliance" /> };
 };
 
 const teamClients: Piece = async ({ supabase }) => {

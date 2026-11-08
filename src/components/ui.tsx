@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import type { LucideIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
 import { ToastOnMount } from "@/components/toast";
@@ -119,6 +120,27 @@ export function Tabs({ label, items }: { label: string; items: { href: string; t
         </Link>
       ))}
     </nav>
+  );
+}
+
+// cmeprojects: what a list shows when it's empty: an icon, a short line, and
+// the next step when there is one.
+export function EmptyState({ icon: Icon, title, text, action }: { icon?: LucideIcon; title: string; text?: string; action?: { href: string; label: string } }) {
+  return (
+    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+      {Icon ? (
+        <span className="mb-1 flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
+          <Icon aria-hidden="true" className="size-6" strokeWidth={1.75} />
+        </span>
+      ) : null}
+      <p className="font-semibold text-ink">{title}</p>
+      {text ? <p className="max-w-sm text-sm text-muted">{text}</p> : null}
+      {action ? (
+        <Link href={action.href} className={buttonClass("primary", "mt-2", "sm")}>
+          {action.label}
+        </Link>
+      ) : null}
+    </div>
   );
 }
 

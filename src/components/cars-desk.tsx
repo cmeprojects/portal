@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { EmptyState } from "@/components/ui";
+import { Car } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
@@ -186,7 +188,9 @@ function PickCar({ data, timeZone, preselect }: { data: CarScreen; timeZone: str
       ) : null}
 
       {data.cars.length === 0 ? (
-        <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">No cars have been added yet. A car manager adds them under Manage cars.</p>
+        <div className="shadow-card rounded-xl border border-line bg-surface">
+          <EmptyState icon={Car} title="No cars yet" text="A car manager adds the company's cars under Manage cars." />
+        </div>
       ) : (
         <fieldset className="flex flex-col gap-2">
           <legend className="heading-sm mb-2">Pick a car</legend>

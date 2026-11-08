@@ -1,4 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { EmptyState } from "@/components/ui";
+import { Users } from "lucide-react";
 import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
@@ -118,7 +120,9 @@ export default async function TeamsPage() {
       </Card>
 
       {others.length === 0 ? (
-        <p className="text-sm text-muted">No teams yet.</p>
+        <Card>
+          <EmptyState icon={Users} title="No teams yet" text="Add a team above, then put people in it. Team leaders see their team's tasks." />
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {others.map((team) => {

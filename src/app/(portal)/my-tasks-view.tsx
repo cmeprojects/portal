@@ -1,4 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { EmptyState } from "@/components/ui";
+import { CheckCircle2 } from "lucide-react";
 import { SectionTabs } from "@/components/section-tabs";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
@@ -147,15 +149,26 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
         </div>
 
         {shown.length === 0 ? (
-          <p className="p-6 text-sm text-muted">
-            {tab === "assigned"
-              ? "Nothing assigned to you right now."
-              : tab === "helping"
-                ? "You're not helping on any open tasks."
+          <EmptyState
+            icon={CheckCircle2}
+            title={
+              tab === "assigned"
+                ? "You're all caught up"
+                : tab === "helping"
+                  ? "You're not helping on any open tasks"
+                  : tab === "created"
+                    ? "Nothing open that you asked"
+                    : "No completed tasks yet"
+            }
+            text={
+              tab === "assigned"
+                ? "Nothing is assigned to you right now."
                 : tab === "created"
-                  ? "Nothing open that you created or asked. Questions you ask (including from a form) show here until they're answered."
-                  : "No completed tasks yet."}
-          </p>
+                  ? "Questions and tasks you raise show here until they're answered."
+                  : undefined
+            }
+            action={tab === "assigned" || tab === "created" ? { href: "/tasks/new", label: "+ New task" } : undefined}
+          />
         ) : (
           <ul>
             {shown.map((t) => {

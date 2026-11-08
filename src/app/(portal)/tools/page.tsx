@@ -1,4 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { EmptyState } from "@/components/ui";
+import { Puzzle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -24,7 +26,9 @@ export default async function ToolsPage() {
     <>
       <PageHeader title="Tools" intro="Your built features, cars and phone apps in one place." />
       {tiles.length === 0 ? (
-        <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">Nothing here yet. Features you build in the Feature builder appear here.</p>
+        <div className="shadow-card rounded-xl border border-line bg-surface">
+          <EmptyState icon={Puzzle} title="No tools yet" text="Features you build in the Feature builder appear here." />
+        </div>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {tiles.map((t) => (
