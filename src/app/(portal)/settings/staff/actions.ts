@@ -194,6 +194,15 @@ export async function clearCarPin(_: FormState, form: FormData): Promise<FormSta
   return { message: "Cars app PIN cleared. They'll choose a new one next time they sign in to the app." };
 }
 
+// cmeprojects: remove someone's profile photo (people who manage staff).
+export async function removePersonPhoto(_: FormState, form: FormData): Promise<FormState> {
+  await requireRole(PEOPLE_MANAGERS);
+  const { error } = await (await createClient()).rpc("remove_avatar", { p_user: text(form, "id") });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/settings/staff");
+  return { message: "Photo removed. Their initials show instead." };
+}
+
 // A role before onboarding is finished: reason, deadline, and a "Finish
 // onboarding" task. Staff admins send it to a manager; managers give it.
 export async function giveConditionalRole(_: FormState, form: FormData): Promise<FormState> {

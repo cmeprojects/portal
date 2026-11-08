@@ -9,8 +9,16 @@ import { useEffect, useState } from "react";
 type Toast = { id: number; text: string; tone: "success" | "error" };
 const EVENT = "portal:toast";
 
+// A message sent before the pop-up area is ready (on a fresh page load) waits here.
+let waiting: Omit<Toast, "id"> | null = null;
+let ready = false;
+
 export function toast(text: string, tone: Toast["tone"] = "success") {
   if (typeof window === "undefined" || !text) return;
+  if (!ready) {
+    waiting = { text, tone };
+    return;
+  }
   window.dispatchEvent(new CustomEvent<Omit<Toast, "id">>(EVENT, { detail: { text, tone } }));
 }
 
@@ -22,7 +30,16 @@ export function Toaster() {
       setCurrent({ id: Date.now(), text, tone });
     };
     window.addEventListener(EVENT, show);
-    return () => window.removeEventListener(EVENT, show);
+    ready = true;
+    if (waiting) {
+      const w = waiting;
+      waiting = null;
+      queueMicrotask(() => setCurrent({ id: Date.now(), ...w }));
+    }
+    return () => {
+      ready = false;
+      window.removeEventListener(EVENT, show);
+    };
   }, []);
   useEffect(() => {
     if (!current) return;
@@ -45,4 +62,13 @@ export function Toaster() {
       ) : null}
     </div>
   );
+}
+
+// cmeprojects: shows a success message as a pop-up when it appears, instead of
+// a box inside the form. Used by <Notice tone="success">.
+export function ToastOnMount({ text }: { text: string }) {
+  useEffect(() => {
+    toast(text);
+  }, [text]);
+  return null;
 }

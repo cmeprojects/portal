@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { confirmSubmit } from "@/components/confirm";
 import { useActionState, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { CHOICE_COLOUR_CLASS, CHOICE_COLOUR_LABELS, CHOICE_COLOURS, FIELD_TYPE_LABELS, FIELD_TYPES, type FieldType, type Registry, type RegistryField } from "@/lib/registers";
@@ -280,19 +281,16 @@ export function CreateRolesForm({ id, current }: { id: string; current: string[]
 // cmeprojects: delete an unused register, after typing its name.
 export function DeleteRegisterForm({ id, name }: { id: string; name: string }) {
   const [state, action, pending] = useActionState(deleteRegister, null);
-  const [typed, setTyped] = useState("");
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form
+      action={action}
+      onSubmit={confirmSubmit(`Delete ${name}? This can't be undone.`, { action: "Delete register", typeWord: name })}
+      className="flex flex-col gap-2"
+    >
       <input type="hidden" name="id" value={id} />
-      <label htmlFor="confirm-delete" className="text-sm">
-        Type <strong>{name}</strong> to confirm.
-      </label>
-      <div className="flex flex-wrap gap-2">
-        <input id="confirm-delete" value={typed} onChange={(e) => setTyped(e.target.value)} className={`${inputClass} max-w-sm`} autoComplete="off" />
-        <Button variant="danger" disabled={pending || typed.trim() !== name}>
-          {pending ? "Deleting…" : "Delete this register"}
-        </Button>
-      </div>
+      <Button variant="danger" className="self-start" disabled={pending}>
+        {pending ? "Deleting…" : "Delete this register"}
+      </Button>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
     </form>
   );

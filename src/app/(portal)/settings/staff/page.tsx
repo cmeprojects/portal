@@ -1,4 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { photoLinks, type PhotoOwner } from "@/lib/avatars";
+import { Avatar } from "@/components/avatar";
 import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
@@ -58,6 +60,9 @@ export default async function StaffPage() {
       .eq("status", "pending")
       .order("requested_at"),
   ]);
+  // cmeprojects: photos, read on their own so a copy without photos still works.
+  const { data: photoRows } = await supabase.from("profiles").select("id, avatar_ref");
+  const photos = await photoLinks((photoRows ?? []) as PhotoOwner[]);
   // Who the system admin let off two-factor login (read on its own: before update 48 there's no such column).
   const exemptRows = me.role === "system_admin" ? await supabase.from("profiles").select("id, mfa_exempt") : null;
   const mfaExemptOf = (id: string): boolean | null =>
@@ -178,6 +183,7 @@ export default async function StaffPage() {
             lastManager: p.role === "manager" && p.active && activeManagers === 1,
             joined: joined ? joined.has(p.id) : true,
             isMe: p.id === me.id,
+            hasPhoto: Boolean(photos[p.id]),
             editable: roles.includes(p.role as Role) || p.id === me.id,
             teamIds: (memberships ?? []).filter((m) => m.user_id === p.id).map((m) => m.team_id),
             mfaExempt: mfaExemptOf(p.id),
@@ -188,9 +194,7 @@ export default async function StaffPage() {
               {/* cmeprojects: same name = only one person open at a time. */}
               <details name="staff-person" className="group">
                 <summary className="flex min-h-16 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand" aria-hidden="true">
-                    {(p.full_name || p.email).split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
-                  </span>
+                  <Avatar name={p.full_name || p.email} src={photos[p.id]} size={40} className="bg-brand-soft text-brand" />
                   <span className="min-w-48 flex-1">
                     <span className={`block font-semibold ${p.active ? "" : "text-muted"}`}>
                       {p.full_name || "(no name yet)"} {row.isMe ? <span className="font-normal text-muted">(you)</span> : null}

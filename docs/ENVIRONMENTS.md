@@ -99,6 +99,32 @@ Changes flow `dev` → `main` → `release`. A client only gets a change when
 `main` is merged into `release`, and the Demo only when `dev` is merged into
 `main`. Nothing reaches a client by accident.
 
+## Where each key comes from (if you forget)
+
+Vercel hides saved values (the padlock): that's normal, and nobody can read
+them back, you included. Every key can be found again or replaced:
+
+| Key | Where to get it again | If you lose it |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → that copy's project → Project Settings → API | Copy it again |
+| `SUPABASE_SERVICE_ROLE_KEY` | Same page (service_role / secret key) | Copy it again. If it may have leaked, rotate it there, then update Vercel |
+| `CRON_SECRET` | Nowhere: it's a random password you made up | Make a new one, paste it in Vercel, redeploy |
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API keys (shown only once) | Create a new key, paste it in Vercel, delete the old one |
+| `RESEND_API_KEY` | resend.com → API keys (shown only once) | Create a new key, paste it in Vercel, delete the old one |
+
+Keep one password-manager entry per copy (for example "Staff Portal: cme-dev")
+with its database password and these keys. After changing any value in
+Vercel, redeploy.
+
+## Logs in each copy
+
+- **Change log** (Settings → Change log) lives in each copy's own database. A
+  new client starts from a fresh install, so its change log starts empty:
+  nothing to clear, and Development's history never goes to a client.
+- **Deployment history** stays in each Vercel project (Deployments).
+- **Database updates run** are recorded per copy in
+  `supabase/live-updates/README.md`.
+
 ## Keeping the install file current
 
 After adding a migration: `bash scripts/build-install.sh`, then commit

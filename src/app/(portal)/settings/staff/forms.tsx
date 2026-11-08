@@ -6,7 +6,8 @@ import { startTransition, useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
-import { clearCarPin, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, savePerson, sendResetLink, setActive, setMfaExempt, signOutEverywhere } from "./actions";
+import { clearCarPin,
+  removePersonPhoto, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, savePerson, sendResetLink, setActive, setMfaExempt, signOutEverywhere } from "./actions";
 
 type Team = { id: string; name: string };
 
@@ -83,6 +84,8 @@ export type PersonRow = {
   teamIds: string[];
   // Let off two-factor login by the system admin (cmeprojects; null before update 48).
   mfaExempt?: boolean | null;
+  // Has a profile photo (cmeprojects; staff photos).
+  hasPhoto?: boolean;
 };
 
 export function PersonEditor({
@@ -113,6 +116,7 @@ export function PersonEditor({
   const [mfaState, mfaAction, resetting] = useActionState(resetTwoFactor, null);
   const [linkState, linkAction, sendingLink] = useActionState(sendResetLink, null);
   const [pinState, pinAction, clearingPin] = useActionState(clearCarPin, null);
+  const [photoState, photoAction, removingPhoto] = useActionState(removePersonPhoto, null);
   const [outState, outAction, signingOut] = useActionState(signOutEverywhere, null);
   const [mfaExState, mfaExAction, savingMfaEx] = useActionState(setMfaExempt, null);
   // "New starter" is only for people who don't have a role yet.
@@ -126,7 +130,7 @@ export function PersonEditor({
   const label = "text-xs font-semibold tracking-wide text-muted uppercase";
   return (
     <div className="flex flex-col gap-4 border-t border-line pt-4">
-      <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState ?? outState ?? mfaExState} />
+      <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState ?? photoState ?? outState ?? mfaExState} />
       {/* cmeprojects: name, teams and role save together with one button. */}
       <form
         action={saveAction}
@@ -224,6 +228,13 @@ export function PersonEditor({
               <Button variant="outline" disabled={clearingPin}>{clearingPin ? "Clearing…" : "Clear Cars app PIN"}</Button>
             </form>
           </>
+        ) : null}
+        {/* cmeprojects: anyone who can edit this person can remove an unsuitable photo. */}
+        {person.hasPhoto && person.editable && !person.isMe ? (
+          <form action={photoAction} onSubmit={confirmSubmit(`Remove ${person.full_name || person.email}'s photo? Their initials show instead.`, { action: "Remove photo" })}>
+            <input type="hidden" name="id" value={person.id} />
+            <Button variant="outline" disabled={removingPhoto}>{removingPhoto ? "Removing…" : "Remove photo"}</Button>
+          </form>
         ) : null}
         {canResetMfa && person.role !== "system_admin" && person.mfaExempt !== null && person.mfaExempt !== undefined ? (
           <form action={mfaExAction}>

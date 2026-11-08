@@ -1,8 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { askConfirm, confirmSubmit } from "@/components/confirm";
-import { useActionState, useState, useTransition } from "react";
+import { askConfirm, askDetails, confirmSubmit } from "@/components/confirm";
+import { useActionState, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, ROLES } from "@/lib/roles";
@@ -570,7 +570,6 @@ export function AppIconPicker({ setting, uploads, which = "cars" }: { setting: S
 // Demo data: load sample records for a demo, delete only those, or clear every task.
 export function DemoDataPanel() {
   const [state, action, pending] = useActionState(runDemoAction, null);
-  const [confirmText, setConfirmText] = useState("");
   return (
     <div className="flex flex-col gap-4">
       <form action={action} className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
@@ -595,14 +594,18 @@ export function DemoDataPanel() {
           Delete sample records
         </Button>
       </form>
-      <form action={action} className="flex flex-wrap items-end justify-between gap-3">
+      <form
+        action={action}
+        onSubmit={confirmSubmit("Delete every task, real and sample, with its history? This can't be undone.", { action: "Delete every task", typeWord: "DELETE" })}
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
         <input type="hidden" name="what" value="clear-all" />
+        <input type="hidden" name="confirm" value="DELETE" />
         <div className="min-w-56 flex-1">
           <p className="font-semibold text-danger">Delete every task</p>
-          <p className="text-sm text-muted">All tasks, real and sample, with their history. This can&apos;t be undone. Type DELETE to confirm.</p>
-          <input name="confirm" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} aria-label="Type DELETE to confirm" className={`${inputClass} mt-2 max-w-48`} />
+          <p className="text-sm text-muted">All tasks, real and sample, with their history. This can&apos;t be undone.</p>
         </div>
-        <Button variant="danger" disabled={pending || confirmText !== "DELETE"}>
+        <Button variant="danger" disabled={pending}>
           Delete every task
         </Button>
       </form>
@@ -615,33 +618,32 @@ export function DemoDataPanel() {
 // cmeprojects: the Security tab's "Sign everyone out", with a typed confirmation.
 export function SignOutEveryone() {
   const [state, action, pending] = useActionState(signOutEveryone, null);
-  const [confirmText, setConfirmText] = useState("");
-  const [secret, setSecret] = useState("");
+  const form = useRef<HTMLFormElement>(null);
+  const secret = useRef<HTMLInputElement>(null);
   return (
-    <form action={action} className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end gap-3">
-        <input
-          name="confirm"
-          value={confirmText}
-          onChange={(e) => setConfirmText(e.target.value)}
-          placeholder="Type SIGN OUT"
-          aria-label="Type SIGN OUT to confirm"
-          className={`${inputClass} max-w-48`}
-        />
-        <input
-          name="secret"
-          type="password"
-          autoComplete="current-password"
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          placeholder="Your password or 6-digit code"
-          aria-label="Your password, or a 6-digit code from your authenticator app"
-          className={`${inputClass} max-w-64`}
-        />
-        <Button variant="danger" disabled={pending || confirmText !== "SIGN OUT" || !secret}>
-          {pending ? "Signing out…" : "Sign everyone out"}
-        </Button>
-      </div>
+    <form ref={form} action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="confirm" value="SIGN OUT" />
+      <input ref={secret} type="hidden" name="secret" defaultValue="" />
+      <Button
+        type="button"
+        variant="danger"
+        className="self-start"
+        disabled={pending}
+        onClick={() =>
+          void askDetails("Sign everyone out of every phone and computer, except you?", {
+            action: "Sign everyone out",
+            typeWord: "SIGN OUT",
+            secretLabel: "Your password, or a 6-digit code from your authenticator app",
+          }).then((r) => {
+            if (!r || !secret.current) return;
+            secret.current.value = r.secret;
+            form.current?.requestSubmit();
+            secret.current.value = "";
+          })
+        }
+      >
+        {pending ? "Signing out…" : "Sign everyone out"}
+      </Button>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
     </form>

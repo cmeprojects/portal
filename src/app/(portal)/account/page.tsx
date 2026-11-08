@@ -5,7 +5,8 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABELS } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
-import { NameForm, PasswordForm } from "./forms";
+import { NameForm, PasswordForm, PhotoForm } from "./forms";
+import { photoLinks } from "@/lib/avatars";
 import { TurnOffTwoFactor } from "./two-factor";
 import { OtherDevices } from "./devices";
 
@@ -18,6 +19,8 @@ export default async function AccountPage() {
   const factorIds = (factors?.totp ?? []).map((f) => f.id);
   const hasMfa = factorIds.length > 0;
   const switchedOff = features.two_factor === false;
+  const { data: mine } = await supabase.from("profiles").select("id, avatar_ref").eq("id", profile.id).maybeSingle();
+  const photo = mine ? (await photoLinks([mine]))[profile.id] : undefined;
 
   let help: string;
   if (switchedOff) help = "Two-factor login is switched off for everyone at the moment.";
@@ -31,6 +34,12 @@ export default async function AccountPage() {
         <Card className="p-5">
           <NameForm name={profile.full_name} />
         </Card>
+        {/* cmeprojects: only once this copy has staff photos (live update 53). */}
+        {mine ? (
+          <Card className="p-5">
+            <PhotoForm userId={profile.id} name={profile.full_name || profile.email} src={photo} />
+          </Card>
+        ) : null}
         <Card className="flex flex-col gap-3 p-5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="heading-sm">Two-factor login</h2>

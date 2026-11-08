@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
+import { ToastOnMount } from "@/components/toast";
 
 // Buttons: crisp corners, white with a thin border; the main action filled.
 // 44px tall on phones (easy to tap during a shift), compact on bigger screens.
@@ -58,6 +59,9 @@ export function Card({ className = "", ...props }: ComponentProps<"div">) {
 }
 
 export function Notice({ tone = "info", children }: { tone?: "info" | "error" | "success"; children: ReactNode }) {
+  // cmeprojects: success messages pop up across the whole portal; errors and
+  // information stay next to what they're about.
+  if (tone === "success" && typeof children === "string") return <ToastOnMount text={children} />;
   const tones = {
     info: "border-brand/20 bg-brand-soft text-brand",
     error: "border-danger/25 bg-danger-soft text-danger",

@@ -85,3 +85,23 @@ export async function setNewPasswordAfterReset(_: FormState, form: FormData): Pr
   if (problem) return { error: problem };
   return { message: "Password saved." };
 }
+
+// cmeprojects: my profile photo. The database checks the file is in my own folder.
+export async function setMyPhoto(ref: string): Promise<{ error?: string; message?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_my_avatar", { p_ref: ref });
+  if (error) return { error: error.code === "P0001" ? error.message : "That photo didn't save. Please try again." };
+  revalidatePath("/", "layout");
+  return { message: "Photo saved." };
+}
+
+export async function removeMyPhoto(): Promise<{ error?: string; message?: string }> {
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) redirect("/login");
+  const { error } = await supabase.rpc("remove_avatar", { p_user: userId });
+  if (error) return { error: "That didn't work. Please try again." };
+  revalidatePath("/", "layout");
+  return { message: "Photo removed." };
+}

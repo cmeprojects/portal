@@ -1,4 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { photoLinks } from "@/lib/avatars";
+import { Avatar } from "@/components/avatar";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -49,13 +51,13 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   // cmeprojects: a tidy account block. Name and role stay visible; colours
   // and Sign out open from it, so the menu isn't crowded.
   const who = profile.full_name || profile.email;
-  const initials = (profile.full_name || profile.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
+  // Photo, if they have one (read on its own so a copy without photos still works).
+  const { data: mine } = await (await createClient()).from("profiles").select("id, avatar_ref").eq("id", profile.id).maybeSingle();
+  const myPhoto = mine ? (await photoLinks([mine]))[profile.id] : undefined;
   const footer = (
     <details className="group relative">
       <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-side-hover [&::-webkit-details-marker]:hidden">
-        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-side-active text-xs font-semibold text-side-fg">
-          {initials}
-        </span>
+        <Avatar name={who} src={myPhoto} size={36} className="bg-side-active text-side-fg" />
         <span className="min-w-0 flex-1 text-sm">
           <span className="block truncate font-medium text-side-fg">{who}</span>
           <span className="block truncate text-xs text-side-muted">{ROLE_LABELS[profile.role]}</span>

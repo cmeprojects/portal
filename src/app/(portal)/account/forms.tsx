@@ -1,10 +1,58 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { PasswordFields } from "@/components/password-fields";
-import { changePassword, updateMyName } from "@/app/account/actions";
+import { FileUpload } from "@/components/file-upload";
+import { Avatar } from "@/components/avatar";
+import { askConfirm } from "@/components/confirm";
+import { toast } from "@/components/toast";
+import { changePassword, removeMyPhoto, setMyPhoto, updateMyName } from "@/app/account/actions";
+
+// cmeprojects: my profile photo, shown next to my name for signed-in staff.
+export function PhotoForm({ userId, name, src }: { userId: string; name: string; src?: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const done = (r: { error?: string; message?: string }) => {
+    toast(r.error ?? r.message ?? "", r.error ? "error" : "success");
+    if (!r.error) router.refresh();
+  };
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 className="heading-sm">Profile photo</h2>
+      <div className="flex flex-wrap items-center gap-4">
+        <Avatar name={name} src={src} size={72} className="bg-brand-soft text-brand" />
+        <p className="min-w-48 flex-1 text-sm text-muted">A clear, recent photo of your face. Only signed-in staff see it, next to your name.</p>
+      </div>
+      <FileUpload
+        id="photo"
+        bucket="avatars"
+        folder={userId}
+        name="photo"
+        accept="image/jpeg,image/png,image/webp"
+        maxMb={5}
+        onUploaded={(path) => start(async () => done(await setMyPhoto(`avatars/${path}`)))}
+      />
+      {src ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="self-start"
+          disabled={pending}
+          onClick={() =>
+            void askConfirm("Remove your photo? Your initials show instead.", { action: "Remove photo" }).then(
+              (ok) => ok && start(async () => done(await removeMyPhoto())),
+            )
+          }
+        >
+          {pending ? "Saving…" : "Remove photo"}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
 
 export function NameForm({ name }: { name: string }) {
   const [state, action, pending] = useActionState(updateMyName, null);
