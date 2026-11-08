@@ -148,7 +148,7 @@ export function Builder({
           </nav>
 
           {tab === "details" ? (
-            <div className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
+            <div className="flex flex-col divide-y divide-line shadow-card rounded-xl border border-line bg-surface">
               <Section title="About">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Name" htmlFor="b-name">
@@ -263,7 +263,7 @@ export function Builder({
 
           {tab === "fields" ? (
             <div className="flex flex-col gap-4">
-              <ul className="overflow-hidden rounded-lg border border-line bg-surface">
+              <ul className="overflow-hidden shadow-card rounded-xl border border-line bg-surface">
                 {fields.map((f, i) => (
                   <li key={f.id} className="border-t border-line first:border-t-0">
                     <div className="flex items-center gap-2 px-3 py-2.5">
@@ -587,7 +587,7 @@ function Totals({
   const total = numbers.find((f) => f.id === feature.total_field);
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
+    <div className="flex flex-col gap-4 shadow-card rounded-xl border border-line bg-surface p-5">
       <p className="text-sm text-muted">Add up a number each day for each client (for example millilitres of fluid), with a target per client. Staff see the client&apos;s total after saving.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Add up this number" htmlFor="tt-field">
@@ -663,7 +663,7 @@ function ReportPreview({ feature, fields, ctx }: { feature: Feature; fields: Fea
     return { c, sum, target };
   });
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+    <div className="flex flex-col gap-3 shadow-card rounded-xl border border-line bg-surface p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="heading-sm">{feature.name} report</h2>
         <Badge tone="grey">Sample data</Badge>

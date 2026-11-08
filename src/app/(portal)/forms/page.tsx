@@ -94,9 +94,9 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
       <section className="flex flex-col gap-3">
         <h2 className="heading-sm">To fill in · {toFill.length}</h2>
         {toFill.length === 0 ? (
-          <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">Nothing to fill in right now.</p>
+          <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">Nothing to fill in right now.</p>
         ) : (
-          <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
+          <ul className="divide-y divide-line shadow-card rounded-xl border border-line bg-surface">
             {toFill.map((f) => (
               <li key={f.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <span className="min-w-48 flex-1">

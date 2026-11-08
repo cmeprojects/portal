@@ -71,7 +71,7 @@ export function ExportPanel({
           method="get"
           action={`/registers/${registerId}/export`}
           onSubmit={() => setTimeout(() => setOpen(false), 300)}
-          className="absolute top-full right-0 z-40 mt-2 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-4 rounded-lg border border-line bg-surface p-4 text-ink shadow-lg"
+          className="absolute top-full right-0 z-40 mt-2 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-4 shadow-card rounded-xl border border-line bg-surface p-4 text-ink shadow-lg"
         >
           <p className="heading-sm">Download for Excel</p>
 

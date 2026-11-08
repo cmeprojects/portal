@@ -206,7 +206,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
                   {/* A quick look on hover (or keyboard focus): what it's about and when it last moved. */}
                   <div
                     role="tooltip"
-                    className="pointer-events-none invisible absolute top-full left-5 z-20 mt-1 w-[min(28rem,calc(100%-2.5rem))] rounded-lg border border-line bg-surface p-4 text-sm opacity-0 shadow-lg transition-opacity delay-300 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100 print:hidden"
+                    className="pointer-events-none invisible absolute top-full left-5 z-20 mt-1 w-[min(28rem,calc(100%-2.5rem))] shadow-card rounded-xl border border-line bg-surface p-4 text-sm opacity-0 shadow-lg transition-opacity delay-300 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100 print:hidden"
                   >
                     <p className="font-semibold">{t.title}</p>
                     <p className="mt-1 line-clamp-4 whitespace-pre-line text-muted">{t.description?.trim() || "No details added."}</p>

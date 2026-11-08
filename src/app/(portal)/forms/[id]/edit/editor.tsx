@@ -107,7 +107,7 @@ export function FormEditor({
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-5">
+          <div className="flex flex-col gap-3 shadow-card rounded-xl border border-line bg-surface p-5">
             <Field label="Name of the form" htmlFor="fm-title">
               <input id="fm-title" value={form.title} maxLength={120} onChange={(e) => set("title", e.target.value)} className={inputClass} />
             </Field>
@@ -118,7 +118,7 @@ export function FormEditor({
 
           <ol className="flex flex-col gap-3">
             {questions.map((q, i) => (
-              <li key={q.id} className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+              <li key={q.id} className="flex flex-col gap-3 shadow-card rounded-xl border border-line bg-surface p-4">
                 <div className="flex items-start gap-2">
                   <span className="mt-3 w-6 shrink-0 text-sm font-semibold text-muted">{i + 1}.</span>
                   <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[1fr_12rem]">
@@ -215,7 +215,7 @@ export function FormEditor({
           </Button>
           {replies ? <p className="text-xs text-muted">{replies} {replies === 1 ? "reply" : "replies"} so far. Removing a question hides it; answers already given are kept.</p> : null}
 
-          <fieldset className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-5">
+          <fieldset className="flex flex-col gap-3 shadow-card rounded-xl border border-line bg-surface p-5">
             <legend className="px-1 text-sm font-semibold">Options</legend>
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
               <label className="flex items-center gap-2">

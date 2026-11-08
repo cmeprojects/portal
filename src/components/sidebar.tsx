@@ -67,8 +67,8 @@ export function Sidebar({
                       href={item.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? "page" : undefined}
-                      className={`flex min-h-11 items-center rounded-md px-3 text-sm font-medium md:min-h-9 ${
-                        active ? "bg-side-active text-side-fg" : "text-side-muted hover:bg-side-hover hover:text-side-fg"
+                      className={`flex min-h-11 items-center rounded-lg px-3 text-sm transition-colors md:min-h-9 ${
+                        active ? "bg-side-active font-semibold text-side-fg" : "font-medium text-side-muted hover:bg-side-hover hover:text-side-fg"
                       }`}
                     >
                       {item.label}

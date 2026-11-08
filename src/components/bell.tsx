@@ -51,7 +51,7 @@ export function Bell({ items }: { items: BellItem[] }) {
       </button>
 
       {open ? (
-        <div className="absolute top-full right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-line bg-surface text-ink shadow-lg md:fixed md:top-4 md:right-auto md:left-[238px] md:mt-0">
+        <div className="absolute top-full right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden shadow-card rounded-xl border border-line bg-surface text-ink shadow-lg md:fixed md:top-4 md:right-auto md:left-[238px] md:mt-0">
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
             <p className="heading-sm">Notifications{count ? ` · ${count} new` : ""}</p>
             {count ? (

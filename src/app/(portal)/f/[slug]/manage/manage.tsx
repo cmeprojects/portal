@@ -49,7 +49,7 @@ export function Manage({ feature, fields, ctx, entries, can }: { feature: Featur
       ) : null}
       {tab === "fix" ? <FixEntries fields={fields} ctx={ctx} entries={entries} totalField={feature.total_field} /> : null}
       {tab === "targets" ? (
-        <div className="rounded-lg border border-line bg-surface p-5">
+        <div className="shadow-card rounded-xl border border-line bg-surface p-5">
           <TargetsEditor featureId={feature.id} unit={total?.unit ?? ""} clients={ctx.clients} targets={ctx.targets} defaultTarget={feature.default_target} />
         </div>
       ) : null}
@@ -96,8 +96,8 @@ function FixEntries({ fields, ctx, entries, totalField }: { fields: FeatureField
           </Field>
         ) : null}
       </div>
-      {list.length === 0 ? <p className="rounded-lg border border-line bg-surface px-4 py-4 text-sm text-muted">No entries yet.</p> : null}
-      <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface text-sm">
+      {list.length === 0 ? <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-4 text-sm text-muted">No entries yet.</p> : null}
+      <ul className="divide-y divide-line overflow-hidden shadow-card rounded-xl border border-line bg-surface text-sm">
         {list.map((e) => (
           <li key={e.id}>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
@@ -250,7 +250,7 @@ function Input({ f, id, value, onChange, ctx }: { f: FeatureField; id: string; v
 }
 
 function Options({ fields }: { fields: FeatureField[] }) {
-  if (fields.length === 0) return <p className="rounded-lg border border-line bg-surface px-4 py-4 text-sm text-muted">This feature has no drop-downs.</p>;
+  if (fields.length === 0) return <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-4 text-sm text-muted">This feature has no drop-downs.</p>;
   return (
     <div className="flex flex-col gap-4">
       {fields.map((f) => (
@@ -274,7 +274,7 @@ function OptionList({ f }: { f: FeatureField }) {
   };
 
   return (
-    <section className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-5">
+    <section className="flex flex-col gap-2 shadow-card rounded-xl border border-line bg-surface p-5">
       <h2 className="font-semibold">{f.label}</h2>
       {f.add_typed ? <p className="text-xs text-muted">Answers staff type themselves are added here automatically.</p> : null}
       <div className="flex flex-wrap gap-2">

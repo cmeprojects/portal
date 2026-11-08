@@ -51,7 +51,7 @@ export default async function EnquiriesPage({ searchParams }: PageProps<"/enquir
       </nav>
 
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">{all.length ? "None at this stage." : "No enquiries yet."}</p>
+        <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">{all.length ? "None at this stage." : "No enquiries yet."}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {rows.map((e) => (

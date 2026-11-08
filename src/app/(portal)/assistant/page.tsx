@@ -112,9 +112,9 @@ export default async function AssistantPage() {
           <AddDocumentForm />
         </Card>
         {(docs ?? []).length === 0 ? (
-          <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">No documents yet. The Assistant can&apos;t answer anything until you add some.</p>
+          <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">No documents yet. The Assistant can&apos;t answer anything until you add some.</p>
         ) : (
-          <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
+          <ul className="divide-y divide-line shadow-card rounded-xl border border-line bg-surface">
             {(docs ?? []).map((d) => (
               <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-48 flex-1">
@@ -165,9 +165,9 @@ export default async function AssistantPage() {
           A record that fills in by itself as people use the website (no names), so it can&apos;t be edited. Questions it couldn&apos;t answer show first: upload a document that covers them and it will answer next time.
         </p>
         {log.length === 0 ? (
-          <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">No questions yet.</p>
+          <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">No questions yet.</p>
         ) : (
-          <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
+          <ul className="divide-y divide-line shadow-card rounded-xl border border-line bg-surface">
             {log.map((q) => (
               <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
                 <span className="min-w-48 flex-1">{q.question}</span>

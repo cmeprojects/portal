@@ -116,7 +116,7 @@ async function loadPlatform() {
 
 function Panel({ title, children, action, className = "" }: { title: string; children: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <section className={`flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 ${className}`}>
+    <section className={`flex flex-col gap-3 shadow-card rounded-xl border border-line bg-surface p-4 ${className}`}>
       <header className="flex items-center justify-between gap-2 border-b border-line pb-2">
         <h2 className="text-sm font-semibold tracking-wide text-ink uppercase">{title}</h2>
         {action}

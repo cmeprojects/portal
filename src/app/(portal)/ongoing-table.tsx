@@ -201,7 +201,7 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
   const choices = people.filter((p) => p.id !== row.assignedTo && !helperIds.has(p.id));
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4">
+    <div className="flex flex-col gap-4 shadow-card rounded-xl border border-line bg-surface p-4">
       <Result state={statusState ?? reassignState ?? helperState} />
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="flex flex-col gap-3">
@@ -511,7 +511,7 @@ export function TaskPeek({
       {show ? (
         <div
           role="tooltip"
-          className="pointer-events-none absolute top-full left-5 z-40 mt-1 hidden w-[min(26rem,calc(100%-2.5rem))] flex-col gap-2 rounded-lg border border-line bg-surface p-4 text-ink shadow-xl md:flex print:hidden"
+          className="pointer-events-none absolute top-full left-5 z-40 mt-1 hidden w-[min(26rem,calc(100%-2.5rem))] flex-col gap-2 shadow-card rounded-xl border border-line bg-surface p-4 text-ink shadow-xl md:flex print:hidden"
         >
           {snap === "loading" ? (
             <p className="text-sm text-muted">Loading…</p>

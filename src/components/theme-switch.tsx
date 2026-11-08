@@ -48,7 +48,7 @@ export function ThemeSwitch({ onPage = false }: { onPage?: boolean }) {
   const theme = useSyncExternalStore(subscribe, read, () => "device" as Theme);
   if (onPage) {
     return (
-      <div role="group" aria-label="Colours" className="flex w-full max-w-sm rounded-lg border border-line bg-surface p-1 text-sm">
+      <div role="group" aria-label="Colours" className="flex w-full max-w-sm shadow-card rounded-xl border border-line bg-surface p-1 text-sm">
         {OPTIONS.map((o) => (
           <button
             key={o.value}

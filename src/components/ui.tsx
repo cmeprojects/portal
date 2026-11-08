@@ -4,17 +4,19 @@ import Link from "next/link";
 
 // Buttons: crisp corners, white with a thin border; the main action filled.
 // 44px tall on phones (easy to tap during a shift), compact on bigger screens.
+// cmeprojects: one set of button styles for the whole portal, each with clear
+// hover, pressed, focus and disabled states.
 const BUTTON = {
-  primary: "border-brand bg-brand text-brand-fg hover:opacity-90",
-  secondary: "border-transparent bg-brand-soft text-brand hover:border-brand/40",
-  outline: "border-field bg-surface text-ink hover:border-muted",
-  danger: "border-field bg-surface text-danger hover:border-danger",
+  primary: "border-brand bg-brand text-brand-fg shadow-sm hover:brightness-110",
+  secondary: "border-transparent bg-brand-soft text-brand hover:border-brand/30",
+  outline: "border-field bg-surface text-ink shadow-sm hover:border-muted hover:bg-page",
+  danger: "border-field bg-surface text-danger shadow-sm hover:border-danger hover:bg-danger-soft",
 };
 
 // "sm": a quieter, smaller button for rows of actions (still 36px to tap).
 export function buttonClass(variant: keyof typeof BUTTON = "primary", extra = "", size: "md" | "sm" = "md") {
   const box = size === "sm" ? "min-h-9 px-3 text-[13px] md:min-h-8" : "min-h-11 px-4 text-sm md:min-h-10";
-  return `inline-flex items-center justify-center gap-2 rounded-md border font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${box} ${BUTTON[variant]} ${extra}`;
+  return `inline-flex items-center justify-center gap-2 rounded-lg border font-semibold transition-[color,background-color,border-color,filter,transform] duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 ${box} ${BUTTON[variant]} ${extra}`;
 }
 
 export function Button({
@@ -27,7 +29,7 @@ export function Button({
 }
 
 export const inputClass =
-  "h-11 w-full rounded-md border border-field bg-surface px-3 text-base text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none md:text-sm";
+  "h-11 w-full rounded-lg border border-field bg-surface px-3 text-base text-ink transition-[border-color,box-shadow] placeholder:text-muted/70 focus:border-brand focus:ring-3 focus:ring-brand/15 focus:outline-none disabled:bg-page disabled:text-muted md:text-sm";
 
 export function Field({
   label,
@@ -42,7 +44,7 @@ export function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm font-medium">
+      <label htmlFor={htmlFor} className="text-sm font-medium text-ink">
         {label}
       </label>
       {children}
@@ -52,17 +54,17 @@ export function Field({
 }
 
 export function Card({ className = "", ...props }: ComponentProps<"div">) {
-  return <div className={`rounded-lg border border-line bg-surface ${className}`} {...props} />;
+  return <div className={`shadow-card rounded-xl border border-line bg-surface ${className}`} {...props} />;
 }
 
 export function Notice({ tone = "info", children }: { tone?: "info" | "error" | "success"; children: ReactNode }) {
   const tones = {
-    info: "bg-brand-soft text-brand",
-    error: "bg-danger-soft text-danger",
-    success: "bg-good-soft text-good",
+    info: "border-brand/20 bg-brand-soft text-brand",
+    error: "border-danger/25 bg-danger-soft text-danger",
+    success: "border-good/25 bg-good-soft text-good",
   };
   return (
-    <p role={tone === "error" ? "alert" : "status"} className={`rounded-md px-4 py-3 text-sm ${tones[tone]}`}>
+    <p role={tone === "error" ? "alert" : "status"} className={`rounded-lg border px-4 py-3 text-sm leading-relaxed ${tones[tone]}`}>
       {children}
     </p>
   );
@@ -87,9 +89,9 @@ export function PageHeader({ eyebrow, title, intro, action }: { eyebrow?: string
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        {eyebrow ? <p className="text-xs font-medium tracking-widest text-muted uppercase">{eyebrow}</p> : null}
+        {eyebrow ? <p className="mb-1 text-xs font-semibold tracking-wider text-muted uppercase">{eyebrow}</p> : null}
         <h1 className="heading">{title}</h1>
-        {intro ? <p className="mt-1 max-w-2xl text-sm text-muted">{intro}</p> : null}
+        {intro ? <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{intro}</p> : null}
       </div>
       {action}
     </div>

@@ -46,23 +46,38 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   // Their role changed (while signed in): a banner until they've seen it.
   const roleChange = notices.find((n) => n.kind === "role_changed" && !n.read);
 
+  // cmeprojects: a tidy account block. Name and role stay visible; colours,
+  // About and Sign out open from it, so the menu isn't crowded.
+  const who = profile.full_name || profile.email;
+  const initials = (profile.full_name || profile.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
   const footer = (
-    <div className="flex flex-wrap items-center justify-between gap-3 md:flex-col md:items-start">
-      <div className="min-w-0 text-sm">
-        <p className="truncate font-medium text-side-fg">{profile.full_name || profile.email}</p>
-        <p className="text-xs text-side-muted">{ROLE_LABELS[profile.role]}</p>
+    <details className="group relative">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-side-hover [&::-webkit-details-marker]:hidden">
+        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-side-active text-xs font-semibold text-side-fg">
+          {initials}
+        </span>
+        <span className="min-w-0 flex-1 text-sm">
+          <span className="block truncate font-medium text-side-fg">{who}</span>
+          <span className="block truncate text-xs text-side-muted">{ROLE_LABELS[profile.role]}</span>
+        </span>
+        <span aria-hidden="true" className="text-xs text-side-muted transition-transform group-open:rotate-180">
+          ▴
+        </span>
+        <span className="sr-only">Account menu</span>
+      </summary>
+      <div className="mt-2 flex flex-col gap-3 rounded-lg bg-side-hover p-3">
+        <ThemeSwitch />
+        <form action={signOut}>
+          <button className="min-h-9 text-sm font-semibold text-side-fg hover:underline">Sign out</button>
+        </form>
+        <p className="text-[11px] text-side-muted">
+          Built by cmeproject ·{" "}
+          <Link href="/about" className="underline hover:text-side-fg">
+            About
+          </Link>
+        </p>
       </div>
-      <form action={signOut}>
-        <button className="min-h-9 text-xs text-side-muted underline hover:text-side-fg">Sign out</button>
-      </form>
-      <ThemeSwitch />
-      <p className="text-[11px] text-side-muted">
-        Built by cmeproject ·{" "}
-        <Link href="/about" className="underline hover:text-side-fg">
-          About
-        </Link>
-      </p>
-    </div>
+    </details>
   );
 
   return (

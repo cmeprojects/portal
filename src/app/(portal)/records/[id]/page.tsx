@@ -86,7 +86,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<"/r
             </dl>
           </Card>
           {manages ? (
-            <details className="rounded-lg border border-line bg-surface">
+            <details className="shadow-card rounded-xl border border-line bg-surface">
               <summary className="flex min-h-14 cursor-pointer list-none items-center px-5 font-semibold text-brand">Edit</summary>
               <div className="px-5 pb-5">
                 <RecordForm

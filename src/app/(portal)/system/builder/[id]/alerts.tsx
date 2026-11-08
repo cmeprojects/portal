@@ -68,7 +68,7 @@ export function Alerts({ feature, fields, staff, alerts, dirty }: { feature: Fea
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
+    <div className="flex flex-col gap-4 shadow-card rounded-xl border border-line bg-surface p-5">
       <p className="text-sm text-muted">
         Tell people the moment an entry is saved that needs attention, by the bell, email or both. The person who made the entry isn&apos;t told.
       </p>

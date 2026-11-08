@@ -52,7 +52,7 @@ export default async function AboutPage() {
             <h2 className="font-display text-xl font-semibold">Our services</h2>
             <ul className="grid gap-2 sm:grid-cols-2">
               {site.services.map((s) => (
-                <li key={s} className="rounded-lg border border-line bg-surface px-4 py-3">
+                <li key={s} className="shadow-card rounded-xl border border-line bg-surface px-4 py-3">
                   {s}
                 </li>
               ))}

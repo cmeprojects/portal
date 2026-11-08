@@ -58,7 +58,7 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
       </div>
       {params.saved ? <Notice tone="success">Saved. Car reports opens like this for you next time.</Notice> : null}
 
-      <details className="group rounded-lg border border-line bg-surface print:hidden" open={!Object.keys(params).length}>
+      <details className="group shadow-card rounded-xl border border-line bg-surface print:hidden" open={!Object.keys(params).length}>
         <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
           <span className="min-w-0 flex-1 text-sm">
             <span className="font-semibold">{KIND_LABELS[f.kind]}</span>

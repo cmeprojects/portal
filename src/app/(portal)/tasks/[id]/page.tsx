@@ -248,7 +248,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           ) : null}
 
           {canEdit && open ? (
-            <details name="task-edit" className="rounded-lg border border-line bg-surface print:hidden">
+            <details name="task-edit" className="shadow-card rounded-xl border border-line bg-surface print:hidden">
               <summary className="flex min-h-14 cursor-pointer list-none items-center px-5 font-semibold text-brand">Edit details</summary>
               <div className="px-5 pb-5">
                 <EditDetailsForm

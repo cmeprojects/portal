@@ -65,7 +65,7 @@ export default async function FeatureReportPage({ params, searchParams }: PagePr
         />
       </div>
 
-      <details className="group rounded-lg border border-line bg-surface print:hidden">
+      <details className="group shadow-card rounded-xl border border-line bg-surface print:hidden">
         <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
           <span className="min-w-0 flex-1 text-sm">
             <span className="font-semibold">{FEATURE_KIND_LABELS[f.kind]}</span>

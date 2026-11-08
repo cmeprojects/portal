@@ -91,7 +91,7 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
 
       <Tabs label="Report view" items={(Object.keys(VIEW_LABELS) as ComplianceView[]).map((v) => ({ href: viewLink(v), text: VIEW_LABELS[v], current: v === f.view }))} />
 
-      <details className="group rounded-lg border border-line bg-surface print:hidden">
+      <details className="group shadow-card rounded-xl border border-line bg-surface print:hidden">
         <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
           <span className="min-w-0 flex-1 text-sm">
             <span className="font-semibold">Showing</span>

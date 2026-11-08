@@ -437,7 +437,7 @@ function Saved({
       {client && result.today.length ? (
         <div className="flex flex-col gap-2">
           <h3 className="text-sm font-semibold">{client.name} today</h3>
-          <ul className="divide-y divide-line rounded-lg border border-line bg-surface text-sm">
+          <ul className="divide-y divide-line shadow-card rounded-xl border border-line bg-surface text-sm">
             {result.today.map((r) => (
               <li key={r.id} className="flex justify-between gap-3 px-3 py-2">
                 <span className="text-muted tabular-nums">{timeOf(r.created_at, props.timeZone)}</span>
