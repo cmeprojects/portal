@@ -46,8 +46,8 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   // Their role changed (while signed in): a banner until they've seen it.
   const roleChange = notices.find((n) => n.kind === "role_changed" && !n.read);
 
-  // cmeprojects: a tidy account block. Name and role stay visible; colours,
-  // About and Sign out open from it, so the menu isn't crowded.
+  // cmeprojects: a tidy account block. Name and role stay visible; colours
+  // and Sign out open from it, so the menu isn't crowded.
   const who = profile.full_name || profile.email;
   const initials = (profile.full_name || profile.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
   const footer = (
@@ -70,14 +70,28 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         <form action={signOut}>
           <button className="min-h-9 text-sm font-semibold text-side-fg hover:underline">Sign out</button>
         </form>
-        <p className="text-[11px] text-side-muted">
-          Built by cmeproject ·{" "}
-          <Link href="/about" className="underline hover:text-side-fg">
-            About
-          </Link>
-        </p>
       </div>
     </details>
+  );
+  // cmeprojects: always shown under the account block. The system admin also
+  // sees which branch and version this copy runs, so a wrong Vercel setting
+  // (for example a copy still on main) is easy to spot.
+  const branch = process.env.VERCEL_GIT_COMMIT_REF;
+  const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
+  const credits = (
+    <div className="mt-2 px-2 text-[11px] text-side-muted">
+      <p>
+        Built by cmeproject ·{" "}
+        <Link href="/about" className="underline hover:text-side-fg">
+          About
+        </Link>
+      </p>
+      {profile.role === "system_admin" && commit ? (
+        <p className="mt-0.5 font-mono" title="The branch and version this copy is running">
+          {branch} · {commit}
+        </p>
+      ) : null}
+    </div>
   );
 
   return (
@@ -86,7 +100,12 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         groups={navFor(profile.role, features, await getNavAccess(profile.role))}
         brandMark={<BrandMark brand={brand} />}
         bell={<Bell items={bellItems} />}
-        footer={footer}
+        footer={
+          <>
+            {footer}
+            {credits}
+          </>
+        }
       />
       <IdleLogout minutes={idleMinutes} signedInAt={signedInAt} />
       {/* Menus, settings, the bell and task lists stay current; pages refresh when you come back to them. */}

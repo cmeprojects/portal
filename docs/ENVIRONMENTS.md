@@ -72,6 +72,33 @@ Code goes out automatically when you merge. Database updates are run per copy
    first person in a new copy becomes its **system admin**. Sign in at
    `<address>/login` and set up two-factor login.
 
+## Check every copy after setting it up (cmeprojects)
+
+The one setting that's easy to miss: Vercel only shows a branch at the copy's
+address if it's that project's **Production branch**. Otherwise pushes become
+"Preview" builds at a different address, and the copy looks unchanged.
+
+| Copy | Vercel project | Production branch | `NEXT_PUBLIC_ENV_LABEL` | Variables ticked for |
+|---|---|---|---|---|
+| Development | `cme-dev` | `dev` | `DEVELOPMENT` | Production and Preview |
+| Demo | `cme-demo` | `main` | `DEMO` | Production and Preview |
+| Each client | `client-<name>` | `release` | not set | Production |
+
+After setting up or changing a copy:
+
+1. Open the copy and sign in as the system admin. Under your name, at the
+   bottom of the menu, check the **branch · version** line. It must name the
+   branch in the table (for example `dev · e32cf4b`).
+2. Development and Demo show the amber label bar, on the sign-in page too.
+   Clients don't.
+3. Vercel → Deployments: the top one is marked **Production** and **Ready**.
+4. If something looks unchanged: Deployments → ⋯ → Redeploy, with **Use
+   existing Build Cache** unticked, then refresh the page (Ctrl+Shift+R).
+
+Changes flow `dev` → `main` → `release`. A client only gets a change when
+`main` is merged into `release`, and the Demo only when `dev` is merged into
+`main`. Nothing reaches a client by accident.
+
 ## Keeping the install file current
 
 After adding a migration: `bash scripts/build-install.sh`, then commit
