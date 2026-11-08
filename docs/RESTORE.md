@@ -62,8 +62,18 @@ Everything up to the colourful platform dashboard and round 3.
 - **Code:** branch `restore-update-47` (commit `83fa23b`).
 - **Database:** nothing new yet; updates 46 and 47 have their own undo files.
 
+## Before the full system audit (after live update 52)
+
+The Development copy exactly as it was before the audit and polish work.
+
+- **Code:** branch `restore-before-audit` (commit `8b621d5`).
+  - Go back on Vercel: cme-dev → Settings → Git → Production Branch =
+    `restore-before-audit`, then redeploy. Set it back to `dev` afterwards.
+- **Database:** updates 1 to 52. The audit avoids database changes; any it
+  does need come as `update-NN.sql` with its own `undo-NN.sql`.
+
 ## Habit for every big change
 
-1. Make a branch from `main` named `restore-update-NN` before starting.
+1. Make a branch from the working branch (`dev`) named `restore-…` before starting.
 2. Give every database change an `undo-NN.sql` next to its `update-NN.sql`.
 3. Ship it switched off, then switch it on.
