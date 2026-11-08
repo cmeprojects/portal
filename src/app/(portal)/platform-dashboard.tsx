@@ -133,7 +133,7 @@ function Hover({ children, details, label }: { children: ReactNode; details: Rea
       {children}
       <div
         role="tooltip"
-        className="pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-2 w-72 -translate-x-1/2 rounded-md border border-line bg-surface p-3 text-left text-xs text-ink opacity-0 shadow-xl transition-opacity group-hover/hover:visible group-hover/hover:opacity-100 group-focus/hover:visible group-focus/hover:opacity-100"
+        className="pointer-events-none invisible absolute bottom-full max-md:hidden left-1/2 z-50 mb-2 w-72 -translate-x-1/2 rounded-md border border-line bg-surface p-3 text-left text-xs text-ink opacity-0 shadow-xl transition-opacity group-hover/hover:visible group-hover/hover:opacity-100 group-focus/hover:visible group-focus/hover:opacity-100"
       >
         {details}
       </div>

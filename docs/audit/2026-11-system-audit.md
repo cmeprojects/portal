@@ -87,3 +87,21 @@ Before real staff use it, check the services in #21 on the live Development copy
 | Workflow retest | 55 of 56 passed. The 1 failure was the test reading the address before the redirect finished; the same check passed in a real browser (10 of 10 admin pages blocked for a support worker). |
 | Downloads | 13 of 13 shown downloads open, for every role |
 | Confirmation box | Cancel changes nothing; confirming carries out the action; no plain browser pop-ups |
+
+## Round 2: design refresh (8 November 2026)
+
+- **Checkpoint:** branch `restore-before-design` (commit `c22be46`). The database was not changed.
+- **Method:** made in the shared design kit, so every page changed together and no page was styled on its own.
+
+| Module | Change | Tested |
+|---|---|---|
+| Design kit | Sentence-case page and section headings instead of spaced capitals. A calmer page colour and lines. One soft card shadow everywhere, including 39 hand-built boxes. Buttons with clear hover, pressed, focus and disabled states. Inputs with a focus ring. Bordered notices. | Screenshots on desktop and phone; lint, typecheck, build |
+| Sidebar | The crowded footer (name, sign-out link, colour switcher, credits) became one account block (initials, name, role) that opens to Colours, Sign out and About. Clearer active menu item. | Colour choice and Sign out tested on desktop and phone |
+| Regression | The task workflow end to end, plus a re-crawl as system admin, support worker and visitor. | See results below |
+
+Found in round 2 and fixed:
+
+- **System admin dashboard on a phone (Medium):** invisible hover tooltips stuck out past the screen edge, so the page scrolled sideways. The first crawls never reached this page because the setup wizard showed instead. Tooltips are now hidden on small screens, where there's no hover. Retested: the page is exactly phone width.
+- **Closed website heading (Low):** the default said "Our website is coming soon". It now says "Thanks for stopping by" (the system admin can still change it in Website settings).
+
+Left for a later pass (lower value, or more risk than they're worth now): card layouts for wide tables on phones (they scroll sideways today), icons on dashboard number tiles, and putting form messages in the same place everywhere.

@@ -272,7 +272,7 @@ export async function getWebsiteContent(portalLogo: string): Promise<WebsiteCont
     siteUrl: text("website.site_url").replace(/\/+$/, ""),
     seoTitle: text("website.seo_title"),
     seoDescription: text("website.seo_description"),
-    closedTitle: text("website.closed_title") || "Our website is coming soon",
+    closedTitle: text("website.closed_title") || "Thanks for stopping by",
     closedText: text("website.closed_text") || "In the meantime, please call us, or sign in if you're part of the team.",
   };
 }
