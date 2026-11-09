@@ -7,6 +7,8 @@ drop trigger if exists guard_cleared_tasks on public.tasks;
 drop trigger if exists guard_cleared_trips on public.car_trips;
 drop trigger if exists compliance_record_changed on public.compliance_records;
 drop trigger if exists role_given_finish_onboarding on public.profiles;
+drop trigger if exists mandatory_training_needs_certificate on public.compliance_items;
+drop function if exists public.mandatory_training_needs_certificate();
 drop function if exists public.guard_cleared_tasks();
 drop function if exists public.guard_cleared_trips();
 drop function if exists public.compliance_record_changed();

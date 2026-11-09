@@ -120,6 +120,24 @@ as $$
          or (public.my_role() = 'staff_admin' and 'staff_admin' = any (public.setting_roles('compliance.clearance_roles'))))
 $$;
 
+-- A mandatory training (needed before working) always asks for a certificate.
+create or replace function public.mandatory_training_needs_certificate()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.kind = 'training' and new.before_work then
+    new.certificate := 'required';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists mandatory_training_needs_certificate on public.compliance_items;
+create trigger mandatory_training_needs_certificate before insert or update on public.compliance_items
+  for each row execute function public.mandatory_training_needs_certificate();
+update public.compliance_items set certificate = 'required' where kind = 'training' and before_work and certificate <> 'required';
+
 -- Which items apply: role, team and now job title.
 create or replace function public.compliance_applies(p_item public.compliance_items, p_role public.app_role, p_teams uuid[], p_title uuid)
 returns boolean
@@ -168,7 +186,7 @@ begin
          r.id, r.expires_on, coalesce(r.review_note, ''), i.sort_order,
          i.before_work, i.category,
          -- Has a file someone must check (uploads, and trainings with a certificate).
-         (i.kind = 'upload' or (i.kind = 'training' and r.file_path is not null) or (i.kind = 'training' and r.id is null and i.certificate = 'required'))
+         (i.kind = 'upload' or (i.kind = 'training' and r.file_path is not null) or (i.kind = 'training' and (i.certificate = 'required' or i.before_work)))
     from public.compliance_items i
     left join lateral (
       select * from public.compliance_records cr
@@ -409,8 +427,9 @@ begin
   if p_completed_on is null or p_completed_on > public.local_today() then
     raise exception 'Enter the date you completed it (not in the future)';
   end if;
-  if i.certificate = 'required' and p_path is null then
-    raise exception 'Upload your certificate';
+  -- Mandatory trainings (needed before working) always need a certificate.
+  if (i.certificate = 'required' or i.before_work) and p_path is null then
+    raise exception 'Upload your certificate to complete this training';
   end if;
   if p_path is not null and p_path not like auth.uid()::text || '/%' then
     raise exception 'Upload the certificate again';

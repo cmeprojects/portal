@@ -27,13 +27,14 @@ update public.compliance_items set active = false;
 alter table public.compliance_items disable trigger compliance_items_guard;
 insert into public.compliance_items (id, kind, title, body, before_work, certificate, needs_expiry, needs_number, active, sort_order) values
   ('00000000-0000-0000-0000-0000000000a1', 'read', 'Code of conduct', 'Be kind.', true, 'optional', false, false, true, 1),
-  ('00000000-0000-0000-0000-0000000000a2', 'training', 'NDIS orientation', '', true, 'required', false, false, true, 2),
+  ('00000000-0000-0000-0000-0000000000a2', 'training', 'NDIS orientation', '', true, 'none', false, false, true, 2),
   ('00000000-0000-0000-0000-0000000000a3', 'upload', 'Screening check', '', true, 'optional', true, true, true, 3),
   ('00000000-0000-0000-0000-0000000000a4', 'upload', 'Driver''s licence', '', false, 'optional', false, false, true, 4),
   ('00000000-0000-0000-0000-0000000000a5', 'agreement', 'Employment agreement', 'Terms.', true, 'optional', false, false, true, 5);
 alter table public.compliance_items enable trigger compliance_items_guard;
 update public.registries set cleared_only = true where is_default and kind = 'tasks';
 
+select test.ok((select certificate = 'required' from public.compliance_items where id = '00000000-0000-0000-0000-0000000000a2'), 'a mandatory training always asks for a certificate, whatever it was set to');
 select test.ok(not public.can_work(test.pid('new@example.com')), 'a new starter isn''t cleared to work');
 select test.ok(public.can_work(test.pid('sam@example.com')) is false, 'staff added after the update need clearing too');
 
