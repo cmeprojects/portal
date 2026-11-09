@@ -138,6 +138,8 @@ export function navFor(
         ...sectionItem("people", role, features, access),
         // cmeprojects: the staff directory, for everyone (HR Pack → Staff profiles).
         ...(features.hr_profiles !== false && role !== "system_admin" ? [{ href: "/people", label: "Directory" }] : []),
+        // cmeprojects: My requests (HR Pack); the system admin sees everyone's.
+        ...(features.hr_requests !== false && role !== "new_starter" ? [{ href: "/requests", label: role === "system_admin" ? "Requests" : "My requests" }] : []),
         ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
         ...sectionItem("reports", role, features, access),
         ...sectionItem("settings", role, features, access),

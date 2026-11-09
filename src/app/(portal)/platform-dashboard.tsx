@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { LogIn, MailQuestion, Rocket, Users } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -7,7 +8,6 @@ import { assistantUsage } from "@/lib/assistant";
 import { getTimeZone } from "@/lib/settings";
 import { BUCKET_LABELS, LIMITS, bytes, level, type Level, type Plan } from "@/lib/health";
 import { ROLE_LABELS, ROLES, isRole } from "@/lib/roles";
-import { PageHeader } from "@/components/ui";
 import { Bars, Gauge, Hover, LineChart, Panel, Tile } from "@/components/dash";
 
 // cmeprojects: the system admin's home. The system admin is never given
@@ -157,16 +157,36 @@ function PlatformView({ name, d }: { name: string; d: Awaited<ReturnType<typeof 
 
   return (
     <>
-      <PageHeader
-        title={`Platform${name ? ` · ${name.split(" ")[0]}` : ""}`}
-        intro="How the portal is doing. You're never given tasks; everyone's work is under Tasks. Hover a meter for details."
-      />
+      {/* cmeprojects: a branded banner with the headline numbers. */}
+      <section className="relative overflow-hidden rounded-xl bg-brand-dark px-6 py-6 text-side-fg shadow-card sm:px-8">
+        <div aria-hidden="true" className="pointer-events-none absolute -top-20 -right-16 size-72 rounded-full bg-white/5" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 left-1/3 size-64 rounded-full bg-[var(--brand-accent)]/15" />
+        <div className="relative flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.2em] text-side-muted uppercase">Platform</p>
+            <h1 className="font-display text-3xl font-semibold">Good to see you{name ? `, ${name.split(" ")[0]}` : ""}</h1>
+            <p className="mt-1 max-w-xl text-sm text-side-muted">How the portal is doing. Everyone&apos;s work is under Tasks; hover a meter for details.</p>
+          </div>
+          <dl className="flex flex-wrap gap-6 text-right">
+            {[
+              ["People", d.active.length],
+              ["Signed in this week", d.signed7],
+              ["Modules on", `${modulesOn}/${d.modules.length}`],
+            ].map(([k, v]) => (
+              <div key={String(k)}>
+                <dt className="text-xs text-side-muted">{k}</dt>
+                <dd className="font-display text-2xl font-semibold tabular-nums">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Tile label="Active people" value={d.active.length} note={`${d.people.length - d.active.length} deactivated`} href="/settings/staff" />
-        <Tile label="Signed in · 7 days" value={d.signed7} note={`${d.signed30} in the last 30 days`} />
-        <Tile label="Invited, not joined" value={d.neverJoined} note="Resend from the Staff page" href="/settings/staff" />
-        <Tile label="Not live yet" value={d.drafts} note="Saved settings waiting for Deploy" href="/system" />
+        <Tile label="Active people" value={d.active.length} note={`${d.people.length - d.active.length} deactivated`} href="/settings/staff" icon={Users} accent="brand" />
+        <Tile label="Signed in · 7 days" value={d.signed7} note={`${d.signed30} in the last 30 days`} icon={LogIn} accent="good" />
+        <Tile label="Invited, not joined" value={d.neverJoined} note="Resend from the Staff page" href="/settings/staff" icon={MailQuestion} accent={d.neverJoined ? "warn" : "accent"} />
+        <Tile label="Not live yet" value={d.drafts} note="Saved settings waiting for Deploy" href="/system" icon={Rocket} accent={d.drafts ? "warn" : "accent"} />
       </div>
 
       <Panel title="Capacity" action={<Link href="/system/health" className="text-xs font-semibold text-brand underline">System health</Link>}>

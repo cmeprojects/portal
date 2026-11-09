@@ -226,6 +226,18 @@ const carsOut: Piece = async ({ supabase, features }) => {
   return { tile: <Tile label="Cars out now" value={await count(supabase.from("car_trips").select("id", { count: "exact", head: true }).is("returned_at", null))} icon={Car} href="/reports/cars" /> };
 };
 
+// cmeprojects: requests waiting for this person to act (HR Pack → My requests).
+const requestsWaiting: Piece = async ({ supabase, me, features }) => {
+  if (features.hr_requests === false) return null;
+  const { data, error } = await supabase.from("requests").select("id, requester, type, partner_ok").in("status", ["pending", "info_needed"]).limit(100);
+  if (error) return null; // before live update 56
+  const mine = await Promise.all(
+    (data ?? []).filter((r) => r.requester !== me && (r.type !== "swap" || r.partner_ok === true)).map(async (r) => (await supabase.rpc("can_act_on_request", { p_request: r.id })).data === true),
+  );
+  const n = mine.filter(Boolean).length;
+  return { tile: <Tile label="Requests waiting" value={n} note="Leave, swaps and more, for you to approve" icon={Inbox} tone="warn" href="/requests?tab=approve" /> };
+};
+
 // ---------------------------------------------------------------------------
 // Team leader
 // ---------------------------------------------------------------------------
@@ -310,15 +322,15 @@ const teamClients: Piece = async ({ supabase }) => {
 const LAYOUTS: Record<"manager" | "staff_admin" | "team_leader", { intro: string; pieces: Piece[] }> = {
   manager: {
     intro: "How the whole operation is going today.",
-    pieces: [managerBoard, onboardingDone, documentsExpiring, newEnquiries, carsOut],
+    pieces: [managerBoard, requestsWaiting, onboardingDone, documentsExpiring, newEnquiries, carsOut],
   },
   staff_admin: {
     intro: "Staffing at a glance: invites, onboarding, documents and changes.",
-    pieces: [invitesPending, newStarters, uploadsToCheck, documentsExpiring, onboardingDone, roleChanges, noTeam, recentlyJoined],
+    pieces: [invitesPending, newStarters, uploadsToCheck, requestsWaiting, documentsExpiring, onboardingDone, roleChanges, noTeam, recentlyJoined],
   },
   team_leader: {
     intro: "Your team and the clients it looks after.",
-    pieces: [teamTasks, escalatedToMe, teamOnboarding, teamClients],
+    pieces: [teamTasks, escalatedToMe, requestsWaiting, teamOnboarding, teamClients],
   },
 };
 

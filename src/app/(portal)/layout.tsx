@@ -97,6 +97,8 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
     </div>
   );
 
+  // cmeprojects: a reminder until their profile is complete (HR Pack → Staff profiles, after live update 57).
+  const { data: profileNeeded } = profile.role === "system_admin" ? { data: false } : await (await createClient()).rpc("profile_required", { p_user: profile.id });
   const navAccess = await getNavAccess(profile.role);
   const groups = navFor(profile.role, features, navAccess);
   // cmeprojects: search (Ctrl+K) covers the pages in this person's own menu.
@@ -124,6 +126,16 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
       {/* Menus, settings, the bell and task lists stay current; pages refresh when you come back to them. */}
       <LiveRefresh tables={["app_settings", "features", "live_signals", "notifications", "tasks", "people_change_requests", "profiles"]} onShow />
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
+        {profileNeeded === true ? (
+          <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-ink print:hidden">
+            <span className="min-w-0 flex-1">
+              <strong>Please complete your profile.</strong> Add a contact phone and an emergency contact; it&apos;s required for everyone.
+            </span>
+            <Link href="/account" className="font-semibold text-brand underline">
+              Complete it now
+            </Link>
+          </div>
+        ) : null}
         {roleChange ? (
           <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-good/40 bg-good-soft px-4 py-3 text-sm text-ink print:hidden">
             <span className="min-w-0 flex-1">

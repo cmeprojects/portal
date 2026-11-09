@@ -6,6 +6,8 @@
 \set QUIET 1
 \o /dev/null
 
+update public.features set enabled = true where key = 'hr_profiles';
+
 insert into auth.users (email) values ('owner@example.com');
 insert into public.invitations (email, full_name, role) values ('office@example.com', 'Olive', 'staff_admin'), ('lead@example.com', 'Taylor', 'team_leader'), ('sam@example.com', 'Sam', 'support_worker'), ('kim@example.com', 'Kim', 'support_worker');
 insert into auth.users (email) values ('office@example.com'), ('lead@example.com'), ('sam@example.com'), ('kim@example.com');

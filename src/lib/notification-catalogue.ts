@@ -32,6 +32,17 @@ export const NOTIFICATION_GROUPS: NotificationGroup[] = [
     ],
   },
   {
+    key: "requests",
+    label: "My requests",
+    feature: "hr_requests",
+    items: [
+      { code: "request_submitted", label: "A request is waiting for an approver", channels: both },
+      { code: "request_partner", label: "A colleague asks to swap a shift", channels: both },
+      { code: "request_decided", label: "A request is approved, declined or needs more information", channels: both },
+      { code: "request_escalated", label: "A request nobody acted on is escalated", channels: both },
+    ],
+  },
+  {
     key: "people",
     label: "People",
     feature: null,

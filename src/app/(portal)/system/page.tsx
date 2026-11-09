@@ -139,7 +139,11 @@ const ROWS: Row[] = [
     ],
     sections: [{ title: "Compliance settings", area: "compliance", keys: (k) => k.startsWith("compliance.") || k === "reports.compliance_roles" }],
     areas: ["compliance"],
-    links: [{ href: "/compliance", text: "Compliance" }],
+    links: [
+      { href: "/settings/requests", text: "Request approvals" },
+      { href: "/people", text: "Staff directory" },
+      { href: "/compliance", text: "Compliance" },
+    ],
   },
   {
     id: "forms",

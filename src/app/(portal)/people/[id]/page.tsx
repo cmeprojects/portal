@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { REQUEST_STATUS, TYPE_LABEL, refOf, type RequestStatus } from "@/lib/requests-shared";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -34,6 +35,10 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
   const { data: tasks } = overseer || me
     ? await supabase.from("tasks").select("id, title, status, due_date").eq("assigned_to", id).not("status", "in", "(completed,closed)").order("due_date", { ascending: true, nullsFirst: false }).limit(8)
     : { data: [] };
+  // cmeprojects: their recent requests, for people who manage staff (after live update 56).
+  const { data: reqs } = manager && features.hr_requests !== false
+    ? await supabase.from("requests").select("id, ref_number, type, subject, status").eq("requester", id).order("created_at", { ascending: false }).limit(6)
+    : { data: null };
   return (
     <>
       <p className="text-sm">
@@ -65,6 +70,21 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
                   All their tasks
                 </Link>
               ) : null}
+            </Card>
+          ) : null}
+          {reqs && reqs.length ? (
+            <Card className="p-5">
+              <h2 className="heading-sm mb-2">Requests</h2>
+              <ul className="flex flex-col divide-y divide-line text-sm">
+                {reqs.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-2 py-2">
+                    <Link href={`/requests/${r.id}`} className="min-w-0 truncate font-medium hover:text-brand">
+                      {refOf(r.ref_number)} · {r.subject || TYPE_LABEL[r.type]}
+                    </Link>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${REQUEST_STATUS[r.status as RequestStatus].cls}`}>{REQUEST_STATUS[r.status as RequestStatus].label}</span>
+                  </li>
+                ))}
+              </ul>
             </Card>
           ) : null}
           {manager && onboardingOn(features) ? (

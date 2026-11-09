@@ -61,12 +61,29 @@ export default async function MyOnboardingPage() {
   const done = status.filter((s) => isDone(s.state)).length;
   const pct = status.length ? Math.round((done / status.length) * 100) : 100;
 
+  // cmeprojects: completing your profile is part of onboarding (HR Pack → Staff profiles, after live update 57).
+  const { data: profileNeeded } = await supabase.rpc("profile_required", { p_user: profile.id });
   return (
     <>
       <PageHeader
         title="My onboarding"
         intro="Everything you need to read, complete and upload. Your progress saves as you go."
       />
+      {profileNeeded === true ? (
+        <Card className="flex flex-wrap items-center gap-4 border-warn/40 p-5">
+          <span className="min-w-56 flex-1">
+            <span className="block font-semibold">Step 1: Complete your profile</span>
+            <span className="block text-sm text-muted">Add a contact phone and an emergency contact. Your onboarding can&apos;t finish until it&apos;s done.</span>
+          </span>
+          <Link href="/account" className={buttonClass("primary")}>
+            Complete my profile
+          </Link>
+        </Card>
+      ) : profileNeeded === false && features.hr_profiles !== false ? (
+        <Card className="flex items-center gap-3 p-4 text-sm">
+          <span className="rounded-full bg-good-soft px-2.5 py-0.5 text-xs font-semibold text-good">Done</span> Your profile is complete.
+        </Card>
+      ) : null}
       <Card className="flex flex-col gap-3 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="heading-sm">{status.length === 0 ? "Nothing to do yet" : done === status.length && !sentForms.length ? "All done, thank you. You don't have any actions waiting." : `${done} of ${status.length} done`}</p>

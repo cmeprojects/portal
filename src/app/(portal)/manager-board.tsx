@@ -1,7 +1,10 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { changeStatus } from "./tasks/actions";
+import { toast } from "@/components/toast";
 import Link from "next/link";
 import { AlertTriangle, BadgeCheck, CalendarClock, ListChecks, Siren, Timer, X } from "lucide-react";
 import { Panel, Tile } from "@/components/dash";
@@ -233,6 +236,7 @@ export function ManagerBoard({
                     <span className={t.due && t.due < today ? "font-semibold text-danger" : "text-muted"}>{t.dueLabel}</span>
                     <span className="text-muted">· {t.assignee}</span>
                   </p>
+                  <QuickActions task={t} onDone={() => setDrawer((d) => (d ? { ...d, tasks: d.tasks.filter((x) => x.id !== t.id) } : d))} />
                 </li>
               ))}
             </ul>
@@ -349,5 +353,72 @@ function WeekBars({ weeks }: { weeks: Week[] }) {
         </span>
       </p>
     </div>
+  );
+}
+
+// cmeprojects: act on a task straight from the side panel. Waiting for
+// approval: Approve, or Send back with a reason. Escalated: Dealt with.
+// Anything else: Open it. The database still checks the person may do it.
+function QuickActions({ task, onDone }: { task: BoardTask; onDone: () => void }) {
+  const router = useRouter();
+  const [note, setNote] = useState<string | null>(null);
+  const [state, run, pending] = useActionState(async (prev: Awaited<ReturnType<typeof changeStatus>>, form: FormData) => {
+    const r = await changeStatus(prev, form);
+    if (r?.message && !r.error) {
+      toast(r.message);
+      onDone();
+      router.refresh();
+    }
+    return r;
+  }, null);
+  const btn = "inline-flex min-h-8 items-center rounded-md border px-2.5 text-xs font-semibold disabled:opacity-50";
+  if (task.status !== "awaiting_approval" && task.status !== "escalated") {
+    return (
+      <p className="mt-2">
+        <Link href={`/tasks/${task.id}`} className="text-xs font-semibold text-brand underline">
+          Open task
+        </Link>
+      </p>
+    );
+  }
+  return (
+    <form action={run} className="mt-2 flex flex-col gap-2">
+      <input type="hidden" name="task_id" value={task.id} />
+      {note !== null ? (
+        <>
+          <input type="hidden" name="status" value="in_progress" />
+          <textarea name="note" required rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why is it being sent back?" aria-label="Reason for sending back" className="w-full rounded-md border border-field bg-surface px-2 py-1.5 text-sm" />
+          <span className="flex gap-2">
+            <button className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending || !note.trim()}>
+              {pending ? "Saving…" : "Send back"}
+            </button>
+            <button type="button" onClick={() => setNote(null)} className={`${btn} border-line`}>
+              Cancel
+            </button>
+          </span>
+        </>
+      ) : (
+        <span className="flex flex-wrap gap-2">
+          {task.status === "awaiting_approval" ? (
+            <>
+              <button name="status" value="completed" className={`${btn} border-good bg-good text-white`} disabled={pending}>
+                {pending ? "Saving…" : "Approve"}
+              </button>
+              <button type="button" onClick={() => setNote("")} className={`${btn} border-line`} disabled={pending}>
+                Send back
+              </button>
+            </>
+          ) : (
+            <button name="status" value="in_progress" className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending}>
+              {pending ? "Saving…" : "Escalation dealt with"}
+            </button>
+          )}
+          <Link href={`/tasks/${task.id}`} className={`${btn} border-line`}>
+            Open task
+          </Link>
+        </span>
+      )}
+      {state?.error ? <p role="alert" className="text-xs text-danger">{state.error}</p> : null}
+    </form>
   );
 }

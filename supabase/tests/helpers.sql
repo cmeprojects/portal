@@ -38,3 +38,7 @@ grant execute on all functions in schema test to anon, authenticated;
 -- cmeprojects: the default Profile photo onboarding item is switched off here so
 -- older tests keep counting the items they were written for (staff_photos covers it).
 update public.compliance_items set active = false where sets_photo;
+
+-- cmeprojects: Staff profiles are switched off here so older tests don't meet the
+-- "Complete your profile" onboarding item (the profile tests switch it back on).
+update public.features set enabled = false where key = 'hr_profiles';

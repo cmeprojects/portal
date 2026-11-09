@@ -10,6 +10,7 @@ import {
   BarChart3,
   Car,
   CircleUser,
+  ClipboardCheck,
   Contact,
   ClipboardList,
   FolderKanban,
@@ -44,8 +45,8 @@ const ICONS: Record<string, LucideIcon> = {
   "My onboarding": GraduationCap,
   "My account": CircleUser,
   Directory: Contact,
-  "My requests": Inbox,
-  Requests: Inbox,
+  "My requests": ClipboardCheck,
+  Requests: ClipboardCheck,
 };
 function iconFor(label: string, href: string): LucideIcon {
   return ICONS[label] ?? (href === "/apps" ? Smartphone : Puzzle);

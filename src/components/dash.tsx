@@ -41,12 +41,45 @@ export function Hover({ children, details, label }: { children: ReactNode; detai
 // cmeprojects: a number tile. An icon says what it's about; tone colours the
 // number when it needs attention (red = act now, amber = soon, green = good).
 const TONE = { danger: "text-danger", warn: "text-warn", good: "text-good" } as const;
-export function Tile({ label, value, note, href, icon: Icon, tone }: { label: string; value: string | number; note?: string; href?: string; icon?: LucideIcon; tone?: keyof typeof TONE }) {
+// accent: a colour for the tile's edge and icon (cmeprojects), from the theme.
+const ACCENT = {
+  brand: { edge: "border-l-brand", chip: "bg-brand-soft text-brand" },
+  accent: { edge: "border-l-brand-accent", chip: "bg-brand-soft text-brand-accent" },
+  good: { edge: "border-l-good", chip: "bg-good-soft text-good" },
+  warn: { edge: "border-l-warn", chip: "bg-warn-soft text-warn" },
+  danger: { edge: "border-l-danger", chip: "bg-danger-soft text-danger" },
+} as const;
+export function Tile({
+  label,
+  value,
+  note,
+  href,
+  icon: Icon,
+  tone,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  note?: string;
+  href?: string;
+  icon?: LucideIcon;
+  tone?: keyof typeof TONE;
+  accent?: keyof typeof ACCENT;
+}) {
+  const a = accent ? ACCENT[accent] : null;
   const body = (
-    <div className="flex h-full flex-col gap-0.5 rounded-lg border border-line border-l-4 border-l-brand bg-surface px-4 py-3 transition duration-200 hover:-translate-y-1 hover:border-l-danger hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none">
+    <div className={`flex h-full flex-col gap-0.5 rounded-lg border border-line border-l-4 bg-surface px-4 py-3 transition duration-200 hover:-translate-y-1 hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none ${a ? a.edge : "border-l-brand hover:border-l-danger"}`}>
       <span className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium tracking-wide text-muted uppercase">{label}</span>
-        {Icon ? <Icon aria-hidden="true" className="size-4 shrink-0 text-muted" strokeWidth={1.75} /> : null}
+        {Icon ? (
+          a ? (
+            <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${a.chip}`}>
+              <Icon aria-hidden="true" className="size-4" strokeWidth={1.9} />
+            </span>
+          ) : (
+            <Icon aria-hidden="true" className="size-4 shrink-0 text-muted" strokeWidth={1.75} />
+          )
+        ) : null}
       </span>
       <span className={`text-2xl font-semibold tabular-nums ${tone && (tone === "good" || (value !== 0 && value !== "0")) ? TONE[tone] : "text-ink"}`}>{value}</span>
       {note ? <span className="text-xs text-muted">{note}</span> : null}

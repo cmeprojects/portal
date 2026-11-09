@@ -40,13 +40,16 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
   // Time-based alerts for built features (after live update 35; skipped before it).
   const { data: timed, error: timedError } = await admin.rpc("run_feature_time_alerts");
   if (timedError && timedError.code !== "PGRST202") return { status: 500, body: { ok: false, error: timedError.message } };
+  // cmeprojects: requests nobody has acted on go to the escalation list (after live update 56).
+  const { data: escalatedRequests, error: reqError } = await admin.rpc("escalate_requests");
+  if (reqError && reqError.code !== "PGRST202") return { status: 500, body: { ok: false, error: reqError.message } };
   // Up to 50 emails a round; keep going while there are more.
   for (let i = 0; i < 10; i++) {
     const { count } = await admin.from("email_outbox").select("id", { count: "exact", head: true }).is("sent_at", null).lt("attempts", 5);
     if (!count) break;
     await flushOutbox();
   }
-  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}) } };
+  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), requests_escalated: escalatedRequests ?? 0 } };
 }
 
 export const GET = run;
