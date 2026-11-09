@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { useAfterSuccess } from "@/components/use-after-success";
+import { useDirty } from "@/components/use-dirty";
 import { confirmSubmit } from "@/components/confirm";
 import { useActionState, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
@@ -70,9 +72,11 @@ export function CreateRegistryForm() {
 
 export function RegistrySettingsForm({ registry, companySla }: { registry: Registry; companySla: Record<string, number> }) {
   const [state, action, pending] = useActionState(saveRegistrySettings, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   const tasks = registry.kind === "tasks";
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form ref={dirtyRef} action={action} className="flex flex-col gap-5">
       <input type="hidden" name="id" value={registry.id} />
       <div className="grid gap-5 md:grid-cols-[1fr_160px]">
         <Field label="Name" htmlFor="s-name">
@@ -132,7 +136,7 @@ export function RegistrySettingsForm({ registry, companySla }: { registry: Regis
         <Toggle name="active" label="Register is in use (untick to retire it; everything in it is kept)" defaultChecked={registry.active} />
       )}
       <Result state={state} />
-      <Button className="self-start" disabled={pending}>
+      <Button className="self-start" disabled={pending || !dirty}>
         {pending ? "Saving…" : "Save settings"}
       </Button>
     </form>
@@ -149,8 +153,10 @@ export function ManagersForm({
   candidates: { id: string; label: string }[];
 }) {
   const [state, action, pending] = useActionState(saveManagers, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form ref={dirtyRef} action={action} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={registryId} />
       {candidates.length === 0 ? (
         <p className="text-sm text-muted">Give someone the Manager role on the Staff &amp; roles page first.</p>
@@ -163,7 +169,7 @@ export function ManagersForm({
         ))
       )}
       <Result state={state} />
-      <Button variant="outline" className="self-start" disabled={pending}>
+      <Button variant="outline" className="self-start" disabled={pending || !dirty}>
         {pending ? "Saving…" : "Save managers"}
       </Button>
     </form>
@@ -239,14 +245,16 @@ export function AddFieldForm({ registryId }: { registryId: string }) {
 
 export function EditFieldForm({ field }: { field: RegistryField }) {
   const [state, action, pending] = useActionState(updateField, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form ref={dirtyRef} action={action} className="flex flex-col gap-4">
       <input type="hidden" name="id" value={field.id} />
       <input type="hidden" name="registry_id" value={field.registry_id} />
       <FieldInputs field={field} idp={field.id.slice(0, 8)} />
       <Toggle name="active" label="Field is in use (untick to retire it; what's been filled in is kept)" defaultChecked={field.active} />
       <Result state={state} />
-      <Button variant="outline" className="self-start" disabled={pending}>
+      <Button variant="outline" className="self-start" disabled={pending || !dirty}>
         {pending ? "Saving…" : "Save field"}
       </Button>
     </form>
@@ -256,9 +264,11 @@ export function EditFieldForm({ field }: { field: RegistryField }) {
 // cmeprojects: who may create tasks in this register.
 export function CreateRolesForm({ id, current }: { id: string; current: string[] }) {
   const [state, action, pending] = useActionState(saveCreateRoles, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   const choices = ["support_worker", "team_leader", "manager", "staff_admin"] as const;
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form ref={dirtyRef} action={action} className="flex flex-col gap-2">
       <input type="hidden" name="id" value={id} />
       <fieldset className="flex flex-wrap gap-x-5">
         <legend className="sr-only">Who can create tasks</legend>
@@ -270,7 +280,7 @@ export function CreateRolesForm({ id, current }: { id: string; current: string[]
         ))}
       </fieldset>
       <div>
-        <Button size="sm" variant="outline" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+        <Button size="sm" variant="outline" disabled={pending || !dirty}>{pending ? "Saving…" : "Save"}</Button>
       </div>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message && !pending ? <p role="status" className="text-sm font-semibold text-good">✓ {state.message}</p> : null}

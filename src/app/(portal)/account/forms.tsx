@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { useAfterSuccess } from "@/components/use-after-success";
+import { useDirty } from "@/components/use-dirty";
 import { useActionState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
@@ -56,14 +58,16 @@ export function PhotoForm({ userId, name, src }: { userId: string; name: string;
 
 export function NameForm({ name }: { name: string }) {
   const [state, action, pending] = useActionState(updateMyName, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form ref={dirtyRef} action={action} className="flex flex-col gap-3">
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
       <Field label="Your name" htmlFor="full_name">
         <input id="full_name" name="full_name" defaultValue={name} required className={inputClass} />
       </Field>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-      <Button variant="outline" className="self-start" disabled={pending}>{pending ? "Saving…" : "Save name"}</Button>
+      <Button variant="outline" className="self-start" disabled={pending || !dirty}>{pending ? "Saving…" : "Save name"}</Button>
     </form>
   );
 }

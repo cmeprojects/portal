@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { useAfterSuccess } from "@/components/use-after-success";
+import { useDirty } from "@/components/use-dirty";
 import { useActionState } from "react";
 import { Button, Notice } from "@/components/ui";
 import { setClientTeams } from "./actions";
@@ -8,8 +10,10 @@ import { setClientTeams } from "./actions";
 // cmeprojects: tick the team(s) that look after this client.
 export function ClientTeamsForm({ clientId, name, teams, chosen }: { clientId: string; name: string; teams: { id: string; name: string }[]; chosen: string[] }) {
   const [state, action, pending] = useActionState(setClientTeams, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   return (
-    <form action={action} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5">
+    <form ref={dirtyRef} action={action} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5">
       <input type="hidden" name="client_id" value={clientId} />
       <span className="w-full font-medium sm:w-48">{name}</span>
       <span className="flex flex-1 flex-wrap gap-x-4 gap-y-1">
@@ -20,7 +24,7 @@ export function ClientTeamsForm({ clientId, name, teams, chosen }: { clientId: s
           </label>
         ))}
       </span>
-      <Button size="sm" variant="outline" disabled={pending}>
+      <Button size="sm" variant="outline" disabled={pending || !dirty}>
         {pending ? "Saving…" : "Save"}
       </Button>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}

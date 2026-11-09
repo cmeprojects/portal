@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { useAfterSuccess } from "@/components/use-after-success";
+import { useDirty } from "@/components/use-dirty";
 import { confirmSubmit } from "@/components/confirm";
 import { startTransition, useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
@@ -111,6 +113,8 @@ export function PersonEditor({
   needsApproval: boolean;
 }) {
   const [saveState, saveAction, saving] = useActionState(savePerson, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(saveState, markClean);
   const [activeState, activeAction, toggling] = useActionState(setActive, null);
   const [inviteState, inviteAction, resending] = useActionState(resendInvite, null);
   const [mfaState, mfaAction, resetting] = useActionState(resetTwoFactor, null);
@@ -133,6 +137,7 @@ export function PersonEditor({
       <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState ?? photoState ?? outState ?? mfaExState} />
       {/* cmeprojects: name, teams and role save together with one button. */}
       <form
+        ref={dirtyRef}
         action={saveAction}
         onSubmit={(e) => {
           // Keep what was typed on screen (React resets a form after its action).
@@ -192,7 +197,7 @@ export function PersonEditor({
             <input id={`reason-${person.id}`} name="reason" className={inputClass} />
           </Field>
         ) : null}
-        <Button className="self-start" disabled={saving}>
+        <Button className="self-start" disabled={saving || !dirty}>
           {saving ? "Saving…" : "Save changes"}
         </Button>
       </form>

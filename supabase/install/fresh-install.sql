@@ -12446,11 +12446,15 @@ create trigger photo_from_onboarding after insert or update of status, file_path
 
 -- The default onboarding upload: a profile photo (once per copy; staff admins
 -- can edit it or switch it off in Compliance → Uploads).
+-- (The "Compliance is switched off" check is paused for this one insert, so the
+-- update also runs when Compliance is off or the HR Pack is set up first.)
+alter table public.compliance_items disable trigger compliance_items_guard;
 insert into public.compliance_items (kind, title, description, sets_photo, active, sort_order, created_by)
 select 'upload', 'Profile photo',
        'A clear, recent photo of your face, like a passport photo. It''s shown next to your name in the portal, only to signed-in staff.',
        true, true, 5, null
 where not exists (select 1 from public.compliance_items where sets_photo);
+alter table public.compliance_items enable trigger compliance_items_guard;
 
 -- ====================================================================
 -- 20261229000001_client_teams.sql

@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { useAfterSuccess } from "@/components/use-after-success";
+import { useDirty } from "@/components/use-dirty";
 import { useActionState, useRef } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FieldInput, type Option } from "@/components/field-input";
@@ -23,6 +25,8 @@ export function RecordForm({
   today: string;
 }) {
   const [state, action, pending] = useActionState(saveRecord, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   const formRef = useRef<HTMLFormElement>(null);
   const keys = new Set(fields.map((f) => f.key));
   const canEstimate = keys.has("purchase_value") && keys.has("purchase_date") && keys.has("current_value");
@@ -43,7 +47,7 @@ export function RecordForm({
   }
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-5">
+    <form ref={(el) => { formRef.current = el; dirtyRef.current = el; }} action={action} className="flex flex-col gap-5">
       <input type="hidden" name="registry_id" value={registry.id} />
       <input type="hidden" name="record_id" value={record?.id ?? ""} />
       <Field label={registry.title_label} htmlFor="r-title">
@@ -69,7 +73,7 @@ export function RecordForm({
       ) : null}
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
-      <Button className="self-start" disabled={pending}>
+      <Button className="self-start" disabled={pending || (Boolean(record) && !dirty)}>
         {pending ? "Saving…" : record ? "Save changes" : "Add to the list"}
       </Button>
     </form>

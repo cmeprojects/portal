@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { useDirty } from "@/components/use-dirty";
 import { useActionState, useRef } from "react";
 import { closeParentDetails, useAfterSuccess } from "@/components/use-after-success";
 import { toast } from "@/components/toast";
@@ -42,11 +43,13 @@ export function EditDetailsForm({
   clientId?: string;
 }) {
   const [state, action, pending] = useActionState(updateTaskDetails, null);
+  const { ref: dirtyRef, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   const form = useRef<HTMLFormElement>(null);
   // cmeprojects: once saved, fold the section away; the page shows the change.
   useAfterSuccess(state, (message) => { form.current?.reset(); closeParentDetails(form.current); toast(message); });
   return (
-    <form ref={form} action={action} className="flex flex-col gap-5">
+    <form ref={(el) => { form.current = el; dirtyRef.current = el; }} action={action} className="flex flex-col gap-5">
       <input type="hidden" name="task_id" value={task.id} />
       <Field label={registry.title_label} htmlFor="e-title">
         <input id="e-title" name="title" defaultValue={task.title} required maxLength={200} className={inputClass} />
@@ -98,7 +101,7 @@ export function EditDetailsForm({
       )}
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
-      <Button className="self-start" disabled={pending}>
+      <Button className="self-start" disabled={pending || !dirty}>
         {pending ? "Saving…" : "Save changes"}
       </Button>
     </form>
