@@ -94,7 +94,7 @@ Staff Portal · © cmeproject · 9 November 2026 · Development copy (`dev`)
 | Admin workflow (browser) | 14 of 14 across two runs: tiles and filters, To check queue, new copy request, override, clearance, item settings, signatures |
 | Invite and account set-up (browser) | Scanner-safe link, set password, asked to sign in, one-time use, resend after opening |
 | Delegation and settings (browser) | 4 of 4 |
-| Re-crawl, every page, every role | RESULT_CRAWL |
+| Re-crawl, every page, every role | 757 page visits across 6 roles (including signed out): no errors, broken pages or sideways scrolling |
 | Lint, typecheck, production build | Clean |
 
 ## Future items (assessed, not built)
