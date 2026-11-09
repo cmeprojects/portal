@@ -2,6 +2,9 @@
 "use client";
 
 import { toast } from "@/components/toast";
+import { useValid } from "@/components/use-valid";
+import { useDirty } from "@/components/use-dirty";
+import { useAfterSuccess } from "@/components/use-after-success";
 import { useActionState, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
@@ -21,9 +24,14 @@ const check = "h-5 w-5 accent-[var(--brand-primary)]";
 
 export function ItemForm({ kind, item, teams, titles = [] }: { kind: ItemKind; item?: ComplianceItem; teams: { id: string; name: string }[]; titles?: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState(saveItem, null);
+  // cmeprojects: Save is greyed out until something changes (and the title is filled in).
+  const { ref, dirty, markClean } = useDirty();
+  const [title, setTitle] = useState(item?.title ?? "");
+  const valid = title.trim().length > 0;
+  useAfterSuccess(state, markClean);
   const p = item?.id ?? `new-${kind}`;
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form ref={ref} action={action} className="flex flex-col gap-4">
       <Result state={state} />
       {item ? <input type="hidden" name="id" value={item.id} /> : null}
       <input type="hidden" name="kind" value={kind} />
@@ -33,7 +41,8 @@ export function ItemForm({ kind, item, teams, titles = [] }: { kind: ItemKind; i
             id={`${p}-title`}
             name="title"
             required
-            defaultValue={item?.title}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder={kind === "read" ? "e.g. Code of Conduct" : kind === "training" ? "e.g. Manual handling" : kind === "agreement" ? "e.g. Employment agreement" : "e.g. National police check"}
             className={inputClass}
           />
@@ -166,12 +175,13 @@ export function ItemForm({ kind, item, teams, titles = [] }: { kind: ItemKind; i
           </label>
         </div>
       ) : null}
-      <Button className="self-start" disabled={pending}>{pending ? "Saving…" : item ? "Save" : "Add"}</Button>
+      <Button className="self-start" disabled={pending || !valid || (Boolean(item) && !dirty)}>{pending ? "Saving…" : item ? "Save" : "Add"}</Button>
     </form>
   );
 }
 
 export function ReviewForm({ recordId }: { recordId: number }) {
+  const [note, setNote] = useState("");
   // cmeprojects: the card may leave the list once it's checked, so also say so with a toast.
   const [state, action, pending] = useActionState(async (prev: FormState, f: FormData) => {
     const r = await reviewUpload(prev, f);
@@ -187,12 +197,12 @@ export function ReviewForm({ recordId }: { recordId: number }) {
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-56 flex-1">
           <Field label="Note (needed to reject or ask for a new copy)" htmlFor={`note-${recordId}`}>
-            <input id={`note-${recordId}`} name="note" placeholder="e.g. The photo is blurry" className={inputClass} />
+            <input id={`note-${recordId}`} name="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. The photo is blurry" className={inputClass} />
           </Field>
         </div>
-        <Button name="decision" value="accept" className="h-12" disabled={pending}>Looks good</Button>
-        <Button name="decision" value="reject" variant="outline" className="h-12" disabled={pending}>Reject</Button>
-        <Button name="decision" value="replace" variant="outline" className="h-12" disabled={pending}>Ask for a new copy</Button>
+        <Button name="decision" value="accept" className="h-12" disabled={pending}>{pending ? "Saving…" : "Looks good"}</Button>
+        <Button name="decision" value="reject" variant="outline" className="h-12" disabled={pending || !note.trim()}>Reject</Button>
+        <Button name="decision" value="replace" variant="outline" className="h-12" disabled={pending || !note.trim()}>Ask for a new copy</Button>
       </div>
     </form>
   );
@@ -256,6 +266,7 @@ export function ClearancePanel({
 }) {
   const [state, action, pending] = useActionState(changeClearance, null);
   const [mode, setMode] = useState<"" | "grant" | "revoke" | "override">("");
+  const { ref: modeRef, valid } = useValid();
   return (
     <div className="flex flex-col gap-3">
       <Result state={state} />
@@ -279,13 +290,13 @@ export function ClearancePanel({
             <input type="hidden" name="user_id" value={userId} />
             <input type="hidden" name="op" value="end" />
             <input type="hidden" name="override_id" value={override.id} />
-            <Button variant="outline" disabled={pending}>End override</Button>
+            <Button variant="outline" disabled={pending}>{pending ? "Saving…" : "End override"}</Button>
           </form>
         ) : null}
       </div>
       {!cleared && missing.length ? <p className="text-xs text-muted">Clear to work unlocks once everything needed before working is done and checked.</p> : null}
       {mode ? (
-        <form action={action} className="flex flex-col gap-3 rounded-lg border border-line bg-page p-4">
+        <form ref={modeRef} key={mode} action={action} className="flex flex-col gap-3 rounded-lg border border-line bg-page p-4">
           <input type="hidden" name="user_id" value={userId} />
           <input type="hidden" name="op" value={mode} />
           <p className="text-sm font-semibold">
@@ -300,7 +311,7 @@ export function ClearancePanel({
             </Field>
           ) : null}
           <div className="flex gap-2">
-            <Button disabled={pending}>{pending ? "Saving…" : mode === "grant" ? "Clear to work" : mode === "revoke" ? "Remove clearance" : "Give override"}</Button>
+            <Button disabled={pending || !valid}>{pending ? "Saving…" : mode === "grant" ? "Clear to work" : mode === "revoke" ? "Remove clearance" : "Give override"}</Button>
             <Button type="button" variant="outline" onClick={() => setMode("")}>
               Cancel
             </Button>

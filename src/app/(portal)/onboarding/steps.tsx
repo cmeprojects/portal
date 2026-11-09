@@ -9,6 +9,7 @@ import { FILES_BUCKET } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/client";
 import type { FormState } from "@/lib/form";
 import { toast } from "@/components/toast";
+import { useValid } from "@/components/use-valid";
 import { acknowledgePolicy, completeTraining, openItem, signAgreement, submitDocument } from "./actions";
 
 // cmeprojects: the steps on My onboarding. Each one saves on its own, so
@@ -63,6 +64,7 @@ export function PolicyStep({ doc, opened: openedAtStart, fullName }: { doc: Doc;
   const [opened, setOpened] = useState(openedAtStart);
   const [showing, setShowing] = useState(openedAtStart);
   const [state, action, pending] = useStep(acknowledgePolicy);
+  const { ref: formRef, valid } = useValid();
   const [, start] = useTransition();
   const record = () => {
     setShowing(true);
@@ -82,7 +84,7 @@ export function PolicyStep({ doc, opened: openedAtStart, fullName }: { doc: Doc;
         </Button>
       )}
       {opened ? (
-        <form action={action} className="flex flex-col gap-3 rounded-lg border border-line bg-page p-4">
+        <form ref={formRef} action={action} className="flex flex-col gap-3 rounded-lg border border-line bg-page p-4">
           <Result state={state} />
           <input type="hidden" name="item_id" value={doc.id} />
           <label className="flex items-start gap-3 text-sm">
@@ -92,7 +94,7 @@ export function PolicyStep({ doc, opened: openedAtStart, fullName }: { doc: Doc;
           <Field label="Type your full name" htmlFor={`ack-${doc.id}`} hint={`As it is on your account: ${fullName}`}>
             <input id={`ack-${doc.id}`} name="name" required autoComplete="name" className={inputClass} />
           </Field>
-          <Button className="self-start" disabled={pending}>
+          <Button className="self-start" disabled={pending || !valid}>
             {pending ? "Saving…" : "Acknowledge"}
           </Button>
         </form>
@@ -121,6 +123,7 @@ export function TrainingStep({
   mandatory: boolean;
 }) {
   const [state, action, pending] = useStep(completeTraining);
+  const { ref: formRef, valid } = useValid();
   const [file, setFile] = useState(false);
   const [ready, setReady] = useState(true);
   const needsCert = certificate === "required" || mandatory;
@@ -133,7 +136,7 @@ export function TrainingStep({
           <ExternalLink aria-hidden="true" className="size-4" /> Open the training
         </a>
       ) : null}
-      <form action={action} className="flex flex-col gap-3 rounded-lg border border-line bg-page p-4">
+      <form ref={formRef} action={action} className="flex flex-col gap-3 rounded-lg border border-line bg-page p-4">
         <Result state={state} />
         <input type="hidden" name="item_id" value={itemId} />
         <p className="text-sm font-medium">When you&apos;ve finished it, record it here.</p>
@@ -167,7 +170,7 @@ export function TrainingStep({
             ) : null}
           </div>
         ) : null}
-        <Button className="self-start" disabled={pending || (needsCert && !file) || !ready}>
+        <Button className="self-start" disabled={pending || !valid || (needsCert && !file) || !ready}>
           {pending ? "Saving…" : "Record completion"}
         </Button>
       </form>
@@ -199,11 +202,12 @@ export function DocumentStep({
   history: HistoryRow[];
 }) {
   const [state, action, pending] = useStep(submitDocument);
+  const { ref: formRef, valid } = useValid();
   const [ready, setReady] = useState(false);
   return (
     <div className="flex flex-col gap-4">
       {description ? <p className="text-sm text-muted">{description}</p> : null}
-      <form action={action} className="flex flex-col gap-3 rounded-lg border border-line bg-page p-4">
+      <form ref={formRef} action={action} className="flex flex-col gap-3 rounded-lg border border-line bg-page p-4">
         <Result state={state} />
         <input type="hidden" name="item_id" value={itemId} />
         <Field label={again ? "Upload a new copy" : "Choose the file"} htmlFor={`doc-${itemId}`} hint="A clear photo or scan (PDF or picture). It's checked before it counts as verified.">
@@ -226,7 +230,7 @@ export function DocumentStep({
             </Field>
           ) : null}
         </div>
-        <Button className="self-start" disabled={pending || !ready}>
+        <Button className="self-start" disabled={pending || !ready || !valid}>
           {pending ? "Saving…" : again ? "Send the new copy" : "Send for checking"}
         </Button>
       </form>
@@ -329,6 +333,7 @@ export function AgreementStep({ doc, opened: openedAtStart, fullName, userId }: 
   const [showing, setShowing] = useState(openedAtStart);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [state, action, pending] = useStep(signAgreement);
+  const { ref: formRef, valid } = useValid();
   const [uploadError, setUploadError] = useState("");
   const [sending, start] = useTransition();
   const record = () => {
@@ -350,6 +355,7 @@ export function AgreementStep({ doc, opened: openedAtStart, fullName, userId }: 
       )}
       {opened ? (
         <form
+          ref={formRef}
           onSubmit={(e) => {
             e.preventDefault();
             setUploadError("");
@@ -382,7 +388,7 @@ export function AgreementStep({ doc, opened: openedAtStart, fullName, userId }: 
             <input type="checkbox" name="agree" required className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-primary)]" />
             <span>I have read this agreement and agree to its terms. I understand my drawn signature and typed name sign it electronically.</span>
           </label>
-          <Button className="self-start" disabled={pending || sending || !canvas}>
+          <Button className="self-start" disabled={pending || sending || !canvas || !valid}>
             {pending || sending ? "Signing…" : "Sign the agreement"}
           </Button>
         </form>
