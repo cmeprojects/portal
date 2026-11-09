@@ -14,7 +14,7 @@ insert into public.invitations (email, full_name, role) values
 insert into auth.users (email) values ('boss@example.com'), ('office@example.com'), ('lead@example.com'), ('sam@example.com');
 insert into public.teams (name) values ('Team A');
 create function test.pid(p_email text) returns uuid language sql security definer as $$ select id from public.profiles where email = p_email $$;
-create function test.item(p_title text) returns uuid language sql security definer as $$ select id from public.compliance_items where title = p_title $$;
+create function test.item(p_title text) returns uuid language sql security definer as $$ select id from public.compliance_items where title = p_title order by active desc, created_at desc limit 1 $$;
 create function test.notes(p_email text, p_kind text) returns bigint language sql security definer as $$
   select count(*) from public.notifications where user_id = test.pid(p_email) and kind = p_kind $$;
 grant execute on all functions in schema test to authenticated;

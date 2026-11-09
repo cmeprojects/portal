@@ -42,3 +42,7 @@ update public.compliance_items set active = false where sets_photo;
 -- cmeprojects: Staff profiles are switched off here so older tests don't meet the
 -- "Complete your profile" onboarding item (the profile tests switch it back on).
 update public.features set enabled = false where key = 'hr_profiles';
+
+-- cmeprojects: the default NDIS orientation training (update 58) is switched off
+-- here too; onboarding_clearance covers it.
+update public.compliance_items set active = false where title like 'NDIS Worker Orientation Module%';
