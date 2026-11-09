@@ -18,6 +18,15 @@ export async function sendInvite(opts: { email: string; fullName: string; invite
       data: { full_name: opts.fullName },
       redirectTo: `${env.siteUrl}/welcome`,
     });
+    // cmeprojects: they opened the first invite but didn't finish, so Supabase
+    // won't invite them again. Send a sign-in link; it takes them to set up.
+    if (error && opts.resend) {
+      const { error: linkError } = await admin.auth.signInWithOtp({
+        email: opts.email,
+        options: { shouldCreateUser: false, emailRedirectTo: `${env.siteUrl}/auth/confirm?next=${encodeURIComponent("/welcome")}` },
+      });
+      return { error: linkError?.message ?? null };
+    }
     return { error: error?.message ?? null };
   }
 
@@ -29,7 +38,7 @@ export async function sendInvite(opts: { email: string; fullName: string; invite
   });
   let type = "invite";
   if (link.error && opts.resend) {
-    link = await admin.auth.admin.generateLink({ type: "magiclink", email: opts.email });
+    link = await admin.auth.admin.generateLink({ type: "magiclink", email: opts.email, options: { redirectTo: `${env.siteUrl}/welcome` } });
     type = "magiclink";
   }
   if (link.error || !link.data.properties?.hashed_token) return { error: link.error?.message ?? "No link" };

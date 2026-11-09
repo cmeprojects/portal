@@ -192,7 +192,19 @@ export default async function StaffPage() {
             teamIds: (memberships ?? []).filter((m) => m.user_id === p.id).map((m) => m.team_id),
             mfaExempt: mfaExemptOf(p.id),
           };
-          const status = !p.active ? "Deactivated" : row.joined ? "Active" : row.openedLink ? "Opened the invite, not set up yet" : "Invite sent";
+          // cmeprojects: where someone is up to. Anyone with a role is Active.
+          // New starters: Invite sent → Not set up yet (opened the link, no
+          // password) → Account set up (onboarding under way).
+          const status = !p.active
+            ? "Deactivated"
+            : row.role !== "new_starter"
+              ? "Active"
+              : row.joined
+                ? "Account set up"
+                : row.openedLink
+                  ? "Not set up yet"
+                  : "Invite sent";
+          const statusTone = status === "Active" || status === "Account set up" ? "good" : status === "Not set up yet" ? "warn" : status === "Invite sent" ? "soft" : "grey";
           return (
             <Card key={p.id} className="p-0">
               {/* cmeprojects: same name = only one person open at a time. */}
@@ -226,7 +238,7 @@ export default async function StaffPage() {
                   <span className="w-40 text-sm text-muted">
                     {!showTeams ? "" : inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team"}
                   </span>
-                  <Badge tone={status === "Active" ? "good" : status === "Invite sent" ? "soft" : "grey"}>{status}</Badge>
+                  <Badge tone={statusTone}>{status}</Badge>
                   <span className="text-sm font-semibold text-brand group-open:hidden">{row.editable ? "Edit" : "View"}</span>
                   <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
                 </summary>

@@ -213,6 +213,16 @@ export function PersonEditor({
         <ConditionalRoleForm person={person} roles={offered.filter((r) => r !== "new_starter")} titles={titles} teams={teams} isManager={isManager} />
       ) : null}
       <p className={label}>Sign-in and account</p>
+      {/* cmeprojects: say plainly where a new starter is up to. */}
+      {person.role === "new_starter" && person.active ? (
+        <p className="-mt-1 text-sm text-muted">
+          {person.joined
+            ? "Account set up: they've chosen a password. Onboarding is under way."
+            : person.openedLink
+              ? "Not set up yet: they opened the invite but haven't chosen a password. Resend invite emails them a fresh link."
+              : "Invite sent: they haven't opened it yet. Resend invite if it's been a while or they can't find it."}
+        </p>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         {!person.joined && person.active ? (
           <form action={inviteAction}>

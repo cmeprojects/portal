@@ -147,7 +147,7 @@ export async function resendInvite(_: FormState, form: FormData): Promise<FormSt
   if (!person) return { error: "Person not found." };
 
   const { error } = await sendInvite({ email: person.email, fullName: person.full_name, invitedBy: inviterName(me), resend: true });
-  if (error) return { error: "The invite couldn't be resent. They may have already joined." };
+  if (error) return { error: /rate|seconds/i.test(error) ? "An email was sent very recently. Wait a minute, then try again." : "The invite couldn't be resent. Check their email address, or wait a minute and try again." };
   await supabase.rpc("log_admin_action", { p_action: "invite_resent", p_user_id: id });
   return { message: `Invite resent to ${person.email}.` };
 }
