@@ -102,23 +102,24 @@ All pages took **480–730 ms** of server time, which means about 5–6 database
 - **Fix 2 needs you**, in the Supabase dashboard. A new region means a new project and moving data (I'd give steps). JWT signing keys can be switched on in place. Existing sign-ins keep working.
 - **Fix 5 changes how big lists page.** It'll be done after fix 1 is measured, so only what's still needed is built.
 
-## Implementation and testing plan
+## Implementation and testing plan (updated)
 
-1. **Checkpoint** branch `restore-before-performance`.
-2. **Fix 1, update 60.**
-   - Write the policies.
-   - Add a test comparing "who sees what" before and after, per role.
-   - Run all database tests and re-measure.
-3. **Fix 3** (summary function, update 60 too). Re-measure the Onboarding and Staff pages.
-4. **Fixes 4 and 6** (app only). Re-measure every page.
-5. **Re-measure Tasks, Dashboard and Reports**, then do fix 5 only where they're still slow.
-6. **Fix 7:** indexes where plans show scans.
-7. **Load test:** 20 simulated staff navigating at once, at realistic volumes, before and after (response times, errors).
-8. **Regression checks:**
-   - all database tests
-   - workflow browser tests (tasks, onboarding, requests, directory)
-   - permission checks per role
-   - a full re-crawl
-9. **Report** the before-and-after figures, the remaining bottlenecks and future recommendations.
+| Step | What | Where | Checked by |
+|---|---|---|---|
+| 0 | **Checkpoint** branch `restore-before-performance`. **Extra baseline:** sign-in time and the most-used buttons (save, approve, upload, acknowledge, sign) | Local copy | Timings recorded before any change |
+| 1 | **Security rules checked once per query, not once per row** (72 rules; row-specific checks stay per row). Update 60 with an undo | Database | 784 database tests; new test: what each role sees in each main table must match before and after; re-measure |
+| 2 | **Region and sign-in keys** (by you): Supabase in Sydney, like the app; JWT signing keys switched on | Supabase dashboard | Re-measure page and sign-in times on Development |
+| 3 | **Summaries calculated in the database**: onboarding overview and staff list in one call each, instead of one per person (312 and 293 → 1) | Database function, update 60 | Permission test per role; re-measure |
+| 4 | **Settings read once per request**; branding kept between requests and refreshed on Deploy | App | Re-measure (up to 17 reads → 1) |
+| 5 | **Less background prefetch** on long lists (directory and task rows); the menu keeps it | App | Background requests per page before and after |
+| 6 | **Re-measure everything**: every page, sign-in and buttons, small and realistic data, with and without delay | Local copy | Before-and-after table |
+| 7 | **Where still slow:** tasks, dashboard and reports **counted and paged in the database** (tiles, charts and totals come back as numbers; lists 50 at a time with server-side search and filters) | Database functions and app | Same results as today per role; re-measure |
+| 8 | **Faster buttons**: show the result straight away where safe (the server still confirms), and reload only what changed after a button press | App | Button timings before and after; failed saves still show the error |
+| 9 | **Indexes** only where query plans show full table scans | Database | Query plans before and after |
+| 10 | **Load test**: 20 simulated staff navigating and pressing buttons at once, realistic data | Local copy | Response times (typical and worst), errors |
+| 11 | **Regression**: all database tests, workflow browser tests, per-role permission checks, full re-crawl, lint, typecheck, build | Local copy | All pass |
+| 12 | **Report**: changes, files and database objects affected, before and after figures, remaining bottlenecks, recommendations | Docs | Pushed with the work |
+
+Security rules for every step: the database keeps the final say; nothing about permissions is cached between people or requests; database summaries run as the signed-in person, so the same rules decide what's counted; every database change has an undo file.
 
 All of this happens on Development only, with the synthetic data kept to my local copy.
