@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { getPeople } from "@/lib/register-data";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -90,7 +91,8 @@ const managerBoard: Piece = async ({ supabase, today, timeZone }) => {
   const done = (finished ?? []).filter((t) => t.completed_at);
   const onTime = { finished: done.length, onTime: done.filter((t) => new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date(t.completed_at as string)) <= (t.due_date as string)).length };
   const allNames = [...names.entries()] as [string, string][];
-  return { board: <ManagerBoard tasks={tasks} today={today} weekEnd={endOfWeek(today)} weeks={weeks} onTime={onTime} names={allNames} timeZone={timeZone} /> };
+  const people = (await getPeople()).filter((p) => p.active && p.role !== "system_admin").map((p) => [p.id, p.label] as [string, string]);
+  return { board: <ManagerBoard tasks={tasks} today={today} weekEnd={endOfWeek(today)} weeks={weeks} onTime={onTime} names={allNames} handTo={people} timeZone={timeZone} /> };
 };
 
 // ---------------------------------------------------------------------------
@@ -235,7 +237,7 @@ const requestsWaiting: Piece = async ({ supabase, me, features }) => {
     (data ?? []).filter((r) => r.requester !== me && (r.type !== "swap" || r.partner_ok === true)).map(async (r) => (await supabase.rpc("can_act_on_request", { p_request: r.id })).data === true),
   );
   const n = mine.filter(Boolean).length;
-  return { tile: <Tile label="Requests waiting" value={n} note="Leave, swaps and more, for you to approve" icon={Inbox} tone="warn" href="/requests?tab=approve" /> };
+  return { tile: <Tile label="Requests waiting" value={n} note="Leave, swaps and more, for you to approve" icon={Inbox} tone="warn" href="/people/requests" /> };
 };
 
 // ---------------------------------------------------------------------------

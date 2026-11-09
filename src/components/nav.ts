@@ -37,7 +37,7 @@ export type NavAccess = {
   adminAreas?: string[];
 };
 
-export type Section = "tasks" | "cars" | "people" | "reports" | "settings";
+export type Section = "tasks" | "cars" | "people" | "reports" | "settings" | "account";
 export type Tab = { href: string; text: string };
 
 // The tabs in each section that this person can open, in order.
@@ -48,7 +48,16 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
   // Areas with settings on the System settings page (registers, roles, the
   // website and the change log have their own pages) (cmeprojects).
   const settingsAreas = (access.adminAreas ?? []).filter((a) => !["audit", "registers", "register_setup", "roles", "website"].includes(a));
+  // cmeprojects: HR Pack pages. The directory and staff requests sit in People;
+  // your own requests sit under My account.
+  const directory = features.hr_profiles !== false && !admin;
+  const requests = features.hr_requests !== false;
+  const approver = peopleManager || role === "team_leader";
   const tabs: (Tab | false)[] = {
+    account: [
+      { href: "/account", text: "My account" },
+      requests && !admin && role !== "new_starter" && { href: "/requests", text: "My requests" },
+    ],
     tasks: [
       { href: myTasksHref(role), text: "My tasks" },
     ],
@@ -65,6 +74,8 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       peopleManager && (admin || teamsOn(features)) && { href: "/settings/teams", text: "Teams" },
       (admin || (rolesOn(features) && (access.adminAreas ?? []).includes("roles"))) && { href: "/settings/roles", text: "Roles" },
       peopleManager && { href: "/settings/clients", text: "Clients" },
+      directory && { href: "/people", text: "Directory" },
+      requests && approver && { href: "/people/requests", text: "Staff requests" },
       access.seesCompliance && { href: "/compliance", text: "Compliance" },
       !peopleManager && access.canInvite && { href: "/invite", text: "Invite staff" },
     ],
@@ -88,12 +99,14 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
   return tabs.filter((t): t is Tab => Boolean(t));
 }
 
-const SECTION_LABELS: Record<Section, string> = { tasks: "Tasks", cars: "Cars", people: "People", reports: "Reports", settings: "Settings" };
+const SECTION_LABELS: Record<Section, string> = { tasks: "Tasks", cars: "Cars", people: "People", reports: "Reports", settings: "Settings", account: "My account" };
 
 function sectionItem(section: Section, role: Role, features: Record<string, boolean>, access: NavAccess, label?: string): NavItem[] {
   const tabs = sectionTabs(section, role, features, access);
   if (!tabs.length) return [];
-  return [{ href: tabs[0].href, label: label ?? SECTION_LABELS[section], match: tabs.map((t) => t.href) }];
+  // Staff who only see the directory get a "Directory" item rather than "People".
+  const only = tabs.length === 1 && tabs[0].href === "/people" ? "Directory" : undefined;
+  return [{ href: tabs[0].href, label: label ?? only ?? SECTION_LABELS[section], match: tabs.map((t) => t.href) }];
 }
 
 export function navFor(
@@ -104,7 +117,8 @@ export function navFor(
   const mine: NavItem[] = [
     // Only while at least one compliance part is on.
     ...(role !== "system_admin" && onboardingOn(features) ? [{ href: "/onboarding", label: "My onboarding" }] : []),
-    { href: "/account", label: "My account" },
+    // cmeprojects: My requests is a tab under My account.
+    { href: "/account", label: "My account", match: sectionTabs("account", role, features, access).map((t) => t.href) },
   ];
 
   // External contractors (for later): nothing yet but their account.
@@ -136,10 +150,6 @@ export function navFor(
         ...(access.enquiries ? [{ href: "/enquiries", label: "Enquiries" }] : []),
         ...(access.assistant ? [{ href: "/ask", label: "Assistant" }] : []),
         ...sectionItem("people", role, features, access),
-        // cmeprojects: the staff directory, for everyone (HR Pack → Staff profiles).
-        ...(features.hr_profiles !== false && role !== "system_admin" ? [{ href: "/people", label: "Directory" }] : []),
-        // cmeprojects: My requests (HR Pack); the system admin sees everyone's.
-        ...(features.hr_requests !== false && role !== "new_starter" ? [{ href: "/requests", label: role === "system_admin" ? "Requests" : "My requests" }] : []),
         ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
         ...sectionItem("reports", role, features, access),
         ...sectionItem("settings", role, features, access),

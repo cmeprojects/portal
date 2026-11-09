@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
@@ -16,6 +17,7 @@ export default async function DirectoryPage() {
   return (
     <>
       <PageHeader title="Staff directory" intro="Find a colleague and how to reach them." />
+      <SectionTabs section="people" current="/people" />
       <Directory
         people={people.map((p) => ({
           id: p.id,

@@ -78,8 +78,8 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
   return (
     <>
       <p className="text-sm">
-        <Link href="/requests" className="text-brand underline">
-          ← My requests
+        <Link href={mine || partner ? "/requests" : "/people/requests"} className="text-brand underline">
+          {mine || partner ? "← My requests" : "← Staff requests"}
         </Link>
       </p>
       {(await searchParams).sent ? <Notice tone="success">Request sent.</Notice> : null}

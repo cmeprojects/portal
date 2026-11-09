@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
 import { ProfileForm } from "@/components/profile-form";
 import { ProfileCard } from "@/components/profile-card";
 import { loadPerson, profilesReady } from "@/lib/profiles";
@@ -36,6 +37,7 @@ export default async function AccountPage() {
   return (
     <>
       <PageHeader title="My account" intro={`${profile.email} · ${ROLE_LABELS[profile.role]}`} />
+      <SectionTabs section="account" current="/account" />
       {me ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <ProfileCard person={me} />

@@ -20,7 +20,7 @@ Staff Portal · © cmeproject · 9 November 2026 · Development copy (`dev`)
 - **Quick actions in the side panel:**
   - Waiting for approval: **Approve**, or **Send back** with a reason.
   - Escalated: **Escalation dealt with**.
-  - Every row: **Open task**.
+  - Every open task (overdue, due this week, escalated and the rest): **Remind** (a comment the person is told about), **Reassign** (with a reason), **Take over** and **Open task**.
 
   The database still checks that the person is allowed to act.
 - **Charts:**
@@ -35,7 +35,7 @@ Staff Portal · © cmeproject · 9 November 2026 · Development copy (`dev`)
 ### Part 2: Profiles, My account and the Directory
 - **Profile layout:** a business-style profile card with photo, name, preferred name, job title, department, email, work phone, role and team, and skills and qualifications.
 - **Private details:** address, emergency contact, employment type, start date, employee ID and usual weekly availability. Only the person, people who manage staff, and their team leader (for availability) see these.
-- **My account:** shows your card, with an edit form. **Staff directory**, for everyone: photo cards with search by name, role, team or skill.
+- **My account:** shows your card, with an edit form. **Staff directory** (People → Directory for managers; a Directory menu item for other staff), for everyone: photo cards with search by name, role, team or skill.
 - **Profile page:** profile, open tasks, compliance link, and their requests (for people who manage staff). Staff admins and managers edit employment details there.
 - **Who can change what:** staff edit their own contact details, skills, private details and availability. Only people who manage staff change department and employment details. All changes go through the database, which enforces this.
 - **Photos everywhere:** photos and names now show on tasks (looked after by, and every activity entry), requests, the directory and dashboards.
@@ -61,9 +61,8 @@ Staff Portal · © cmeproject · 9 November 2026 · Development copy (`dev`)
   - **Availability change:** updates the person's weekly availability.
   - **Swaps and shift changes:** recorded for both people, ready for rostering.
 - **Where it shows:**
-  - a **My requests** menu item for every staff member
-  - a **Waiting for me** tab for approvers
-  - **All requests** for people who manage staff
+  - **My account → My requests** for every staff member
+  - **People → Staff requests** for team leaders, staff admins and managers: **Waiting for me**, plus **All requests** for people who manage staff
   - a **Requests waiting** tile on the manager, staff admin and team leader dashboards
   - request notifications in **Settings → Notifications**
 

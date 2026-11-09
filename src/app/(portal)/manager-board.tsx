@@ -3,7 +3,7 @@
 
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { changeStatus } from "./tasks/actions";
+import { addComment, changeStatus, reassignTask } from "./tasks/actions";
 import { toast } from "@/components/toast";
 import Link from "next/link";
 import { AlertTriangle, BadgeCheck, CalendarClock, ListChecks, Siren, Timer, X } from "lucide-react";
@@ -40,6 +40,7 @@ export function ManagerBoard({
   weeks,
   onTime,
   names,
+  handTo,
   timeZone,
 }: {
   tasks: BoardTask[];
@@ -48,6 +49,8 @@ export function ManagerBoard({
   weeks: Week[];
   onTime: { finished: number; onTime: number };
   names: [string, string][];
+  // Active staff a task can be handed to (id, name).
+  handTo: [string, string][];
   timeZone: string;
 }) {
   const [drawer, setDrawer] = useState<Drawer | null>(null);
@@ -236,7 +239,7 @@ export function ManagerBoard({
                     <span className={t.due && t.due < today ? "font-semibold text-danger" : "text-muted"}>{t.dueLabel}</span>
                     <span className="text-muted">· {t.assignee}</span>
                   </p>
-                  <QuickActions task={t} onDone={() => setDrawer((d) => (d ? { ...d, tasks: d.tasks.filter((x) => x.id !== t.id) } : d))} />
+                  <QuickActions task={t} people={handTo} onDone={() => setDrawer((d) => (d ? { ...d, tasks: d.tasks.filter((x) => x.id !== t.id) } : d))} />
                 </li>
               ))}
             </ul>
@@ -356,43 +359,74 @@ function WeekBars({ weeks }: { weeks: Week[] }) {
   );
 }
 
-// cmeprojects: act on a task straight from the side panel. Waiting for
-// approval: Approve, or Send back with a reason. Escalated: Dealt with.
-// Anything else: Open it. The database still checks the person may do it.
-function QuickActions({ task, onDone }: { task: BoardTask; onDone: () => void }) {
+// cmeprojects: act on a task straight from the side panel, whatever tile it
+// came from. Waiting for approval: Approve or Send back. Escalated: Dealt with.
+// Every open task: Remind (a comment the person is told about), Reassign,
+// Take over, and Open. The database still checks the person may do each one.
+type Op = "approve" | "back" | "dealt" | "remind" | "reassign" | "takeover";
+const OP_NEEDS_TEXT: Partial<Record<Op, string>> = { back: "Why is it being sent back?", reassign: "Reason for the change", takeover: "Reason for taking it over", remind: "Message to them" };
+
+function QuickActions({ task, people, onDone }: { task: BoardTask; people: [string, string][]; onDone: () => void }) {
   const router = useRouter();
-  const [note, setNote] = useState<string | null>(null);
+  const [op, setOp] = useState<Op | null>(null);
+  const [text, setText] = useState("");
+  const [to, setTo] = useState("");
   const [state, run, pending] = useActionState(async (prev: Awaited<ReturnType<typeof changeStatus>>, form: FormData) => {
-    const r = await changeStatus(prev, form);
+    const chosen = String(form.get("op")) as Op;
+    const f = new FormData();
+    f.set("task_id", task.id);
+    let r: Awaited<ReturnType<typeof changeStatus>>;
+    if (chosen === "approve" || chosen === "back" || chosen === "dealt") {
+      f.set("status", chosen === "approve" ? "completed" : "in_progress");
+      f.set("note", text);
+      r = await changeStatus(prev, f);
+    } else if (chosen === "remind") {
+      f.set("body", text);
+      r = await addComment(prev, f);
+      if (r?.message && !r.error) r = { message: `Reminder sent to ${task.assignee}.` };
+    } else {
+      f.set("reason", text);
+      if (chosen === "takeover") f.set("take_over", "1");
+      else f.set("to", to);
+      r = await reassignTask(prev, f);
+    }
     if (r?.message && !r.error) {
       toast(r.message);
-      onDone();
+      setOp(null);
+      // A reminder leaves the task where it is; everything else moves it on.
+      if (chosen !== "remind") onDone();
       router.refresh();
     }
     return r;
   }, null);
   const btn = "inline-flex min-h-8 items-center rounded-md border px-2.5 text-xs font-semibold disabled:opacity-50";
-  if (task.status !== "awaiting_approval" && task.status !== "escalated") {
-    return (
-      <p className="mt-2">
-        <Link href={`/tasks/${task.id}`} className="text-xs font-semibold text-brand underline">
-          Open task
-        </Link>
-      </p>
-    );
-  }
+  const start = (o: Op) => {
+    setOp(o);
+    setText(o === "remind" ? `Reminder: this is ${task.due ? "past its due date" : "still open"}. Please update it, or ask for help if you're stuck.` : "");
+    setTo("");
+  };
+  const others = people.filter(([id]) => id !== task.assignedTo);
   return (
     <form action={run} className="mt-2 flex flex-col gap-2">
-      <input type="hidden" name="task_id" value={task.id} />
-      {note !== null ? (
+      {op && OP_NEEDS_TEXT[op] ? (
         <>
-          <input type="hidden" name="status" value="in_progress" />
-          <textarea name="note" required rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why is it being sent back?" aria-label="Reason for sending back" className="w-full rounded-md border border-field bg-surface px-2 py-1.5 text-sm" />
+          <input type="hidden" name="op" value={op} />
+          {op === "reassign" ? (
+            <select required value={to} onChange={(e) => setTo(e.target.value)} aria-label="Reassign to" className="w-full rounded-md border border-field bg-surface px-2 py-1.5 text-sm">
+              <option value="">Choose who looks after it…</option>
+              {others.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <textarea required rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={OP_NEEDS_TEXT[op]} aria-label={OP_NEEDS_TEXT[op]} className="w-full rounded-md border border-field bg-surface px-2 py-1.5 text-sm" />
           <span className="flex gap-2">
-            <button className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending || !note.trim()}>
-              {pending ? "Saving…" : "Send back"}
+            <button className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending || !text.trim() || (op === "reassign" && !to)}>
+              {pending ? "Saving…" : { back: "Send back", remind: "Send reminder", reassign: "Reassign", takeover: "Take it over" }[op as "back"]}
             </button>
-            <button type="button" onClick={() => setNote(null)} className={`${btn} border-line`}>
+            <button type="button" onClick={() => setOp(null)} className={`${btn} border-line`}>
               Cancel
             </button>
           </span>
@@ -401,17 +435,32 @@ function QuickActions({ task, onDone }: { task: BoardTask; onDone: () => void })
         <span className="flex flex-wrap gap-2">
           {task.status === "awaiting_approval" ? (
             <>
-              <button name="status" value="completed" className={`${btn} border-good bg-good text-white`} disabled={pending}>
+              <button name="op" value="approve" className={`${btn} border-good bg-good text-white`} disabled={pending}>
                 {pending ? "Saving…" : "Approve"}
               </button>
-              <button type="button" onClick={() => setNote("")} className={`${btn} border-line`} disabled={pending}>
+              <button type="button" onClick={() => start("back")} className={`${btn} border-line`} disabled={pending}>
                 Send back
               </button>
             </>
           ) : (
-            <button name="status" value="in_progress" className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending}>
-              {pending ? "Saving…" : "Escalation dealt with"}
-            </button>
+            <>
+              {task.status === "escalated" ? (
+                <button name="op" value="dealt" className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending}>
+                  {pending ? "Saving…" : "Escalation dealt with"}
+                </button>
+              ) : null}
+              {task.assignedTo ? (
+                <button type="button" onClick={() => start("remind")} className={`${btn} border-line`} disabled={pending}>
+                  Remind
+                </button>
+              ) : null}
+              <button type="button" onClick={() => start("reassign")} className={`${btn} border-line`} disabled={pending}>
+                Reassign
+              </button>
+              <button type="button" onClick={() => start("takeover")} className={`${btn} border-line`} disabled={pending}>
+                Take over
+              </button>
+            </>
           )}
           <Link href={`/tasks/${task.id}`} className={`${btn} border-line`}>
             Open task
