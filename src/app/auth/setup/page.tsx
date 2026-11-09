@@ -21,7 +21,8 @@ export default async function OneTimeLinkPage({ searchParams }: PageProps<"/auth
   const tokenHash = typeof sp.token_hash === "string" ? sp.token_hash : "";
   const type = typeof sp.type === "string" ? sp.type : "";
   const next = typeof sp.next === "string" ? sp.next : "/";
-  const copy = COPY[type] ?? COPY.magiclink;
+  // A resent invite for someone who opened the first one is a sign-in link to /welcome.
+  const copy = next === "/welcome" ? COPY.invite : (COPY[type] ?? COPY.magiclink);
   const brand = await getBranding();
   return (
     <AuthShell brand={brand}>

@@ -46,7 +46,7 @@ export default async function StaffPage() {
   const [{ data: people }, { data: teams }, { data: memberships }, { data: titleRows }, joined, { data: requests }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, email, role, job_title_id, active, deactivated_at, onboarded_at")
+      .select("id, full_name, email, role, job_title_id, active, deactivated_at, onboarded_at, joined_at")
       .order("active", { ascending: false })
       .order("full_name"),
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
@@ -181,14 +181,17 @@ export default async function StaffPage() {
             job_title_id: p.job_title_id,
             missing: missingFor.get(p.id) ?? null,
             lastManager: p.role === "manager" && p.active && activeManagers === 1,
-            joined: joined ? joined.has(p.id) : true,
+            // cmeprojects: joined = finished setting up their account (name and
+            // password), not just opened the invite link.
+            joined: Boolean(p.joined_at),
+            openedLink: joined ? joined.has(p.id) : false,
             isMe: p.id === me.id,
             hasPhoto: Boolean(photos[p.id]),
             editable: roles.includes(p.role as Role) || p.id === me.id,
             teamIds: (memberships ?? []).filter((m) => m.user_id === p.id).map((m) => m.team_id),
             mfaExempt: mfaExemptOf(p.id),
           };
-          const status = !p.active ? "Deactivated" : row.joined ? "Active" : "Invite sent";
+          const status = !p.active ? "Deactivated" : row.joined ? "Active" : row.openedLink ? "Opened the invite, not set up yet" : "Invite sent";
           return (
             <Card key={p.id} className="p-0">
               {/* cmeprojects: same name = only one person open at a time. */}

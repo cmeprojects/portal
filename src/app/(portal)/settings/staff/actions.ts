@@ -152,6 +152,36 @@ export async function resendInvite(_: FormState, form: FormData): Promise<FormSt
   return { message: `Invite resent to ${person.email}.` };
 }
 
+// cmeprojects: delete a new starter who never set up their account (nothing
+// to keep). Anyone who did set up, or has anything linked to them, is
+// deactivated instead so their records stay.
+export async function deleteUnstarted(_: FormState, form: FormData): Promise<FormState> {
+  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const id = text(form, "id");
+  const supabase = await createClient();
+  // Seen through the person's own permissions: only people they manage.
+  const { data: person } = await supabase.from("profiles").select("id, email, full_name, role, joined_at").eq("id", id).maybeSingle();
+  if (!person) return { error: "Person not found." };
+  if (person.id === me.id) return { error: "You can't delete yourself." };
+  if (person.role !== "new_starter" || person.joined_at) return { error: "Only new starters who never set up their account can be deleted. Deactivate them instead." };
+  // The same permission check as Deactivate: a no-change save they're allowed to make.
+  const { data: allowed } = await supabase.from("profiles").update({ active: true }).eq("id", id).select("id");
+  if (!allowed?.length) return { error: "You don't have permission to change this person." };
+  const admin = createAdminClient();
+  const name = person.full_name || person.email;
+  // The invitation first (it points at the profile). Put back if the delete is refused.
+  const { data: invites } = await admin.from("invitations").delete().or(`user_id.eq.${id},email.eq.${person.email}`).select();
+  const { error: profileError } = await admin.from("profiles").delete().eq("id", id);
+  if (profileError) {
+    if (invites?.length) await admin.from("invitations").insert(invites);
+    return { error: `${name} has records linked to them, so they can't be deleted. Deactivate them instead.` };
+  }
+  await admin.auth.admin.deleteUser(id);
+  await admin.from("audit_log").insert({ actor_id: me.id, action: "unstarted_person_deleted", entity: "profile", entity_id: id, details: { email: person.email, name } });
+  revalidatePath(PAGE);
+  return { message: `${name} was deleted. You can invite them again any time.` };
+}
+
 export async function resetTwoFactor(_: FormState, form: FormData): Promise<FormState> {
   await requireRole(PEOPLE_MANAGERS);
   const id = text(form, "id");

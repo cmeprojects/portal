@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { toast } from "@/components/toast";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
 import { confirmSubmit } from "@/components/confirm";
@@ -9,7 +10,7 @@ import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
 import { clearCarPin,
-  removePersonPhoto, giveConditionalRole, invitePerson, resendInvite, resetTwoFactor, savePerson, sendResetLink, setActive, setMfaExempt, signOutEverywhere } from "./actions";
+  removePersonPhoto, giveConditionalRole, invitePerson, resendInvite, deleteUnstarted, resetTwoFactor, savePerson, sendResetLink, setActive, setMfaExempt, signOutEverywhere } from "./actions";
 
 type Team = { id: string; name: string };
 
@@ -80,6 +81,7 @@ export type PersonRow = {
   // The only active manager: only the system admin can change or deactivate them.
   lastManager: boolean;
   joined: boolean;
+  openedLink?: boolean;
   isMe: boolean;
   editable: boolean;
   // The teams they're in (core-team roles, like managers and staff admins, don't need one).
@@ -117,6 +119,12 @@ export function PersonEditor({
   useAfterSuccess(saveState, markClean);
   const [activeState, activeAction, toggling] = useActionState(setActive, null);
   const [inviteState, inviteAction, resending] = useActionState(resendInvite, null);
+  // The person's card disappears once they're deleted, so say so with a toast.
+  const [removeState, removeAction, removing] = useActionState(async (prev: Awaited<ReturnType<typeof deleteUnstarted>>, f: FormData) => {
+    const r = await deleteUnstarted(prev, f);
+    if (r?.message && !r.error) toast(r.message);
+    return r;
+  }, null);
   const [mfaState, mfaAction, resetting] = useActionState(resetTwoFactor, null);
   const [linkState, linkAction, sendingLink] = useActionState(sendResetLink, null);
   const [pinState, pinAction, clearingPin] = useActionState(clearCarPin, null);
@@ -134,7 +142,7 @@ export function PersonEditor({
   const label = "text-xs font-semibold tracking-wide text-muted uppercase";
   return (
     <div className="flex flex-col gap-4 border-t border-line pt-4">
-      <Result state={saveState ?? activeState ?? inviteState ?? mfaState ?? linkState ?? pinState ?? photoState ?? outState ?? mfaExState} />
+      <Result state={saveState ?? activeState ?? inviteState ?? removeState ?? mfaState ?? linkState ?? pinState ?? photoState ?? outState ?? mfaExState} />
       {/* cmeprojects: name, teams and role save together with one button. */}
       <form
         ref={dirtyRef}
@@ -210,6 +218,16 @@ export function PersonEditor({
           <form action={inviteAction}>
             <input type="hidden" name="id" value={person.id} />
             <Button variant="outline" disabled={resending}>{resending ? "Sending…" : "Resend invite"}</Button>
+          </form>
+        ) : null}
+        {/* cmeprojects: a new starter who never set up their account can be deleted (nothing to keep). */}
+        {!person.joined && person.role === "new_starter" && !person.isMe ? (
+          <form
+            action={removeAction}
+            onSubmit={confirmSubmit(`Delete ${person.full_name || person.email}? Their invite stops working and they're removed from the list. You can invite them again later.`, { action: "Delete", danger: true })}
+          >
+            <input type="hidden" name="id" value={person.id} />
+            <Button variant="outline" className="border-danger/40 text-danger hover:border-danger" disabled={removing}>{removing ? "Deleting…" : "Delete (never set up)"}</Button>
           </form>
         ) : null}
         {canHelpSignIn && person.joined && person.active && !person.isMe ? (
