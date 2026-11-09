@@ -7,6 +7,8 @@ import { inputClass } from "@/components/ui";
 
 // cmeprojects: a phone number with its country (Australia by default). It says
 // straight away if the number doesn't look right; the server checks it again.
+// The boxes keep their own value (not React's), so the form's "unsaved changes"
+// check can't wipe the first thing typed.
 export function PhoneField({ id, name, label, defaultValue = "", optional = true, showOptional = true }: { id: string; name: string; label: string; defaultValue?: string; optional?: boolean; showOptional?: boolean }) {
   const start = splitPhone(defaultValue);
   const [country, setCountry] = useState(start.country);
@@ -23,7 +25,7 @@ export function PhoneField({ id, name, label, defaultValue = "", optional = true
       <div className="flex gap-2">
         <select
           name={`${name}_country`}
-          value={country}
+          defaultValue={start.country}
           onChange={(e) => setCountry(e.target.value)}
           aria-label={`${label}: country`}
           className={`${inputClass} !w-28 shrink-0 !px-2`}
@@ -42,7 +44,7 @@ export function PhoneField({ id, name, label, defaultValue = "", optional = true
           autoComplete="tel"
           required={!optional}
           maxLength={25}
-          value={value}
+          defaultValue={start.local}
           onChange={(e) => setValue(e.target.value)}
           onBlur={() => setTouched(true)}
           placeholder={country === "AU" ? "0412 345 678" : "Number"}

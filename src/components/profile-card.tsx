@@ -11,7 +11,7 @@ export function ProfileCard({ person }: { person: PersonCard }) {
   const d = person.directory;
   const p = person.private;
   return (
-    <div className="shadow-card overflow-hidden rounded-xl border border-line bg-surface">
+    <div className="shadow-card @container overflow-hidden rounded-xl border border-line bg-surface">
       <div className="h-20 bg-brand-dark" aria-hidden="true" />
       <div className="flex flex-col gap-5 px-5 pb-5 sm:px-6">
         <div className="-mt-11">
@@ -28,7 +28,7 @@ export function ProfileCard({ person }: { person: PersonCard }) {
           </div>
           {!person.active ? <span className="rounded-full bg-page px-3 py-1 text-xs font-semibold text-muted ring-1 ring-line">Deactivated</span> : null}
         </div>
-        <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <dl className="grid gap-x-6 gap-y-3 text-sm @sm:grid-cols-2">
           <Item icon={Mail} label="Email">
             <a href={`mailto:${person.email}`} className="text-brand underline">
               {person.email}
@@ -70,7 +70,7 @@ export function ProfileCard({ person }: { person: PersonCard }) {
           )}
         </div>
         {p ? (
-          <div className="grid gap-5 border-t border-line pt-4 md:grid-cols-2">
+          <div className="grid gap-5 border-t border-line pt-4 @2xl:grid-cols-2">
             <dl className="flex flex-col gap-3 text-sm">
               <p className="text-xs font-semibold tracking-wide text-muted uppercase">Private details</p>
               <Item icon={MapPin} label="Address">

@@ -35,7 +35,8 @@ Staff Portal · © cmeproject · 9 November 2026 · Development copy (`dev`)
 ### Part 2: Profiles, My account and the Directory
 - **Profile layout:** a business-style profile card with photo, name, preferred name, job title, department, email, work phone, role and team, and skills and qualifications.
 - **Private details:** address, emergency contact, employment type, start date, employee ID and usual weekly availability. Only the person, people who manage staff, and their team leader (for availability) see these.
-- **My account:** shows your card, with an edit form. **Staff directory** (People → Directory for managers; a Directory menu item for other staff), for everyone: photo cards with search by name, role, team or skill.
+- **My account:** shows your card, with an edit form. **My requests** and **Directory** are menu items right under My account.
+- **Directory:** a searchable list; click a name and their card, open tasks and requests show beside it on the same page (on phones, on their own with a way back). People who manage staff edit in a pop-up. Your own profile is edited in My account. For everyone: photo cards with search by name, role, team or skill.
 - **Profile page:** profile, open tasks, compliance link, and their requests (for people who manage staff). Staff admins and managers edit employment details there.
 - **Who can change what:** staff edit their own contact details, skills, private details and availability. Only people who manage staff change department and employment details. All changes go through the database, which enforces this.
 - **Photos everywhere:** photos and names now show on tasks (looked after by, and every activity entry), requests, the directory and dashboards.
