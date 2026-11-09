@@ -181,9 +181,10 @@ export default async function StaffPage() {
             job_title_id: p.job_title_id,
             missing: missingFor.get(p.id) ?? null,
             lastManager: p.role === "manager" && p.active && activeManagers === 1,
-            // cmeprojects: joined = finished setting up their account (name and
-            // password), not just opened the invite link.
-            joined: Boolean(p.joined_at),
+            // cmeprojects: anyone with a role is set up. A new starter is set up
+            // once they've finished their account (name and password), not just
+            // opened the invite link.
+            joined: p.role !== "new_starter" || Boolean(p.joined_at),
             openedLink: joined ? joined.has(p.id) : false,
             isMe: p.id === me.id,
             hasPhoto: Boolean(photos[p.id]),
