@@ -4,13 +4,15 @@ import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireSession } from "@/lib/session";
 import { canSeeComplianceReport, getPeopleRules, getTimeZone } from "@/lib/settings";
-import { todayIn } from "@/lib/tasks";
+import { endOfWeek, formatDue, todayIn, type Priority, type Status } from "@/lib/tasks";
+import { refLabel } from "@/lib/registers";
+import { ManagerBoard, type BoardTask } from "./manager-board";
 import { onboardingOn } from "@/lib/feature-parts";
 import { isDone, type ItemState } from "@/lib/compliance";
 import { formsOn } from "@/lib/forms";
-import { Bars, LineChart, Panel, Tile } from "@/components/dash";
+import { Bars, Panel, Tile } from "@/components/dash";
 import { PageHeader } from "@/components/ui";
-import { AlertTriangle, BadgeCheck, Car, Clock, FileWarning, Inbox, ListChecks, MailQuestion, Siren, Upload, UserPlus, Users } from "lucide-react";
+import { AlertTriangle, Car, Clock, FileWarning, Inbox, ListChecks, MailQuestion, Siren, Upload, UserPlus, Users } from "lucide-react";
 
 // cmeprojects: each role's dashboard, in the same style as the system admin's.
 //   Manager:     the whole operation.
@@ -24,8 +26,8 @@ import { AlertTriangle, BadgeCheck, Car, Clock, FileWarning, Inbox, ListChecks, 
 const DONE = ["completed", "closed"];
 const DAY = 86_400_000;
 type Supa = Awaited<ReturnType<typeof createClient>>;
-type Ctx = { supabase: Supa; me: string; today: string; features: Record<string, boolean>; complianceReport: boolean };
-type Piece = (ctx: Ctx) => Promise<{ tile?: ReactNode; panel?: ReactNode } | null>;
+type Ctx = { supabase: Supa; me: string; today: string; timeZone: string; features: Record<string, boolean>; complianceReport: boolean };
+type Piece = (ctx: Ctx) => Promise<{ board?: ReactNode; tile?: ReactNode; panel?: ReactNode } | null>;
 
 const plus = (today: string, days: number) => new Date(Date.parse(`${today}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
 const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
@@ -45,81 +47,50 @@ const Empty = ({ children }: { children: ReactNode }) => <p className="text-sm t
 // Tasks (manager)
 // ---------------------------------------------------------------------------
 
-const openTasks: Piece = async ({ supabase, today }) => {
-  const [open, thisWeek, lastWeek] = await Promise.all([
-    count(supabase.from("tasks").select("id", { count: "exact", head: true }).not("status", "in", `(${DONE.join(",")})`)),
-    count(supabase.from("tasks").select("id", { count: "exact", head: true }).gte("created_at", plus(today, -6))),
-    count(supabase.from("tasks").select("id", { count: "exact", head: true }).gte("created_at", plus(today, -13)).lt("created_at", plus(today, -6))),
-  ]);
-  const diff = thisWeek - lastWeek;
-  const note = `${thisWeek} new this week${diff ? ` (${diff > 0 ? `${diff} more` : `${-diff} fewer`} than last week)` : ""}`;
-  return { tile: <Tile label="Open tasks" value={open} note={note} icon={ListChecks} href="/tasks" /> };
-};
-const overdueTasks: Piece = async ({ supabase, today }) => ({
-  tile: (
-    <Tile
-      label="Overdue"
-      value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).not("status", "in", `(${DONE.join(",")})`).lt("due_date", today))}
-      note="Past their due date"
-      icon={AlertTriangle}
-      tone="danger"
-      href="/tasks#all"
-    />
-  ),
-});
-const awaitingApproval: Piece = async ({ supabase }) => ({
-  tile: <Tile label="Waiting for approval" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "awaiting_approval"))} note="Finished, needs a manager" icon={BadgeCheck} tone="warn" href="/tasks" />,
-});
-const escalated: Piece = async ({ supabase }) => ({
-  tile: <Tile label="Escalated" value={await count(supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "escalated"))} note="Someone asked for help" icon={Siren} tone="danger" href="/tasks" />,
-});
+// ---------------------------------------------------------------------------
+// Manager: the interactive board (tiles, status, people, registers, ageing, trend)
+// ---------------------------------------------------------------------------
 
-const workload: Piece = async ({ supabase }) => {
-  const { data } = await supabase.from("tasks").select("assigned_to").not("status", "in", `(${DONE.join(",")})`).limit(5000);
-  const by = new Map<string, number>();
-  for (const t of data ?? []) by.set(t.assigned_to ?? "", (by.get(t.assigned_to ?? "") ?? 0) + 1);
-  const names = await nameMap(supabase, [...by.keys()].filter(Boolean));
-  return {
-    panel: (
-      <Panel title="Open tasks by person" action={<Link href="/tasks#all" className="text-xs font-semibold text-brand underline">See all</Link>}>
-        {by.size ? <Bars rows={topBars(by, names)} /> : <Empty>No open tasks.</Empty>}
-      </Panel>
-    ),
-  };
-};
-
-const overdueByRegister: Piece = async ({ supabase, today }) => {
-  const [{ data }, { data: regs }] = await Promise.all([
-    supabase.from("tasks").select("registry_id").not("status", "in", `(${DONE.join(",")})`).lt("due_date", today).limit(5000),
-    supabase.from("registries").select("id, name"),
-  ]);
-  const by = new Map<string, number>();
-  for (const t of data ?? []) by.set(t.registry_id, (by.get(t.registry_id) ?? 0) + 1);
-  const names = new Map((regs ?? []).map((r) => [r.id as string, r.name as string]));
-  return {
-    panel: (
-      <Panel title="Overdue by register">
-        {by.size ? <Bars rows={topBars(by, names)} /> : <Empty>Nothing is overdue. Well done.</Empty>}
-      </Panel>
-    ),
-  };
-};
-
-const weeklyTrend: Piece = async ({ supabase, today }) => {
+const managerBoard: Piece = async ({ supabase, today, timeZone }) => {
   const since = plus(today, -55);
-  const [{ data: made }, { data: done }] = await Promise.all([
+  const [{ data: open }, { data: regs }, { data: made }, { data: closed }, { data: finished }] = await Promise.all([
+    supabase.from("tasks").select("id, ref_number, title, status, priority, due_date, assigned_to, registry_id").not("status", "in", `(${DONE.join(",")})`).order("due_date", { ascending: true, nullsFirst: false }).limit(3000),
+    supabase.from("registries").select("id, name, prefix"),
     supabase.from("tasks").select("created_at").gte("created_at", since).limit(10000),
-    supabase.from("tasks").select("completed_at").gte("completed_at", since).limit(10000),
+    supabase.from("tasks").select("completed_at, closed_at").or(`completed_at.gte.${since},closed_at.gte.${since}`).limit(10000),
+    supabase.from("tasks").select("due_date, completed_at").gte("completed_at", plus(today, -29)).not("due_date", "is", null).limit(10000),
   ]);
+  const regOf = new Map((regs ?? []).map((r) => [r.id as string, r as { id: string; name: string; prefix: string }]));
+  const names = await nameMap(supabase, [...new Set((open ?? []).map((t) => t.assigned_to as string))]);
+  const tasks: BoardTask[] = (open ?? []).map((t) => ({
+    id: t.id,
+    ref: refLabel(regOf.get(t.registry_id)?.prefix, t.ref_number),
+    title: t.title,
+    status: t.status as Status,
+    priority: t.priority as Priority,
+    due: t.due_date,
+    dueLabel: formatDue(t.due_date, today, t.status as Status),
+    assignedTo: t.assigned_to,
+    assignee: names.get(t.assigned_to) ?? "Not assigned",
+    registryId: t.registry_id,
+    register: regOf.get(t.registry_id)?.name ?? "",
+  }));
   const start = Date.parse(`${since}T00:00:00Z`);
-  const rows = Array.from({ length: 8 }, (_, i) => {
-    const d = new Date(start + i * 7 * DAY);
-    return { label: d.toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" }), value: 0, done: 0 };
-  });
-  const week = (iso: string) => Math.min(7, Math.max(0, Math.floor((Date.parse(iso) - start) / (7 * DAY))));
-  for (const t of made ?? []) rows[week(t.created_at)].value++;
-  for (const t of done ?? []) if (t.completed_at) rows[week(t.completed_at)].done++;
-  return { panel: <Panel title="Tasks created and finished, last 8 weeks" className="lg:col-span-2"><LineChart rows={rows} /></Panel> };
+  const weeks = Array.from({ length: 8 }, (_, i) => ({
+    label: new Date(start + i * 7 * DAY).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" }),
+    opened: 0,
+    closed: 0,
+  }));
+  const wk = (iso: string) => Math.min(7, Math.max(0, Math.floor((Date.parse(iso) - start) / (7 * DAY))));
+  for (const t of made ?? []) weeks[wk(t.created_at)].opened++;
+  for (const t of closed ?? []) {
+    const at = (t.completed_at ?? t.closed_at) as string | null;
+    if (at && at >= since) weeks[wk(at)].closed++;
+  }
+  const done = (finished ?? []).filter((t) => t.completed_at);
+  const onTime = { finished: done.length, onTime: done.filter((t) => new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date(t.completed_at as string)) <= (t.due_date as string)).length };
+  const allNames = [...names.entries()] as [string, string][];
+  return { board: <ManagerBoard tasks={tasks} today={today} weekEnd={endOfWeek(today)} weeks={weeks} onTime={onTime} names={allNames} timeZone={timeZone} /> };
 };
 
 // ---------------------------------------------------------------------------
@@ -339,7 +310,7 @@ const teamClients: Piece = async ({ supabase }) => {
 const LAYOUTS: Record<"manager" | "staff_admin" | "team_leader", { intro: string; pieces: Piece[] }> = {
   manager: {
     intro: "How the whole operation is going today.",
-    pieces: [openTasks, overdueTasks, awaitingApproval, escalated, onboardingDone, documentsExpiring, newEnquiries, carsOut, workload, overdueByRegister, weeklyTrend],
+    pieces: [managerBoard, onboardingDone, documentsExpiring, newEnquiries, carsOut],
   },
   staff_admin: {
     intro: "Staffing at a glance: invites, onboarding, documents and changes.",
@@ -360,9 +331,9 @@ export async function RoleDashboard() {
   if (!hasRoleDashboard(profile.role)) return null;
   const supabase = await createClient();
   const [timeZone, rules] = await Promise.all([getTimeZone(), getPeopleRules()]);
-  const ctx: Ctx = { supabase, me: profile.id, today: todayIn(timeZone), features, complianceReport: canSeeComplianceReport(profile.role, rules) };
+  const ctx: Ctx = { supabase, me: profile.id, today: todayIn(timeZone), timeZone, features, complianceReport: canSeeComplianceReport(profile.role, rules) };
   const layout = LAYOUTS[profile.role];
-  const parts = (await Promise.all(layout.pieces.map((p) => p(ctx).catch(() => null)))).filter(Boolean) as { tile?: ReactNode; panel?: ReactNode }[];
+  const parts = (await Promise.all(layout.pieces.map((p) => p(ctx).catch(() => null)))).filter(Boolean) as { board?: ReactNode; tile?: ReactNode; panel?: ReactNode }[];
   const firstName = profile.full_name?.split(" ")[0];
   return (
     <>
@@ -375,7 +346,8 @@ export async function RoleDashboard() {
           </Link>
         }
       />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{parts.map((p, i) => (p.tile ? <div key={i} className="contents">{p.tile}</div> : null))}</div>
+      {parts.map((p, i) => (p.board ? <div key={`b${i}`} className="contents">{p.board}</div> : null))}
+      {parts.some((p) => p.tile) ? <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{parts.map((p, i) => (p.tile ? <div key={i} className="contents">{p.tile}</div> : null))}</div> : null}
       <div className="grid gap-4 lg:grid-cols-2">{parts.map((p, i) => (p.panel ? <div key={i} className="contents">{p.panel}</div> : null))}</div>
     </>
   );

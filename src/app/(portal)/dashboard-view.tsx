@@ -42,6 +42,15 @@ function one(v: string | string[] | undefined): string {
 
 // The dashboard for team leaders, managers and system admins: every ongoing
 // task they're allowed to see (their team's, their registers', or all).
+const SHOW_LABEL: Record<string, string> = {
+  overdue: "Overdue tasks",
+  late: "Past their due date",
+  escalated: "Escalated tasks",
+  awaiting: "Waiting for approval",
+  week: "Due this week",
+  ontrack: "On track",
+};
+
 export async function DashboardView({ params }: { params: Record<string, string | string[] | undefined> }) {
   const { profile, features } = await requireSession();
   const supabase = await createClient();
@@ -65,11 +74,28 @@ export async function DashboardView({ params }: { params: Record<string, string 
   const register = one(params.register);
   const person = one(params.person);
   const q = one(params.q).toLowerCase();
+  // cmeprojects: "show" narrows to what a dashboard tile or chart was about.
+  const show = one(params.show);
+  const shown = (t: Row) =>
+    show === "overdue"
+      ? !!t.due_date && t.due_date < today && t.status !== "escalated" && t.status !== "awaiting_approval"
+      : show === "late"
+        ? !!t.due_date && t.due_date < today
+        : show === "escalated"
+          ? t.status === "escalated"
+          : show === "awaiting"
+            ? t.status === "awaiting_approval"
+            : show === "week"
+              ? !!t.due_date && t.due_date >= today && t.due_date <= weekEnd
+              : show === "ontrack"
+                ? t.status !== "escalated" && t.status !== "awaiting_approval" && !(t.due_date && t.due_date < today)
+                : true;
   const filtered = open.filter(
     (t) =>
       (!register || t.registry_id === register) &&
       (!person || t.assigned_to === person) &&
-      (!q || t.title.toLowerCase().includes(q)),
+      (!q || t.title.toLowerCase().includes(q)) &&
+      shown(t),
   );
 
   const regOf = new Map(registries.map((r) => [r.id, r]));
@@ -269,7 +295,9 @@ export async function DashboardView({ params }: { params: Record<string, string 
 
       <Card id="all" className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-line px-5 py-3">
-          <h2 className="heading-sm">All ongoing tasks · {filtered.length}</h2>
+          <h2 className="heading-sm">
+            {show ? `${SHOW_LABEL[show] ?? "Ongoing tasks"} · ${filtered.length}` : `All ongoing tasks · ${filtered.length}`}
+          </h2>
           <form className="grid gap-2 sm:grid-cols-[1fr_1fr_1.5fr_auto_auto] sm:items-center" role="search" action="/tasks#all">
             <label className="sr-only" htmlFor="d-register">Register</label>
             <select id="d-register" name="register" defaultValue={register} className={inputClass}>
@@ -293,6 +321,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
             </select>
             <label className="sr-only" htmlFor="d-q">Search by title</label>
             <input id="d-q" name="q" type="search" defaultValue={one(params.q)} placeholder="Search by title" className={inputClass} />
+            {show ? <input type="hidden" name="show" value={show} /> : null}
             <button className={buttonClass("outline")}>Show</button>
             {register || person || q ? (
               <Link href="/tasks#all" className="min-h-11 content-center px-2 text-sm text-muted underline">
