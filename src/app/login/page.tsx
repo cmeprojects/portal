@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
 import { AuthShell } from "@/components/auth-shell";
 import { LoginForm } from "./login-form";
+import { HashLink } from "./hash-link";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -40,9 +41,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <AuthShell brand={brand}>
       <div className="flex flex-col gap-1">
-        <h1 className="heading">Welcome back</h1>
+        <h1 className="heading">{params.ready ? "Sign in" : "Welcome back"}</h1>
         <p className="text-sm text-muted">Sign in with the email you were invited with.</p>
       </div>
+      <HashLink />
+      {params.ready ? (
+        <p role="status" className="rounded-lg border border-good/30 bg-good/10 px-4 py-3 text-sm font-medium text-ink">
+          Your account is ready. Sign in with your new password to start your onboarding.
+        </p>
+      ) : null}
       <LoginForm
         next={next}
         googleOn={on("sign_in_google")}

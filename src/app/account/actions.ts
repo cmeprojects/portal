@@ -43,7 +43,10 @@ export async function finishWelcome(_: FormState, form: FormData): Promise<FormS
   if (error) return { error: "We couldn't save your name. Please try again." };
   // Lets the staff admins know they've joined (once).
   await supabase.rpc("mark_joined");
-  redirect("/onboarding");
+  // cmeprojects: account set up. Sign out here and ask them to sign in with
+  // their new password (or Google or an email link), then on to onboarding.
+  await supabase.auth.signOut({ scope: "local" });
+  redirect(`/login?ready=1&next=${encodeURIComponent("/onboarding")}`);
 }
 
 export async function changePassword(_: FormState, form: FormData): Promise<FormState> {
