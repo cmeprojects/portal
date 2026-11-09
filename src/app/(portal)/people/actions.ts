@@ -47,5 +47,6 @@ export async function saveProfile(_: FormState, form: FormData): Promise<FormSta
   if (error) return { error: friendlyError(error) };
   revalidatePath("/people");
   revalidatePath("/account");
+  revalidatePath("/onboarding");
   return { message: "Profile saved." };
 }

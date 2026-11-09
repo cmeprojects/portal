@@ -72,6 +72,7 @@ const SHORT: Record<ItemState, string> = {
   submitted: "To check",
   accepted: "Checked",
   rejected: "Upload again",
+  replace_requested: "New copy needed",
   expiring: "Expiring",
   expired: "Expired",
 };
@@ -82,6 +83,7 @@ const COLOUR: Record<ItemState, ChoiceColour> = {
   submitted: "blue",
   accepted: "green",
   rejected: "orange",
+  replace_requested: "orange",
   expiring: "yellow",
   expired: "red",
 };

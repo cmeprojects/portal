@@ -2,7 +2,7 @@
 import type { Role } from "@/lib/roles";
 
 // "form": a form made in Forms, filled in as part of Compliance.
-export type ItemKind = "read" | "training" | "upload" | "form";
+export type ItemKind = "read" | "training" | "upload" | "form" | "agreement";
 
 export type ComplianceItem = {
   id: string;
@@ -20,12 +20,19 @@ export type ComplianceItem = {
   applies_teams: string[];
   sort_order: number;
   form_id?: string | null;
+  // cmeprojects (update 58)
+  category?: string;
+  before_work?: boolean;
+  certificate?: "none" | "optional" | "required";
+  needs_issue_date?: boolean;
+  needs_number?: boolean;
+  applies_titles?: string[];
 };
 
 export const ITEM_COLUMNS =
   "id, kind, title, description, body, link_url, file_path, file_name, version, needs_expiry, active, applies_roles, applies_teams, sort_order";
 
-export type ItemState = "todo" | "update" | "done" | "submitted" | "accepted" | "rejected" | "expiring" | "expired";
+export type ItemState = "todo" | "update" | "done" | "submitted" | "accepted" | "rejected" | "replace_requested" | "expiring" | "expired";
 
 export type StatusRow = {
   item_id: string;
@@ -35,6 +42,10 @@ export type StatusRow = {
   record_id: number | null;
   expires_on: string | null;
   note: string;
+  // cmeprojects (update 58)
+  before_work?: boolean;
+  category?: string;
+  needs_check?: boolean;
 };
 
 export const KIND_LABELS: Record<ItemKind, string> = {
@@ -42,9 +53,10 @@ export const KIND_LABELS: Record<ItemKind, string> = {
   training: "Trainings",
   upload: "Documents to upload",
   form: "Forms to fill in",
+  agreement: "Employment agreement",
 };
 
-export const KIND_TAB: Record<ItemKind, string> = { read: "Documents to read", training: "Trainings", upload: "Uploads", form: "Forms" };
+export const KIND_TAB: Record<ItemKind, string> = { read: "Documents to read", training: "Trainings", upload: "Uploads", form: "Forms", agreement: "Agreements" };
 
 // Done, or done enough (uploaded and waiting to be checked, or expiring soon).
 export const isDone = (s: ItemState) => s === "done" || s === "submitted" || s === "accepted" || s === "expiring";
@@ -56,6 +68,7 @@ export const STATE_LABELS: Record<ItemState, string> = {
   submitted: "Uploaded, being checked",
   accepted: "Checked",
   rejected: "Upload again",
+  replace_requested: "New copy needed",
   expiring: "Expires soon",
   expired: "Expired",
 };
@@ -67,6 +80,7 @@ export const STATE_TONE: Record<ItemState, "good" | "warn" | "grey" | "soft"> = 
   submitted: "soft",
   accepted: "good",
   rejected: "warn",
+  replace_requested: "warn",
   expiring: "warn",
   expired: "warn",
 };
@@ -95,3 +109,14 @@ export function stateBadges(state: ItemState, recordStatus?: string | null): { l
   }
   return [{ label: STATE_LABELS[state], tone: STATE_TONE[state] }];
 }
+
+// cmeprojects: document categories (update 58).
+export const CATEGORY_LABELS: Record<string, string> = {
+  qualification: "Qualification",
+  certificate: "Certificate",
+  screening: "Screening check",
+  licence: "Licence",
+  insurance: "Insurance",
+  identity: "Identity",
+  other: "Other",
+};
