@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { PhoneField } from "@/components/phone-field";
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button, Card, Field, Notice, inputClass } from "@/components/ui";
@@ -45,20 +46,7 @@ export function EnquiryForm({ asked, phone }: { asked: string; phone: string }) 
             <Field label="Your name" htmlFor="full_name">
               <input id="full_name" name="full_name" autoComplete="name" required maxLength={120} className={inputClass} />
             </Field>
-            <Field label="Mobile or phone" htmlFor="phone" hint="An Australian number, for example 0412 345 678.">
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                required
-                maxLength={20}
-                pattern="^\s*(\+?61|0)[\s-]*[2-478]([\s-]*\d){8}\s*$"
-                title="An Australian number, for example 0412 345 678"
-                className={inputClass}
-              />
-            </Field>
+            <PhoneField id="phone" name="phone" label="Mobile or phone" optional={false} />
             <Field label="Email (optional)" htmlFor="email">
               <input id="email" name="email" type="email" autoComplete="email" maxLength={200} className={inputClass} />
             </Field>

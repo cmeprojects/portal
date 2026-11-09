@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { PhoneField } from "@/components/phone-field";
 import { useActionState, useTransition } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { useDirty } from "@/components/use-dirty";
@@ -35,9 +36,7 @@ export function ProfileForm({ person, employment }: { person: PersonCard; employ
         <Field label="Preferred name (optional)" htmlFor="pf-preferred" hint="What people call you, if it's not your full name.">
           <input id="pf-preferred" name="preferred_name" defaultValue={d.preferred_name} maxLength={60} className={inputClass} />
         </Field>
-        <Field label="Work phone (optional)" htmlFor="pf-phone">
-          <input id="pf-phone" name="work_phone" type="tel" defaultValue={d.work_phone} maxLength={30} className={inputClass} />
-        </Field>
+        <PhoneField id="pf-phone" name="work_phone" label="Contact phone" defaultValue={d.work_phone} showOptional={false} />
         <div className="sm:col-span-2">
           <Field label="Skills and qualifications (optional)" htmlFor="pf-skills" hint="Separate with commas, for example: First Aid, Driver's licence, Medication.">
             <input id="pf-skills" name="skills" defaultValue={d.skills.join(", ")} className={inputClass} />
@@ -74,14 +73,12 @@ export function ProfileForm({ person, employment }: { person: PersonCard; employ
             <input id="pf-address" name="address" defaultValue={p?.address ?? ""} maxLength={300} className={inputClass} autoComplete="street-address" />
           </Field>
         </div>
-        <Field label="Emergency contact" htmlFor="pf-em-name">
-          <input id="pf-em-name" name="emergency_name" defaultValue={p?.emergency_name ?? ""} maxLength={100} className={inputClass} />
+        <Field label="Emergency contact's name" htmlFor="pf-em-name" hint="Who to call, and how they're related, for example Jo Smith (partner).">
+          <input id="pf-em-name" name="emergency_name" defaultValue={p?.emergency_name ?? ""} maxLength={100} autoComplete="off" className={inputClass} />
         </Field>
-        <Field label="Emergency contact's phone" htmlFor="pf-em-phone">
-          <input id="pf-em-phone" name="emergency_phone" type="tel" defaultValue={p?.emergency_phone ?? ""} maxLength={30} className={inputClass} />
-        </Field>
+        <PhoneField id="pf-em-phone" name="emergency_phone" label="Emergency contact's phone" defaultValue={p?.emergency_phone ?? ""} showOptional={false} />
       </section>
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="mb-1 text-sm font-semibold">Usual availability (optional)</legend>
         <div className="overflow-x-auto">
           <table className="text-center text-sm">

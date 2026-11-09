@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { checkPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/session";
 import { getMyAdminAreas } from "@/lib/settings";
@@ -39,13 +40,16 @@ export async function saveAssistantSettings(_: FormState, form: FormData): Promi
       .slice(0, max);
   let row: Record<string, unknown>;
   if (part === "landing") {
+    // cmeprojects: the support number is checked like every other phone number.
+    const phone = checkPhone(text(form, "phone_country") || "AU", text(form, "phone"));
+    if (!phone.ok) return { error: `Support number: ${phone.error}` };
     const heading = text(form, "heading").slice(0, 120);
     if (!heading) return { error: "The heading can't be empty." };
     row = {
       heading,
       intro: text(form, "intro").slice(0, 400),
       suggestions: lines("suggestions", 8, 80),
-      phone: text(form, "phone").slice(0, 40),
+      phone: phone.value,
       disclaimer: text(form, "disclaimer").slice(0, 300),
       show_credits: form.get("show_credits") === "on",
       offer_call: form.get("offer_call") === "on",

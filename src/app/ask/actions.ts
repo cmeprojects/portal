@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { EMAIL, text } from "@/lib/form";
 import { answerQuestion, assistantOn, getVisitor, loadSettings } from "@/lib/assistant";
 import type { Answer } from "@/lib/assistant-shared";
-import { AU_POSTCODE, NEEDS, australianPhone } from "./options";
+import { AU_POSTCODE, NEEDS } from "./options";
+import { checkPhone } from "@/lib/phone";
 
 // The public website's actions: anyone can ask a question or leave their
 // details, so everything is checked and capped here.
@@ -82,14 +83,17 @@ export async function submitEnquiry(_: EnquiryState, form: FormData): Promise<En
   if (text(form, "website")) return { done: true };
   // About them (required): name, suburb and postcode, an Australian phone number.
   const full_name = text(form, "full_name").slice(0, 120);
-  const phone = australianPhone(text(form, "phone"));
+  // cmeprojects: any country (Australia by default), saved in one format.
+  const phoneCheck = checkPhone(text(form, "phone_country") || "AU", text(form, "phone"));
+  const phone = phoneCheck.ok ? phoneCheck.value : "";
   const email = text(form, "email").slice(0, 200);
   const suburb = text(form, "suburb").slice(0, 80);
   const postcode = text(form, "postcode");
   if (full_name.length < 2) return { error: "Please tell us your name." };
   if (!suburb) return { error: "Please tell us your suburb." };
   if (!AU_POSTCODE.test(postcode)) return { error: "Please enter your 4-digit postcode." };
-  if (!phone) return { error: "Please give an Australian phone number, for example 0412 345 678." };
+  if (!phoneCheck.ok) return { error: `Phone: ${phoneCheck.error}` };
+  if (!phone) return { error: "Please give a phone number, for example 0412 345 678." };
   if (email && !EMAIL.test(email)) return { error: "That email doesn't look right." };
   if (form.get("consent") !== "on") return { error: "Please tick the box so we can contact you." };
 

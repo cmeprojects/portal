@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { PhoneField } from "@/components/phone-field";
 import { useActionState, useState, useTransition, type ReactNode } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { AUDIENCE_LABELS, AUDIENCES, SCOPE_LABELS, type AssistantSettings, type Scope } from "@/lib/assistant-shared";
@@ -61,9 +62,7 @@ export function LandingForm({ s }: { s: AssistantSettings }) {
         {area("suggestions", s.suggestions.join("\n"), 4)}
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="General support number (shown at the bottom of the website)" htmlFor="phone">
-          <input id="phone" name="phone" defaultValue={s.phone} maxLength={40} className={inputClass} />
-        </Field>
+        <PhoneField id="phone" name="phone" label="General support number (shown at the bottom of the website)" defaultValue={s.phone} />
         <Field label="Note at the bottom of the page" htmlFor="disclaimer">
           <input id="disclaimer" name="disclaimer" defaultValue={s.disclaimer} maxLength={300} className={inputClass} />
         </Field>

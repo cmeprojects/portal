@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { checkPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -34,8 +35,14 @@ export async function saveProfile(_: FormState, form: FormData): Promise<FormSta
     p.employment_type = str("employment_type");
     p.employee_id = str("employee_id");
   }
-  if (p.work_phone && !/^[\d\s+()-]{6,30}$/.test(String(p.work_phone))) return { error: "Check the phone number (numbers, spaces and + only)." };
-  if (p.emergency_phone && !/^[\d\s+()-]{6,30}$/.test(String(p.emergency_phone))) return { error: "Check the emergency contact's phone number." };
+  // cmeprojects: phone numbers checked for their country (Australia by default) and saved in one format.
+  const phone = checkPhone(str("work_phone_country") || "AU", str("work_phone"));
+  if (!phone.ok) return { error: `Contact phone: ${phone.error}` };
+  p.work_phone = phone.value;
+  const emergency = checkPhone(str("emergency_phone_country") || "AU", str("emergency_phone"));
+  if (!emergency.ok) return { error: `Emergency contact's phone: ${emergency.error}` };
+  p.emergency_phone = emergency.value;
+  if (/^[\d\s+()-]{6,}$/.test(String(p.emergency_name))) return { error: "Emergency contact's name: that looks like a phone number. Put the name here and the number below." };
   const { error } = await (await createClient()).rpc("save_profile", { p_user: userId, p });
   if (error) return { error: friendlyError(error) };
   revalidatePath("/people");

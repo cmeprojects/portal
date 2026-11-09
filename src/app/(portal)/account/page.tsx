@@ -37,7 +37,7 @@ export default async function AccountPage() {
     <>
       <PageHeader title="My account" intro={`${profile.email} · ${ROLE_LABELS[profile.role]}`} />
       {me ? (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <ProfileCard person={me} />
           <Card className="p-5 sm:p-6">
             <h2 className="heading-sm mb-4">Edit my profile</h2>

@@ -125,7 +125,7 @@ function Item({ icon: Icon, label, children }: { icon: typeof Mail; label: strin
       <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted" strokeWidth={1.75} />
       <div className="min-w-0">
         <dt className="text-xs text-muted">{label}</dt>
-        <dd className="break-words">{children}</dd>
+        <dd className="[overflow-wrap:anywhere]">{children}</dd>
       </div>
     </div>
   );

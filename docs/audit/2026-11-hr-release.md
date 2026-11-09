@@ -87,6 +87,7 @@ Staff Portal · © cmeproject · 9 November 2026 · Development copy (`dev`)
   - **Leaving with unsaved changes:** every form that tracks changes warns you first.
 
 ### Also
+- **Phone numbers:** every phone field (profiles, emergency contact, website enquiry, support number) has a country picker, Australia by default. Australian numbers must be a real mobile (04…) or landline with area code; other countries are checked for length. Numbers are saved in one format, for example +61 412 345 678, and the server checks them again. The emergency contact name refuses a phone number.
 - **System admin dashboard:** a branded banner with the headline numbers, and colour-coded tiles with icons.
 - **Roadmap:** `docs/roadmap/hr-and-workforce.md`, with qualifications and training compliance first, then rostering.
 
@@ -97,7 +98,7 @@ Staff Portal · © cmeproject · 9 November 2026 · Development copy (`dev`)
 | Database tests (all files, including 5 new ones for this release) | 739 passed, 0 failed |
 | New database tests | HR Pack switches and profiles 14, My requests 27, profile requirement 8, role-change ownership 7, client teams 7 |
 | Browser checks of the new workflows | Board 8 of 9 (the 1 was the test clicking the middle of the doughnut), profiles and directory 16 of 17 (the 1 was missing local test data), requests and approvals 15 of 15, Save buttons 8 of 8 |
-| Re-crawl, every page, every role | RESULT_CRAWL |
+| Re-crawl, every page, every role | 662 visits, 174 unique pages, 6 roles: no errors or broken pages. Found sideways scrolling on phones on My account and profile pages (fixed and rechecked) |
 | Lint, typecheck, production build | Clean |
 
 ## Not done or limits
