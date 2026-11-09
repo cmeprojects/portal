@@ -1,0 +1,89 @@
+// Staff Portal · © cmeproject. All rights reserved.
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireSession } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
+import { loadPerson, profilesReady } from "@/lib/profiles";
+import { STATUS_CLASS, STATUS_LABELS, formatDue, todayIn, type Status } from "@/lib/tasks";
+import { getTimeZone } from "@/lib/settings";
+import { onboardingOn } from "@/lib/feature-parts";
+import { ProfileCard } from "@/components/profile-card";
+import { ProfileForm } from "@/components/profile-form";
+import { Card } from "@/components/ui";
+
+export const metadata: Metadata = { title: "Profile" };
+
+const PEOPLE_MANAGERS = ["manager", "staff_admin", "system_admin"];
+
+// cmeprojects: one person's profile. Everyone sees the business card; the
+// person and people who manage staff also see private details and can edit.
+export default async function PersonPage({ params }: PageProps<"/people/[id]">) {
+  const { profile, features } = await requireSession();
+  if (features.hr_profiles === false || !(await profilesReady())) notFound();
+  const { id } = await params;
+  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const person = await loadPerson(id);
+  if (!person) notFound();
+  const manager = PEOPLE_MANAGERS.includes(profile.role);
+  const me = person.id === profile.id;
+  const overseer = manager || profile.role === "team_leader";
+  const supabase = await createClient();
+  const today = todayIn(await getTimeZone());
+  // Their open tasks (only what this person may see; the database decides).
+  const { data: tasks } = overseer || me
+    ? await supabase.from("tasks").select("id, title, status, due_date").eq("assigned_to", id).not("status", "in", "(completed,closed)").order("due_date", { ascending: true, nullsFirst: false }).limit(8)
+    : { data: [] };
+  return (
+    <>
+      <p className="text-sm">
+        <Link href="/people" className="text-brand underline">
+          ← Staff directory
+        </Link>
+      </p>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <ProfileCard person={person} />
+        <div className="flex flex-col gap-4">
+          {tasks?.length ? (
+            <Card className="p-5">
+              <h2 className="heading-sm mb-2">Open tasks</h2>
+              <ul className="flex flex-col divide-y divide-line text-sm">
+                {tasks.map((t) => (
+                  <li key={t.id} className="py-2">
+                    <Link href={`/tasks/${t.id}`} className="font-medium hover:text-brand">
+                      {t.title}
+                    </Link>
+                    <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                      <span className={`rounded-full px-2 py-0.5 font-semibold ${STATUS_CLASS[t.status as Status]}`}>{STATUS_LABELS[t.status as Status]}</span>
+                      <span className={t.due_date && t.due_date < today ? "font-semibold text-danger" : "text-muted"}>{formatDue(t.due_date, today, t.status as Status)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {overseer ? (
+                <Link href={`/tasks?person=${id}#all`} className="mt-2 inline-block text-sm font-semibold text-brand underline">
+                  All their tasks
+                </Link>
+              ) : null}
+            </Card>
+          ) : null}
+          {manager && onboardingOn(features) ? (
+            <Card className="p-5">
+              <h2 className="heading-sm mb-1">Compliance</h2>
+              <p className="mb-2 text-sm text-muted">Their onboarding, documents and trainings.</p>
+              <Link href={`/compliance/people/${id}`} className="text-sm font-semibold text-brand underline">
+                Open their compliance
+              </Link>
+            </Card>
+          ) : null}
+        </div>
+      </div>
+      {me || manager ? (
+        <Card className="p-5 sm:p-6">
+          <h2 className="heading-sm mb-4">{me ? "Edit my profile" : `Edit ${person.name}'s profile`}</h2>
+          <ProfileForm person={person} employment={manager} />
+        </Card>
+      ) : null}
+    </>
+  );
+}

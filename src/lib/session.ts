@@ -59,14 +59,21 @@ export const getSession = cache(async (): Promise<Session | null> => {
   // emails and auto-escalation, which apply to everyone (cmeprojects).
   const admin = profile.role === "system_admin";
   const EVERYONE = ["two_factor", "email_notifications", "auto_escalation"];
-  const liveOn = (f: { key: string; parent?: string | null }) => Boolean(own.get(f.key)) && (!f.parent || own.get(f.parent) === true);
+  // cmeprojects: on only while it and every level above it are on (HR Pack → My requests → Leave).
+  const parentOf = new Map((features ?? []).map((f) => [f.key as string, (f.parent as string | null) ?? null]));
+  const chainOn = (key: string, depth = 0): boolean => {
+    if (!own.get(key)) return false;
+    const up = parentOf.get(key);
+    return !up || depth > 5 || chainOn(up, depth + 1);
+  };
+  const liveOn = (f: { key: string }) => chainOn(f.key);
   return {
     profile,
     live: Object.fromEntries((features ?? []).map((f) => [f.key, liveOn(f)])),
     features: Object.fromEntries(
       (features ?? []).map((f) => [
         f.key,
-        (admin && !EVERYONE.includes(f.key)) || (Boolean(own.get(f.key)) && (!f.parent || own.get(f.parent) === true)),
+        (admin && !EVERYONE.includes(f.key)) || chainOn(f.key),
       ]),
     ),
     mfaRequired: access.mfa_required,

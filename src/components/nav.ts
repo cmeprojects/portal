@@ -136,6 +136,8 @@ export function navFor(
         ...(access.enquiries ? [{ href: "/enquiries", label: "Enquiries" }] : []),
         ...(access.assistant ? [{ href: "/ask", label: "Assistant" }] : []),
         ...sectionItem("people", role, features, access),
+        // cmeprojects: the staff directory, for everyone (HR Pack → Staff profiles).
+        ...(features.hr_profiles !== false && role !== "system_admin" ? [{ href: "/people", label: "Directory" }] : []),
         ...(access.seesScoreboard ? [{ href: "/scoreboard", label: "Scoreboard" }] : []),
         ...sectionItem("reports", role, features, access),
         ...sectionItem("settings", role, features, access),

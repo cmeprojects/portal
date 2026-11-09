@@ -39,10 +39,12 @@ import { addAppIcon, applyPreset, chooseAppIcon, deleteAppIcon, saveDelegationRu
 export function FeatureSwitch({
   feature,
   part = false,
+  depth = 1,
 }: {
   feature: { key: string; label: string; description: string | null; on: boolean; pending?: boolean; premium?: boolean };
-  // A part of a feature (indented, smaller).
+  // A part of a feature (indented, smaller); depth 2 is a part of a part (cmeprojects).
   part?: boolean;
+  depth?: number;
 }) {
   const [state, action, pending] = useActionState(setFeature, null);
   const [, start] = useTransition();
@@ -60,7 +62,7 @@ export function FeatureSwitch({
         }
         start(() => action(data));
       }}
-      className={`flex flex-wrap items-center justify-between gap-3 py-3 ${part ? "pl-4 sm:pl-8" : ""}`}
+      className={`flex flex-wrap items-center justify-between gap-3 py-3 ${part ? (depth > 1 ? "pl-8 sm:pl-14" : "pl-4 sm:pl-8") : ""}`}
     >
       <input type="hidden" name="key" value={feature.key} />
       <input type="hidden" name="enabled" value={feature.on ? "false" : "true"} />

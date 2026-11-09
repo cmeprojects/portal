@@ -37,5 +37,16 @@ export function useDirty() {
   // For changes that don't fire an input event (an uploaded picture).
   const markDirty = useCallback(() => setDirty(true), []);
 
+  // cmeprojects: warn before leaving the page with changes that aren't saved.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   return { ref, dirty, markClean, markDirty };
 }

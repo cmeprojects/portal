@@ -1,4 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { Avatar } from "@/components/avatar";
+import { photoLinks, type PhotoOwner } from "@/lib/avatars";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -169,6 +171,10 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
   };
   const reassignTo = activePeople.filter((p) => p.id !== task.assigned_to).map((p) => ({ id: p.id, name: p.label }));
 
+  // cmeprojects: photos next to names (people on this task and in its activity).
+  const photoIds = [...new Set([task.assigned_to, ...(events ?? []).map((e) => e.actor_id)].filter(Boolean))] as string[];
+  const { data: photoRows } = photoIds.length ? await supabase.from("profiles").select("id, avatar_ref").in("id", photoIds) : { data: [] };
+  const photos = await photoLinks((photoRows ?? []) as PhotoOwner[]);
   const describe = (e: TaskEvent) => describeEvent(e, nameOf, (aid) => (actions ?? []).find((x) => x.id === aid)?.title);
 
 
@@ -315,7 +321,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
             <ol className="flex flex-col gap-4 print:gap-2">
               {(events ?? []).map((e) => (
                 <li key={e.id} className="flex gap-3">
-                  <span aria-hidden="true" className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand" />
+                  <Avatar name={nameOf(e.actor_id)} src={e.actor_id ? photos[e.actor_id] : undefined} size={28} className="mt-0.5 bg-brand-soft text-brand print:hidden" />
                   <div>
                     <p className="text-sm">
                       <strong>{nameOf(e.actor_id)}</strong> {describe(e)}
@@ -394,7 +400,10 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
           <dl className="flex flex-col gap-3 text-sm print:grid print:grid-cols-4 print:gap-x-4 print:gap-y-2">
             <div>
               <Label>Looked after by</Label>
-              <dd className="font-semibold">{nameOf(task.assigned_to)}</dd>
+              <dd className="flex items-center gap-2 font-semibold">
+                <Avatar name={nameOf(task.assigned_to)} src={photos[task.assigned_to]} size={28} className="bg-brand-soft text-brand print:hidden" />
+                {nameOf(task.assigned_to)}
+              </dd>
             </div>
             {clientName ? (
               <div>

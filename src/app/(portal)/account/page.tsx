@@ -1,4 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { ProfileForm } from "@/components/profile-form";
+import { ProfileCard } from "@/components/profile-card";
+import { loadPerson, profilesReady } from "@/lib/profiles";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
@@ -27,9 +30,21 @@ export default async function AccountPage() {
   else if (hasMfa) help = "You'll be asked for a code from your authenticator app when you sign in.";
   else help = "Optional for your role. It adds a code from your phone when you sign in.";
 
+  // cmeprojects: my staff profile (HR Pack → Staff profiles); not for the system admin.
+  const showProfile = profile.role !== "system_admin" && features.hr_profiles !== false && (await profilesReady());
+  const me = showProfile ? await loadPerson(profile.id) : null;
   return (
     <>
       <PageHeader title="My account" intro={`${profile.email} · ${ROLE_LABELS[profile.role]}`} />
+      {me ? (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <ProfileCard person={me} />
+          <Card className="p-5 sm:p-6">
+            <h2 className="heading-sm mb-4">Edit my profile</h2>
+            <ProfileForm person={me} employment={false} />
+          </Card>
+        </div>
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
           <NameForm name={profile.full_name} />

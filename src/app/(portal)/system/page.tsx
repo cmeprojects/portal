@@ -116,10 +116,27 @@ const ROWS: Row[] = [
     areas: ["people", "roles"],
   },
   {
-    id: "compliance",
-    label: "Compliance and onboarding",
-    intro: "Each part can be switched off. My onboarding only shows while at least one part is on. A part that's off never holds up anyone's onboarding.",
-    switches: ["compliance", "compliance_read", "compliance_training", "compliance_upload", "compliance_forms"],
+    id: "hr",
+    label: "HR Pack",
+    intro:
+      "Staff profiles and directory, My requests and approvals, and Compliance and onboarding. Switch the whole pack or any part off; nothing is deleted. My onboarding only shows while at least one onboarding part is on.",
+    switches: [
+      "hr",
+      "hr_profiles",
+      "hr_requests",
+      "hr_req_leave",
+      "hr_req_swap",
+      "hr_req_shift",
+      "hr_req_availability",
+      "hr_req_timesheet",
+      "hr_req_hr",
+      "hr_req_other",
+      "compliance",
+      "compliance_read",
+      "compliance_training",
+      "compliance_upload",
+      "compliance_forms",
+    ],
     sections: [{ title: "Compliance settings", area: "compliance", keys: (k) => k.startsWith("compliance.") || k === "reports.compliance_roles" }],
     areas: ["compliance"],
     links: [{ href: "/compliance", text: "Compliance" }],
@@ -348,7 +365,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
                       {parts.length ? (
                         <div className="divide-y divide-line rounded-md border border-line px-3">
                           {parts.map((p) => (
-                            <FeatureSwitch key={p.key} feature={p} part={Boolean(main)} />
+                            <FeatureSwitch key={p.key} feature={p} part={Boolean(main)} depth={/^(hr_req_|compliance_)/.test(p.key) ? 2 : 1} />
                           ))}
                         </div>
                       ) : null}
