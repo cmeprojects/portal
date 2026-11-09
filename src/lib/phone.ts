@@ -64,5 +64,8 @@ export function splitPhone(saved: string): { country: string; local: string } {
   const c = [...COUNTRIES].sort((a, b) => b.dial.length - a.dial.length).find((x) => digits.startsWith(x.dial));
   if (!c) return { country: "AU", local: s };
   const rest = digits.slice(c.dial.length);
-  return { country: c.code, local: c.code === "AU" ? `0${rest}` : rest };
+  if (c.code !== "AU") return { country: c.code, local: rest };
+  // Shown the way Australians write them: 0412 345 678 or 02 9876 5432.
+  const local = `0${rest}`;
+  return { country: "AU", local: local.startsWith("04") ? `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}` : `${local.slice(0, 2)} ${local.slice(2, 6)} ${local.slice(6)}` };
 }

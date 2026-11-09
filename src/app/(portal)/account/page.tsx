@@ -1,7 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { SectionTabs } from "@/components/section-tabs";
 import { ProfileForm } from "@/components/profile-form";
-import { ProfileCard } from "@/components/profile-card";
 import { loadPerson, profilesReady } from "@/lib/profiles";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -37,26 +35,20 @@ export default async function AccountPage() {
   return (
     <>
       <PageHeader title="My account" intro={`${profile.email} · ${ROLE_LABELS[profile.role]}`} />
-      <SectionTabs section="account" current="/account" />
+      {/* cmeprojects: my photo and name on top, then my details. Your business
+          card shows in the Directory; there's no need to repeat it here. */}
+      <Card className="grid grid-cols-[minmax(0,1fr)] gap-6 p-5 sm:p-6 lg:grid-cols-2">
+        {/* Only once this copy has staff photos (live update 53). */}
+        {mine ? <PhotoForm userId={profile.id} name={profile.full_name || profile.email} src={photo} /> : null}
+        <NameForm name={profile.full_name} />
+      </Card>
       {me ? (
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <ProfileCard person={me} />
-          <Card className="p-5 sm:p-6">
-            <h2 className="heading-sm mb-4">Edit my profile</h2>
-            <ProfileForm person={me} employment={false} />
-          </Card>
-        </div>
+        <Card className="p-5 sm:p-6">
+          <h2 className="heading-sm mb-4">My details</h2>
+          <ProfileForm person={me} employment={false} />
+        </Card>
       ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-5">
-          <NameForm name={profile.full_name} />
-        </Card>
-        {/* cmeprojects: only once this copy has staff photos (live update 53). */}
-        {mine ? (
-          <Card className="p-5">
-            <PhotoForm userId={profile.id} name={profile.full_name || profile.email} src={photo} />
-          </Card>
-        ) : null}
         <Card className="flex flex-col gap-3 p-5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="heading-sm">Two-factor login</h2>
