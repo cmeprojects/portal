@@ -123,3 +123,63 @@ All pages took **480–730 ms** of server time, which means about 5–6 database
 Security rules for every step: the database keeps the final say; nothing about permissions is cached between people or requests; database summaries run as the signed-in person, so the same rules decide what's counted; every database change has an undo file.
 
 All of this happens on Development only, with the synthetic data kept to my local copy.
+
+## Testing plan (detail)
+
+### Test setup
+- **Production build** on the local copy, with the relay that counts database calls and can add delay: 0 ms (database next door) and 100 ms (database far away).
+- **Two data sizes:** today's small test data, and realistic synthetic data (300 staff, 10,500 tasks, 3,000 notifications, onboarding records). Synthetic data is local only and never goes to Supabase or Vercel.
+- **Five test accounts**, one per role: system admin, manager, staff admin, team leader, support worker. Plus signed out.
+- **Same conditions** for every before-and-after comparison: same build, data, delay and accounts. Median of 3 runs.
+
+### 1. Security tests (every database change)
+| Test | Pass when |
+|---|---|
+| All database security tests (784 today) | All pass |
+| **Who sees what:** for each role, count the rows visible in each main table (tasks, task history, registers, profiles, private details, onboarding records, requests, notifications, settings, cars, forms and so on), before and after | Counts match exactly for every role and table |
+| **Who can change what:** each role tries to add, change and delete in the main tables (allowed and not allowed) | Same allowed and refused results as before |
+| **Summaries (steps 3 and 7):** database totals compared with counting the rows each role can see | Identical per role |
+| Updates 60 and later: run twice, undo twice, then re-apply | No errors; rules restored exactly after undo |
+| **Role change while signed in:** demote a manager, then reload | Loses access straight away (nothing remembered) |
+
+### 2. Speed tests (before and after every step)
+| Measure | How |
+|---|---|
+| Server time per page (10 main pages) | The same request a menu click makes |
+| Click to page (loading screen and finished page) | Real browser clicks |
+| First paint, largest paint, time to first byte | Full page load of the dashboard |
+| Database calls per page, and how many happen one after another | Relay count |
+| Data sent from the database per page | Relay count (KB) |
+| **Sign-in** (password to dashboard) | Real browser |
+| **Buttons:** save profile, approve task, upload document, acknowledge policy, sign agreement, approve request | Real browser, press to result |
+| Slowest database queries | Query statistics and plans |
+| Background requests per page | Browser count |
+
+Pass when every page is at least as fast as before; target improvements are recorded per step.
+
+### 3. Load test (step 10)
+- **20 simulated staff,** mixed roles, signing in, moving between Dashboard, Tasks, Registers, People, Onboarding and Reports, and pressing buttons at once, for 5 minutes, on realistic data.
+- **Measured:** typical and worst-case (95th percentile) response times, errors, and database calls per minute. Repeated with 100 ms delay.
+- **Pass when:** no errors, and no page over 2 seconds at the 95th percentile with the database next door.
+
+### 4. Workflow tests (nothing broken)
+| Area | Checks |
+|---|---|
+| Tasks and registers | Create, assign, edit, approve, send back, escalate, filters, search, paging, export |
+| Onboarding | Policy acknowledge, training with certificate, document upload, signature, review queue, clearance, override |
+| People | Invite, resend, delete never-set-up, directory, edit in pop-up, profile save |
+| Requests | Send, approve two steps, decline, swap acceptance |
+| Dashboard | Tiles, side panels, quick actions, charts match the lists |
+| Reports | Totals match the lists, date filters, export |
+| Settings | Save, deploy, delegation |
+| Buttons | Greyed out until ready, "Saving…" while working, can't double-press, errors shown on failure |
+
+### 5. Final checks
+- **Full re-crawl:** every page as every role. No errors, broken pages or sideways scrolling.
+- **Lint, typecheck and production build:** clean.
+- **Phone width** checks on the changed pages.
+
+### 6. If something fails
+- **A security count changes:** stop, fix or undo before going further.
+- **A page is slower than before:** that change is reverted or reworked.
+- **Every step is its own commit,** so any step can be undone on its own.
