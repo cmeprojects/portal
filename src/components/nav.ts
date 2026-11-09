@@ -71,7 +71,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       (admin || (rolesOn(features) && (access.adminAreas ?? []).includes("roles"))) && { href: "/settings/roles", text: "Roles" },
       peopleManager && { href: "/settings/clients", text: "Clients" },
       requests && approver && { href: "/people/requests", text: "Staff requests" },
-      access.seesCompliance && { href: "/compliance", text: "Compliance" },
+      access.seesCompliance && { href: "/compliance", text: "Onboarding" },
       !peopleManager && access.canInvite && { href: "/invite", text: "Invite staff" },
     ],
     reports: [

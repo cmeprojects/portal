@@ -11,13 +11,14 @@ export const COMPLIANCE_PART: Record<string, string> = {
   training: "compliance_training",
   upload: "compliance_upload",
   form: "compliance_forms",
+  agreement: "compliance_agreement",
 };
 
 export const compliancePartOn = (f: Features, kind: string) => on(f, "compliance") && on(f, COMPLIANCE_PART[kind] ?? "compliance");
 
 // My onboarding shows only while at least one compliance part is on.
 export function onboardingOn(f: Features): boolean {
-  return on(f, "compliance") && (["read", "training", "upload"].some((k) => compliancePartOn(f, k)) || formsInOnboarding(f));
+  return on(f, "compliance") && (["read", "training", "upload", "agreement"].some((k) => compliancePartOn(f, k)) || formsInOnboarding(f));
 }
 
 // Forms to fill in appear in My onboarding when Forms is on (and onboarding is).

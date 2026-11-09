@@ -21,7 +21,7 @@ export async function saveItem(_: FormState, form: FormData): Promise<FormState>
   await requireComplianceManager();
   const id = text(form, "id");
   const kind = text(form, "kind");
-  if (!["read", "training", "upload"].includes(kind)) return { error: "Choose what kind of item this is." };
+  if (!["read", "training", "upload", "agreement"].includes(kind)) return { error: "Choose what kind of item this is." };
   const title = text(form, "title");
   if (!title) return { error: "Give it a title." };
   const link = text(form, "link_url");
@@ -38,7 +38,19 @@ export async function saveItem(_: FormState, form: FormData): Promise<FormState>
     applies_roles: form.getAll("applies_roles").map(String).filter(isRole),
     applies_teams: form.getAll("applies_teams").map(String),
     sort_order: Number(text(form, "sort_order")) || 0,
+    // cmeprojects (update 58): needed before working, document details, job titles.
+    before_work: form.get("before_work") === "on",
+    applies_titles: form.getAll("applies_titles").map(String).filter((t) => /^[0-9a-f-]{36}$/.test(t)),
   };
+  if (kind === "upload") {
+    values.category = ["qualification", "certificate", "screening", "licence", "insurance", "identity", "other"].includes(text(form, "category")) ? text(form, "category") : "";
+    values.needs_issue_date = form.get("needs_issue_date") === "on";
+    values.needs_number = form.get("needs_number") === "on";
+  }
+  if (kind === "training") {
+    values.certificate = ["none", "optional", "required"].includes(text(form, "certificate")) ? text(form, "certificate") : "optional";
+    values.needs_expiry = form.get("needs_expiry") === "on";
+  }
   const filePath = text(form, "file_path");
   if (filePath) {
     values.file_path = filePath;
@@ -69,8 +81,16 @@ export async function saveItem(_: FormState, form: FormData): Promise<FormState>
 
 export async function reviewUpload(_: FormState, form: FormData): Promise<FormState> {
   await requireComplianceManager();
-  const accept = text(form, "decision") === "accept";
+  const decision = text(form, "decision");
+  const accept = decision === "accept";
   const supabase = await createClient();
+  // cmeprojects: ask for a new copy (keeps the old one in the history).
+  if (decision === "replace") {
+    const { error } = await supabase.rpc("request_replacement", { p_record_id: Number(text(form, "record_id")), p_note: text(form, "note") });
+    if (error) return { error: friendlyError(error) };
+    revalidatePath("/compliance", "layout");
+    return { message: "They've been asked to upload a new copy." };
+  }
   const { error } = await supabase.rpc("review_compliance_upload", {
     p_record_id: Number(text(form, "record_id")),
     p_accept: accept,
@@ -97,4 +117,34 @@ export async function uploadForPerson(_: FormState, form: FormData): Promise<For
   if (error) return { error: friendlyError(error) };
   revalidatePath("/compliance", "layout");
   return { message: "Uploaded. They've been told." };
+}
+
+// cmeprojects (update 58): clearance to work and overrides. The database
+// decides who may (managers, or staff admins when delegated).
+export async function changeClearance(_: FormState, form: FormData): Promise<FormState> {
+  await requireSession();
+  const user = text(form, "user_id");
+  const op = text(form, "op");
+  const supabase = await createClient();
+  const { error } =
+    op === "grant"
+      ? await supabase.rpc("grant_clearance", { p_user: user, p_note: text(form, "note") })
+      : op === "revoke"
+        ? await supabase.rpc("revoke_clearance", { p_user: user, p_reason: text(form, "note") })
+        : op === "override"
+          ? await supabase.rpc("grant_work_override", { p_user: user, p_reason: text(form, "note"), p_until: text(form, "until") || null })
+          : await supabase.rpc("end_work_override", { p_id: Number(text(form, "override_id")) });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/compliance", "layout");
+  revalidatePath("/people");
+  return {
+    message:
+      op === "grant"
+        ? "Cleared to work. They've been told, and anything left is a Finish onboarding task due within a week."
+        : op === "revoke"
+          ? "Clearance removed."
+          : op === "override"
+            ? "Override given. They can work until the end date."
+            : "Override ended.",
+  };
 }

@@ -8,14 +8,14 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { canManageCompliance, getPeopleRules, seesCompliance } from "@/lib/settings";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
-import { ITEM_COLUMNS, KIND_TAB, isDone, stateBadges, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
+import { CATEGORY_LABELS, FILES_BUCKET, KIND_TAB, isDone, stateBadges, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
 import { formatDate } from "@/lib/registers";
 import { Badge, Card, Notice, PageHeader, Tabs } from "@/components/ui";
-import { ItemForm } from "./forms";
+import { ItemForm, ReviewForm } from "./forms";
 
-export const metadata: Metadata = { title: "Compliance" };
+export const metadata: Metadata = { title: "Onboarding" };
 
-const TABS = ["progress", "read", "training", "upload"] as const;
+const TABS = ["progress", "check", "read", "training", "upload", "agreement"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function CompliancePage({ searchParams }: PageProps<"/compliance">) {
@@ -27,13 +27,18 @@ export default async function CompliancePage({ searchParams }: PageProps<"/compl
   const asked = String(params.tab ?? "progress") as Tab;
   // Each part can be switched off (cmeprojects): its tab is hidden, except for the system admin.
   const admin = me.role === "system_admin";
-  const open = (t: Tab) => t === "progress" || admin || compliancePartOn(features, t);
+  const open = (t: Tab) => t === "progress" || t === "check" || admin || compliancePartOn(features, t);
   const tab: Tab = TABS.includes(asked) && (asked === "progress" || manages) && open(asked) ? asked : "progress";
+  // cmeprojects: how many files are waiting to be checked (for the tab).
+  const supabase = await createClient();
+  const { count: toCheck } = manages
+    ? await supabase.from("compliance_records").select("id", { count: "exact", head: true }).eq("status", "submitted").not("file_path", "is", null)
+    : { count: 0 };
 
   const tabs = manages
     ? TABS.filter(open).map((t) => ({
         href: `/compliance?tab=${t}`,
-        text: t === "progress" ? "Progress" : `${KIND_TAB[t]}${compliancePartOn(features, t) ? "" : " (off)"}`,
+        text: t === "progress" ? "Overview" : t === "check" ? `To check${toCheck ? ` · ${toCheck}` : ""}` : `${KIND_TAB[t]}${compliancePartOn(features, t) ? "" : " (off)"}`,
         current: t === tab,
       }))
     : [];
@@ -42,20 +47,35 @@ export default async function CompliancePage({ searchParams }: PageProps<"/compl
     <>
       <SectionTabs section="people" current="/compliance" />
       <PageHeader
-        title="Compliance"
+        title="Onboarding"
         intro={
           manages
-            ? "Onboarding for everyone: documents to read and confirm, trainings, and documents to upload. Switch uploads on or off as you need them."
+            ? "Everyone's onboarding and compliance: what's done, what's waiting to be checked, what's expired, and who's cleared to work."
             : "Onboarding progress for your people. Only Compliance managers can open uploaded documents."
         }
       />
       {tabs.length ? <Tabs label="Compliance sections" items={tabs} /> : null}
-      {tab === "progress" ? <Progress meId={me.id} role={me.role} /> : <Items kind={tab} />}
+      {tab === "progress" ? (
+        <Progress meId={me.id} role={me.role} show={String(params.show ?? "")} />
+      ) : tab === "check" ? (
+        <ToCheck meId={me.id} />
+      ) : (
+        <Items kind={tab} />
+      )}
     </>
   );
 }
 
-async function Progress({ meId, role }: { meId: string; role: Role }) {
+type Work = { onboarding_complete: boolean; compliance_verified: boolean; cleared: boolean; can_work: boolean; override: { until: string } | null } | null;
+const SHOW: Record<string, string> = {
+  incomplete: "Onboarding not finished",
+  checks: "Waiting for checks",
+  expired: "Expired or expiring",
+  clearance: "Waiting for clearance",
+  override: "Working on an override",
+};
+
+async function Progress({ meId, role, show }: { meId: string; role: Role; show: string }) {
   const supabase = await createClient();
   let query = supabase.from("profiles").select("id, full_name, email, role, joined_at, onboarded_at").eq("active", true).neq("role", "system_admin").order("full_name");
   // Team leaders see the people in the team they lead.
@@ -67,38 +87,59 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
   const { data: people } = await query;
   const rows = await Promise.all(
     (people ?? []).map(async (p) => {
-      const { data } = await supabase.rpc("compliance_status", { p_user: p.id });
+      const [{ data }, { data: w }] = await Promise.all([supabase.rpc("compliance_status", { p_user: p.id }), supabase.rpc("work_status", { p_user: p.id })]);
       const status = (data ?? []) as StatusRow[];
-      return { ...p, role: p.role as Role, total: status.length, done: status.filter((s) => isDone(s.state)).length, status };
+      return { ...p, role: p.role as Role, total: status.length, done: status.filter((s) => isDone(s.state)).length, status, work: (w ?? null) as Work };
     }),
   );
   const behind = rows.filter((r) => r.total && r.done < r.total);
+  // cmeprojects: the overview tiles, each a filter on the list.
+  const is = {
+    incomplete: (r: (typeof rows)[number]) => Boolean(r.total && r.done < r.total),
+    checks: (r: (typeof rows)[number]) => r.status.some((s) => s.state === "submitted"),
+    expired: (r: (typeof rows)[number]) => r.status.some((s) => s.state === "expired" || s.state === "expiring"),
+    clearance: (r: (typeof rows)[number]) => Boolean(r.work && !r.work.cleared && !r.work.override),
+    override: (r: (typeof rows)[number]) => Boolean(r.work && !r.work.cleared && r.work.override),
+  };
+  const shown = show in is ? rows.filter(is[show as keyof typeof is]) : rows;
+  void behind;
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="p-4">
-          <p className="heading text-brand">{rows.length}</p>
-          <p className="text-sm text-muted">People</p>
-        </Card>
-        <Card className="p-4">
-          <p className="heading text-warn">{behind.length}</p>
-          <p className="text-sm text-muted">Still to finish</p>
-        </Card>
-        <Card className="p-4">
-          <p className="heading text-warn">{rows.filter((r) => r.status.some((s) => s.state === "expired" || s.state === "expiring")).length}</p>
-          <p className="text-sm text-muted">Documents expired or expiring</p>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {(Object.keys(SHOW) as (keyof typeof is)[]).map((k) => {
+          const n = rows.filter(is[k]).length;
+          const on = show === k;
+          return (
+            <Link
+              key={k}
+              href={on ? "/compliance" : `/compliance?show=${k}`}
+              aria-current={on ? "true" : undefined}
+              className={`shadow-card rounded-xl border p-4 transition hover:-translate-y-0.5 ${on ? "border-brand bg-brand-soft" : "border-line bg-surface"}`}
+            >
+              <p className={`heading ${n ? (k === "expired" || k === "clearance" ? "text-warn" : "text-brand") : "text-muted"}`}>{n}</p>
+              <p className="text-sm text-muted">{SHOW[k]}</p>
+            </Link>
+          );
+        })}
       </div>
+      {show in is ? (
+        <p className="text-sm">
+          Showing: <strong>{SHOW[show]}</strong> ·{" "}
+          <Link href="/compliance" className="text-brand underline">
+            show everyone
+          </Link>
+        </p>
+      ) : null}
       {rows.length > 0 && rows.every((r) => r.total === 0) ? (
         <Notice tone="info">Nothing is set up for onboarding yet. Add documents to read, trainings or uploads using the tabs above, and everyone&apos;s progress shows here.</Notice>
       ) : null}
       <Card className="overflow-hidden">
-        {rows.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-muted">No one to show yet.</p>
+        {shown.length === 0 ? (
+          <p className="px-5 py-4 text-sm text-muted">{rows.length ? "Nobody here right now." : "No one to show yet."}</p>
         ) : (
           <ul className="divide-y divide-line">
-            {rows.map((r) => {
+            {shown.map((r) => {
               const pct = r.total ? Math.round((r.done / r.total) * 100) : 0;
               const flags = r.status.filter((s) => ["expired", "expiring", "rejected", "submitted"].includes(s.state));
               return (
@@ -114,10 +155,20 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
                         </span>
                       </span>
                       <span className="flex flex-wrap gap-1.5">
+                        {r.work ? (
+                          r.work.cleared ? (
+                            <Badge tone="good">Cleared to work</Badge>
+                          ) : r.work.override ? (
+                            <Badge tone="warn">Override until {formatDate(r.work.override.until)}</Badge>
+                          ) : (
+                            <Badge tone="grey">Not cleared</Badge>
+                          )
+                        ) : null}
+                        {r.work?.compliance_verified ? <Badge tone="good">Verified</Badge> : null}
                         {flags.some((s) => s.state === "submitted") ? <Badge tone="soft">To check</Badge> : null}
                         {flags.some((s) => s.state === "expired") ? <Badge tone="warn">Expired</Badge> : null}
                         {flags.some((s) => s.state === "expiring") ? <Badge tone="warn">Expiring</Badge> : null}
-                        {flags.some((s) => s.state === "rejected") ? <Badge tone="warn">Sent back</Badge> : null}
+                        {r.status.some((s) => s.state === "rejected" || s.state === "replace_requested") ? <Badge tone="warn">Sent back</Badge> : null}
                       </span>
                       {/* cmeprojects: no bar when nothing applies to them, so an empty set-up doesn't look finished. */}
                       {r.total ? (
@@ -150,7 +201,7 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
                         </ul>
                       )}
                       <Link href={`/compliance/people/${r.id}`} className="mt-3 inline-block text-sm font-semibold text-brand underline">
-                        Files, checking and uploads
+                        Open their onboarding: files, checks and clearance
                       </Link>
                     </div>
                   </details>
@@ -166,11 +217,12 @@ async function Progress({ meId, role }: { meId: string; role: Role }) {
 
 async function Items({ kind }: { kind: ItemKind }) {
   const supabase = await createClient();
-  const [{ data: itemRows }, { data: teams }, { data: people }, { data: members }] = await Promise.all([
-    supabase.from("compliance_items").select(ITEM_COLUMNS).eq("kind", kind).order("active", { ascending: false }).order("sort_order").order("title"),
+  const [{ data: itemRows }, { data: teams }, { data: people }, { data: members }, { data: titles }] = await Promise.all([
+    supabase.from("compliance_items").select("*").eq("kind", kind).order("active", { ascending: false }).order("sort_order").order("title"),
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
     supabase.from("profiles").select("id, role").eq("active", true).neq("role", "system_admin"),
     supabase.from("team_members").select("user_id, team_id"),
+    supabase.from("job_titles").select("id, name").order("sort_order").order("name"),
   ]);
   // How many people an item reaches: a ticked role AND a ticked team must both
   // match (the same rule as the database's compliance_applies).
@@ -188,13 +240,13 @@ async function Items({ kind }: { kind: ItemKind }) {
     if (!parts.length) return "Everyone";
     return roles && inTeams ? `${roles}, in ${inTeams}` : roles || `Anyone in ${inTeams}`;
   };
-  const noun = kind === "read" ? "document" : kind === "training" ? "training" : "upload";
+  const noun = kind === "read" ? "policy" : kind === "training" ? "training" : kind === "agreement" ? "agreement" : "document";
 
   return (
     <>
       <Card className="p-5">
         <h2 className="mb-4 heading-sm">Add a {noun}</h2>
-        <ItemForm kind={kind} teams={teams ?? []} />
+        <ItemForm kind={kind} teams={teams ?? []} titles={titles ?? []} />
       </Card>
       {items.length === 0 ? (
         <p className="text-sm text-muted">Nothing here yet.</p>
@@ -213,7 +265,7 @@ async function Items({ kind }: { kind: ItemKind }) {
                   <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
                 </summary>
                 <div className="border-t border-line px-5 py-5">
-                  <ItemForm kind={kind} item={i} teams={teams ?? []} />
+                  <ItemForm kind={kind} item={i} teams={teams ?? []} titles={titles ?? []} />
                 </div>
               </details>
             </Card>
@@ -221,5 +273,65 @@ async function Items({ kind }: { kind: ItemKind }) {
         </div>
       )}
     </>
+  );
+}
+
+// cmeprojects: every file waiting to be checked, oldest first, with the buttons.
+async function ToCheck({ meId }: { meId: string }) {
+  const supabase = await createClient();
+  const { data: recs } = await supabase
+    .from("compliance_records")
+    .select("id, user_id, item_id, file_path, file_name, created_at, expires_on, doc_number, issued_on, completed_on")
+    .eq("status", "submitted")
+    .not("file_path", "is", null)
+    .order("created_at")
+    .limit(100);
+  const list = recs ?? [];
+  const [{ data: people }, { data: itemRows }] = await Promise.all([
+    list.length ? supabase.from("profiles").select("id, full_name, email").in("id", [...new Set(list.map((r) => r.user_id))]) : Promise.resolve({ data: [] }),
+    list.length ? supabase.from("compliance_items").select("id, title, kind, category").in("id", [...new Set(list.map((r) => r.item_id))]) : Promise.resolve({ data: [] }),
+  ]);
+  const who = new Map((people ?? []).map((p) => [p.id, p.full_name || p.email]));
+  const what = new Map((itemRows ?? []).map((i) => [i.id, i]));
+  const links = new Map<number, string>();
+  await Promise.all(
+    list.map(async (r) => {
+      const { data } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(r.file_path!, 900);
+      if (data?.signedUrl) links.set(r.id, data.signedUrl);
+    }),
+  );
+  if (!list.length) return <Notice tone="info">Nothing waiting to be checked. New uploads and certificates show here.</Notice>;
+  return (
+    <div className="flex flex-col gap-3">
+      {list.map((r) => {
+        const item = what.get(r.item_id);
+        return (
+          <Card key={r.id} className="flex flex-col gap-3 p-5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <span className="min-w-48 flex-1">
+                <Link href={`/compliance/people/${r.user_id}`} className="block font-semibold hover:text-brand">
+                  {who.get(r.user_id) ?? "Someone"}
+                </Link>
+                <span className="block text-sm text-muted">
+                  {item?.title ?? "Document"}
+                  {item?.kind === "training" ? " (certificate)" : ""} · sent {formatDate(r.created_at.slice(0, 10))}
+                </span>
+              </span>
+              {item?.category ? <Badge tone="grey">{CATEGORY_LABELS[item.category] ?? item.category}</Badge> : null}
+              {r.doc_number ? <span className="text-xs text-muted">No. {r.doc_number}</span> : null}
+              {r.issued_on ? <span className="text-xs text-muted">Issued {formatDate(r.issued_on)}</span> : null}
+              {r.completed_on ? <span className="text-xs text-muted">Completed {formatDate(r.completed_on)}</span> : null}
+              {r.expires_on ? <span className="text-xs text-muted">Expires {formatDate(r.expires_on)}</span> : null}
+              {links.get(r.id) ? (
+                <a href={links.get(r.id)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-brand underline">
+                  Open {r.file_name ?? "file"}
+                </a>
+              ) : null}
+            </div>
+            {r.user_id === meId ? <p className="text-xs text-muted">Someone else needs to check your own documents.</p> : <ReviewForm recordId={r.id} />}
+          </Card>
+        );
+      })}
+    </div>
   );
 }

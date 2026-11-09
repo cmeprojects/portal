@@ -9,7 +9,7 @@ import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { formatDate } from "@/lib/registers";
 import { FILES_BUCKET, KIND_LABELS, isDone, stateBadges, type ItemKind, type StatusRow } from "@/lib/compliance";
 import { Badge, Card, PageHeader } from "@/components/ui";
-import { ReviewForm, UploadForPersonForm } from "../../forms";
+import { ClearancePanel, ReviewForm, UploadForPersonForm } from "../../forms";
 
 export const metadata: Metadata = { title: "Onboarding progress" };
 
@@ -28,8 +28,33 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
 
   // Only Compliance managers can open the files (the database checks too).
   const { data: records } = manages
-    ? await supabase.from("compliance_records").select("id, file_path, file_name, created_at, status, reviewed_by, reviewed_at, uploaded_by").eq("user_id", id)
+    ? await supabase.from("compliance_records").select("*").eq("user_id", id)
     : { data: [] };
+  // cmeprojects (update 58): statuses, clearance and how things were signed.
+  const [{ data: work }, { data: canClear }] = await Promise.all([
+    supabase.rpc("work_status", { p_user: id }),
+    supabase.rpc("can_grant_clearance"),
+  ]);
+  const ws = work as {
+    onboarding_complete: boolean;
+    compliance_verified: boolean;
+    cleared: boolean;
+    cleared_at: string | null;
+    cleared_by: string | null;
+    before_work_missing: string[];
+    override: { id: number; until: string; reason: string; by: string } | null;
+  } | null;
+  const signed = new Map<number, { name: string; at: string; version: number; signature: string | null }>();
+  await Promise.all(
+    (records ?? [])
+      .filter((r) => r.signed_name)
+      .map(async (r) => {
+        const sig = r.signature_path ? (await supabase.storage.from(FILES_BUCKET).createSignedUrl(r.signature_path, 600)).data?.signedUrl ?? null : null;
+        signed.set(r.id, { name: r.signed_name, at: r.created_at, version: r.version, signature: sig });
+      }),
+  );
+  const today = new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date()));
+  const maxOverride = new Date(today.getTime() + 30 * 86400000).toISOString().slice(0, 10);
   const fileLinks = new Map<
     number,
     { url: string; name: string; at: string; status: string; reviewedBy: string | null; reviewedAt: string | null; uploadedBy: string | null }
@@ -70,13 +95,49 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
   return (
     <>
       <p className="text-sm">
-        <Link href="/compliance" className="text-brand underline">Compliance</Link> / Onboarding progress
+        <Link href="/compliance" className="text-brand underline">Onboarding</Link> / {person.full_name || person.email}
       </p>
       <PageHeader
         title={person.full_name || person.email}
         intro={`${ROLE_LABELS[person.role as Role]} · ${done} of ${status.length} done${person.onboarded_at ? ` · onboarding finished ${formatDate(person.onboarded_at)}` : ""}`}
       />
-      {(["read", "training", "upload", "form"] as ItemKind[]).map((kind) => {
+      {ws ? (
+        <Card className="flex flex-col gap-4 p-5">
+          <div className="flex flex-wrap gap-2">
+            <Badge tone={ws.onboarding_complete ? "good" : "grey"}>{ws.onboarding_complete ? "✓ " : ""}Onboarding complete</Badge>
+            <Badge tone={ws.compliance_verified ? "good" : "grey"}>{ws.compliance_verified ? "✓ " : ""}Compliance verified</Badge>
+            <Badge tone={ws.cleared ? "good" : ws.override ? "warn" : "grey"}>
+              {ws.cleared ? `✓ Cleared to work${ws.cleared_at ? ` ${formatDate(ws.cleared_at.slice(0, 10))}` : ""}${ws.cleared_by ? ` by ${ws.cleared_by}` : ""}` : ws.override ? `Override until ${formatDate(ws.override.until)}` : "Not cleared to work"}
+            </Badge>
+          </div>
+          {ws.override ? (
+            <p className="text-sm text-muted">
+              Override by {ws.override.by}: {ws.override.reason}
+            </p>
+          ) : null}
+          {!ws.cleared && ws.before_work_missing.length ? (
+            <div className="text-sm">
+              <p className="font-semibold">Still needed before working</p>
+              <ul className="list-disc pl-5 text-muted">
+                {ws.before_work_missing.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {canClear === true && person.id !== me.id ? (
+            <ClearancePanel
+              userId={person.id}
+              name={person.full_name?.split(" ")[0] || "them"}
+              cleared={ws.cleared}
+              missing={ws.before_work_missing}
+              override={ws.override}
+              maxDate={maxOverride}
+            />
+          ) : null}
+        </Card>
+      ) : null}
+      {(["read", "training", "upload", "agreement", "form"] as ItemKind[]).map((kind) => {
         const list = status.filter((s) => s.kind === kind);
         if (!list.length) return null;
         return (
@@ -116,7 +177,18 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
                             : " · waiting to be checked"}
                       </p>
                     ) : null}
-                    {s.state === "rejected" && s.note ? <p className="text-xs text-warn">Sent back: {s.note}</p> : null}
+                    {(s.state === "rejected" || s.state === "replace_requested") && s.note ? <p className="text-xs text-warn">Sent back: {s.note}</p> : null}
+                    {s.record_id && signed.get(s.record_id) ? (
+                      <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                        {kind === "agreement" ? "Signed" : "Acknowledged"} by typing &ldquo;{signed.get(s.record_id)!.name}&rdquo; on{" "}
+                        {formatDate(signed.get(s.record_id)!.at.slice(0, 10))} · version {signed.get(s.record_id)!.version}
+                        {signed.get(s.record_id)!.signature ? (
+                          <a href={signed.get(s.record_id)!.signature!} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand underline">
+                            View signature
+                          </a>
+                        ) : null}
+                      </p>
+                    ) : null}
                     {/* Only uploads waiting to be checked get the buttons. */}
                     {manages && file?.status === "submitted" && s.record_id && person.id !== me.id ? (
                       <div className="mt-1 rounded-md bg-page p-3">
