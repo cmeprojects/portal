@@ -35,26 +35,34 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   ]);
   // When they last signed in (password, link or code): the inactivity timer never starts earlier than this.
   const signedInAt = Math.max(0, ...((claims?.claims?.amr ?? []) as { timestamp?: number }[]).map((a) => (a.timestamp ?? 0) * 1000));
-  // Which bell notifications are switched on (Settings → Notifications, cmeprojects).
-  const channels = await getChannels();
+  // cmeprojects: everything the frame needs is fetched at the same time, not
+  // one after another, so moving between pages is quicker.
+  const db = await createClient();
+  const [channels, notices, draftLines, mine, profileNeeded, navAccess] = await Promise.all([
+    // Which bell notifications are switched on (Settings → Notifications).
+    getChannels(),
+    noticesForMe(),
+    // Settings saved but not deployed yet (only people who can change settings have any).
+    ["system_admin", "manager", "staff_admin"].includes(profile.role) ? getDrafts().then(describeDrafts) : Promise.resolve([] as { key: string; text: string; when: string }[]),
+    // Photo, if they have one (read on its own so a copy without photos still works).
+    db.from("profiles").select("id, avatar_ref").eq("id", profile.id).maybeSingle().then((r) => r.data),
+    // A reminder until their profile is complete (HR Pack → Staff profiles).
+    profile.role === "system_admin" ? Promise.resolve(false) : db.rpc("profile_required", { p_user: profile.id }).then((r) => r.data),
+    getNavAccess(profile.role),
+  ]);
   const bellOn = (code: string) => channelOn(channels, code, "bell");
-  const [taskItems, requestItems, notices] = await Promise.all([
+  const [taskItems, requestItems, myPhoto] = await Promise.all([
     features.tasks !== false ? newTasksForMe(bellOn) : Promise.resolve([]),
     bellOn("people_request") ? requestUpdatesForMe() : Promise.resolve([]),
-    noticesForMe(),
+    mine ? photoLinks([mine]).then((l) => l[profile.id]) : Promise.resolve(undefined),
   ]);
   const bellItems = [...notices, ...requestItems, ...taskItems];
-  // Settings saved but not deployed yet (only people who can change settings have any).
-  const draftLines = ["system_admin", "manager", "staff_admin"].includes(profile.role) ? await describeDrafts(await getDrafts()) : [];
   // Their role changed (while signed in): a banner until they've seen it.
   const roleChange = notices.find((n) => n.kind === "role_changed" && !n.read);
 
   // cmeprojects: a tidy account block. Name and role stay visible; colours
   // and Sign out open from it, so the menu isn't crowded.
   const who = profile.full_name || profile.email;
-  // Photo, if they have one (read on its own so a copy without photos still works).
-  const { data: mine } = await (await createClient()).from("profiles").select("id, avatar_ref").eq("id", profile.id).maybeSingle();
-  const myPhoto = mine ? (await photoLinks([mine]))[profile.id] : undefined;
   const footer = (
     <details className="group relative">
       <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-side-hover [&::-webkit-details-marker]:hidden">
@@ -97,9 +105,6 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
     </div>
   );
 
-  // cmeprojects: a reminder until their profile is complete (HR Pack → Staff profiles, after live update 57).
-  const { data: profileNeeded } = profile.role === "system_admin" ? { data: false } : await (await createClient()).rpc("profile_required", { p_user: profile.id });
-  const navAccess = await getNavAccess(profile.role);
   const groups = navFor(profile.role, features, navAccess);
   // cmeprojects: search (Ctrl+K) covers the pages in this person's own menu.
   const tabPages = (["tasks", "cars", "people", "reports", "settings"] as const).flatMap((sec) =>
