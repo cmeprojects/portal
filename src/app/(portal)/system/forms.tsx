@@ -322,10 +322,10 @@ export function kindOf(key: string): SettingKind {
   if (key === "brand.logo_url" || key === "brand.logo_mark_url" || key === "website.logo_url") return "logo";
   if (OPTIONAL_TEXT.includes(key)) return "note";
   if (key in CHOICES) return "choice";
-  if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "tasks.registers_roles", "people.access_reset_roles", "vehicles.manager_roles", "vehicles.report_roles", "forms.maker_roles", "assistant.enquiry_roles", "assistant.intake_roles", "tasks.limited_roles"].includes(key)) return "roles";
+  if (["security.mfa_required_roles", "people.invite_roles", "compliance.manager_roles", "compliance.clearance_roles", "people.scoreboard_roles", "reports.roles", "reports.compliance_roles", "tasks.registers_roles", "people.access_reset_roles", "vehicles.manager_roles", "vehicles.report_roles", "forms.maker_roles", "assistant.enquiry_roles", "assistant.intake_roles", "tasks.limited_roles"].includes(key)) return "roles";
   if (key.endsWith("_days") || key.endsWith("_years") || key.endsWith("_minutes") || key.endsWith("_hour")) return "number";
   if (key === "tasks.sla_weekdays_only" || key === "tasks.sla_manager_summary" || key.startsWith("people.")) return "yesno";
-  if (key === "staff_app.cars" || key === "vehicles.separate_app" || key === "website.front_page") return "yesno";
+  if (key === "staff_app.cars" || key === "vehicles.separate_app" || key === "website.front_page" || key === "cars.cleared_only") return "yesno";
   if (key === "security.mfa_app_enabled" || key === "security.mfa_sms_enabled") return "yesno";
   if (key.startsWith("brand.color_")) return "color";
   return "text";

@@ -137,8 +137,11 @@ const ROWS: Row[] = [
       "compliance_upload",
       "compliance_forms",
     ],
-    sections: [{ title: "Compliance settings", area: "compliance", keys: (k) => k.startsWith("compliance.") || k === "reports.compliance_roles" }],
-    areas: ["compliance"],
+    sections: [
+      { title: "Compliance settings", area: "compliance", keys: (k) => (k.startsWith("compliance.") && !["compliance.clearance_started", "compliance.clearance_roles"].includes(k)) || k === "reports.compliance_roles" },
+      { title: "Clearance to work", intro: "Managers can always clear people to work and give overrides.", area: "hr", keys: (k) => k === "compliance.clearance_roles" },
+    ],
+    areas: ["compliance", "hr"],
     links: [
       { href: "/settings/requests", text: "Request approvals" },
       { href: "/people", text: "Staff directory" },
@@ -160,7 +163,7 @@ const ROWS: Row[] = [
     intro: "Company cars and trips. Car managers add cars, clients and purposes on Manage cars.",
     switches: ["vehicles"],
     sections: [
-      { title: "Cars", area: "vehicles", keys: (k) => k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") && !k.startsWith("vehicles.weekly_") },
+      { title: "Cars", area: "vehicles", keys: (k) => (k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") && !k.startsWith("vehicles.weekly_")) || k === "cars.cleared_only" },
       { title: "Weekly mileage report", intro: "Who gets it, which day, from what hour, and what it covers.", area: "vehicles", keys: (k) => k.startsWith("vehicles.weekly_") },
     ],
     areas: ["vehicles"],
@@ -295,7 +298,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   };
 
   // Managers can share their areas with staff admins (cmeprojects).
-  const SHAREABLE: Area[] = ["branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "registers"];
+  const SHAREABLE: Area[] = ["branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "registers", "hr"];
   const myShareable = profile.role === "manager" ? areas.filter((a) => SHAREABLE.includes(a)) : [];
   const { data: shares } = myShareable.length ? await supabase.from("delegation_shares").select("area, user_id") : { data: [] };
   const staffAdmins = choices.filter((c) => c.role === ROLE_LABELS.staff_admin);

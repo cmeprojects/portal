@@ -1,4 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SectionTabs } from "@/components/section-tabs";
+import { getMyAdminAreas } from "@/lib/settings";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/session";
@@ -12,7 +14,9 @@ export const metadata: Metadata = { title: "Request approvals" };
 // cmeprojects: the system admin decides who approves each request type
 // (HR Pack → My requests), who's told, and where unattended requests go.
 export default async function RequestSettingsPage() {
-  const { live } = await requireRole(["system_admin"]);
+  // cmeprojects: the system admin, or whoever looks after HR Pack (Delegation).
+  const { live, profile } = await requireRole(["system_admin", "manager", "staff_admin"]);
+  if (profile.role !== "system_admin" && !(await getMyAdminAreas(profile.role)).includes("hr")) notFound();
   const supabase = await createClient();
   const [{ data: types, error }, { data: people }] = await Promise.all([
     supabase.from("request_types").select("*").order("sort_order"),
@@ -22,6 +26,7 @@ export default async function RequestSettingsPage() {
   const list = (people ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }));
   return (
     <>
+      <SectionTabs section="settings" current="/settings/requests" />
       <PageHeader title="Request approvals" intro="Who approves each kind of request, who's told, and where requests go if nobody acts." />
       {(types ?? []).map((t) => {
         const meta = REQUEST_TYPES.find((x) => x.key === t.key);

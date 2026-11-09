@@ -86,6 +86,8 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       (admin || settingsAreas.length > 0) && { href: "/system", text: "System settings" },
       // The system admin always sees Website settings (to set it up before switching it on).
       (admin || (features.assistant === true && (access.adminAreas ?? []).includes("website"))) && { href: "/assistant", text: "Website settings" },
+      // cmeprojects: HR Pack request approvals (the system admin, or whoever looks after HR Pack).
+      (admin || (access.adminAreas ?? []).includes("hr")) && features.hr_requests !== false && { href: "/settings/requests", text: "Request approvals" },
       (admin || (access.adminAreas ?? []).includes("audit")) && { href: "/system/audit", text: "Change log" },
       admin && { href: "/system/builder", text: "Feature builder" },
       admin && { href: "/system/health", text: "System health" },

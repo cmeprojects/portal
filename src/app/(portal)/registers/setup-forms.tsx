@@ -117,6 +117,8 @@ export function RegistrySettingsForm({ registry, companySla }: { registry: Regis
             </Field>
           </div>
           <Toggle name="show_outcome" label="Show an outcome / actions taken box" defaultChecked={registry.show_outcome} />
+          {/* cmeprojects: duty restriction (update 58). */}
+          <Toggle name="cleared_only" label="Cleared staff only: its tasks can only go to staff cleared to work (or with an override)" defaultChecked={registry.cleared_only ?? false} />
           <Toggle name="outcome_required" label="The outcome must be filled in before completing" defaultChecked={registry.outcome_required} />
           <div className="pl-8">
             <Field label="Outcome label" htmlFor="s-outcome">

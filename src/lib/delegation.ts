@@ -3,7 +3,7 @@
 // Areas the system admin can hand to all managers or to chosen managers and
 // staff admins (cmeprojects settings revamp). Security, Features,
 // Notifications, Demo data, General and Delegation always stay with the system admin.
-export const AREAS = ["registers", "register_setup", "roles", "branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit"] as const;
+export const AREAS = ["registers", "register_setup", "roles", "branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit", "hr"] as const;
 export type Area = (typeof AREAS)[number];
 
 export const AREA_LABELS: Record<Area, string> = {
@@ -19,6 +19,7 @@ export const AREA_LABELS: Record<Area, string> = {
   vehicles: "Car settings",
   website: "Website (where the Assistant looks, and its documents)",
   audit: "Read the change log",
+  hr: "HR Pack (request approvals, clearing people to work)",
 };
 
 // What each area lets the manager do, shown under it on the Delegation tab.
@@ -35,6 +36,7 @@ export const AREA_HINTS: Record<Area, string> = {
   vehicles: "Odometer photo, undo time, the car-still-out reminder, Cars app sign-in days, and who manages or reports on cars.",
   website: "Choose where the website's Assistant looks for answers (documents, listed websites or both), the listed websites, and upload or remove its documents.",
   audit: "Read the change log: who changed what in System settings, and when. They can't change anything with this alone.",
+  hr: "Who approves each kind of request (leave, swaps, timesheets and more) and when they escalate, and which roles besides managers can clear people to work and give overrides.",
 };
 
 const MESSAGES = ["brand.support_contact", "brand.announcement", "people.invite_message"];
@@ -45,6 +47,10 @@ export function areaOf(key: string): Area | null {
   if (MESSAGES.includes(key)) return "messages";
   if (key.startsWith("brand.") || key.startsWith("wording.")) return "branding";
   if (key.startsWith("people.")) return "people";
+  // cmeprojects: who can clear people to work belongs to HR Pack (update 59).
+  if (key === "compliance.clearance_roles") return "hr";
+  if (key === "compliance.clearance_started") return null;
+  if (key === "cars.cleared_only") return "vehicles";
   if (key.startsWith("compliance.")) return "compliance";
   if (key.startsWith("tasks.")) return "tasks";
   if (key.startsWith("website.") || key.startsWith("assistant.")) return "website";

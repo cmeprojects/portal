@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { getMyAdminAreas } from "@/lib/settings";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, requireSession } from "@/lib/session";
@@ -103,7 +104,9 @@ export async function actOnRequest(_: FormState, form: FormData): Promise<FormSt
 
 // System admin: who approves each request type.
 export async function saveRequestType(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(["system_admin"]);
+  // cmeprojects: the system admin, or whoever looks after HR Pack (the database checks too).
+  const { profile } = await requireRole(["system_admin", "manager", "staff_admin"]);
+  if (profile.role !== "system_admin" && !(await getMyAdminAreas(profile.role)).includes("hr")) return { error: "Only the system admin, or someone given HR Pack, can change request approvals." };
   const key = String(form.get("key") ?? "");
   const list = (name: string) => [...form.getAll(`${name}_roles`).map(String), ...form.getAll(`${name}_people`).map((p) => `user:${p}`)].filter((x) => /^(team_leader|staff_admin|manager|user:[0-9a-f-]{36})$/.test(x));
   const days = Number(form.get("escalate_days") ?? 3);

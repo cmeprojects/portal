@@ -88,6 +88,7 @@ export async function saveRegistrySettings(_: FormState, form: FormData): Promis
       outcome_required: on(form, "show_outcome") && on(form, "outcome_required"),
       outcome_label: text(form, "outcome_label") || "Outcome / actions taken",
       active: on(form, "active"),
+      cleared_only: on(form, "cleared_only"),
       // Blank everywhere = use the company's SLA.
       sla_days: Object.keys(slaFromForm(form, "rsla_")).length ? slaFromForm(form, "rsla_") : null,
     })

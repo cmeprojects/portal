@@ -133,3 +133,22 @@ select test.ok(not public.can_work(test.pid('new@example.com')), 'an expired scr
 -- Cars for cleared staff only.
 update public.app_settings set value = 'true' where key = 'cars.cleared_only';
 select test.ok(exists (select 1 from pg_trigger where tgname = 'guard_cleared_trips'), 'car trips are checked for clearance');
+
+-- Only the system admin decides who can clear people (update 59).
+select test.ok(public.setting_area('compliance.clearance_roles') = 'hr', 'who can clear people is an HR Pack setting, not a Compliance one');
+-- HR Pack can be delegated to a manager, who shares it with a staff admin.
+update public.delegation_rules set mode = 'managers' where area = 'hr';
+select test.act_as('boss@example.com');
+set role authenticated;
+select test.ok(public.can_admin_area('hr'), 'a manager looks after HR Pack when delegated');
+select public.share_area('hr', test.pid('office@example.com'), true);
+reset role;
+select test.act_as('office@example.com');
+set role authenticated;
+select test.ok(public.can_admin_area('hr'), 'a staff admin the manager shared it with looks after it too');
+select test.ok((select count(*) = 1 from public.request_types where key = 'leave') and true, 'and can see request types');
+update public.request_types set escalate_days = 5 where key = 'leave';
+reset role;
+select test.ok((select escalate_days = 5 from public.request_types where key = 'leave'), 'so they can change request approvals');
+select test.ok(public.setting_area('cars.cleared_only') = 'vehicles', 'cars for cleared staff only sits with the Cars settings');
+select test.ok(public.setting_area('compliance.expiry_warning_days') = 'compliance', 'other compliance settings can still be delegated');
