@@ -1,15 +1,180 @@
 -- Staff Portal · © cmeproject. All rights reserved.
 --
--- FRESH INSTALL for a brand-new, empty Supabase project ONLY.
--- Never run this on a copy that's already in use (use the live updates instead).
+-- INSTALL OR UPDATE (cmeprojects). Safe to run again, on any copy:
+--   * a brand-new, empty Supabase project: sets up everything;
+--   * a copy that's already in use: adds only what's missing (each part is
+--     recorded in public.install_log and skipped next time).
 -- Built from every migration up to: 20270103000001_clearance_settings.sql
--- After it: run a company file (supabase/companies/...), then sign in:
--- the first person to sign in becomes the system admin.
+-- New copy afterwards: run a company file (supabase/companies/...), then
+-- sign in: the first person to sign in becomes the system admin.
 
+create table if not exists public.install_log (
+  name       text primary key,
+  applied_at timestamptz not null default now()
+);
+alter table public.install_log enable row level security;
+revoke all on public.install_log from anon, authenticated;
+
+-- Older copies first need two access levels added on their own (Supabase runs
+-- a pasted script as one transaction, where a new access level can't be used
+-- straight away). Stops with the two lines to run if they're missing.
+do $roles$
+begin
+  if to_regtype('public.app_role') is not null and (
+       not exists (select 1 from pg_enum where enumtypid = to_regtype('public.app_role') and enumlabel = 'new_starter')
+    or not exists (select 1 from pg_enum where enumtypid = to_regtype('public.app_role') and enumlabel = 'external')) then
+    raise exception 'First run these two lines on their own (new query, Run), then run this file again:  alter type public.app_role add value if not exists ''new_starter'';  alter type public.app_role add value if not exists ''external'';';
+  end if;
+end;
+$roles$;
+
+-- A copy set up before the log existed: work out how far it got (the newest
+-- part whose objects are there) and record everything up to it.
+do $baseline$
+declare
+  v_upto int := 0;
+begin
+  if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
+    return;
+  end if;
+  if v_upto = 0 and to_regclass('public.compliance_opens') is not null and to_regclass('public.work_overrides') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'compliance_status_all') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'compliance_items' and column_name = 'category') then v_upto := 75; end if;
+  if v_upto = 0 and to_regclass('public.request_types') is not null and to_regclass('public.requests') is not null and to_regclass('public.request_events') is not null and to_regclass('public.leave_periods') is not null then v_upto := 73; end if;
+  if v_upto = 0 and to_regclass('public.staff_directory') is not null and to_regclass('public.staff_private') is not null then v_upto := 72; end if;
+  if v_upto = 0 and to_regclass('public.client_teams') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'tasks' and column_name = 'client_id') then v_upto := 71; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'avatar_ref') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'compliance_items' and column_name = 'sets_photo') then v_upto := 70; end if;
+  if v_upto = 0 and to_regclass('public.register_templates') is not null then v_upto := 68; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'mfa_exempt') then v_upto := 65; end if;
+  if v_upto = 0 and to_regclass('public.delegation_shares') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'registries' and column_name = 'create_roles') then v_upto := 64; end if;
+  if v_upto = 0 and to_regclass('public.delegation_rules') is not null and to_regclass('public.settings_drafts') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'features' and column_name = 'parent') then v_upto := 63; end if;
+  if v_upto = 0 and to_regclass('public.demo_records') is not null then v_upto := 60; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'assistant_settings' and column_name = 'credit_aud') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'assistant_settings' and column_name = 'credit_since') then v_upto := 57; end if;
+  if v_upto = 0 and to_regclass('public.assistant_chats') is not null and to_regclass('public.assistant_messages') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'assistant_settings' and column_name = 'suggestions') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'assistant_settings' and column_name = 'show_credits') then v_upto := 55; end if;
+  if v_upto = 0 and to_regclass('public.sign_in_failures') is not null then v_upto := 54; end if;
+  if v_upto = 0 and to_regclass('public.assistant_settings') is not null and to_regclass('public.assistant_documents') is not null and to_regclass('public.assistant_chunks') is not null and to_regclass('public.assistant_questions') is not null then v_upto := 53; end if;
+  if v_upto = 0 and to_regclass('public.custom_alert_runs') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'custom_alerts' and column_name = 'at_hour') then v_upto := 52; end if;
+  if v_upto = 0 and to_regclass('public.forms') is not null and to_regclass('public.form_questions') is not null and to_regclass('public.form_collaborators') is not null and to_regclass('public.form_recipients') is not null then v_upto := 49; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'tasks' and column_name = 'escalated_to') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'tasks' and column_name = 'escalated_by') then v_upto := 48; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'custom_features' and column_name = 'in_app') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'custom_features' and column_name = 'app_icon') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'custom_features' and column_name = 'app_colour') then v_upto := 46; end if;
+  if v_upto = 0 and to_regclass('public.custom_alerts') is not null then v_upto := 45; end if;
+  if v_upto = 0 and to_regclass('public.live_signals') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'cars' and column_name = 'changed_at') then v_upto := 42; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'car_trips' and column_name = 'went_to') then v_upto := 41; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'custom_features' and column_name = 'managers_fix') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'custom_features' and column_name = 'managers_targets') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'custom_features' and column_name = 'managers_options') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'custom_fields' and column_name = 'add_typed') then v_upto := 37; end if;
+  if v_upto = 0 and to_regclass('public.custom_features') is not null and to_regclass('public.custom_fields') is not null and to_regclass('public.custom_entries') is not null and to_regclass('public.custom_client_targets') is not null then v_upto := 36; end if;
+  if v_upto = 0 and to_regclass('public.email_throttle') is not null then v_upto := 35; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'features' and column_name = 'premium') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'features' and column_name = 'included') then v_upto := 33; end if;
+  if v_upto = 0 and to_regclass('public.system_heartbeat') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'system_health') then v_upto := 30; end if;
+  if v_upto = 0 and to_regclass('public.cars') is not null and to_regclass('public.car_clients') is not null and to_regclass('public.car_purposes') is not null and to_regclass('public.car_trips') is not null then v_upto := 29; end if;
+  if v_upto = 0 and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'submit_compliance_upload_for') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'compliance_records' and column_name = 'uploaded_by') then v_upto := 28; end if;
+  if v_upto = 0 and to_regclass('public.admin_delegations') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'can_admin_area') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'setting_area') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'set_delegation') then v_upto := 27; end if;
+  if v_upto = 0 and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'task_missing_fields') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'registries' and column_name = 'outcome_required') then v_upto := 24; end if;
+  if v_upto = 0 and to_regclass('public.task_attachments') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'can_approve_task') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'task_people') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'task_label') then v_upto := 22; end if;
+  if v_upto = 0 and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'can_see_scoreboard') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'staff_scoreboard') then v_upto := 20; end if;
+  if v_upto = 0 and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'sees_register_overview') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'register_open_counts') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'register_overview') then v_upto := 19; end if;
+  if v_upto = 0 and to_regclass('public.notifications') is not null and to_regclass('public.compliance_items') is not null and to_regclass('public.compliance_records') is not null and to_regclass('public.compliance_alerts') is not null then v_upto := 18; end if;
+  if v_upto = 0 and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'rule_on') then v_upto := 17; end if;
+  if v_upto = 0 and to_regclass('public.task_alerts') is not null and to_regclass('public.daily_runs') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'working_days_between') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'task_managers') then v_upto := 13; end if;
+  if v_upto = 0 and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'my_request_updates') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'mark_request_updates_seen') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'people_change_requests' and column_name = 'requester_seen_at') then v_upto := 12; end if;
+  if v_upto = 0 and to_regclass('public.job_titles') is not null and to_regclass('public.team_members') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'guard_job_title') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'sync_title_and_role') then v_upto := 11; end if;
+  if v_upto = 0 and to_regclass('public.people_change_requests') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'add_change_request') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'request_role_change') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'request_team_change') then v_upto := 10; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'registries' and column_name = 'sla_days') then v_upto := 9; end if;
+  if v_upto = 0 and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'can_manage_people') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'can_manage_role') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'can_take_tasks') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'guard_task_people') then v_upto := 8; end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'registry_fields' and column_name = 'option_colors') then v_upto := 7; end if;
+  if v_upto = 0 and to_regclass('public.task_views') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'my_new_tasks') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'mark_task_seen') and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'mark_all_tasks_seen') then v_upto := 6; end if;
+  if v_upto = 0 and to_regclass('public.registry_fields') is not null and to_regclass('public.records') is not null and to_regclass('public.record_events') is not null and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'manages_registry') then v_upto := 4; end if;
+  if v_upto = 0 and to_regclass('public.tasks') is not null and to_regclass('public.task_helpers') is not null and to_regclass('public.task_events') is not null and to_regclass('public.email_outbox') is not null then v_upto := 3; end if;
+  if v_upto = 0 and to_regclass('public.organisation') is not null and to_regclass('public.app_settings') is not null and to_regclass('public.features') is not null and to_regclass('public.teams') is not null then v_upto := 1; end if;
+  insert into public.install_log (name)
+  select x.name from (values
+    (1, '20261027000001_foundations.sql'),
+    (2, '20261028000001_two_factor_switch.sql'),
+    (3, '20261029000001_tasks.sql'),
+    (4, '20261030000001_registers.sql'),
+    (5, '20261031000001_logo_mark.sql'),
+    (6, '20261101000001_task_notifications.sql'),
+    (7, '20261102000001_choice_colours.sql'),
+    (8, '20261103000001_managers_manage_people.sql'),
+    (9, '20261104000001_sla.sql'),
+    (10, '20261105000001_staff_admin_scope_and_sla_editors.sql'),
+    (11, '20261106000001_teams_and_job_titles.sql'),
+    (12, '20261107000001_request_notifications.sql'),
+    (13, '20261108000001_due_alerts.sql'),
+    (14, '20261109000001_quiet_reminders.sql'),
+    (15, '20261110000001_new_starter_role.sql'),
+    (16, '20261110000002_general_invites.sql'),
+    (17, '20261110000003_people_rules.sql'),
+    (18, '20261111000001_onboarding_and_compliance.sql'),
+    (19, '20261112000001_staff_admin_register_overview.sql'),
+    (20, '20261112000002_scoreboard.sql'),
+    (21, '20261113000001_mfa_methods.sql'),
+    (22, '20261114000001_task_workflow.sql'),
+    (23, '20261115000001_keep_one_manager.sql'),
+    (24, '20261116000001_required_before_completing.sql'),
+    (25, '20261117000001_customisation.sql'),
+    (26, '20261118000001_manager_own_tasks.sql'),
+    (27, '20261119000001_delegation.sql'),
+    (28, '20261120000001_upload_for_staff.sql'),
+    (29, '20261121000001_cars.sql'),
+    (30, '20261122000001_system_health.sql'),
+    (31, '20261123000001_compliance_report.sql'),
+    (32, '20261124000001_registers_menu.sql'),
+    (33, '20261125000001_premium_features.sql'),
+    (34, '20261126000001_weekly_recipients.sql'),
+    (35, '20261127000001_sign_in_help.sql'),
+    (36, '20261128000001_feature_builder.sql'),
+    (37, '20261129000001_feature_manager_rights.sql'),
+    (38, '20261129000002_conditional_role_nothing_left.sql'),
+    (39, '20261130000001_staff_admin_role_approval.sql'),
+    (40, '20261130000002_cars_app_look.sql'),
+    (41, '20261130000003_car_trip_where.sql'),
+    (42, '20261201000001_live_updates.sql'),
+    (43, '20261202000001_compliance_report_wording.sql'),
+    (44, '20261203000001_live_tasks.sql'),
+    (45, '20261204000001_feature_alerts.sql'),
+    (46, '20261205000001_staff_app.sql'),
+    (47, '20261205000002_role_changed_notice.sql'),
+    (48, '20261206000001_escalate_to.sql'),
+    (49, '20261207000001_forms.sql'),
+    (50, '20261208000001_forms_anonymous_choice.sql'),
+    (51, '20261209000001_forms_questions.sql'),
+    (52, '20261210000001_time_alerts.sql'),
+    (53, '20261211000001_assistant_website.sql'),
+    (54, '20261212000001_quick_fixes.sql'),
+    (55, '20261213000001_website_v2.sql'),
+    (56, '20261214000001_limited_tasks.sql'),
+    (57, '20261215000001_website_round2.sql'),
+    (58, '20261216000001_enquiry_intake.sql'),
+    (59, '20261217000001_website_about_seo.sql'),
+    (60, '20261218000001_demo_data.sql'),
+    (61, '20261219000001_reports_premium.sql'),
+    (62, '20261220000001_sign_out_devices.sql'),
+    (63, '20261221000001_settings_revamp.sql'),
+    (64, '20261222000001_round3.sql'),
+    (65, '20261223000001_mfa_per_person.sql'),
+    (66, '20261224000001_register_setup_delegation.sql'),
+    (67, '20261225000001_neutral_examples.sql'),
+    (68, '20261226000001_register_templates_wizard.sql'),
+    (69, '20261227000001_delete_unused_registers.sql'),
+    (70, '20261228000001_staff_photos.sql'),
+    (71, '20261229000001_client_teams.sql'),
+    (72, '20261230000001_hr_pack_profiles.sql'),
+    (73, '20261231000001_my_requests.sql'),
+    (74, '20270101000001_profile_requirement.sql'),
+    (75, '20270102000001_onboarding_clearance.sql'),
+    (76, '20270103000001_clearance_settings.sql')
+  ) as x(n, name) where x.n <= v_upto
+  on conflict do nothing;
+end;
+$baseline$;
 
 -- ====================================================================
 -- 20261027000001_foundations.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261027000001_foundations.sql') then
+    return;
+  end if;
+  execute $m001$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Milestone 1: foundations.
@@ -671,9 +836,20 @@ insert into public.features (key, label, description, enabled, sort_order) value
   ('sign_in_google',      'Google sign-in', 'Show "Continue with Google" on the sign-in page.', true, 70),
   ('sign_in_magic_link',  'Email sign-in link', 'Show "Email me a sign-in link" on the sign-in page.', true, 80);
 
+$m001$;
+  insert into public.install_log (name) values ('20261027000001_foundations.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261028000001_two_factor_switch.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261028000001_two_factor_switch.sql') then
+    return;
+  end if;
+  execute $m002$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- A main switch for two-factor login. When it is off nobody is asked for a
@@ -727,9 +903,20 @@ as $$
   where p.id = auth.uid()
 $$;
 
+$m002$;
+  insert into public.install_log (name) values ('20261028000001_two_factor_switch.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261029000001_tasks.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261029000001_tasks.sql') then
+    return;
+  end if;
+  execute $m003$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Milestone 2: tasks, helpers and email notifications.
@@ -1050,9 +1237,20 @@ insert into public.app_settings (key, value, label, description, is_public) valu
    'Used for due dates, "due this week" and "overdue". For example Australia/Melbourne or Australia/Perth.', false)
 on conflict (key) do nothing;
 
+$m003$;
+  insert into public.install_log (name) values ('20261029000001_tasks.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261030000001_registers.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261030000001_registers.sql') then
+    return;
+  end if;
+  execute $m004$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Registers: each registry has its own reference prefix, labels and custom
@@ -1704,9 +1902,20 @@ insert into public.registries (name, description, prefix, is_default, sort_order
 values ('General tasks', 'Everyday jobs that don''t belong to a register.', 'GEN', true, 0)
 on conflict do nothing;
 
+$m004$;
+  insert into public.install_log (name) values ('20261030000001_registers.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261031000001_logo_mark.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261031000001_logo_mark.sql') then
+    return;
+  end if;
+  execute $m005$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- A second, small logo for tight spaces (the menu, browser tab and phone
@@ -1721,9 +1930,20 @@ update public.app_settings
    set label = 'Main logo', description = 'Shown on the sign-in page and in emails.'
  where key = 'brand.logo_url';
 
+$m005$;
+  insert into public.install_log (name) values ('20261031000001_logo_mark.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261101000001_task_notifications.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261101000001_task_notifications.sql') then
+    return;
+  end if;
+  execute $m006$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- The bell: tasks newly given to you (to look after or to help on) that you
@@ -1801,9 +2021,20 @@ grant execute on function public.my_new_tasks() to authenticated;
 grant execute on function public.mark_task_seen(uuid) to authenticated;
 grant execute on function public.mark_all_tasks_seen() to authenticated;
 
+$m006$;
+  insert into public.install_log (name) values ('20261101000001_task_notifications.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261102000001_choice_colours.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261102000001_choice_colours.sql') then
+    return;
+  end if;
+  execute $m007$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Colour-coded dropdown choices, e.g. Risk rating: Low green … Extreme red.
@@ -1824,9 +2055,20 @@ update public.registry_fields f
   from public.registries r
  where r.id = f.registry_id and r.prefix = 'RSK' and f.key = 'effectiveness' and f.option_colors = '{}'::jsonb;
 
+$m007$;
+  insert into public.install_log (name) values ('20261102000001_choice_colours.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261103000001_managers_manage_people.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261103000001_managers_manage_people.sql') then
+    return;
+  end if;
+  execute $m008$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- 1. Managers can use Staff & roles and Teams. Who can manage whom:
@@ -2140,9 +2382,20 @@ begin
 end;
 $$;
 
+$m008$;
+  insert into public.install_log (name) values ('20261103000001_managers_manage_people.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261104000001_sla.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261104000001_sla.sql') then
+    return;
+  end if;
+  execute $m009$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- SLA: default due dates by priority (days after the date reported). Set for
@@ -2159,9 +2412,20 @@ on conflict (key) do nothing;
 alter table public.registries
   add column sla_days jsonb check (sla_days is null or jsonb_typeof(sla_days) = 'object');
 
+$m009$;
+  insert into public.install_log (name) values ('20261104000001_sla.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261105000001_staff_admin_scope_and_sla_editors.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261105000001_staff_admin_scope_and_sla_editors.sql') then
+    return;
+  end if;
+  execute $m010$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Who manages whom:
@@ -2518,9 +2782,20 @@ create policy "members read colleagues" on public.profiles
   for select to authenticated
   using (public.is_member() and (role <> 'system_admin' or public.is_system_admin()));
 
+$m010$;
+  insert into public.install_log (name) values ('20261105000001_staff_admin_scope_and_sla_editors.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261106000001_teams_and_job_titles.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261106000001_teams_and_job_titles.sql') then
+    return;
+  end if;
+  execute $m011$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Teams:
@@ -3044,9 +3319,20 @@ revoke execute on function public.request_team_change(uuid, uuid[], uuid, text) 
 grant execute on function public.request_role_change(uuid, public.app_role, uuid, text) to authenticated;
 grant execute on function public.request_team_change(uuid, uuid[], uuid, text) to authenticated;
 
+$m011$;
+  insert into public.install_log (name) values ('20261106000001_teams_and_job_titles.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261107000001_request_notifications.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261107000001_request_notifications.sql') then
+    return;
+  end if;
+  execute $m012$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- The bell also tells staff admins when a manager approves or declines a
@@ -3119,9 +3405,20 @@ revoke execute on function public.mark_request_updates_seen(text) from public, a
 grant execute on function public.my_request_updates() to authenticated;
 grant execute on function public.mark_request_updates_seen(text) to authenticated;
 
+$m012$;
+  insert into public.install_log (name) values ('20261107000001_request_notifications.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261108000001_due_alerts.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261108000001_due_alerts.sql') then
+    return;
+  end if;
+  execute $m013$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Reminders, overdue alerts and automatic escalation. A timer calls
@@ -3392,9 +3689,20 @@ $$;
 revoke execute on function public.my_due_alerts() from public, anon;
 grant execute on function public.my_due_alerts() to authenticated;
 
+$m013$;
+  insert into public.install_log (name) values ('20261108000001_due_alerts.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261109000001_quiet_reminders.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261109000001_quiet_reminders.sql') then
+    return;
+  end if;
+  execute $m014$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- No email spam: reminders and "due today" go to the bell only. Emails are
@@ -3424,9 +3732,20 @@ $$;
 
 revoke execute on function public.send_due_alert(uuid, uuid, text, date) from public, anon, authenticated;
 
+$m014$;
+  insert into public.install_log (name) values ('20261109000001_quiet_reminders.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261110000001_new_starter_role.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261110000001_new_starter_role.sql') then
+    return;
+  end if;
+  execute $m015$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- New starters: people who've joined with a general invite but don't have a
@@ -3434,9 +3753,20 @@ revoke execute on function public.send_due_alert(uuid, uuid, text, date) from pu
 
 -- (access level already in the list above)
 
+$m015$;
+  insert into public.install_log (name) values ('20261110000001_new_starter_role.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261110000002_general_invites.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261110000002_general_invites.sql') then
+    return;
+  end if;
+  execute $m016$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- General invites. Anyone can be invited without a role or team; they join as
@@ -3617,9 +3947,20 @@ begin
 end;
 $$;
 
+$m016$;
+  insert into public.install_log (name) values ('20261110000002_general_invites.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261110000003_people_rules.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261110000003_people_rules.sql') then
+    return;
+  end if;
+  execute $m017$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- People rules the system admin can switch on and off in System settings.
@@ -3837,9 +4178,20 @@ begin
 end;
 $$;
 
+$m017$;
+  insert into public.install_log (name) values ('20261110000003_people_rules.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261111000001_onboarding_and_compliance.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261111000001_onboarding_and_compliance.sql') then
+    return;
+  end if;
+  execute $m018$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Onboarding and Compliance.
@@ -4792,9 +5144,20 @@ begin
 end;
 $storage$;
 
+$m018$;
+  insert into public.install_log (name) values ('20261111000001_onboarding_and_compliance.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261112000001_staff_admin_register_overview.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261112000001_staff_admin_register_overview.sql') then
+    return;
+  end if;
+  execute $m019$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Staff admins (people management) see each register's open tasks as an
@@ -4884,9 +5247,20 @@ revoke execute on function public.register_overview(uuid) from public, anon;
 grant execute on function public.register_open_counts() to authenticated;
 grant execute on function public.register_overview(uuid) to authenticated;
 
+$m019$;
+  insert into public.install_log (name) values ('20261112000001_staff_admin_register_overview.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261112000002_scoreboard.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261112000002_scoreboard.sql') then
+    return;
+  end if;
+  execute $m020$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Scoreboard: how each person is going with their tasks, so staff admins
@@ -4978,9 +5352,20 @@ $$;
 revoke execute on function public.staff_scoreboard(int) from public, anon;
 grant execute on function public.staff_scoreboard(int) to authenticated;
 
+$m020$;
+  insert into public.install_log (name) values ('20261112000002_scoreboard.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261113000001_mfa_methods.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261113000001_mfa_methods.sql') then
+    return;
+  end if;
+  execute $m021$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Which two-factor login methods people can use. The authenticator app is on;
@@ -4995,9 +5380,20 @@ insert into public.app_settings (key, value, label, description, is_public) valu
    'People can get a code by text message. Needs an SMS provider set up in Supabase first (it costs per message).', true)
 on conflict (key) do nothing;
 
+$m021$;
+  insert into public.install_log (name) values ('20261113000001_mfa_methods.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261114000001_task_workflow.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261114000001_task_workflow.sql') then
+    return;
+  end if;
+  execute $m022$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Working on tasks (Milestone 3): status changes, approvals, comments,
@@ -5383,9 +5779,20 @@ revoke execute on function public.add_task_attachment(uuid, text, text, bigint) 
 revoke execute on function public.can_approve_task(uuid) from public, anon;
 grant execute on function public.can_approve_task(uuid) to authenticated;
 
+$m022$;
+  insert into public.install_log (name) values ('20261114000001_task_workflow.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261115000001_keep_one_manager.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261115000001_keep_one_manager.sql') then
+    return;
+  end if;
+  execute $m023$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- There must always be at least one active manager. When only one is left,
@@ -5526,9 +5933,20 @@ begin
 end;
 $$;
 
+$m023$;
+  insert into public.install_log (name) values ('20261115000001_keep_one_manager.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261116000001_required_before_completing.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261116000001_required_before_completing.sql') then
+    return;
+  end if;
+  execute $m024$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Required register fields are filled in before a task is completed (or sent
@@ -5765,9 +6183,20 @@ begin
 end;
 $$;
 
+$m024$;
+  insert into public.install_log (name) values ('20261116000001_required_before_completing.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261117000001_customisation.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261117000001_customisation.sql') then
+    return;
+  end if;
+  execute $m025$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- More things the system admin can set without a developer: the logo
@@ -5952,9 +6381,20 @@ begin
 end;
 $storage$;
 
+$m025$;
+  insert into public.install_log (name) values ('20261117000001_customisation.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261118000001_manager_own_tasks.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261118000001_manager_own_tasks.sql') then
+    return;
+  end if;
+  execute $m026$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Managers' own tasks don't need approval: a manager completing a task they
@@ -6104,9 +6544,20 @@ insert into public.app_settings (key, value, label, description, is_public) valu
    'People are signed out after this long without using the portal, even if they closed the browser. 0 means never.', false)
 on conflict (key) do nothing;
 
+$m026$;
+  insert into public.install_log (name) values ('20261118000001_manager_own_tasks.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261119000001_delegation.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261119000001_delegation.sql') then
+    return;
+  end if;
+  execute $m027$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Delegation: the system admin lets a named manager look after some areas
@@ -6235,9 +6686,20 @@ begin
 end;
 $storage$;
 
+$m027$;
+  insert into public.install_log (name) values ('20261119000001_delegation.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261120000001_upload_for_staff.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261120000001_upload_for_staff.sql') then
+    return;
+  end if;
+  execute $m028$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Uploading for someone, and expiry reminders by email.
@@ -6363,9 +6825,20 @@ begin
 end;
 $storage$;
 
+$m028$;
+  insert into public.install_log (name) values ('20261120000001_upload_for_staff.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261121000001_cars.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261121000001_cars.sql') then
+    return;
+  end if;
+  execute $m029$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Company cars (cmeprojects): staff start a trip (car, purpose, client, start
@@ -7074,9 +7547,20 @@ begin
 end;
 $storage$;
 
+$m029$;
+  insert into public.install_log (name) values ('20261121000001_cars.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261122000001_system_health.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261122000001_system_health.sql') then
+    return;
+  end if;
+  execute $m030$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- System health (cmeprojects, system admin only): how full the database and
@@ -7139,9 +7623,20 @@ $$;
 revoke all on function public.system_health() from public, anon;
 grant execute on function public.system_health() to authenticated;
 
+$m030$;
+  insert into public.install_log (name) values ('20261122000001_system_health.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261123000001_compliance_report.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261123000001_compliance_report.sql') then
+    return;
+  end if;
+  execute $m031$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Compliance report (cmeprojects): Reports → Compliance. Staff admins see it;
@@ -7152,9 +7647,20 @@ insert into public.app_settings (key, value, label, description, is_public) valu
    'Besides the system admin. Tick Manager to let managers see it too.', false)
 on conflict (key) do nothing;
 
+$m031$;
+  insert into public.install_log (name) values ('20261123000001_compliance_report.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261124000001_registers_menu.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261124000001_registers_menu.sql') then
+    return;
+  end if;
+  execute $m032$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Who sees Registers in the menu (cmeprojects). The system admin always does;
@@ -7165,9 +7671,20 @@ insert into public.app_settings (key, value, label, description, is_public) valu
    'Besides the system admin. People without it still see and create their own tasks under Tasks.', false)
 on conflict (key) do nothing;
 
+$m032$;
+  insert into public.install_log (name) values ('20261124000001_registers_menu.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261125000001_premium_features.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261125000001_premium_features.sql') then
+    return;
+  end if;
+  execute $m033$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Premium features (cmeprojects). Some features are paid add-ons, marked
@@ -7213,9 +7730,20 @@ revoke execute on function public.guard_feature_change() from public, anon, auth
 drop trigger if exists features_guard on public.features;
 create trigger features_guard before update on public.features for each row execute function public.guard_feature_change();
 
+$m033$;
+  insert into public.install_log (name) values ('20261125000001_premium_features.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261126000001_weekly_recipients.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261126000001_weekly_recipients.sql') then
+    return;
+  end if;
+  execute $m034$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Weekly mileage report recipients (cmeprojects): the system admin ticks which
@@ -7353,9 +7881,20 @@ $$;
 revoke execute on function public.run_car_alerts(timestamptz) from public, anon, authenticated;
 grant execute on function public.run_car_alerts(timestamptz) to service_role;
 
+$m034$;
+  insert into public.install_log (name) values ('20261126000001_weekly_recipients.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261127000001_sign_in_help.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261127000001_sign_in_help.sql') then
+    return;
+  end if;
+  execute $m035$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Helping someone sign in (cmeprojects): on Staff & roles, the system admin
@@ -7413,9 +7952,20 @@ create table if not exists public.email_throttle (
 alter table public.email_throttle enable row level security;
 revoke all on public.email_throttle from anon, authenticated;
 
+$m035$;
+  insert into public.install_log (name) values ('20261127000001_sign_in_help.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261128000001_feature_builder.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261128000001_feature_builder.sql') then
+    return;
+  end if;
+  execute $m036$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Feature builder (cmeprojects). The system admin builds features (for
@@ -7843,9 +8393,20 @@ begin
 end;
 $storage$;
 
+$m036$;
+  insert into public.install_log (name) values ('20261128000001_feature_builder.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261129000001_feature_manager_rights.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261129000001_feature_manager_rights.sql') then
+    return;
+  end if;
+  execute $m037$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Feature builder (cmeprojects): what managers may change. For each feature
@@ -8139,9 +8700,20 @@ revoke execute on function public.can_manage_feature(uuid, text), public.correct
 grant execute on function public.can_manage_feature(uuid, text), public.correct_custom_entry(bigint, jsonb, text),
   public.set_custom_targets(uuid, numeric, jsonb), public.set_custom_field_options(uuid, jsonb) to authenticated;
 
+$m037$;
+  insert into public.install_log (name) values ('20261129000001_feature_manager_rights.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261129000002_conditional_role_nothing_left.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261129000002_conditional_role_nothing_left.sql') then
+    return;
+  end if;
+  execute $m038$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Conditional roles (cmeprojects): when nothing is left to do for the chosen
@@ -8283,9 +8855,20 @@ begin
 end;
 $$;
 
+$m038$;
+  insert into public.install_log (name) values ('20261129000002_conditional_role_nothing_left.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261130000001_staff_admin_role_approval.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261130000001_staff_admin_role_approval.sql') then
+    return;
+  end if;
+  execute $m039$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Role changes by a staff admin always need a manager's approval
@@ -8378,9 +8961,20 @@ begin
 end;
 $$;
 
+$m039$;
+  insert into public.install_log (name) values ('20261130000001_staff_admin_role_approval.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261130000002_cars_app_look.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261130000002_cars_app_look.sql') then
+    return;
+  end if;
+  execute $m040$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- The Cars app on staff phones (cmeprojects): the name under its icon, and
@@ -8397,9 +8991,20 @@ insert into public.app_settings (key, value, label, description, is_public) valu
   ('vehicles.app_icon_uploads', '[]', 'Uploaded icons', 'Pictures uploaded for the Cars app icon.', true)
 on conflict (key) do nothing;
 
+$m040$;
+  insert into public.install_log (name) values ('20261130000002_cars_app_look.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261130000003_car_trip_where.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261130000003_car_trip_where.sql') then
+    return;
+  end if;
+  execute $m041$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Cars (cmeprojects): staff say where they went when they return a car
@@ -8511,9 +9116,20 @@ $$;
 revoke execute on function public.return_car_trip(bigint, int, text, text, text) from public, anon;
 grant execute on function public.return_car_trip(bigint, int, text, text, text) to authenticated;
 
+$m041$;
+  insert into public.install_log (name) values ('20261130000003_car_trip_where.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261201000001_live_updates.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261201000001_live_updates.sql') then
+    return;
+  end if;
+  execute $m042$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Live updates (cmeprojects): open pages refresh themselves when something
@@ -8587,9 +9203,20 @@ begin
 end;
 $live$;
 
+$m042$;
+  insert into public.install_log (name) values ('20261201000001_live_updates.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261202000001_compliance_report_wording.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261202000001_compliance_report_wording.sql') then
+    return;
+  end if;
+  execute $m043$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Clearer wording for who sees reports (cmeprojects), now on their own
@@ -8600,9 +9227,20 @@ update public.app_settings
        description = 'Onboarding and compliance for everyone: what''s done, missing, expiring or expired. Besides the system admin. Tick Manager to let managers see it.'
  where key = 'reports.compliance_roles';
 
+$m043$;
+  insert into public.install_log (name) values ('20261202000001_compliance_report_wording.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261203000001_live_tasks.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261203000001_live_tasks.sql') then
+    return;
+  end if;
+  execute $m044$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Live updates for tasks (cmeprojects): the bell, task lists and an open task
@@ -8624,9 +9262,20 @@ begin
 end;
 $live$;
 
+$m044$;
+  insert into public.install_log (name) values ('20261203000001_live_tasks.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261204000001_feature_alerts.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261204000001_feature_alerts.sql') then
+    return;
+  end if;
+  execute $m045$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Feature builder alerts (cmeprojects). The system admin adds rules to a
@@ -8804,9 +9453,20 @@ drop trigger if exists custom_entries_alerts on public.custom_entries;
 create trigger custom_entries_alerts after insert or update of data on public.custom_entries
   for each row execute function public.fire_custom_alerts();
 
+$m045$;
+  insert into public.install_log (name) values ('20261204000001_feature_alerts.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261205000001_staff_app.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261205000001_staff_app.sql') then
+    return;
+  end if;
+  execute $m046$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- The Staff app (cmeprojects): one phone app holding the features the system
@@ -8839,9 +9499,20 @@ alter table public.custom_features add column if not exists in_app boolean not n
 alter table public.custom_features add column if not exists app_icon text not null default 'clipboard' check (length(app_icon) <= 20);
 alter table public.custom_features add column if not exists app_colour text not null default '#134f8e' check (app_colour ~ '^#[0-9a-fA-F]{6}$');
 
+$m046$;
+  insert into public.install_log (name) values ('20261205000001_staff_app.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261205000002_role_changed_notice.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261205000002_role_changed_notice.sql') then
+    return;
+  end if;
+  execute $m047$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- When someone's role changes, they're told (cmeprojects): a note in their
@@ -8885,9 +9556,20 @@ drop trigger if exists profiles_access_signal on public.profiles;
 create trigger profiles_access_signal after update of role, active on public.profiles
   for each statement execute function public.signal_change('people');
 
+$m047$;
+  insert into public.install_log (name) values ('20261205000002_role_changed_notice.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261206000001_escalate_to.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261206000001_escalate_to.sql') then
+    return;
+  end if;
+  execute $m048$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Escalating to the right person (cmeprojects). A support worker escalates a
@@ -8995,9 +9677,20 @@ drop trigger if exists tasks_settle_escalation on public.tasks;
 create trigger tasks_settle_escalation before update on public.tasks
   for each row execute function public.settle_escalation();
 
+$m048$;
+  insert into public.install_log (name) values ('20261206000001_escalate_to.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261207000001_forms.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261207000001_forms.sql') then
+    return;
+  end if;
+  execute $m049$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Forms (cmeprojects, premium). Managers and/or staff admins (the system
@@ -9488,9 +10181,20 @@ begin
 end;
 $live$;
 
+$m049$;
+  insert into public.install_log (name) values ('20261207000001_forms.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261208000001_forms_anonymous_choice.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261208000001_forms_anonymous_choice.sql') then
+    return;
+  end if;
+  execute $m050$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Forms (cmeprojects): instead of a whole form being anonymous, a form can
@@ -9604,9 +10308,20 @@ $$;
 revoke execute on function public.submit_form_response(uuid, jsonb, boolean, boolean) from public, anon;
 grant execute on function public.submit_form_response(uuid, jsonb, boolean, boolean) to authenticated;
 
+$m050$;
+  insert into public.install_log (name) values ('20261208000001_forms_anonymous_choice.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261209000001_forms_questions.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261209000001_forms_questions.sql') then
+    return;
+  end if;
+  execute $m051$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Forms (cmeprojects):
@@ -9687,9 +10402,20 @@ $$;
 revoke execute on function public.ask_form_question(uuid, text) from public, anon;
 grant execute on function public.ask_form_question(uuid, text) to authenticated;
 
+$m051$;
+  insert into public.install_log (name) values ('20261209000001_forms_questions.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261210000001_time_alerts.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261210000001_time_alerts.sql') then
+    return;
+  end if;
+  execute $m052$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Time-based alerts for built features (cmeprojects). Checked every hour:
@@ -9903,9 +10629,20 @@ begin
 end;
 $$;
 
+$m052$;
+  insert into public.install_log (name) values ('20261210000001_time_alerts.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261211000001_assistant_website.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261211000001_assistant_website.sql') then
+    return;
+  end if;
+  execute $m053$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Website and Assistant (cmeprojects): a public "ask anything" page that
@@ -10164,9 +10901,20 @@ drop trigger if exists website_enquiry_notify on public.website_enquiries;
 create trigger website_enquiry_notify after insert on public.website_enquiries
   for each row execute function public.website_enquiry_notify();
 
+$m053$;
+  insert into public.install_log (name) values ('20261211000001_assistant_website.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261212000001_quick_fixes.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261212000001_quick_fixes.sql') then
+    return;
+  end if;
+  execute $m054$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Quick fixes (cmeprojects):
@@ -10330,9 +11078,20 @@ begin
 end;
 $live$;
 
+$m054$;
+  insert into public.install_log (name) values ('20261212000001_quick_fixes.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261213000001_website_v2.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261213000001_website_v2.sql') then
+    return;
+  end if;
+  execute $m055$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Website and Assistant, version 2 (cmeprojects):
@@ -10423,9 +11182,20 @@ drop trigger if exists assistant_messages_touch on public.assistant_messages;
 create trigger assistant_messages_touch after insert on public.assistant_messages
   for each row execute function public.assistant_chat_touch();
 
+$m055$;
+  insert into public.install_log (name) values ('20261213000001_website_v2.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261214000001_limited_tasks.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261214000001_limited_tasks.sql') then
+    return;
+  end if;
+  execute $m056$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Limited tasks (cmeprojects): some roles (support workers by default) may
@@ -10452,9 +11222,20 @@ drop trigger if exists limited_task_guard on public.tasks;
 create trigger limited_task_guard before insert on public.tasks
   for each row execute function public.limited_task_guard();
 
+$m056$;
+  insert into public.install_log (name) values ('20261214000001_limited_tasks.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261215000001_website_round2.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261215000001_website_round2.sql') then
+    return;
+  end if;
+  execute $m057$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Website, round 2 (cmeprojects):
@@ -10599,9 +11380,20 @@ begin
 end;
 $$;
 
+$m057$;
+  insert into public.install_log (name) values ('20261215000001_website_round2.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261216000001_enquiry_intake.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261216000001_enquiry_intake.sql') then
+    return;
+  end if;
+  execute $m058$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Enquiry intake (cmeprojects): each new website enquiry becomes a "Call
@@ -10686,9 +11478,20 @@ begin
   return new;
 end $$;
 
+$m058$;
+  insert into public.install_log (name) values ('20261216000001_enquiry_intake.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261217000001_website_about_seo.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261217000001_website_about_seo.sql') then
+    return;
+  end if;
+  execute $m059$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Website: the About page, phone numbers and search-engine settings
@@ -10712,9 +11515,20 @@ on conflict (key) do nothing;
 -- title to anyone who knew its ID).
 revoke execute on function public.task_label(uuid) from public, anon, authenticated;
 
+$m059$;
+  insert into public.install_log (name) values ('20261217000001_website_about_seo.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261218000001_demo_data.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261218000001_demo_data.sql') then
+    return;
+  end if;
+  execute $m060$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Demo data tools for the system admin (cmeprojects): load a fresh set of
@@ -10885,9 +11699,20 @@ end $$;
 revoke all on function public.demo_load() from public, anon;
 grant execute on function public.demo_load() to authenticated;
 
+$m060$;
+  insert into public.install_log (name) values ('20261218000001_demo_data.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261219000001_reports_premium.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261219000001_reports_premium.sql') then
+    return;
+  end if;
+  execute $m061$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Reports and exports becomes a premium add-on (cmeprojects): the Reports
@@ -10900,9 +11725,20 @@ update public.features
        included = true
  where key = 'reports';
 
+$m061$;
+  insert into public.install_log (name) values ('20261219000001_reports_premium.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261220000001_sign_out_devices.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261220000001_sign_out_devices.sql') then
+    return;
+  end if;
+  execute $m062$
 -- Staff Portal · © cmeproject. All rights reserved.
 -- cmeprojects: signing out other devices.
 --   * Anyone: sign out their own other devices (phones, other computers).
@@ -11003,9 +11839,20 @@ grant execute on function public.sign_out_my_other_devices() to authenticated;
 grant execute on function public.sign_out_everywhere(uuid) to authenticated;
 grant execute on function public.sign_out_everyone() to authenticated;
 
+$m062$;
+  insert into public.install_log (name) values ('20261220000001_sign_out_devices.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261221000001_settings_revamp.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261221000001_settings_revamp.sql') then
+    return;
+  end if;
+  execute $m063$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Settings revamp (cmeprojects):
@@ -11542,9 +12389,20 @@ grant execute on function public.deploy_drafts() to authenticated;
 grant execute on function public.discard_drafts() to authenticated;
 grant execute on function public.website_front_page() to anon, authenticated;
 
+$m063$;
+  insert into public.install_log (name) values ('20261221000001_settings_revamp.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261222000001_round3.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261222000001_round3.sql') then
+    return;
+  end if;
+  execute $m064$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Round 3 (cmeprojects):
@@ -11953,9 +12811,20 @@ as $$
              and not exists (select 1 from public.profiles where role = 'staff_admin' and active)))
 $$;
 
+$m064$;
+  insert into public.install_log (name) values ('20261222000001_round3.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261223000001_mfa_per_person.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261223000001_mfa_per_person.sql') then
+    return;
+  end if;
+  execute $m065$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Two-factor login per person (cmeprojects): besides choosing which roles need
@@ -12058,9 +12927,20 @@ revoke execute on function public.set_mfa_exempt(uuid, boolean) from public, ano
 grant execute on function public.set_mfa_exempt(uuid, boolean) to authenticated;
 revoke execute on function public.guard_mfa_exempt() from public, anon, authenticated;
 
+$m065$;
+  insert into public.install_log (name) values ('20261223000001_mfa_per_person.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261224000001_register_setup_delegation.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261224000001_register_setup_delegation.sql') then
+    return;
+  end if;
+  execute $m066$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- "Setting up registers" delegation (cmeprojects): the system admin lets all
@@ -12106,9 +12986,20 @@ create policy "registry managers change fields" on public.registry_fields
   for update to authenticated
   using (public.can_setup_registry(registry_id)) with check (public.can_setup_registry(registry_id));
 
+$m066$;
+  insert into public.install_log (name) values ('20261224000001_register_setup_delegation.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261225000001_neutral_examples.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261225000001_neutral_examples.sql') then
+    return;
+  end if;
+  execute $m067$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Neutral examples (cmeprojects): setting descriptions no longer name a client,
@@ -12121,9 +13012,20 @@ update public.app_settings
    set description = 'About 50 to 60 characters, for example: Your Company | NDIS support services in your area.'
  where key = 'website.seo_title';
 
+$m067$;
+  insert into public.install_log (name) values ('20261225000001_neutral_examples.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261226000001_register_templates_wizard.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261226000001_register_templates_wizard.sql') then
+    return;
+  end if;
+  execute $m068$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Register templates and the setup wizard (cmeprojects).
@@ -12269,9 +13171,20 @@ select 'setup.completed',
        'Setup finished', 'Whether the first-time setup wizard has been completed.'
 on conflict (key) do nothing;
 
+$m068$;
+  insert into public.install_log (name) values ('20261226000001_register_templates_wizard.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261227000001_delete_unused_registers.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261227000001_delete_unused_registers.sql') then
+    return;
+  end if;
+  execute $m069$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Deleting registers (cmeprojects): only a register that has never been used
@@ -12309,9 +13222,20 @@ $$;
 revoke execute on function public.delete_unused_registry(uuid) from public, anon;
 grant execute on function public.delete_unused_registry(uuid) to authenticated;
 
+$m069$;
+  insert into public.install_log (name) values ('20261227000001_delete_unused_registers.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261228000001_staff_photos.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261228000001_staff_photos.sql') then
+    return;
+  end if;
+  execute $m070$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Staff photos (cmeprojects).
@@ -12456,9 +13380,20 @@ select 'upload', 'Profile photo',
 where not exists (select 1 from public.compliance_items where sets_photo);
 alter table public.compliance_items enable trigger compliance_items_guard;
 
+$m070$;
+  insert into public.install_log (name) values ('20261228000001_staff_photos.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261229000001_client_teams.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261229000001_client_teams.sql') then
+    return;
+  end if;
+  execute $m071$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Clients, teams and tasks (cmeprojects).
@@ -12561,9 +13496,20 @@ grant execute on function public.set_task_client(uuid, uuid) to authenticated;
 grant execute on function public.task_client(uuid) to authenticated;
 grant execute on function public.my_team_clients() to authenticated;
 
+$m071$;
+  insert into public.install_log (name) values ('20261229000001_client_teams.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261230000001_hr_pack_profiles.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261230000001_hr_pack_profiles.sql') then
+    return;
+  end if;
+  execute $m072$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- HR Pack and staff profiles (cmeprojects).
@@ -12729,9 +13675,20 @@ $$;
 revoke execute on function public.save_profile(uuid, jsonb) from public, anon;
 grant execute on function public.save_profile(uuid, jsonb) to authenticated;
 
+$m072$;
+  insert into public.install_log (name) values ('20261230000001_hr_pack_profiles.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20261231000001_my_requests.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20261231000001_my_requests.sql') then
+    return;
+  end if;
+  execute $m073$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- My requests (cmeprojects, HR Pack).
@@ -13135,9 +14092,20 @@ grant execute on function public.can_act_on_request(uuid), public.request_ref(uu
   public.request_action(uuid, text, text), public.request_approvers(uuid) to authenticated;
 grant execute on function public.escalate_requests() to service_role;
 
+$m073$;
+  insert into public.install_log (name) values ('20261231000001_my_requests.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20270101000001_profile_requirement.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270101000001_profile_requirement.sql') then
+    return;
+  end if;
+  execute $m074$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Complete your profile (cmeprojects, HR Pack).
@@ -13206,9 +14174,20 @@ create trigger profile_saved_check_onboarding after insert or update on public.s
 revoke execute on function public.profile_complete(uuid), public.profile_required(uuid) from public, anon;
 grant execute on function public.profile_complete(uuid), public.profile_required(uuid) to authenticated;
 
+$m074$;
+  insert into public.install_log (name) values ('20270101000001_profile_requirement.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20270102000001_onboarding_clearance.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270102000001_onboarding_clearance.sql') then
+    return;
+  end if;
+  execute $m075$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- Onboarding, compliance and clearance to work (cmeprojects, HR Pack).
@@ -14051,9 +15030,20 @@ select 'agreement', 'Employment agreement',
 where not exists (select 1 from public.compliance_items where kind = 'agreement');
 alter table public.compliance_items enable trigger compliance_items_guard;
 
+$m075$;
+  insert into public.install_log (name) values ('20270102000001_onboarding_clearance.sql');
+end;
+$part$;
+
 -- ====================================================================
 -- 20270103000001_clearance_settings.sql
 -- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270103000001_clearance_settings.sql') then
+    return;
+  end if;
+  execute $m076$
 -- Staff Portal · © cmeproject. All rights reserved.
 --
 -- HR Pack delegation and clearance settings (cmeprojects).
@@ -14127,3 +15117,8 @@ $$;
 drop policy if exists "system admin changes request types" on public.request_types;
 create policy "system admin changes request types" on public.request_types for update to authenticated
   using (public.can_admin_area('hr')) with check (public.can_admin_area('hr'));
+
+$m076$;
+  insert into public.install_log (name) values ('20270103000001_clearance_settings.sql');
+end;
+$part$;

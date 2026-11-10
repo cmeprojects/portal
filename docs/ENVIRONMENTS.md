@@ -52,7 +52,7 @@ Code goes out automatically when you merge. Database updates are run per copy
    strong database password (keep it in your password manager).
 2. **Database**: SQL Editor → New query → paste all of
    `supabase/install/fresh-install.sql` (open it on GitHub, **Copy raw file**)
-   → Run. Only ever on a brand-new, empty project.
+   → Run. Safe to run again: on a copy already in use it adds only what's missing.
 3. **Company file**: same way, `supabase/companies/<name>.sql`
    (`cmeprojects.sql` for Development and Demo).
 4. **Supabase settings**: Authentication → Sign In / Providers: turn **off**

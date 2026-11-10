@@ -7,6 +7,12 @@ Each file here is one update to run **once** on a copy that's already in use
 changes as `supabase/migrations/`, bundled so they're easy to copy.
 A **brand-new** copy doesn't need these: use `supabase/install/fresh-install.sql`.
 
+**Easier for any copy (cmeprojects):** `supabase/install/fresh-install.sql` is now
+safe to run again. On a copy that's already in use it adds only what's missing
+(each part is recorded in `public.install_log`), so running the latest version
+brings any copy up to date in one go. To see what it added:
+`select name, applied_at from public.install_log order by applied_at desc;`
+
 ## Which copy has which updates
 
 | Copy | Supabase project | Updates applied |
