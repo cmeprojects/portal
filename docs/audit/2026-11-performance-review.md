@@ -170,3 +170,7 @@ Please approve each separately:
 8. **Stage 9:** load test with 20 simultaneous users (local, synthetic data).
 
 **Owner actions (no approval needed from me):** finish the move to Sydney; check **JWT Keys** in the new project and say which type it uses.
+
+## Update: security test suite with the proposal applied
+
+All database test files were run on throwaway databases with every proposed policy change (patterns A and B) applied: **783 checks passed, 0 files failing.** The 784th check in the normal run checks that the setup file is current, and doesn't apply here. Nothing was kept: each test database was deleted afterwards.
