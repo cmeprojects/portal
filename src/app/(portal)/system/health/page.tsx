@@ -7,6 +7,7 @@ import { getTimeZone } from "@/lib/settings";
 import { BUCKET_LABELS, LIMITS, bytes, meter, type Plan } from "@/lib/health";
 import { Card, PageHeader } from "@/components/ui";
 import { SectionTabs } from "@/components/section-tabs";
+import { SpeedCheck } from "./speed-check";
 import { SettingForm, type SettingRow } from "../forms";
 import { assistantUsage } from "@/lib/assistant";
 import { AssistantUsageCard } from "@/components/assistant-usage";
@@ -98,6 +99,11 @@ export default async function SystemHealthPage() {
       <PageHeader title="System health" intro="Is everything working, and how full is it? Only system admins see this page." />
       {features.assistant ? <AssistantUsageCard u={await assistantUsage()} /> : null}
 
+      {/* cmeprojects: performance stage 0 (system admins only, read-only). */}
+      <Card className="flex flex-col gap-3 p-5">
+        <h2 className="heading-sm">Speed check</h2>
+        <SpeedCheck />
+      </Card>
       <Card className="overflow-hidden">
         <h2 className="heading-sm border-b border-line px-5 py-3">Checks</h2>
         <ul className="divide-y divide-line">

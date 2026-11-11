@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 async function time(url: string, key: string): Promise<number | string> {
   const start = performance.now();
   try {
-    const res = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store" });
+    // cmeprojects: Supabase's newer keys (sb_…) go in the apikey header only.
+    const headers: Record<string, string> = key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: `Bearer ${key}` };
+    const res = await fetch(url, { headers, cache: "no-store" });
     await res.arrayBuffer();
     if (!res.ok) return `error ${res.status}`;
     return Math.round(performance.now() - start);
