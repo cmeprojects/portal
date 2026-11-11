@@ -20,7 +20,7 @@ const PAGES: [string, string][] = [
   ["System settings", "/system"],
 ];
 type Row = { name: string; ms: number | null; kb: number | null; note?: string };
-type Health = { region?: string; database_ms?: (number | string)[]; signin_service_ms?: number | string; browser_ms?: number | null };
+type Health = { region?: string; database_ms?: (number | string)[]; signin_service_ms?: number | string; browser_ms?: number | null; static_ms?: number | null; via?: string };
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
@@ -35,16 +35,29 @@ export function SpeedCheck() {
     setRows([]);
     // Your connection to the app server alone (no database): a tiny request, 3 tries.
     const hops: number[] = [];
+    let via = "";
     for (let i = 0; i < 3; i++) {
       const t0 = performance.now();
       try {
-        await (await fetch("/robots.txt", { cache: "no-store" })).text();
+        const res = await fetch("/robots.txt", { cache: "no-store" });
+        await res.text();
         hops.push(Math.round(performance.now() - t0));
+        // Vercel says which of its locations handled it ("edge::server::id").
+        via = res.headers.get("x-vercel-id") ?? via;
+      } catch {}
+    }
+    // A plain file from Vercel's network (no app code at all), 3 tries.
+    const plain: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const t0 = performance.now();
+      try {
+        await (await fetch(`/logo.svg?t=${Date.now()}-${i}`, { cache: "no-store" })).arrayBuffer();
+        plain.push(Math.round(performance.now() - t0));
       } catch {}
     }
     try {
       const h = (await (await fetch("/health", { cache: "no-store" })).json()) as Health;
-      setHealth({ ...h, browser_ms: hops.length ? median(hops) : null });
+      setHealth({ ...h, browser_ms: hops.length ? median(hops) : null, static_ms: plain.length ? median(plain) : null, via: via.split("::").slice(0, 2).join(" → ") });
     } catch {
       setHealth(null);
     }
@@ -86,6 +99,14 @@ export function SpeedCheck() {
           <div>
             <dt className="text-xs text-muted">App runs in</dt>
             <dd className="font-medium">{health.region === "syd1" ? "Sydney (syd1)" : (health.region ?? "unknown")}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Plain file from Vercel (no app code)</dt>
+            <dd className="font-medium">{typeof health.static_ms === "number" ? `${health.static_ms} ms` : "unknown"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Handled via (Vercel edge → server)</dt>
+            <dd className="font-medium">{health.via || "unknown"}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted">Your connection to the app (no database)</dt>
