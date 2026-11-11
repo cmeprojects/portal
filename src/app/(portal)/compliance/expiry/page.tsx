@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
-import { SectionTabs } from "@/components/section-tabs";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
 import { todayIn } from "@/lib/tasks";
 
@@ -83,7 +82,6 @@ export default async function ExpiryPage({ searchParams }: PageProps<"/complianc
 
   return (
     <>
-      <SectionTabs section="people" current="/compliance" />
       <PageHeader title="Expiry list" intro="Certificates, checks, licences and visas that have expired or expire soon. Reminders go out 60, 30 and 7 days before, and on the day." />
       <div className="flex flex-wrap items-center gap-2">
         <Link href="/compliance" className="text-sm font-semibold text-brand underline">

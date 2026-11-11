@@ -4,7 +4,6 @@ import Link from "next/link";
 import { requireRole } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, PageHeader } from "@/components/ui";
-import { SectionTabs } from "@/components/section-tabs";
 import { NewFeatureForm, IncludedSwitch, DeleteFeatureButton } from "./forms";
 
 export const metadata: Metadata = { title: "Feature builder" };
@@ -22,7 +21,6 @@ export default async function BuilderPage() {
 
   return (
     <>
-      <SectionTabs section="settings" current="/system/builder" />
       <PageHeader
         title="Feature builder"
         intro="Build your own forms for staff, each with its own report."

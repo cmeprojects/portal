@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
-import { SectionTabs } from "@/components/section-tabs";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { ACCESS_AREAS, ACCESS_HINT, ACCESS_LABEL, nowMs, type AccessArea, type Grant } from "@/lib/access";
 import { GiveAccessForm, RemoveAccessButton } from "./forms";
@@ -57,7 +56,6 @@ export default async function AccessPage() {
 
   return (
     <>
-      <SectionTabs section="settings" current="/settings/access" />
       <PageHeader
         title="Staff access"
         intro="Who can change staff details, and (from the next update) see payroll, tax and identity records. Access works straight away; removing it stops it straight away."

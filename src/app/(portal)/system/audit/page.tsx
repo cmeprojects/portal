@@ -1,5 +1,4 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
@@ -63,7 +62,6 @@ export default async function AuditPage() {
 
   return (
     <>
-      <SectionTabs section="settings" current="/system/audit" />
       <PageHeader
         eyebrow="System"
         title="Change log"

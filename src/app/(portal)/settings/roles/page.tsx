@@ -1,5 +1,4 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireSession } from "@/lib/session";
 import { getMyAdminAreas } from "@/lib/settings";
@@ -26,7 +25,6 @@ export default async function RolesPage() {
 
   return (
     <>
-      <SectionTabs section="people" current="/settings/roles" />
       <PageHeader
         title="Roles"
         intro="Job titles like Nurse or House coordinator, each linked to an access level."

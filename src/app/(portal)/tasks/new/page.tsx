@@ -1,7 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { createClient } from "@/lib/supabase/server";
 import { getCreateRoles } from "@/lib/register-data";
-import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireTaskAccess } from "@/lib/session";
 import { getSla, getTimeZone, getRequiredWhen } from "@/lib/settings";
@@ -45,7 +44,6 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
   if (features.tasks === false) {
     return (
       <>
-        <SectionTabs section="tasks" current="/tasks/new" />
         <PageHeader title="New task" />
         <Notice>Tasks are switched off at the moment.</Notice>
       </>
@@ -57,7 +55,6 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
   const clients = ((clientRows ?? []) as { id: string; name: string }[]);
   return (
     <>
-      <SectionTabs section="tasks" current="/tasks/new" />
       <PageHeader
         title={limited ? "New task or question" : "New task"}
         intro={

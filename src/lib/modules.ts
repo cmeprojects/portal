@@ -7,9 +7,10 @@
 //
 // Adding a module: add it here AND as a row in a new migration. It shows in
 // the menu only where the person can already open its page; it's never given
-// to anyone automatically.
+// to anyone automatically. The menu has one item per module; a module's own
+// sub-pages are tabs on its page (href "" = no menu item of its own).
 
-export type CategoryId = "workspace" | "operations" | "people" | "hr" | "clients" | "workflows" | "insights" | "engagement" | "system";
+export type CategoryId = "workspace" | "operations" | "apps" | "people" | "hr" | "clients" | "workflows" | "insights" | "engagement" | "system";
 export type Sensitivity = "normal" | "sensitive" | "protected";
 
 export type ModuleDef = {
@@ -29,6 +30,7 @@ export type ModuleDef = {
 export const CATEGORIES: { id: CategoryId; label: string }[] = [
   { id: "workspace", label: "My workspace" },
   { id: "operations", label: "Operations" },
+  { id: "apps", label: "Apps" },
   { id: "people", label: "People & organisation" },
   { id: "hr", label: "HR & workforce" },
   { id: "clients", label: "Clients & care" },
@@ -50,13 +52,13 @@ export const MODULES: ModuleDef[] = [
   // Operations
   { id: "ops.tasks", category: "operations", label: "Tasks", icon: "ListChecks", href: "/tasks", match: ["/tasks", "/my-tasks"], delegable: true },
   { id: "ops.registers", category: "operations", label: "Registers", icon: "FolderKanban", href: "/registers", match: ["/registers", "/records"], delegable: true },
-  { id: "ops.cars", category: "operations", label: "Cars", icon: "Car", href: "/cars", delegable: true },
-  { id: "ops.cars.use", category: "operations", parent: "ops.cars", label: "Use a car", icon: "Car", href: "/cars" },
-  { id: "ops.cars.manage", category: "operations", parent: "ops.cars", label: "Manage cars", icon: "Wrench", href: "/cars/manage" },
-  { id: "ops.cars.app", category: "operations", parent: "ops.cars", label: "Get the app", icon: "Smartphone", href: "/cars/install" },
+  { id: "ops.cars", category: "apps", label: "Cars", icon: "Car", href: "/cars", match: ["/cars", "/cars/manage", "/cars/install"], delegable: true },
+  { id: "ops.cars.use", category: "apps", parent: "ops.cars", label: "Use a car", icon: "Car", href: "" },
+  { id: "ops.cars.manage", category: "apps", parent: "ops.cars", label: "Manage cars", icon: "Wrench", href: "" },
+  { id: "ops.cars.app", category: "apps", parent: "ops.cars", label: "Get the app", icon: "Smartphone", href: "" },
   { id: "ops.features", category: "operations", label: "Built features", icon: "Puzzle", href: "/f", delegable: true },
   { id: "ops.scoreboard", category: "operations", label: "Scoreboard", icon: "Trophy", href: "/scoreboard" },
-  { id: "ops.apps", category: "operations", label: "Apps", icon: "Smartphone", href: "/apps" },
+  { id: "ops.apps", category: "apps", label: "Phone apps", icon: "Smartphone", href: "/apps" },
 
   // People & organisation
   { id: "people.staff", category: "people", label: "Staff", icon: "Users", href: "/settings/staff", delegable: true },
@@ -65,9 +67,9 @@ export const MODULES: ModuleDef[] = [
   { id: "people.roles", category: "people", label: "Roles", icon: "ShieldCheck", href: "/settings/roles", delegable: true },
 
   // HR & workforce
-  { id: "hr.onboarding", category: "hr", label: "Onboarding", icon: "GraduationCap", href: "/compliance", delegable: true },
-  { id: "hr.onboarding.overview", category: "hr", parent: "hr.onboarding", label: "Overview and checks", icon: "GraduationCap", href: "/compliance" },
-  { id: "hr.onboarding.expiry", category: "hr", parent: "hr.onboarding", label: "Expiry list", icon: "CalendarClock", href: "/compliance/expiry" },
+  { id: "hr.onboarding", category: "hr", label: "Onboarding", icon: "GraduationCap", href: "/compliance", match: ["/compliance", "/compliance/expiry"], delegable: true },
+  { id: "hr.onboarding.overview", category: "hr", parent: "hr.onboarding", label: "Overview and checks", icon: "GraduationCap", href: "" },
+  { id: "hr.onboarding.expiry", category: "hr", parent: "hr.onboarding", label: "Expiry list", icon: "CalendarClock", href: "" },
   { id: "hr.contracts", category: "hr", label: "Contracts", icon: "FileSignature", href: "/contracts", sensitivity: "sensitive", delegable: true },
   { id: "hr.requests", category: "hr", label: "Staff requests", icon: "Inbox", href: "/people/requests", delegable: true },
 
@@ -81,15 +83,15 @@ export const MODULES: ModuleDef[] = [
   { id: "clients.list", category: "clients", label: "Clients", icon: "HeartHandshake", href: "/settings/clients", delegable: true },
 
   // Forms & workflows
-  { id: "workflows.forms", category: "workflows", label: "Forms", icon: "ClipboardList", href: "/forms", delegable: true },
-  { id: "workflows.request_rules", category: "workflows", label: "Request approvals", icon: "ClipboardCheck", href: "/settings/requests", delegable: true },
-  { id: "workflows.sla", category: "workflows", label: "SLA settings", icon: "Clock", href: "/settings/sla", delegable: true },
+  { id: "workflows.forms", category: "operations", label: "Forms", icon: "ClipboardList", href: "/forms", delegable: true },
+  { id: "workflows.request_rules", category: "system", label: "Request approvals", icon: "ClipboardCheck", href: "/settings/requests", delegable: true },
+  { id: "workflows.sla", category: "system", label: "SLA settings", icon: "Clock", href: "/settings/sla", delegable: true },
 
   // Reports & insights
-  { id: "insights.reports", category: "insights", label: "Reports", icon: "BarChart3", href: "/reports", delegable: true },
-  { id: "insights.reports.tasks", category: "insights", parent: "insights.reports", label: "Tasks", icon: "BarChart3", href: "/reports" },
-  { id: "insights.reports.cars", category: "insights", parent: "insights.reports", label: "Cars", icon: "Car", href: "/reports/cars" },
-  { id: "insights.reports.compliance", category: "insights", parent: "insights.reports", label: "Compliance", icon: "GraduationCap", href: "/reports/compliance" },
+  { id: "insights.reports", category: "insights", label: "Reports", icon: "BarChart3", href: "/reports", match: ["/reports", "/reports/cars", "/reports/compliance", "/reports/f"], delegable: true },
+  { id: "insights.reports.tasks", category: "insights", parent: "insights.reports", label: "Tasks", icon: "BarChart3", href: "" },
+  { id: "insights.reports.cars", category: "insights", parent: "insights.reports", label: "Cars", icon: "Car", href: "" },
+  { id: "insights.reports.compliance", category: "insights", parent: "insights.reports", label: "Compliance", icon: "GraduationCap", href: "" },
 
   // Website & engagement
   { id: "engagement.assistant", category: "engagement", label: "Assistant", icon: "MessageCircle", href: "/ask" },
@@ -107,7 +109,7 @@ export const MODULES: ModuleDef[] = [
   { id: "system.settings.vehicles", category: "system", parent: "system.settings", label: "Car settings", icon: "Settings", href: "", delegable: true },
   { id: "system.settings.hr", category: "system", parent: "system.settings", label: "HR Pack settings", icon: "Settings", href: "", delegable: true },
   { id: "ops.registers.setup", category: "operations", parent: "ops.registers", label: "Set up any register", icon: "FolderKanban", href: "", delegable: true },
-  { id: "system.access", category: "system", label: "Staff access", icon: "KeyRound", href: "/settings/access", sensitivity: "protected" },
+  { id: "system.access", category: "system", label: "Access & delegation", icon: "KeyRound", href: "/settings/access", sensitivity: "protected" },
   { id: "system.audit", category: "system", label: "Change log", icon: "History", href: "/system/audit", delegable: true },
   { id: "system.builder", category: "system", label: "Feature builder", icon: "Puzzle", href: "/system/builder", sensitivity: "protected" },
   { id: "system.health", category: "system", label: "System health", icon: "Activity", href: "/system/health", sensitivity: "protected" },

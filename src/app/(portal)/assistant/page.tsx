@@ -7,7 +7,6 @@ import { OffForStaff } from "@/components/off-for-staff";
 import { getMyAdminAreas } from "@/lib/settings";
 import { assistantUsage } from "@/lib/assistant";
 import { AssistantUsageCard } from "@/components/assistant-usage";
-import { SectionTabs } from "@/components/section-tabs";
 import { NotLiveBadge, SettingForm, type SettingRow } from "../system/forms";
 import { getDrafts, withSettingDrafts } from "@/lib/drafts";
 import { createClient } from "@/lib/supabase/server";
@@ -56,7 +55,6 @@ export default async function AssistantPage() {
 
   return (
     <>
-      <SectionTabs section="settings" current="/assistant" />
       <OffForStaff session={session} feature="assistant" name="The Assistant" />
       <PageHeader
         title="Website settings"

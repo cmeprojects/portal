@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { BUCKET_LABELS, LIMITS, bytes, meter, type Plan } from "@/lib/health";
 import { Card, PageHeader } from "@/components/ui";
-import { SectionTabs } from "@/components/section-tabs";
 import { SpeedCheck } from "./speed-check";
 import { SettingForm, type SettingRow } from "../forms";
 import { assistantUsage } from "@/lib/assistant";
@@ -50,7 +49,6 @@ export default async function SystemHealthPage() {
   if (error || !data) {
     return (
       <>
-        <SectionTabs section="settings" current="/system/health" />
         <PageHeader title="System health" />
         <Card className="p-5 text-sm">System health isn&apos;t available yet. Run the latest database update (update 19), then refresh this page.</Card>
       </>
@@ -95,7 +93,6 @@ export default async function SystemHealthPage() {
 
   return (
     <>
-      <SectionTabs section="settings" current="/system/health" />
       <PageHeader title="System health" intro="Is everything working, and how full is it? Only system admins see this page." />
       {features.assistant ? <AssistantUsageCard u={await assistantUsage()} /> : null}
 

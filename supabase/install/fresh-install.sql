@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270113000001_permission_engine.sql
+-- Built from every migration up to: 20270114000001_menu_tidy.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -179,7 +179,8 @@ begin
     (83, '20270110000001_contract_letterhead.sql'),
     (84, '20270111000001_tfn_records.sql'),
     (85, '20270112000001_module_catalogue.sql'),
-    (86, '20270113000001_permission_engine.sql')
+    (86, '20270113000001_permission_engine.sql'),
+    (87, '20270114000001_menu_tidy.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -17595,5 +17596,40 @@ grant execute on function public.my_modules() to authenticated;
 
 $m086$;
   insert into public.install_log (name) values ('20270113000001_permission_engine.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270114000001_menu_tidy.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270114000001_menu_tidy.sql') then
+    return;
+  end if;
+  execute $m087$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects: menu tidy-up (owner's choices). Catalogue groups only; nobody's
+-- access changes.
+--   * New "Apps" group: Cars (one item; Use / Manage / Get the app are tabs on
+--     its page) and Phone apps.
+--   * Forms moves to Operations; SLA settings and Request approvals to
+--     Administration; Staff access is now "Access & delegation".
+alter table public.app_modules drop constraint if exists app_modules_category_check;
+alter table public.app_modules add constraint app_modules_category_check
+  check (category in ('workspace', 'operations', 'apps', 'people', 'hr', 'clients', 'workflows', 'insights', 'engagement', 'system'));
+
+insert into public.app_modules (id, parent_id, category, label, sensitivity, delegable, sort_order)
+values ('cat_apps', null, 'apps', 'Apps', 'normal', true, 2)
+on conflict (id) do update set label = excluded.label;
+
+update public.app_modules set category = 'apps' where id in ('ops.cars', 'ops.cars.use', 'ops.cars.manage', 'ops.cars.app', 'ops.apps');
+update public.app_modules set label = 'Phone apps' where id = 'ops.apps';
+update public.app_modules set category = 'operations' where id = 'workflows.forms';
+update public.app_modules set category = 'system' where id in ('workflows.request_rules', 'workflows.sla');
+update public.app_modules set label = 'Access & delegation' where id = 'system.access';
+
+$m087$;
+  insert into public.install_log (name) values ('20270114000001_menu_tidy.sql');
 end;
 $part$;

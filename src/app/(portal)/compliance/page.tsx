@@ -1,5 +1,4 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { SectionTabs } from "@/components/section-tabs";
 import { compliancePartOn } from "@/lib/feature-parts";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -46,7 +45,6 @@ export default async function CompliancePage({ searchParams }: PageProps<"/compl
 
   return (
     <>
-      <SectionTabs section="people" current="/compliance" />
       <PageHeader
         title="Onboarding"
         intro={

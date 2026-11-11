@@ -104,7 +104,6 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
     homeLabel: groups[0]?.items[0]?.label ?? "Dashboard",
     formsAsMaker: Boolean(navAccess.forms),
     builtFeatures: navAccess.customFeatures ?? [],
-    featureReports: tabPages.filter((t) => t.href.startsWith("/reports/f/")).map((t) => ({ slug: t.href.slice("/reports/f/".length), label: t.label })),
   });
   const { data: pinRows } = await (await createClient()).from("pinned_items").select("href, label").eq("user_id", profile.id).order("position");
   const pins = (pinRows ?? []) as { href: string; label: string }[];

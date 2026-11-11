@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { FilePlus2, FileSignature } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { SectionTabs } from "@/components/section-tabs";
 import { Card, EmptyState, PageHeader, buttonClass } from "@/components/ui";
 import { CONTRACT_STATUS, type Contract, type ContractStatus } from "@/lib/contracts";
 import { fmtDateTime } from "@/lib/contract-data";
@@ -36,7 +35,6 @@ export default async function ContractsPage({ searchParams }: PageProps<"/contra
   ];
   return (
     <>
-      <SectionTabs section="people" current="/contracts" />
       <PageHeader
         title="Contracts"
         intro="Employment contracts: prepare, send to sign, countersign, and keep the signed copy. Signed contracts never change; a revision is a new version."

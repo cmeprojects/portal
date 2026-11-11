@@ -1,11 +1,11 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { CATEGORIES, MODULES, type CategoryId } from "@/lib/modules";
 
-// cmeprojects: the menu, built from the module catalogue. An item shows only
-// when the person can already open its page (the same checks as before:
-// `allowed` comes from the existing menu and section-tab rules), so nobody
-// gains or loses access. Submodules show under their module; if someone can
-// open only one submodule, just that one shows.
+// cmeprojects: the menu, built from the module catalogue: one item per module,
+// grouped by category. A module's own sub-pages are tabs on its page, not
+// menu items. An item shows only when the person can already open one of its
+// pages (`allowed` comes from the existing menu and page rules), and opens the
+// first of those pages, so nobody gains or loses access.
 
 export type NavNode = { id: string; label: string; icon: string; href: string; match: string[]; children: NavNode[] };
 export type NavCategory = { id: CategoryId; label: string; items: NavNode[] };
@@ -15,41 +15,43 @@ export function buildNav(opts: {
   homeLabel: string;
   formsAsMaker: boolean;
   builtFeatures: { slug: string; label: string }[];
-  featureReports: { slug: string; label: string }[];
 }): NavCategory[] {
   const { allowed } = opts;
-  const can = (id: string, href: string) => {
-    if (id === "workspace.forms") return allowed.has("/forms") && !opts.formsAsMaker;
-    if (id === "workflows.forms") return allowed.has("/forms") && opts.formsAsMaker;
-    if (id === "ops.features") return opts.builtFeatures.length > 0;
-    return allowed.has(href);
+  const allowedList = [...allowed];
+  // The first page of this module the person can open (its own page first).
+  const firstPage = (href: string, match: string[]) => {
+    if (href && allowed.has(href)) return href;
+    for (const m of match) {
+      const hit = allowed.has(m) ? m : allowedList.find((a) => a.startsWith(`${m}/`));
+      if (hit) return hit;
+    }
+    return null;
   };
-  const node = (id: string): NavNode | null => {
-    const m = MODULES.find((x) => x.id === id)!;
-    let kids = MODULES.filter((c) => c.parent === id)
-      .map((c) => (can(c.id, c.href) ? leaf(c.id) : null))
-      .filter(Boolean) as NavNode[];
-    // Dynamic children: built features and their reports.
-    if (id === "ops.features") kids = opts.builtFeatures.map((f) => ({ id: `ops.features.${f.slug}`, label: f.label, icon: "Puzzle", href: `/f/${f.slug}`, match: [`/f/${f.slug}`], children: [] }));
-    if (id === "insights.reports")
-      kids = [...kids, ...opts.featureReports.map((f) => ({ id: `insights.reports.${f.slug}`, label: f.label, icon: "BarChart3", href: `/reports/f/${f.slug}`, match: [`/reports/f/${f.slug}`], children: [] }))];
-    const self = can(id, m.href);
-    if (!self && !kids.length) return null;
-    // One child only and no parent page: show the child itself.
-    if (!self && kids.length === 1) return kids[0];
-    const label = id === "workspace.dashboard" ? opts.homeLabel : m.label;
-    const match = id === "workspace.dashboard" && opts.homeLabel !== "Dashboard" ? ["/", "/my-tasks"] : (m.match ?? [m.href]);
-    return { id, label, icon: m.icon, href: self ? m.href : kids[0].href, match: [...match, ...kids.flatMap((k) => k.match)], children: kids.length > 1 ? kids : [] };
+  const items = (cat: CategoryId): NavNode[] => {
+    const out: NavNode[] = [];
+    for (const m of MODULES.filter((x) => x.category === cat && !x.parent)) {
+      if (m.id === "ops.features") {
+        // Each built feature is its own item.
+        for (const f of opts.builtFeatures) out.push({ id: `ops.features.${f.slug}`, label: f.label, icon: "Puzzle", href: `/f/${f.slug}`, match: [`/f/${f.slug}`], children: [] });
+        continue;
+      }
+      if (m.id === "workspace.forms" && opts.formsAsMaker) continue;
+      if (m.id === "workflows.forms" && !opts.formsAsMaker) continue;
+      if (!m.href) continue;
+      const match = m.match ?? [m.href];
+      const href = firstPage(m.href, match);
+      if (!href) continue;
+      const home = m.id === "workspace.dashboard";
+      out.push({
+        id: m.id,
+        label: home ? opts.homeLabel : m.label,
+        icon: m.icon,
+        href,
+        match: home && opts.homeLabel !== "Dashboard" ? ["/", "/my-tasks"] : match,
+        children: [],
+      });
+    }
+    return out;
   };
-  const leaf = (id: string): NavNode => {
-    const m = MODULES.find((x) => x.id === id)!;
-    return { id, label: m.label, icon: m.icon, href: m.href, match: m.match ?? [m.href], children: [] };
-  };
-  return CATEGORIES.map((c) => ({
-    id: c.id,
-    label: c.label,
-    items: MODULES.filter((m) => m.category === c.id && !m.parent)
-      .map((m) => node(m.id))
-      .filter(Boolean) as NavNode[],
-  })).filter((c) => c.items.length);
+  return CATEGORIES.map((c) => ({ id: c.id, label: c.label, items: items(c.id) })).filter((c) => c.items.length);
 }

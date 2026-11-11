@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { formContext, loadFeature } from "@/lib/custom-features";
-import { SectionTabs } from "@/components/section-tabs";
 import { Builder } from "./builder";
 import type { AlertDraft } from "../actions";
 
@@ -33,7 +32,6 @@ export default async function BuildFeaturePage({ params }: PageProps<"/system/bu
 
   return (
     <>
-      <SectionTabs section="settings" current="/system/builder" />
       <Builder
         key={def.feature.id}
         feature={def.feature}

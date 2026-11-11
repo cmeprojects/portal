@@ -5,7 +5,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { PageHeader, buttonClass } from "@/components/ui";
-import { SectionTabs } from "@/components/section-tabs";
 import { RequestList, loadRequests, waitingFor } from "./list";
 
 export const metadata: Metadata = { title: "My requests" };
@@ -34,7 +33,6 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
           </Link>
         }
       />
-      <SectionTabs section="account" current="/requests" />
       {asked.length ? (
         <section className="flex flex-col gap-2">
           <h2 className="heading-sm">A colleague asked you to swap</h2>

@@ -1,7 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { photoLinks, type PhotoOwner } from "@/lib/avatars";
 import { Avatar } from "@/components/avatar";
-import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { rolesOn, teamsOn } from "@/lib/feature-parts";
@@ -121,7 +120,6 @@ export default async function StaffPage() {
 
   return (
     <>
-      <SectionTabs section="people" current="/settings/staff" />
       <PageHeader
         title="Staff & roles"
         intro="Invite people, set their role and team, and help them sign in."

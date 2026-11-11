@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
-import { SectionTabs } from "@/components/section-tabs";
 import { AddClientForm, ClientRow } from "../../cars/manage/forms";
 import { ClientTeamsForm } from "./team-form";
 
@@ -22,7 +21,6 @@ export default async function ClientsPage() {
   ]);
   return (
     <>
-      <SectionTabs section="people" current="/settings/clients" />
       <PageHeader
         title="Clients"
         intro="The people you support. Staff pick from this list in Cars and features like Fluid intake, and only see the name."

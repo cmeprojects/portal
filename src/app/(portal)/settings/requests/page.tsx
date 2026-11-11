@@ -1,5 +1,4 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { SectionTabs } from "@/components/section-tabs";
 import { getMyAdminAreas } from "@/lib/settings";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -26,7 +25,6 @@ export default async function RequestSettingsPage() {
   const list = (people ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }));
   return (
     <>
-      <SectionTabs section="settings" current="/settings/requests" />
       <PageHeader title="Request approvals" intro="Who approves each kind of request, who's told, and where requests go if nobody acts." />
       {(types ?? []).map((t) => {
         const meta = REQUEST_TYPES.find((x) => x.key === t.key);

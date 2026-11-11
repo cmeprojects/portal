@@ -1,7 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { EmptyState } from "@/components/ui";
 import { Users } from "lucide-react";
-import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { teamsOn } from "@/lib/feature-parts";
@@ -60,7 +59,6 @@ export default async function TeamsPage() {
 
   return (
     <>
-      <SectionTabs section="people" current="/settings/teams" />
       <PageHeader
         title="Teams"
         intro="Group your staff. A team leader sees their team's tasks; managers and staff admins work across all teams."

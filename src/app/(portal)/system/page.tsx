@@ -1,6 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { SLA_KEYS } from "@/lib/sla";
-import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
@@ -309,7 +308,6 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
 
   return (
     <>
-      <SectionTabs section="settings" current="/system" />
       <PageHeader
         eyebrow="System"
         title="System settings"

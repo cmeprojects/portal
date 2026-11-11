@@ -7,7 +7,6 @@ import { requireSession } from "@/lib/session";
 import { REQUEST_STATUS, REQUEST_TYPES, type RequestStatus } from "@/lib/requests-shared";
 import { PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
 import { Tile } from "@/components/dash";
-import { SectionTabs } from "@/components/section-tabs";
 import { RequestList, loadRequests, waitingFor } from "../../requests/list";
 
 export const metadata: Metadata = { title: "Staff requests" };
@@ -46,7 +45,6 @@ export default async function StaffRequestsPage({ searchParams }: PageProps<"/pe
   return (
     <>
       <PageHeader title="Staff requests" intro="Leave, shift swaps, availability and other requests from staff." />
-      <SectionTabs section="people" current="/people/requests" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Tile label="Waiting for me" value={waiting.length} icon={Inbox} accent="brand" href="/people/requests" />

@@ -1,5 +1,4 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireRole } from "@/lib/session";
@@ -31,7 +30,6 @@ export default async function SlaPage() {
 
   return (
     <>
-      <SectionTabs section="settings" current="/settings/sla" />
       <PageHeader
         title="SLA settings"
         intro="Due dates for new tasks, set by priority, with reminders and escalation. People can still choose another date."

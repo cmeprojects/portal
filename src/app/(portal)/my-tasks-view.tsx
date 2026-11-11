@@ -1,7 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { EmptyState } from "@/components/ui";
 import { CheckCircle2, Plus } from "lucide-react";
-import { SectionTabs } from "@/components/section-tabs";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { QuestionPanel } from "./question-panel";
@@ -114,7 +113,6 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
 
   return (
     <>
-      <SectionTabs section="tasks" current={basePath} />
       <PageHeader
         title="My tasks"
         intro={firstName ? `Hi ${firstName}. Everything you're looking after or helping with.` : undefined}
