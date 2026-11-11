@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { addComment, changeStatus, reassignTask } from "./tasks/actions";
 import { toast } from "@/components/toast";
@@ -274,7 +274,7 @@ function ClickBars({ rows, colour = "var(--accent)" }: { rows: { label: string; 
           <button type="button" onClick={r.onClick} title={`${r.label}: ${r.value}. Click to see them.`} className="grid w-full grid-cols-[8rem_1fr_2rem] items-center gap-3 rounded-md px-1 py-1.5 text-left text-sm hover:bg-page">
             <span className={`truncate ${r.flag ? "font-semibold text-warn" : "text-muted"}`}>{r.label}</span>
             <span className="h-2.5 overflow-hidden rounded-full bg-page" aria-hidden="true">
-              <span className="block h-full rounded-full transition-[width]" style={{ width: `${(r.value / max) * 100}%`, background: r.flag ? "var(--warn)" : colour }} />
+              <span className="chart-grow-x block h-full rounded-full transition-[width]" style={{ width: `${(r.value / max) * 100}%`, background: r.flag ? "var(--warn)" : colour }} />
             </span>
             <span className="text-right font-medium tabular-nums">{r.value}</span>
           </button>
@@ -289,10 +289,18 @@ function Donut({ total, slices }: { total: number; slices: { value: number; colo
   const r = 52;
   const c = 2 * Math.PI * r;
   let offset = 0;
+  const mask = useId();
   return (
     <svg viewBox="0 0 140 140" className="size-40 shrink-0" role="img" aria-label={`Task status: ${slices.map((s) => `${s.label} ${s.value}`).join(", ")}`}>
+      {/* cmeprojects: the slices sweep round once on first show. */}
+      <defs>
+        <mask id={mask}>
+          <circle cx="70" cy="70" r={r} fill="none" stroke="white" strokeWidth="20" pathLength={1} transform="rotate(-90 70 70)" className="chart-sweep" />
+        </mask>
+      </defs>
       <circle cx="70" cy="70" r={r} fill="none" stroke="var(--line)" strokeWidth="18" />
-      {total
+      <g mask={`url(#${mask})`}>
+        {total
         ? slices.map((s) => {
             const len = (s.value / total) * c;
             const el = s.value ? (
@@ -317,6 +325,7 @@ function Donut({ total, slices }: { total: number; slices: { value: number; colo
             return el;
           })
         : null}
+      </g>
       <text x="70" y="68" textAnchor="middle" fontSize="26" fontWeight="600" fill="var(--fg)">
         {total}
       </text>
@@ -337,8 +346,8 @@ function WeekBars({ weeks }: { weeks: Week[] }) {
         {weeks.map((w) => (
           <div key={w.label} className="group flex flex-1 flex-col items-center gap-1" title={`Week of ${w.label}: ${w.opened} opened, ${w.closed} closed`}>
             <div className="flex w-full items-end justify-center gap-1" style={{ height: h }}>
-              <span className="w-1/2 max-w-6 rounded-t-md bg-brand transition-opacity group-hover:opacity-80" style={{ height: `${(w.opened / max) * 100}%`, minHeight: w.opened ? 4 : 0 }} />
-              <span className="w-1/2 max-w-6 rounded-t-md bg-good transition-opacity group-hover:opacity-80" style={{ height: `${(w.closed / max) * 100}%`, minHeight: w.closed ? 4 : 0 }} />
+              <span className="chart-grow-y w-1/2 max-w-6 rounded-t-md bg-brand transition-opacity group-hover:opacity-80" style={{ height: `${(w.opened / max) * 100}%`, minHeight: w.opened ? 4 : 0 }} />
+              <span className="chart-grow-y w-1/2 max-w-6 rounded-t-md bg-good transition-opacity group-hover:opacity-80" style={{ height: `${(w.closed / max) * 100}%`, minHeight: w.closed ? 4 : 0 }} />
             </div>
             <span className="text-[11px] text-muted">{w.label}</span>
           </div>

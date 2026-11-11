@@ -6,6 +6,7 @@ import type { Role } from "@/lib/roles";
 import { canInvite, canSeeComplianceReport, canSeeRegisters, canSeeReports, canSeeScoreboard, getMyAdminAreas, getPeopleRules, seesCompliance } from "@/lib/settings";
 import { canManageCars, canSeeCarReports, getCarRules } from "@/lib/cars";
 import { getMenuFeatures, getReportFeatures } from "@/lib/custom-features";
+import { canMakeForms } from "@/lib/forms";
 import { requireSession } from "@/lib/session";
 import { getBranding, initialsOf } from "@/lib/branding";
 import { canUseCars } from "@/lib/cars";
@@ -40,8 +41,10 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     adminAreas,
     customFeatures,
     featureReports,
-    // Forms: everyone sees the forms to fill in there; makers also manage theirs (cmeprojects).
-    forms: features.forms === true && (role !== "new_starter" || !onboardingOn(features)),
+    // cmeprojects: Forms. Form makers get "Forms" in the main menu (their forms
+    // and the ones to fill in); everyone else gets "My forms" under My account.
+    // New starters fill theirs in My onboarding.
+    ...(await formsMenu(role, features)),
     // The website's Assistant is for every staff member; enquiries for those the system admin chose.
     assistant: features.assistant === true && role !== "new_starter",
     enquiries: features.assistant === true && (await canSeeEnquiries()),
@@ -58,4 +61,10 @@ async function canSeeEnquiries(): Promise<boolean> {
     return role === "manager" || role === "system_admin";
   }
   return data === true;
+}
+
+async function formsMenu(role: Role, features: Record<string, boolean>): Promise<Pick<NavAccess, "forms" | "myForms">> {
+  if (features.forms !== true || (role === "new_starter" && onboardingOn(features))) return { forms: false, myForms: false };
+  const maker = role === "system_admin" || (await canMakeForms());
+  return { forms: maker, myForms: !maker };
 }

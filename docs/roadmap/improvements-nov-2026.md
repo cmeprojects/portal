@@ -136,12 +136,12 @@ No method here is claimed to satisfy every legal requirement.
 
 **Security testing** for Phases 2–5: RLS tests in `supabase/tests` for every new table, bucket and grant path (self, other staff, team leader, manager with and without grant, staff admin with and without pass-on, system admin, signed out, expired and revoked grants), plus checks that TFNs never appear in logs, responses or storage.
 
-## 10. Decisions still needed
-1. **Rollout for Staff details:** give existing managers the Staff details area once at rollout (current behaviour kept, visible and revocable; recommended), or start with nobody until you grant it?
-2. **Sensitive areas:** two areas (Payroll and tax / Identity and work rights) as above (recommended), or one?
-3. **TFN reveal:** as a separate tick (recommended)?
-4. **Delegation scope:** "all staff or chosen teams" enough?
-5. **Upcoming window:** 14 days OK?
-6. **New library:** approve `pdf-lib` (free, MIT) for signed PDFs in Phase 4?
-7. **Retention:** to be confirmed with your accountant/lawyer (affects sensitive records and signed documents after someone leaves).
-8. **Approve Phase 1** to start.
+## 10. Owner decisions (rev 2, 11 November 2026)
+1. **Staff details rollout:** existing managers keep it at rollout (visible, revocable).
+2. **Sensitive areas:** two (Payroll and tax; Identity and work rights).
+3. **TFN reveal:** separate tick.
+4. **Delegation scope:** all staff, chosen teams, or **specific people**.
+5. **Upcoming window:** 7 days.
+6. **`pdf-lib`:** approved for Phase 4.
+7. **Retention:** keep **5 years** after employment ends for now. Setting to change the period; system admin can **export** a leaver's records or **delete them permanently** (confirmation, logged; signed documents and the audit entry of the deletion kept as required). To be confirmed with accountant/lawyer.
+8. **Phase 1:** approved, started 11 November 2026.

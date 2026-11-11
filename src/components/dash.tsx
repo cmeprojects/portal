@@ -1,6 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
 // cmeprojects: the dashboard building blocks (panels, number tiles, gauges and
@@ -95,8 +95,6 @@ export function Tile({
 }
 
 // A small half-circle gauge, coloured by how full it is.
-
-// A small half-circle gauge, coloured by how full it is.
 export function Gauge({ pct, colour }: { pct: number; colour: string }) {
   const cx = 60;
   const cy = 60;
@@ -110,7 +108,7 @@ export function Gauge({ pct, colour }: { pct: number; colour: string }) {
   return (
     <svg viewBox="0 0 120 66" className="w-32" aria-hidden="true">
       <path d={arc(0, 1)} stroke="var(--line)" strokeWidth="10" fill="none" strokeLinecap="round" />
-      {p > 0.004 ? <path d={arc(0, p)} stroke={colour} strokeWidth="10" fill="none" strokeLinecap="round" /> : null}
+      {p > 0.004 ? <path d={arc(0, p)} pathLength={1} stroke={colour} strokeWidth="10" fill="none" strokeLinecap="round" className="chart-sweep" /> : null}
     </svg>
   );
 }
@@ -124,9 +122,16 @@ export function LineChart({ rows }: { rows: { label: string; value: number; done
   const x = (i: number) => pad.l + (i * (w - pad.l - pad.r)) / Math.max(1, rows.length - 1);
   const y = (v: number) => h - pad.b - (v * (h - pad.t - pad.b)) / max;
   const line = (key: "value" | "done") => rows.map((r, i) => `${i ? "L" : "M"} ${x(i).toFixed(1)} ${y(r[key]).toFixed(1)}`).join(" ");
+  const clip = useId();
   return (
     <div className="flex flex-col gap-2">
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full text-ink" role="img" aria-label="Tasks created and finished each week, last 8 weeks">
+        {/* cmeprojects: the lines are drawn left to right once, on first show. */}
+        <defs>
+          <clipPath id={clip}>
+            <rect x="0" y="0" width={w} height={h} className="chart-grow-x" />
+          </clipPath>
+        </defs>
         {[0, Math.round(max / 2), max].map((t) => (
           <g key={t}>
             <line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} stroke="var(--line)" />
@@ -135,12 +140,14 @@ export function LineChart({ rows }: { rows: { label: string; value: number; done
             </text>
           </g>
         ))}
-        <path d={`${line("value")} L ${x(rows.length - 1)} ${h - pad.b} L ${x(0)} ${h - pad.b} Z`} fill={BRAND} opacity="0.08" />
-        <path d={line("value")} fill="none" stroke={BRAND} strokeWidth="2.5" strokeLinejoin="round" />
-        <path d={line("done")} fill="none" stroke={BRAND_LIGHT} strokeWidth="2" strokeDasharray="5 4" strokeLinejoin="round" />
+        <g clipPath={`url(#${clip})`}>
+          <path d={`${line("value")} L ${x(rows.length - 1)} ${h - pad.b} L ${x(0)} ${h - pad.b} Z`} fill={BRAND} opacity="0.08" />
+          <path d={line("value")} fill="none" stroke={BRAND} strokeWidth="2.5" strokeLinejoin="round" />
+          <path d={line("done")} fill="none" stroke={BRAND_LIGHT} strokeWidth="2" strokeDasharray="5 4" strokeLinejoin="round" />
+        </g>
         {rows.map((r, i) => (
           <g key={r.label}>
-            <circle cx={x(i)} cy={y(r.value)} r="4.5" fill="var(--surface)" stroke={BRAND} strokeWidth="2.5">
+            <circle cx={x(i)} cy={y(r.value)} r="4.5" fill="var(--surface)" stroke={BRAND} strokeWidth="2.5" className="chart-fade">
               <title>{`Week of ${r.label}: ${r.value} created, ${r.done} finished`}</title>
             </circle>
             <text x={x(i)} y={h - 8} fontSize="10" textAnchor="middle" fill="var(--muted)">
@@ -169,7 +176,7 @@ export function Bars({ rows }: { rows: { label: string; value: number }[] }) {
         <li key={r.label} className="grid grid-cols-[7rem_1fr_2rem] items-center gap-3 text-sm" title={`${r.label}: ${r.value}`}>
           <span className="truncate text-muted">{r.label}</span>
           <span className="h-2.5 overflow-hidden rounded-full bg-page" aria-hidden="true">
-            <span className="block h-full rounded-full" style={{ width: `${(r.value / max) * 100}%`, background: BRAND }} />
+            <span className="chart-grow-x block h-full rounded-full" style={{ width: `${(r.value / max) * 100}%`, background: BRAND }} />
           </span>
           <span className="text-right font-medium tabular-nums">{r.value}</span>
         </li>

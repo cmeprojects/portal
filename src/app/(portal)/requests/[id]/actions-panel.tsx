@@ -9,6 +9,16 @@ import { actOnRequest } from "../actions";
 
 type Choice = { action: string; label: string; variant?: "primary" | "outline" | "danger"; needs?: string };
 
+// cmeprojects: a plain confirmation for each step, shown before it's saved.
+const CONFIRM: Record<string, string> = {
+  approve: "Approve this request? The person (and the next approver, if there is one) will be told.",
+  decline: "Reject this request? The person will be told, with your reason.",
+  info: "Send this request back for more information? It waits until they reply.",
+  withdraw: "Cancel your request? Approvers will be told it's no longer needed.",
+  partner_accept: "Accept this shift swap? It then goes for approval.",
+  partner_decline: "Decline this shift swap? Your colleague will be told.",
+};
+
 // cmeprojects: what this person can do with the request, with a note where
 // one is needed (declining, asking for more information).
 export function RequestActions({ requestId, choices }: { requestId: string; choices: Choice[] }) {
@@ -26,6 +36,7 @@ export function RequestActions({ requestId, choices }: { requestId: string; choi
         <form action={run} className="flex flex-col gap-3 rounded-lg border border-line p-4">
           <input type="hidden" name="request_id" value={requestId} />
           <input type="hidden" name="action" value={open.action} />
+          {CONFIRM[open.action] ? <p className="text-sm font-medium">{CONFIRM[open.action]}</p> : null}
           <Field label={open.needs ?? "Note (optional)"} htmlFor="rq-note">
             <textarea id="rq-note" name="comment" rows={3} required={Boolean(open.needs)} className={`${inputClass} h-auto py-3`} />
           </Field>
@@ -34,8 +45,8 @@ export function RequestActions({ requestId, choices }: { requestId: string; choi
             <Button variant={open.variant ?? "primary"} disabled={pending}>
               {pending ? "Saving…" : open.label}
             </Button>
-            <Button type="button" variant="outline" onClick={() => setOpen(null)}>
-              Cancel
+            <Button type="button" variant="outline" onClick={() => setOpen(null)} disabled={pending}>
+              Go back
             </Button>
           </div>
         </form>

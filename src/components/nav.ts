@@ -24,12 +24,14 @@ export type NavAccess = {
   customFeatures?: { slug: string; label: string }[];
   // Their reports, for those ticked under "Who sees every entry".
   featureReports?: { slug: string; label: string }[];
-  // Forms (premium): forms sent to them, and the forms they make.
+  // Forms (premium): makers see "Forms" (theirs and the ones to fill in);
+  // everyone else sees "My forms" under My account (cmeprojects).
   forms?: boolean;
+  myForms?: boolean;
   // Website and Assistant: the system admin manages it; managers follow up enquiries.
   assistant?: boolean;
   enquiries?: boolean;
-  // Managers: built features, Cars and the apps under one "Tools" item.
+  // Managers: built features, Cars and the apps.
   tools?: boolean;
   // "YC Apps" (company initials + Apps): the company's phone apps this person can use (none = no menu item).
   appsLabel?: string;
@@ -115,7 +117,9 @@ export function navFor(
     { href: "/account", label: "My account" },
     // cmeprojects: HR Pack items, listed under My account.
     ...(features.hr_requests !== false && role !== "system_admin" && role !== "new_starter" ? [{ href: "/requests", label: "My requests", match: ["/requests"] }] : []),
-    ...(features.hr_profiles !== false && role !== "system_admin" && role !== "new_starter" ? [{ href: "/people", label: "Directory" }] : []),
+    ...(access.myForms ? [{ href: "/forms", label: "My forms", match: ["/forms"] }] : []),
+    // cmeprojects: the system admin sees the Directory too.
+    ...(features.hr_profiles !== false && role !== "new_starter" ? [{ href: "/people", label: "Directory" }] : []),
   ];
 
   // External contractors (for later): nothing yet but their account.
@@ -152,7 +156,8 @@ export function navFor(
         ...sectionItem("settings", role, features, access),
       ],
     },
-    ...(tools.length ? [{ heading: "Tools", items: tools }] : []),
+    // cmeprojects: built features, Cars and the apps, as their own group (no heading).
+    ...(tools.length ? [{ items: tools }] : []),
     { items: mine },
   ];
 }

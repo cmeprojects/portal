@@ -1,9 +1,10 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
+import { readRememberedEmail, saveRememberedEmail, subscribeRememberedEmail } from "@/lib/remembered-email";
 import { sendSignInLink, signInWithGoogle, signInWithPassword } from "./actions";
 
 export function LoginForm({
@@ -17,7 +18,22 @@ export function LoginForm({
   linkOn: boolean;
   initialError?: string;
 }) {
-  const [email, setEmail] = useState("");
+  // cmeprojects: an email this device was asked to remember (never a password).
+  const remembered = useSyncExternalStore(subscribeRememberedEmail, readRememberedEmail, () => null);
+  const [typed, setTyped] = useState("");
+  const [remember, setRemember] = useState<boolean | null>(null);
+  const email = remembered ?? typed;
+  const keep = remember ?? remembered !== null;
+  // With a remembered email, the cursor goes straight to the password.
+  const password = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (remembered) password.current?.focus();
+  }, [remembered]);
+  const forget = () => {
+    setTyped("");
+    setRemember(null);
+    saveRememberedEmail(null);
+  };
   const [pwState, pwAction, pwPending] = useActionState(signInWithPassword, null);
   const [linkState, linkAction, linkPending] = useActionState(sendSignInLink, null);
   const error = pwState?.error ?? linkState?.error ?? initialError;
@@ -49,20 +65,50 @@ export function LoginForm({
         </>
       ) : null}
 
-      <form action={pwAction} className="flex flex-col gap-4">
+      <form
+        action={pwAction}
+        onSubmit={() => saveRememberedEmail(keep && email.trim() ? email.trim().toLowerCase() : null)}
+        className="flex flex-col gap-4"
+      >
         <input type="hidden" name="next" value={next} />
-        <Field label="Email" htmlFor="email">
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
+        {remembered ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-page px-3 py-2.5">
+            <div className="flex min-w-0 flex-col">
+              <span className="text-xs text-muted">Signing in as</span>
+              <span className="truncate text-sm font-semibold">{remembered}</span>
+              <input type="hidden" name="email" value={remembered} />
+            </div>
+            <button
+              type="button"
+              onClick={forget}
+              aria-label="Sign in with a different account"
+              title="Sign in with a different account"
+              className="grid size-9 shrink-0 place-items-center rounded-full text-muted hover:bg-line/60 hover:text-ink"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        ) : null}
+        {remembered ? (
+          <button type="button" onClick={forget} className="-mt-2 self-start text-sm font-semibold text-brand">
+            Sign in with a different account
+          </button>
+        ) : (
+          <Field label="Email" htmlFor="email">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              className={inputClass}
+            />
+          </Field>
+        )}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between">
             <label htmlFor="password" className="text-sm font-semibold">
@@ -72,8 +118,27 @@ export function LoginForm({
               Forgot password?
             </Link>
           </div>
-          <input id="password" name="password" type="password" autoComplete="current-password" className={inputClass} />
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            ref={password}
+            className={inputClass}
+          />
         </div>
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={keep}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]"
+          />
+          <span>
+            Remember my email on this device
+            <span className="block text-xs text-muted">Leave this unticked on a shared device.</span>
+          </span>
+        </label>
         <Button className="min-h-12 text-base" disabled={pwPending}>
           {pwPending ? "Signing in…" : "Sign in"}
         </Button>

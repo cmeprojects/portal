@@ -26,10 +26,10 @@ export const LEAVE_LABEL: Record<string, string> = Object.fromEntries(LEAVE_TYPE
 
 export const REQUEST_STATUS: Record<RequestStatus, { label: string; cls: string }> = {
   pending: { label: "Pending", cls: "bg-warn-soft text-warn" },
-  info_needed: { label: "More info needed", cls: "bg-brand-soft text-brand" },
+  info_needed: { label: "Awaiting info", cls: "bg-brand-soft text-brand" },
   approved: { label: "Approved", cls: "bg-good-soft text-good" },
-  declined: { label: "Declined", cls: "bg-danger-soft text-danger" },
-  withdrawn: { label: "Withdrawn", cls: "bg-page text-muted ring-1 ring-line ring-inset" },
+  declined: { label: "Rejected", cls: "bg-danger-soft text-danger" },
+  withdrawn: { label: "Cancelled", cls: "bg-page text-muted ring-1 ring-line ring-inset" },
 };
 
 export const EVENT_LABEL: Record<string, string> = {
@@ -38,8 +38,8 @@ export const EVENT_LABEL: Record<string, string> = {
   info_requested: "asked for more information",
   approved_first: "gave the first approval",
   approved: "approved it",
-  declined: "declined it",
-  withdrawn: "withdrew it",
+  declined: "rejected it",
+  withdrawn: "cancelled it",
   partner_accepted: "accepted the swap",
   partner_declined: "declined the swap",
   escalated: "It was escalated",

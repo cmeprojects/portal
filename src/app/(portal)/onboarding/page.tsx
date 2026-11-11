@@ -3,10 +3,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgeCheck, Briefcase, CircleCheck, CircleDashed, ClipboardList, FileCheck2, GraduationCap, PenLine, ShieldCheck, UserRound } from "lucide-react";
+import { BadgeCheck, Briefcase, ChevronDown, CircleCheck, CircleDashed, ClipboardList, FileCheck2, GraduationCap, PenLine, ShieldCheck, UserRound } from "lucide-react";
 import { requireSession } from "@/lib/session";
-import { formsInOnboarding, onboardingOn } from "@/lib/feature-parts";
-import { getFormsToFill } from "@/lib/forms";
+import { onboardingOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/registers";
 import { loadPerson, profilesReady } from "@/lib/profiles";
@@ -15,6 +14,7 @@ import { CATEGORY_LABELS, LIBRARY_BUCKET, STATE_LABELS, isDone, stateBadges, typ
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { ProfileForm } from "@/components/profile-form";
 import { ConfirmButton } from "./forms";
+import { OpenSectionOnHash } from "./open-section";
 import { AgreementStep, DocumentStep, PolicyStep, TrainingStep, type HistoryRow } from "./steps";
 
 export const metadata: Metadata = { title: "My onboarding" };
@@ -60,9 +60,10 @@ export default async function MyOnboardingPage() {
   const { profile, features } = await requireSession();
   if (!onboardingOn(features)) redirect(features.forms === true ? "/forms" : "/");
   const supabase = await createClient();
-  const [{ data: rows }, sentForms, { data: work }, { data: profileNeeded }, person] = await Promise.all([
+  // cmeprojects: only onboarding forms count here; other forms sent to this
+  // person are in My forms (no duplicates).
+  const [{ data: rows }, { data: work }, { data: profileNeeded }, person] = await Promise.all([
     supabase.rpc("compliance_status", { p_user: profile.id }),
-    formsInOnboarding(features) ? getFormsToFill(profile.id) : Promise.resolve([]),
     supabase.rpc("work_status", { p_user: profile.id }),
     supabase.rpc("profile_required", { p_user: profile.id }),
     features.hr_profiles !== false && (await profilesReady()) ? loadPerson(profile.id) : Promise.resolve(null),
@@ -101,15 +102,14 @@ export default async function MyOnboardingPage() {
       : status.filter((s) => SECTIONS.find((x) => x.key === key)?.kinds?.includes(s.kind) && !photoIds.has(s.item_id));
   const profileApplies = profileNeeded === true || profileNeeded === false ? features.hr_profiles !== false : false;
   const profileDone = profileNeeded === false;
-  const total = status.length + (profileApplies ? 1 : 0) + sentForms.length;
+  const total = status.length + (profileApplies ? 1 : 0);
   const done = status.filter((s) => isDone(s.state)).length + (profileApplies && profileDone ? 1 : 0);
   const pct = total ? Math.round((done / total) * 100) : 100;
   const counts = (key: string) => {
     const list = inSection(key);
     const extra = key === "personal" && profileApplies ? 1 : 0;
     const extraDone = key === "personal" && profileApplies && profileDone ? 1 : 0;
-    const formsExtra = key === "forms" ? sentForms.length : 0;
-    return { total: list.length + extra + formsExtra, done: list.filter((s) => isDone(s.state)).length + extraDone };
+    return { total: list.length + extra, done: list.filter((s) => isDone(s.state)).length + extraDone };
   };
   const visible = SECTIONS.filter((s) => s.key === "employment" || s.key === "final" || counts(s.key).total > 0);
   const beforeWork = ws?.before_work_missing ?? [];
@@ -283,16 +283,24 @@ export default async function MyOnboardingPage() {
           </ol>
         </nav>
 
-        <div className="flex min-w-0 flex-col gap-8">
+        <div className="flex min-w-0 flex-col gap-4">
+          <OpenSectionOnHash />
           {visible.map((sec) => {
             const Icon = sec.icon;
             const c = counts(sec.key);
+            // cmeprojects: every section folds the same way; open where something is still to do.
+            const due = sec.key === "final" ? !ws?.cleared : sec.key === "employment" ? false : c.done < c.total;
             return (
-              <section key={sec.key} id={sec.key} aria-labelledby={`h-${sec.key}`} className="flex scroll-mt-4 flex-col gap-3">
-                <h2 id={`h-${sec.key}`} className="heading-sm flex items-center gap-2">
-                  <Icon aria-hidden="true" className="size-5 text-brand" /> {sec.title}
-                  {c.total ? <span className="text-sm font-normal text-muted">· {c.done} of {c.total}</span> : null}
-                </h2>
+              <details key={sec.key} id={sec.key} open={due} className="group scroll-mt-4 rounded-xl border border-line bg-surface/60 open:border-transparent open:bg-transparent">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-xl px-3 py-2 hover:bg-surface [&::-webkit-details-marker]:hidden">
+                  <h2 id={`h-${sec.key}`} className="heading-sm flex flex-1 flex-wrap items-center gap-2">
+                    <Icon aria-hidden="true" className="size-5 text-brand" /> {sec.title}
+                    {c.total ? <span className="text-sm font-normal text-muted">· {c.done} of {c.total}</span> : null}
+                    {!due && c.total && c.done === c.total ? <CircleCheck aria-label="All done" className="size-4 text-good" /> : null}
+                  </h2>
+                  <ChevronDown aria-hidden="true" className="size-5 shrink-0 text-muted transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="flex flex-col gap-3 pt-3">
 
                 {sec.key === "personal" ? (
                   <>
@@ -326,21 +334,6 @@ export default async function MyOnboardingPage() {
                     </dl>
                     <p className="text-xs text-muted">Set by your manager. If something&apos;s wrong, let them know. Your usual availability is under Personal information.</p>
                   </Card>
-                ) : sec.key === "forms" ? (
-                  <>
-                    {sentForms.map((f) => (
-                      <Card key={f.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                        <span className="min-w-48 flex-1">
-                          <span className="block font-semibold">{f.title}</span>
-                          <span className="block text-sm text-muted">{f.due_date ? `Please answer by ${formatDate(f.due_date)}. ` : ""}You can save it and finish later.</span>
-                        </span>
-                        <Link href={`/forms/${f.id}`} className={buttonClass("primary")}>
-                          {f.started ? "Carry on" : "Answer now"}
-                        </Link>
-                      </Card>
-                    ))}
-                    {inSection("forms").map(itemCard)}
-                  </>
                 ) : sec.key === "final" ? (
                   <Card className="flex flex-col gap-4 p-5">
                     {ws ? (
@@ -361,7 +354,8 @@ export default async function MyOnboardingPage() {
                 ) : (
                   inSection(sec.key).map(itemCard)
                 )}
-              </section>
+                </div>
+              </details>
             );
           })}
         </div>

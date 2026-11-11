@@ -48,10 +48,10 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
     choices.push(
       { action: "approve", label: r.stage === 1 ? "Approve" : "Give final approval", variant: "primary" },
       { action: "info", label: "Ask for more information", needs: "What do you need to know?" },
-      { action: "decline", label: "Decline", variant: "danger", needs: "Reason for declining" },
+      { action: "decline", label: "Reject", variant: "danger", needs: "Reason for rejecting" },
     );
   }
-  if (open && mine) choices.push({ action: "withdraw", label: "Withdraw request" });
+  if (open && mine) choices.push({ action: "withdraw", label: "Cancel my request" });
 
   const rows: [string, React.ReactNode][] = [];
   if (r.type === "leave") {

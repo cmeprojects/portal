@@ -35,6 +35,7 @@ const ICONS: Record<string, LucideIcon> = {
   Tasks: ListChecks,
   Registers: FolderKanban,
   Forms: ClipboardList,
+  "My forms": ClipboardList,
   Enquiries: Inbox,
   Assistant: MessageCircle,
   People: Users,

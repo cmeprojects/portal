@@ -1,7 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { markAllSeen } from "./bell-actions";
 
@@ -13,19 +14,43 @@ export type BellItem = { key: string; href: string; title: string; detail: strin
 export function Bell({ items }: { items: BellItem[] }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  // cmeprojects: the panel is drawn at the top level of the page (a portal),
+  // placed beside the bell, so no page content can ever sit on top of it.
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const count = items.filter((i) => !i.read).length;
   const words = count ? `${count} new for you` : "Nothing new";
 
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !box.current?.contains(e.target as Node)) setOpen(false);
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !box.current?.contains(e.target as Node) && !panel.current?.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", close);
     return () => {
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", close);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const r = box.current?.getBoundingClientRect();
+      if (!r) return;
+      const width = Math.min(352, window.innerWidth - 32);
+      // Wide screens: to the right of the menu. Phones: under the bell.
+      const wide = window.innerWidth >= 768;
+      const left = wide ? r.right + 12 : Math.max(16, Math.min(r.right - width, window.innerWidth - width - 16));
+      setPos({ top: wide ? Math.max(16, r.top) : r.bottom + 8, left });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
     };
   }, [open]);
 
@@ -50,8 +75,14 @@ export function Bell({ items }: { items: BellItem[] }) {
         ) : null}
       </button>
 
-      {open ? (
-        <div className="absolute top-full right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden shadow-card rounded-xl border border-line bg-surface text-ink shadow-lg md:fixed md:top-4 md:right-auto md:left-[238px] md:mt-0">
+      {open && pos ? createPortal(
+        <div
+          ref={panel}
+          role="dialog"
+          aria-label="Notifications"
+          style={{ top: pos.top, left: pos.left }}
+          className="fixed z-[1000] w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-line bg-surface text-ink shadow-lg"
+        >
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
             <p className="heading-sm">Notifications{count ? ` · ${count} new` : ""}</p>
             {count ? (
@@ -79,7 +110,8 @@ export function Bell({ items }: { items: BellItem[] }) {
               ))}
             </ul>
           )}
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

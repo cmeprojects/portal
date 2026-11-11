@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // cmeprojects: audit evidence scripts (Node tools kept as records, not app code).
+    "docs/audit/evidence/**",
   ]),
 ]);
 

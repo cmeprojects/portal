@@ -1,6 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
 import { OffForStaff } from "@/components/off-for-staff";
@@ -81,20 +81,40 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
 
   // cmeprojects: forms to fill in are listed here for everyone (and in My
   // onboarding while a compliance part is on).
-  const toFill = await getFormsToFill(profile.id);
+  // cmeprojects: never send people elsewhere (that made the Forms menu look
+  // like it skipped to My onboarding). Staff see "My forms": to fill in, and
+  // done. Onboarding forms stay in My onboarding.
+  const [toFill, { data: doneRows }] = await Promise.all([
+    getFormsToFill(profile.id),
+    supabase.from("form_completions").select("form_id, done_at, forms(title)").eq("user_id", profile.id).order("done_at", { ascending: false }).limit(50),
+  ]);
+  const doneIds = (doneRows ?? []).map((d) => d.form_id);
+  const { data: onboardingForms } = doneIds.length
+    ? await supabase.from("compliance_items").select("form_id").in("form_id", doneIds)
+    : { data: [] as { form_id: string | null }[] };
+  const inOnboarding = new Set((onboardingForms ?? []).map((i) => i.form_id));
+  const doneList = (doneRows ?? [])
+    .filter((d) => !inOnboarding.has(d.form_id))
+    .map((d) => {
+      const f = d.forms as { title: string } | { title: string }[] | null;
+      return { id: d.form_id, title: (Array.isArray(f) ? f[0]?.title : f?.title) ?? "A form", at: day.format(new Date(d.done_at)) };
+    });
   const builderOff = !formBuilderOn(features);
-  if (!canMake && !rows.length && !toFill.length && onboardingOn(features)) redirect("/onboarding");
+  const maker = canMake || rows.length > 0;
 
   return (
     <>
       <LiveRefresh tables={["forms", "form_completions", "form_responses"]} />
       <OffForStaff session={session} feature="forms" name="Forms" />
-      <PageHeader title="Forms" intro={canMake || rows.length ? "Forms to fill in, and the forms you make and send." : "Forms for you to fill in."} />
+      <PageHeader title={maker ? "Forms" : "My forms"} intro={maker ? "Forms to fill in, and the forms you make and send." : "Forms sent to you to fill in, and the ones you've done."} />
 
       <section className="flex flex-col gap-3">
         <h2 className="heading-sm">To fill in · {toFill.length}</h2>
         {toFill.length === 0 ? (
-          <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">Nothing to fill in right now.</p>
+          <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
+            Nothing to fill in right now. When a form is sent to you, it shows here and in your notifications.
+            {onboardingOn(features) && profile.role === "new_starter" ? " Onboarding forms are in My onboarding." : ""}
+          </p>
         ) : (
           <ul className="divide-y divide-line shadow-card rounded-xl border border-line bg-surface">
             {toFill.map((f) => (
@@ -111,9 +131,26 @@ export default async function FormsPage({ searchParams }: PageProps<"/forms">) {
           </ul>
         )}
       </section>
+      {!maker || doneList.length ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="heading-sm">Done · {doneList.length}</h2>
+          {doneList.length === 0 ? (
+            <p className="shadow-card rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">Forms you finish show here.</p>
+          ) : (
+            <ul className="divide-y divide-line shadow-card rounded-xl border border-line bg-surface">
+              {doneList.map((f) => (
+                <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                  <span className="font-semibold">{f.title}</span>
+                  <span className="text-muted">Done {f.at}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
       {builderOff && admin ? <Notice>The Form builder is switched off: only you can make or change forms. Published forms still work.</Notice> : null}
 
-      {canMake || rows.length ? (
+      {maker ? (
         <section className="flex flex-col gap-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 className="heading-sm">Your forms</h2>

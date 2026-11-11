@@ -206,6 +206,21 @@ body {
 .ask-rise { animation: ask-rise 0.45s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .ask-rise { animation: none; } }
 
+/* cmeprojects: dashboard charts grow in once when they first appear. Filters
+   and refreshes keep the same elements, so they don't replay. Off for anyone
+   who has asked their device to reduce motion. */
+@keyframes chart-grow-x { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes chart-grow-y { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes chart-sweep { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes chart-fade { from { opacity: 0; } to { opacity: 1; } }
+.chart-grow-x { transform-box: fill-box; transform-origin: left center; animation: chart-grow-x 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.chart-grow-y { transform-origin: bottom center; animation: chart-grow-y 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.chart-sweep { stroke-dasharray: 1 1; animation: chart-sweep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.chart-fade { animation: chart-fade 0.6s ease-out 0.5s both; }
+@media (prefers-reduced-motion: reduce) {
+  .chart-grow-x, .chart-grow-y, .chart-sweep, .chart-fade { animation: none; }
+}
+
 /* cmeprojects: the public website is always light, whatever the device or
    the portal's theme choice (same colours as the portal's light mode). */
 .ask-light {
