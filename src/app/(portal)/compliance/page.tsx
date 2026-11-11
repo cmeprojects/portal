@@ -12,6 +12,7 @@ import { CATEGORY_LABELS, FILES_BUCKET, KIND_TAB, isDone, stateBadges, type Comp
 import { formatDate } from "@/lib/registers";
 import { Badge, Card, Notice, PageHeader, Tabs, buttonClass } from "@/components/ui";
 import { ItemForm, ReviewForm } from "./forms";
+import { TemplateUpload } from "../people/tax-forms";
 
 export const metadata: Metadata = { title: "Onboarding" };
 
@@ -59,6 +60,7 @@ export default async function CompliancePage({ searchParams }: PageProps<"/compl
           </Link>
         }
       />
+      <BlankTfnForm />
       {tabs.length ? <Tabs label="Compliance sections" items={tabs} /> : null}
       {tab === "progress" ? (
         <Progress meId={me.id} role={me.role} show={String(params.show ?? "")} />
@@ -363,5 +365,21 @@ async function ToCheck({ meId }: { meId: string }) {
         );
       })}
     </div>
+  );
+}
+
+// cmeprojects: the blank TFN declaration, for the system admin and people with Payroll and tax access.
+async function BlankTfnForm() {
+  const supabase = await createClient();
+  const { data: holds, error } = await supabase.rpc("holds_area", { p_area: "payroll_tax" });
+  if (error || holds !== true) return null;
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "records.tfn_template").maybeSingle();
+  return (
+    <details className="rounded-xl border border-line bg-surface shadow-card">
+      <summary className="cursor-pointer px-5 py-3 text-sm font-semibold">Blank TFN declaration form{typeof data?.value === "string" && data.value ? " · on file" : " · not added yet"}</summary>
+      <div className="border-t border-line p-5">
+        <TemplateUpload current={typeof data?.value === "string" ? data.value : ""} />
+      </div>
+    </details>
   );
 }

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import type { Bank, Super, WorkRights } from "@/lib/staff-records";
 import { BankForm, SuperForm, WorkRightsForm } from "./forms";
+import { TaxFormCard, type Tax } from "../../people/tax-forms";
 
 export const metadata: Metadata = { title: "Pay and work rights" };
 
@@ -15,10 +16,11 @@ export const metadata: Metadata = { title: "Pay and work rights" };
 export default async function MyRecordsPage() {
   const { profile } = await requireSession();
   const supabase = await createClient();
-  const [bank, sup, wr] = await Promise.all([
+  const [bank, sup, wr, tax] = await Promise.all([
     supabase.from("staff_bank").select("*").eq("user_id", profile.id).maybeSingle(),
     supabase.from("staff_super").select("*").eq("user_id", profile.id).maybeSingle(),
     supabase.from("staff_work_rights").select("*").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("staff_tax").select("*").eq("user_id", profile.id).maybeSingle(),
   ]);
   if (bank.error && bank.error.code === "42P01") {
     return (
@@ -48,7 +50,11 @@ export default async function MyRecordsPage() {
       <Card className="p-5 sm:p-6">
         <WorkRightsForm wr={(wr.data as WorkRights | null) ?? null} userId={profile.id} />
       </Card>
-      <p className="text-xs text-muted">Your tax file number declaration isn&apos;t collected here yet. Payroll will tell you how to give it.</p>
+      {tax.error ? null : (
+        <Card className="p-5 sm:p-6">
+          <TaxFormCard tax={(tax.data as Tax | null) ?? null} userId={profile.id} />
+        </Card>
+      )}
     </>
   );
 }

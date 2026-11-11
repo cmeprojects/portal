@@ -64,7 +64,7 @@ export default async function MyOnboardingPage() {
   const supabase = await createClient();
   // cmeprojects: only onboarding forms count here; other forms sent to this
   // person are in My forms (no duplicates).
-  const [{ data: rows }, { data: work }, { data: profileNeeded }, person, bankQ, superQ, rightsQ, contractsQ] = await Promise.all([
+  const [{ data: rows }, { data: work }, { data: profileNeeded }, person, bankQ, superQ, rightsQ, contractsQ, taxQ] = await Promise.all([
     supabase.rpc("compliance_status", { p_user: profile.id }),
     supabase.rpc("work_status", { p_user: profile.id }),
     supabase.rpc("profile_required", { p_user: profile.id }),
@@ -73,6 +73,7 @@ export default async function MyOnboardingPage() {
     supabase.from("staff_super").select("fund_name, verified_at").eq("user_id", profile.id).maybeSingle(),
     supabase.from("staff_work_rights").select("status, verified_at").eq("user_id", profile.id).maybeSingle(),
     supabase.from("contracts").select("id, title, status").eq("user_id", profile.id).in("status", ["awaiting_employee", "awaiting_employer", "fully_signed"]).order("created_at", { ascending: false }),
+    supabase.from("staff_tax").select("form_path, verified_at").eq("user_id", profile.id).maybeSingle(),
   ]);
   // cmeprojects: pay and work rights (only once this copy has update 62), and contracts (update 64).
   const payItems = bankQ.error
@@ -81,6 +82,9 @@ export default async function MyOnboardingPage() {
         { key: "bank", title: "Bank account for your pay", given: Boolean(bankQ.data?.account_number), checked: Boolean(bankQ.data?.verified_at), href: "/account/records" },
         { key: "super", title: "Superannuation", given: Boolean(superQ.data?.fund_name), checked: Boolean(superQ.data?.verified_at), href: "/account/records" },
         { key: "rights", title: "Right to work in Australia", given: Boolean(rightsQ.data?.status), checked: Boolean(rightsQ.data?.verified_at), href: "/account/records" },
+        ...(taxQ.error
+          ? []
+          : [{ key: "tax", title: "Tax file number declaration", given: Boolean(taxQ.data?.form_path), checked: Boolean(taxQ.data?.verified_at), href: "/account/records" }]),
       ];
   const myContracts = (contractsQ.error ? [] : (contractsQ.data ?? [])) as { id: string; title: string; status: string }[];
   const toSign = myContracts.filter((c) => c.status === "awaiting_employee");

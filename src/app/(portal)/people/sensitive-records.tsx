@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui";
 import { WORK_STATUS, maskAccount, type Bank, type Super, type WorkRights } from "@/lib/staff-records";
 import { OpenFile, RevealAccount, VerifyRecord } from "./records-buttons";
+import { TaxAdmin, type Tax } from "./tax-forms";
 
 const fmt = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "");
 
@@ -17,11 +18,14 @@ function Checked({ at, subject, table, what, canCheck }: { at: string | null; su
 export async function SensitiveRecords({ subject, viewer }: { subject: string; viewer: string }) {
   if (subject === viewer) return null;
   const supabase = await createClient();
-  const [{ data: pay }, { data: ids }] = await Promise.all([
+  const [{ data: pay }, { data: ids }, { data: tfn }] = await Promise.all([
     supabase.rpc("has_access", { p_area: "payroll_tax", p_person: subject }),
     supabase.rpc("has_access", { p_area: "identity_docs", p_person: subject }),
+    supabase.rpc("has_tfn_access", { p_person: subject }),
   ]);
-  if (pay !== true && ids !== true) return null;
+  if (pay !== true && ids !== true && tfn !== true) return null;
+  const { data: taxRow } = tfn === true ? await supabase.from("staff_tax").select("*").eq("user_id", subject).maybeSingle() : { data: null };
+  const tax = taxRow as Tax | null;
   const [bank, sup, wr] = await Promise.all([
     pay === true ? supabase.from("staff_bank").select("*").eq("user_id", subject).maybeSingle() : Promise.resolve({ data: null }),
     pay === true ? supabase.from("staff_super").select("*").eq("user_id", subject).maybeSingle() : Promise.resolve({ data: null }),
@@ -34,6 +38,7 @@ export async function SensitiveRecords({ subject, viewer }: { subject: string; v
   const log = [
     ...(pay === true && (b || s) ? [{ subject_id: subject, area: "payroll_tax", action: "view", detail: "Bank and super (masked)" }] : []),
     ...(ids === true && w ? [{ subject_id: subject, area: "identity_docs", action: "view", detail: "Work rights" }] : []),
+    ...(tfn === true && tax ? [{ subject_id: subject, area: "payroll_tax", action: "view", detail: "TFN declaration (details)" }] : []),
   ];
   if (log.length) await supabase.from("sensitive_access_log").insert(log);
 
@@ -75,6 +80,12 @@ export async function SensitiveRecords({ subject, viewer }: { subject: string; v
             )}
             {s?.choice_doc ? <OpenFile subject={subject} which="choice" label="Open choice of fund form" /> : null}
           </div>
+        </div>
+      ) : null}
+      {tfn === true ? (
+        <div className="flex flex-col gap-1 text-sm">
+          <p className="font-semibold">Tax file number declaration</p>
+          {tax?.form_path ? <TaxAdmin subject={subject} tax={tax} /> : <p className="text-muted">Not uploaded yet.</p>}
         </div>
       ) : null}
       {ids === true ? (

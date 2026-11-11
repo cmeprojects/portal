@@ -8,6 +8,9 @@ import { SectionTabs } from "@/components/section-tabs";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { ACCESS_AREAS, ACCESS_HINT, ACCESS_LABEL, nowMs, type AccessArea, type Grant } from "@/lib/access";
 import { GiveAccessForm, RemoveAccessButton } from "./forms";
+import { DeleteRecordsButton } from "../../people/tax-forms";
+import { SettingForm } from "../../system/forms";
+import { withSettingDrafts } from "@/lib/drafts";
 
 export const metadata: Metadata = { title: "Staff access" };
 
@@ -139,6 +142,8 @@ export default async function AccessPage() {
         );
       })}
 
+      {admin ? <KeepingRecords /> : null}
+
       {history.length ? (
         <details className="rounded-xl border border-line bg-surface">
           <summary className="cursor-pointer px-5 py-3 text-sm font-semibold">History: removed access ({history.length})</summary>
@@ -154,5 +159,53 @@ export default async function AccessPage() {
         </details>
       ) : null}
     </>
+  );
+}
+
+// cmeprojects: how long private records are kept after someone leaves, and the
+// leavers past that time whose records can now be deleted (by hand).
+async function KeepingRecords() {
+  const supabase = await createClient();
+  const [{ data: setting }, { data: leavers }] = await Promise.all([
+    supabase.from("app_settings").select("key, label, description, value").eq("key", "records.private_retention_years").maybeSingle(),
+    supabase.from("profiles").select("id, full_name, email, deactivated_at").eq("active", false).not("deactivated_at", "is", null),
+  ]);
+  if (!setting) return null;
+  const [withDraft] = await withSettingDrafts([setting]);
+  const years = Number(setting.value) || 5;
+  const cutoff = new Date(nowMs() - years * 365.25 * 86_400_000);
+  const ids = (leavers ?? []).map((l) => l.id);
+  const held = new Set<string>();
+  if (ids.length) {
+    const tables = ["staff_bank", "staff_super", "staff_work_rights", "staff_tax"] as const;
+    const found = await Promise.all(tables.map((t) => supabase.from(t).select("user_id").in("user_id", ids)));
+    for (const f of found) for (const r of (f.data ?? []) as { user_id: string }[]) held.add(r.user_id);
+  }
+  const rows = (leavers ?? []).filter((l) => held.has(l.id));
+  const due = rows.filter((l) => new Date(l.deactivated_at as string) <= cutoff);
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+  return (
+    <Card className="flex flex-col gap-4 p-5 sm:p-6">
+      <div>
+        <h2 className="heading-sm">Keeping private records</h2>
+        <p className="text-sm text-muted">Bank, super, work rights and TFN declarations of people who have left. Nothing is deleted automatically: you delete them here, and each deletion is recorded.</p>
+      </div>
+      <div className="max-w-xl">
+        <SettingForm setting={withDraft} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-sm font-semibold">Past {years} years since leaving · {due.length}</p>
+        {due.length === 0 ? <p className="text-sm text-muted">Nobody yet.</p> : null}
+        {(rows.length ? rows : []).map((l) => (
+          <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-4 py-2 text-sm">
+            <span>
+              <strong>{l.full_name || l.email}</strong> · left {fmt(l.deactivated_at as string)}
+              {new Date(l.deactivated_at as string) <= cutoff ? <span className="ml-2 font-semibold text-warn">Past the keeping period</span> : null}
+            </span>
+            <DeleteRecordsButton subject={l.id} name={l.full_name || l.email} />
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
