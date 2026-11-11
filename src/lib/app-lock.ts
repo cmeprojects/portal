@@ -27,7 +27,7 @@ export const UNLOCK_MINUTES = 15;
 const enc = new TextEncoder();
 
 async function key(): Promise<CryptoKey> {
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "";
   if (secret.length < 20) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
   return crypto.subtle.importKey("raw", enc.encode(`cars-app-lock:${secret}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
 }

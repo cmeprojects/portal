@@ -20,7 +20,7 @@ async function time(url: string, key: string): Promise<number | string> {
 export async function GET() {
   const region = process.env.VERCEL_REGION ?? "local";
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const result: Record<string, unknown> = { ok: true, region, sydney: region === "syd1" };
 
   if (url && key) {
