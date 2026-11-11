@@ -77,6 +77,19 @@ replacing Supabase is a 4 to 8 week rewrite and isn't recommended.
   `node_modules/next/dist/docs/` before using new APIs. Run `npx next typegen`
   after adding routes.
 
+### Development standards (owner, 11 Nov 2026: apply to all new work)
+- Efficient database queries: no unnecessary requests, and never one query per
+  employee or client.
+- Server-side filtering, sorting and pagination; SQL for counting and aggregation.
+- Supabase RLS preserved at all times. Prefer `SECURITY INVOKER` for protected-data
+  functions; avoid unnecessary `SECURITY DEFINER` (any new one needs its own
+  security review).
+- Existing role and permission restrictions kept.
+- Regression and security tests for new functionality.
+- No unnecessary technical debt.
+- Deferred performance stages (2 to 9) are **not** to be worked on until the owner
+  authorises them (see 8f).
+
 ## 4. Live database updates
 
 Applied to Engaged Care: **updates 1 to 51** (see `supabase/live-updates/README.md`).
