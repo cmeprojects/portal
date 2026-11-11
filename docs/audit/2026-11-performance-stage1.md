@@ -85,3 +85,26 @@ Time to read a whole table through its policies, per identity:
 | Stage 1 (update 60) | **Completed and verified** (tests 1–7 above) |
 | Stage 2 (task-family policies, `my_led_people()`) | **On hold.** A separate security proposal comes first, for your review |
 | Stages 3–9 | Not started |
+
+## 6. Rollback procedure
+- **To undo Stage 1** on any copy: Supabase → **SQL Editor** → run `supabase/live-updates/undo-60.sql`. It restores the 94 policies to their exact original definitions (tested twice; see `evidence/stage1/results/rollback-and-reapply-log.txt`).
+- **To return to the approved state:** run `supabase/live-updates/update-60.sql`. The migration is `supabase/migrations/20270104000001_rls_once_per_statement.sql`.
+- **New copies:** the setup SQL (`supabase/install/fresh-install.sql`) already includes it.
+- **Both files** are safe to run more than once.
+
+## 7. Status: Stage 1 COMPLETE (11 November 2026)
+- **Update 60:** committed on `dev` and recorded in the migration history (`20270104000001_rls_once_per_statement.sql`, update 60 / undo 60, and the setup SQL).
+- **No production resources exist or were modified.** No Supabase project, policy, function or application resource was changed by this work outside Development. Update 60 was run on Development by the owner.
+- **Evidence retained in the project:** `docs/audit/evidence/stage1/` (executed SQL, results, snapshots, logs), `docs/audit/2026-11-rls-register.md`, and this report.
+- **Regression:** existing results stand. INSERT, SELECT, UPDATE and DELETE are covered by the 784-check suite and the per-role comparisons above. Not re-run at closing, as instructed.
+
+**Deferred (paused, not started):**
+- Stage 2: task-family policies and the `my_led_people()` helper. Needs a separate security proposal and approval.
+- Stage 3: onboarding and staff summaries.
+- Stage 4: settings read once.
+- Stage 5: selective prefetch.
+- Stage 6: re-measure.
+- Stage 7: SQL aggregation and paging.
+- Stage 8: function permissions.
+- Stage 9: load test.
+- The open question of the 880 ms connection time.
