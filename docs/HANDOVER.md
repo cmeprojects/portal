@@ -289,17 +289,41 @@ undo `supabase/live-updates/undo-47.sql`.
 
 ## 8e. Copies as of now
 
-- **Development** = the original project, renamed `cme-dev` in Vercel and
-  Supabase (address engagedcare-cmeproject.vercel.app), branch `dev`, label
-  DEVELOPMENT (set and redeployed). Keeps the Engaged Care colours and logo for now; test data only.
-- **Demo (and backup)** = the copy made from the fresh install, branch `main`,
-  label DEMO, </>cmeprojects branding.
+- **Development** = Vercel project `cme-dev` (address engagedcare-cmeproject.vercel.app),
+  branch `dev`, label DEVELOPMENT, Engaged Care colours and logo; test data only.
+  **Since 11 Nov 2026 its Supabase database is in Sydney** (the former Demo project,
+  brought up to date with the re-runnable setup SQL + `engaged-care.sql`). The old
+  Seoul project is to be deleted by the owner. Updates applied: all up to 60.
+  Vercel keys use Supabase's newer names (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
+  `SUPABASE_SECRET_KEY`); the app accepts either the newer or the older names.
+- **Demo**: none at the moment (its Supabase project became Development). A new
+  Demo with </>cmeprojects branding is to be made later (fresh install, Sydney).
 - **Engaged Care company copy**: made fresh later (client-engagedcare, Pro,
   fresh install + `supabase/companies/engaged-care.sql`), branch `release`.
 - The code base is neutral: tests use `supabase/tests/sample-company.sql`;
   Engaged Care documents and the simulation live in `docs/clients/engaged-care/`
   (document generators in the chat scratchpad still write to
   `docs/deliverables`; point them at the client folder for client documents).
+
+## 8f. Performance and scalability (read before any performance work)
+
+- **Master roadmap and status:** `docs/roadmap/performance-and-scalability.md`
+  (the owner's stage-by-stage instructions, unchanged, with a status register).
+- **Stage 0 and Stage 1: COMPLETED AND VERIFIED.** Update 60 checks 94 security
+  policies once per statement instead of once per row (same access). Rollback:
+  `supabase/live-updates/undo-60.sql`. Report:
+  `docs/audit/2026-11-performance-stage1.md`; evidence `docs/audit/evidence/stage1/`.
+- **Stages 2 to 9: DEFERRED, NOT COMPLETED.** Don't start any of them without the
+  owner's explicit approval. No `SECURITY DEFINER` helper (such as
+  `my_led_people()`) without a separate security assessment.
+- Findings and the policy register: `docs/audit/2026-11-performance-review.md`,
+  `docs/audit/2026-11-rls-register.md`. Measurement tools:
+  `docs/audit/evidence/tools/`.
+- **The setup SQL** (`supabase/install/fresh-install.sql`) is now safe to run
+  again: on a copy in use it adds only what's missing (recorded in
+  `public.install_log`).
+- Open note: on Development, a request with no database work took 880 ms from
+  the owner's browser (cause not yet diagnosed). Use System health → Speed check.
 
 ## 9. Future plans
 
