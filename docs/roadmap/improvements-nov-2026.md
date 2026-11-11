@@ -169,3 +169,17 @@ No method here is claimed to satisfy every legal requirement.
 - **Website Assistant: whole internet (owner request, 11 Nov):** **update 63** (undo-63).
   - Seven choices per group, always in the order documents → listed websites → whole internet.
   - "Never use these websites" list for internet searches.
+- **Phase 4:** done 12 Nov 2026. **Update 64** (undo-64).
+  - Contracts: statuses, wording locked when sent (SHA-256), and identity re-checked at signing (password or authenticator).
+  - Consent recorded; IP, device and server time captured; signatures append-only.
+  - Signed PDF with signing record and SHA-256 integrity check; new version supersedes the old one.
+  - Policies for specific people; every policy version's wording kept.
+  - **Update 66:** logo and letterhead option on contracts (on by default).
+- **Phase 5:** done 12 Nov 2026. **Update 65** (undo-65).
+  - Birthdays: day and month only, shown with consent; work anniversaries from the commencement date (existing privacy); next 7 days, active staff only.
+  - Pay, work rights and contract section in My onboarding.
+  - Not done: moving Tasks under the "Business/Care" section (needs the owner's mock-up), and the optional "follow-up task from a request".
+- **Buttons (owner request):**
+  - One button component gives every button a matching icon, a spinner while working, uniform icon size and one-line labels.
+  - "+" labels replaced by icons; hand-styled buttons moved to the standard style; buttons next to fields match the field height (44px).
+  - Contract and signing buttons ask first, then show a visible result.

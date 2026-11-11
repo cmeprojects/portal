@@ -1,5 +1,38 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import type { LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BellRing,
+  Check,
+  CircleX,
+  Copy,
+  Download,
+  Eye,
+  FileDown,
+  Filter,
+  Loader2,
+  Lock,
+  LogOut,
+  PenLine,
+  Pencil,
+  Play,
+  Plus,
+  Power,
+  Printer,
+  Rocket,
+  RotateCcw,
+  Save,
+  Search,
+  Send,
+  Trash2,
+  TriangleAlert,
+  Undo2,
+  Upload,
+  UserCheck,
+  UserPlus,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
 import { ErrorMessage, ToastOnMount } from "@/components/toast";
@@ -16,18 +49,74 @@ const BUTTON = {
 };
 
 // "sm": a quieter, smaller button for rows of actions (still 36px to tap).
+// cmeprojects: icons are always the same size and labels stay on one line.
 export function buttonClass(variant: keyof typeof BUTTON = "primary", extra = "", size: "md" | "sm" = "md") {
-  const box = size === "sm" ? "min-h-9 px-3 text-[13px] md:min-h-8" : "min-h-11 px-4 text-sm md:min-h-10";
-  return `inline-flex items-center justify-center gap-2 rounded-lg border font-semibold transition-[color,background-color,border-color,filter,transform] duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 ${box} ${BUTTON[variant]} ${extra}`;
+  const box = size === "sm" ? "min-h-9 px-3 text-[13px] md:min-h-8 [&_svg]:size-3.5" : "min-h-11 px-4 text-sm md:min-h-10 [&_svg]:size-4";
+  return `inline-flex items-center justify-center gap-2 rounded-lg border font-semibold whitespace-nowrap transition-[color,background-color,border-color,filter,transform] duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0 ${box} ${BUTTON[variant]} ${extra}`;
+}
+
+// cmeprojects: every button gets an icon that matches its words (so the same
+// action looks the same everywhere), and a spinner while it's working
+// ("Saving…"). Pass icon={null} for none, or an icon to choose one.
+const ICON_RULES: [RegExp, LucideIcon][] = [
+  [/^(save|update|keep)\b/i, Save],
+  [/^(delete|remove|clear all)\b/i, Trash2],
+  [/^(discard|undo)\b/i, Undo2],
+  [/^(go back|back)\b/i, ArrowLeft],
+  [/^(cancel|close|dismiss|not now|no\b)/i, X],
+  [/^(reject|decline|refuse)\b/i, CircleX],
+  [/^(send|resend|submit|share|email)\b/i, Send],
+  [/^(approve|accept|confirm|yes|mark|done|complete|finish|give final|clear .* to work|i('ve| have) read|agree)\b/i, Check],
+  [/^(add|new|create|\+)/i, Plus],
+  [/^(edit|change|rename|set up|choose)\b/i, Pencil],
+  [/^(download|export|excel)\b/i, Download],
+  [/^print\b/i, Printer],
+  [/^(upload|attach)\b/i, Upload],
+  [/^(search|find)\b/i, Search],
+  [/^filter\b/i, Filter],
+  [/^sign\b(?! out)/i, PenLine],
+  [/^invite\b/i, UserPlus],
+  [/^(deploy|publish|go live)\b/i, Rocket],
+  [/^(open|view|show|reveal|see)\b/i, Eye],
+  [/^(reset|retry|try again|refresh|reload|restore)\b/i, RotateCcw],
+  [/^copy\b/i, Copy],
+  [/^(remind|ask|request|notify)\b/i, BellRing],
+  [/^(reassign|assign|hand|take over)\b/i, UserCheck],
+  [/^(sign out|log out)\b/i, LogOut],
+  [/^(turn|switch) (off|on)|^(deactivate|reactivate|activate)\b/i, Power],
+  [/^escalat/i, TriangleAlert],
+  [/^(next|continue|join|start|go)\b/i, ArrowRight],
+  [/^(test|try it|preview|run)\b/i, Play],
+  [/^(load|import)\b/i, FileDown],
+  [/^(lock|unlock|pin)\b/i, Lock],
+];
+
+function textOf(node: ReactNode): string | null {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) {
+    if (node.some((n) => n !== null && n !== undefined && n !== false && typeof n === "object")) return null;
+    return node.filter((n) => typeof n === "string" || typeof n === "number").join("");
+  }
+  return null;
 }
 
 export function Button({
   variant = "primary",
   size = "md",
   className = "",
+  icon,
+  children,
   ...props
-}: ComponentProps<"button"> & { variant?: keyof typeof BUTTON; size?: "md" | "sm" }) {
-  return <button className={buttonClass(variant, className, size)} {...props} />;
+}: ComponentProps<"button"> & { variant?: keyof typeof BUTTON; size?: "md" | "sm"; icon?: LucideIcon | null }) {
+  const words = textOf(children)?.trim();
+  const busy = Boolean(words && /…$|\.\.\.$/.test(words));
+  const Icon = icon === null ? null : (icon ?? (busy ? Loader2 : words ? ICON_RULES.find(([re]) => re.test(words))?.[1] : undefined));
+  return (
+    <button className={buttonClass(variant, className, size)} aria-busy={busy || undefined} {...props}>
+      {Icon ? <Icon aria-hidden="true" className={busy ? "animate-spin" : undefined} /> : null}
+      {children}
+    </button>
+  );
 }
 
 export const inputClass =
@@ -139,7 +228,8 @@ export function EmptyState({ icon: Icon, title, text, action }: { icon?: LucideI
       {text ? <p className="max-w-sm text-sm text-muted">{text}</p> : null}
       {action ? (
         <Link href={action.href} className={buttonClass("primary", "mt-2", "sm")}>
-          {action.label}
+          {action.label.startsWith("+ ") ? <Plus aria-hidden="true" className="size-4" /> : null}
+          {action.label.replace(/^\+ /, "")}
         </Link>
       ) : null}
     </div>

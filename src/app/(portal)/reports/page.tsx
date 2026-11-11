@@ -68,7 +68,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
               </select>
             </label>
           ))}
-          <button className={buttonClass("outline", "h-12")}>Apply</button>
+          <button className={buttonClass("outline", "h-11")}>Apply</button>
           {fq ? (
             <a href={`/reports?${periodQs}`} className="h-12 px-2 py-3 text-sm text-brand underline">
               Clear
@@ -84,7 +84,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
             <span className="font-semibold">To</span>
             <input type="date" name="to" defaultValue={period.key === "custom" ? period.to : ""} required className={inputClass} />
           </label>
-          <button className={buttonClass("outline", "h-12")}>Show these dates</button>
+          <button className={buttonClass("outline", "h-11")}>Show these dates</button>
         </form>
       </div>
 

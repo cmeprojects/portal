@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -81,12 +82,12 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
             {records ? (
               manages ? (
                 <Link href={`/registers/${id}/new`} className={buttonClass("primary")}>
-                  + Add item
+                  <Plus aria-hidden="true" className="size-4" />Add item
                 </Link>
               ) : null
             ) : features.tasks !== false && registry.active ? (
               <Link href={`/tasks/new?register=${id}`} className={buttonClass("primary")}>
-                + New task
+                <Plus aria-hidden="true" className="size-4" />New task
               </Link>
             ) : null}
           </div>
@@ -152,7 +153,7 @@ async function RegisterOverview({ registry, canCreate }: { registry: Registry; c
         action={
           canCreate ? (
             <Link href={`/tasks/new?register=${registry.id}`} className={buttonClass("primary")}>
-              + New task
+              <Plus aria-hidden="true" className="size-4" />New task
             </Link>
           ) : null
         }

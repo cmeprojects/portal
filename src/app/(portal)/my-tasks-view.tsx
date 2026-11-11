@@ -1,6 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { EmptyState } from "@/components/ui";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Plus } from "lucide-react";
 import { SectionTabs } from "@/components/section-tabs";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
@@ -121,7 +121,7 @@ export async function MyTasksView({ basePath, params }: { basePath: string; para
         action={
           features.tasks !== false ? (
             <Link href="/tasks/new" className={buttonClass("primary")}>
-              + New task
+              <Plus aria-hidden="true" className="size-4" />New task
             </Link>
           ) : null
         }

@@ -24,7 +24,7 @@ export function NewTeamForm() {
             <input id="team-name" name="name" required placeholder="e.g. North team" className={inputClass} />
           </Field>
         </div>
-        <Button className="h-12" disabled={pending}>Add team</Button>
+        <Button className="h-11" disabled={pending}>Add team</Button>
       </div>
     </form>
   );

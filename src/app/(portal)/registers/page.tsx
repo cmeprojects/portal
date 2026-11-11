@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { Plus } from "lucide-react";
 import { getMyAdminAreas } from "@/lib/settings";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -50,10 +51,10 @@ export default async function RegistersPage({ searchParams }: PageProps<"/regist
           canCreate ? (
             <div className="flex flex-wrap gap-2">
               <Link href="/registers/templates" className={buttonClass("outline")}>
-                + From a template
+                <Plus aria-hidden="true" className="size-4" />From a template
               </Link>
               <Link href="/registers/new" className={buttonClass("primary")}>
-                + New register
+                <Plus aria-hidden="true" className="size-4" />New register
               </Link>
             </div>
           ) : null

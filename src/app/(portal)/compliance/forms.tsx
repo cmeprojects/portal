@@ -228,9 +228,9 @@ export function ReviewForm({ recordId }: { recordId: number }) {
             <input id={`note-${recordId}`} name="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. The photo is blurry" className={inputClass} />
           </Field>
         </div>
-        <Button name="decision" value="accept" className="h-12" disabled={pending}>{pending ? "Saving…" : "Looks good"}</Button>
-        <Button name="decision" value="reject" variant="outline" className="h-12" disabled={pending || !note.trim()}>Reject</Button>
-        <Button name="decision" value="replace" variant="outline" className="h-12" disabled={pending || !note.trim()}>Ask for a new copy</Button>
+        <Button name="decision" value="accept" className="h-11" disabled={pending}>{pending ? "Saving…" : "Looks good"}</Button>
+        <Button name="decision" value="reject" variant="outline" className="h-11" disabled={pending || !note.trim()}>Reject</Button>
+        <Button name="decision" value="replace" variant="outline" className="h-11" disabled={pending || !note.trim()}>Ask for a new copy</Button>
       </div>
     </form>
   );

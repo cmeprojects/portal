@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { Plus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
@@ -227,7 +228,7 @@ function FieldInput({
             ))}
             {f.allow_other ? (
               <button type="button" aria-pressed={value === OTHER} className={chip(value === OTHER)} onClick={() => onChange(OTHER)}>
-                + Something else
+                <Plus aria-hidden="true" className="size-4" />Something else
               </button>
             ) : null}
           </div>

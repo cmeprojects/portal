@@ -58,7 +58,7 @@ export function InviteForm() {
         <Field label="Email" htmlFor="inv-email">
           <input id="inv-email" name="email" type="email" required placeholder="name@gmail.com" className={inputClass} />
         </Field>
-        <Button className="h-12" disabled={pending}>
+        <Button className="h-11" disabled={pending}>
           {pending ? "Sending…" : "Send invite"}
         </Button>
       </div>

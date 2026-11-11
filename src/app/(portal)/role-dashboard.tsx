@@ -13,8 +13,8 @@ import { onboardingOn } from "@/lib/feature-parts";
 import { isDone, type ItemState } from "@/lib/compliance";
 import { formsOn } from "@/lib/forms";
 import { Bars, Panel, Tile } from "@/components/dash";
-import { PageHeader } from "@/components/ui";
-import { AlertTriangle, Car, Clock, FileWarning, Inbox, ListChecks, MailQuestion, Siren, Upload, UserPlus, Users } from "lucide-react";
+import { PageHeader, buttonClass } from "@/components/ui";
+import { AlertTriangle, Car, Plus, Clock, FileWarning, Inbox, ListChecks, MailQuestion, Siren, Upload, UserPlus, Users } from "lucide-react";
 
 // cmeprojects: each role's dashboard, in the same style as the system admin's.
 //   Manager:     the whole operation.
@@ -356,8 +356,8 @@ export async function RoleDashboard() {
         title="Dashboard"
         intro={`${firstName ? `Hi ${firstName}. ` : ""}${layout.intro}`}
         action={
-          <Link href="/tasks/new" className="inline-flex min-h-10 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-fg shadow-sm hover:brightness-110">
-            + New task
+          <Link href="/tasks/new" className={buttonClass("primary")}>
+            <Plus aria-hidden="true" className="size-4" />New task
           </Link>
         }
       />

@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { Plus } from "lucide-react";
 import { askConfirm } from "@/components/confirm";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -109,7 +110,7 @@ export function Alerts({ feature, fields, staff, alerts, dirty }: { feature: Fea
       </ul>
       {!editing ? (
         <Button type="button" variant="outline" className="self-start" disabled={dirty} onClick={() => setEditing(blank())}>
-          + Add an alert
+          <Plus aria-hidden="true" className="size-4" />Add an alert
         </Button>
       ) : null}
     </div>

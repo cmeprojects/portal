@@ -307,7 +307,7 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
               <input id={`to-${row.id}`} name="reason" required placeholder="e.g. I'll sort this out with the family" className={inputClass} />
             </Field>
           </div>
-          <Button className="h-12" disabled={reassigning}>
+          <Button className="h-11" disabled={reassigning}>
             {reassigning ? "Saving…" : "Take it over"}
           </Button>
         </form>
@@ -339,7 +339,7 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
               <input id={`sb-${row.id}`} name="note" required className={inputClass} />
             </Field>
           </div>
-          <Button className="h-12" disabled={changing}>
+          <Button className="h-11" disabled={changing}>
             {changing ? "Sending…" : "Send back"}
           </Button>
         </form>
@@ -365,7 +365,7 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
           <Field label="Reason" htmlFor={`rr-${row.id}`}>
             <input id={`rr-${row.id}`} name="reason" required className={inputClass} />
           </Field>
-          <Button className="h-12" disabled={reassigning}>
+          <Button className="h-11" disabled={reassigning}>
             {reassigning ? "Saving…" : "Reassign"}
           </Button>
         </form>
@@ -388,7 +388,7 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
               </select>
             </Field>
           </div>
-          <Button className="h-12" disabled={addingHelper}>
+          <Button className="h-11" disabled={addingHelper}>
             {addingHelper ? "Adding…" : "Add helper"}
           </Button>
         </form>

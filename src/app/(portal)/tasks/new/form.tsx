@@ -217,7 +217,7 @@ export function NewTaskForm({
         task is created.
       </p>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-      <Button className="min-h-12 self-start px-8 text-base" disabled={pending}>
+      <Button className="self-start px-6" disabled={pending}>
         {pending ? "Creating…" : "Create task"}
       </Button>
     </form>

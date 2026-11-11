@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { Plus } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -175,7 +176,7 @@ export function FormEditor({
                       </div>
                     ))}
                     <button type="button" onClick={() => setQ(q.id, { options: [...q.options, ""] })} className="self-start text-sm font-semibold text-brand">
-                      + Add a choice
+                      <Plus aria-hidden="true" className="size-4" />Add a choice
                     </button>
                   </div>
                 ) : null}
@@ -211,7 +212,7 @@ export function FormEditor({
             ))}
           </ol>
           <Button type="button" size="sm" variant="secondary" className="self-start" onClick={() => setQuestions((list) => [...list, blankQuestion(list.length + 1)])}>
-            + Add a question
+            <Plus aria-hidden="true" className="size-4" />Add a question
           </Button>
           {replies ? <p className="text-xs text-muted">{replies} {replies === 1 ? "reply" : "replies"} so far. Removing a question hides it; answers already given are kept.</p> : null}
 

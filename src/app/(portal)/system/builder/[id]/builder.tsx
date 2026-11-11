@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { Plus } from "lucide-react";
 import { confirmSubmit } from "@/components/confirm";
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
@@ -547,7 +548,7 @@ function FieldEditor({ f, typed, onChange, onRemove }: { f: FeatureField; typed:
                     <span key={v} className="inline-flex items-center gap-1 rounded-full border border-line bg-page py-1 pr-1 pl-3">
                       {v} · {n}
                       <button type="button" onClick={() => addOption(v)} className="rounded-full px-2 font-semibold text-brand hover:bg-brand-soft">
-                        + Add
+                        <Plus aria-hidden="true" className="size-4" />Add
                       </button>
                     </span>
                   ))}

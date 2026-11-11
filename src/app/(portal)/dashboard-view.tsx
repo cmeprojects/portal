@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -183,7 +184,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
         action={
           features.tasks !== false ? (
             <Link href="/tasks/new" className={buttonClass("primary")}>
-              + New task
+              <Plus aria-hidden="true" className="size-4" />New task
             </Link>
           ) : null
         }

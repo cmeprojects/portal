@@ -29,7 +29,7 @@ export function AddHelperForm({ taskId, people }: { taskId: string; people: { id
             </option>
           ))}
         </select>
-        <Button variant="outline" className="h-12" disabled={pending}>
+        <Button variant="outline" className="h-11" disabled={pending}>
           {pending ? "Adding…" : "Add helper"}
         </Button>
       </div>

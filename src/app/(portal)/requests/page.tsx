@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -29,7 +30,7 @@ export default async function RequestsPage({ searchParams }: PageProps<"/request
         intro="Leave, shift swaps, availability and other requests, and where each one is up to."
         action={
           <Link href="/requests/new" className={buttonClass("primary")}>
-            + New request
+            <Plus aria-hidden="true" className="size-4" />New request
           </Link>
         }
       />
