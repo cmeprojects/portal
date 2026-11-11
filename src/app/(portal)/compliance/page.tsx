@@ -222,19 +222,27 @@ async function Progress({ meId, role, show }: { meId: string; role: Role; show: 
 
 async function Items({ kind }: { kind: ItemKind }) {
   const supabase = await createClient();
-  const [{ data: itemRows }, { data: teams }, { data: people }, { data: members }, { data: titles }] = await Promise.all([
+  const [{ data: itemRows }, { data: teams }, { data: people }, { data: members }, { data: titles }, { data: versions }] = await Promise.all([
     supabase.from("compliance_items").select("*").eq("kind", kind).order("active", { ascending: false }).order("sort_order").order("title"),
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
-    supabase.from("profiles").select("id, role").eq("active", true).neq("role", "system_admin"),
+    supabase.from("profiles").select("id, role, full_name, email").eq("active", true).neq("role", "system_admin").order("full_name"),
     supabase.from("team_members").select("user_id, team_id"),
     supabase.from("job_titles").select("id, name").order("sort_order").order("name"),
+    // cmeprojects Phase 4: earlier wording of policies and agreements.
+    kind === "read" || kind === "agreement"
+      ? supabase.from("compliance_item_versions").select("item_id, version, body, saved_at").order("version", { ascending: false })
+      : Promise.resolve({ data: [] as { item_id: string; version: number; body: string; saved_at: string }[] }),
   ]);
+  const pickPeople = (people ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }));
   // How many people an item reaches: a ticked role AND a ticked team must both
   // match (the same rule as the database's compliance_applies).
   const teamsOf = (id: string) => (members ?? []).filter((m) => m.user_id === id).map((m) => m.team_id);
   const reach = (i: ComplianceItem) =>
     (people ?? []).filter(
-      (p) => (!i.applies_roles.length || i.applies_roles.includes(p.role as Role)) && (!i.applies_teams.length || teamsOf(p.id).some((t) => i.applies_teams.includes(t))),
+      (p) =>
+        (!i.applies_roles.length || i.applies_roles.includes(p.role as Role)) &&
+        (!i.applies_teams.length || teamsOf(p.id).some((t) => i.applies_teams.includes(t))) &&
+        (!i.applies_people?.length || i.applies_people.includes(p.id)),
     ).length;
   const items = (itemRows ?? []) as ComplianceItem[];
   const teamName = new Map((teams ?? []).map((t) => [t.id, t.name]));
@@ -251,7 +259,7 @@ async function Items({ kind }: { kind: ItemKind }) {
     <>
       <Card className="p-5">
         <h2 className="mb-4 heading-sm">Add a {noun}</h2>
-        <ItemForm kind={kind} teams={teams ?? []} titles={titles ?? []} />
+        <ItemForm kind={kind} teams={teams ?? []} titles={titles ?? []} people={pickPeople} />
       </Card>
       {items.length === 0 ? (
         <p className="text-sm text-muted">Nothing here yet.</p>
@@ -270,7 +278,24 @@ async function Items({ kind }: { kind: ItemKind }) {
                   <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
                 </summary>
                 <div className="border-t border-line px-5 py-5">
-                  <ItemForm kind={kind} item={i} teams={teams ?? []} titles={titles ?? []} />
+                  <ItemForm kind={kind} item={i} teams={teams ?? []} titles={titles ?? []} people={pickPeople} />
+                  {(versions ?? []).filter((v) => v.item_id === i.id && v.version < i.version).length ? (
+                    <details className="mt-4 rounded-lg border border-line">
+                      <summary className="cursor-pointer px-4 py-2 text-sm font-semibold">Earlier versions</summary>
+                      <ul className="divide-y divide-line border-t border-line">
+                        {(versions ?? [])
+                          .filter((v) => v.item_id === i.id && v.version < i.version)
+                          .map((v) => (
+                            <li key={v.version} className="px-4 py-3 text-sm">
+                              <p className="font-semibold">
+                                Version {v.version} <span className="font-normal text-muted">· saved {new Date(v.saved_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
+                              </p>
+                              <p className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-muted">{v.body || "(no wording)"}</p>
+                            </li>
+                          ))}
+                      </ul>
+                    </details>
+                  ) : null}
                 </div>
               </details>
             </Card>

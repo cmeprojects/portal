@@ -39,6 +39,9 @@ export type NavAccess = {
   adminAreas?: string[];
   // Holds a staff-records grant (Staff access page).
   staffAccess?: boolean;
+  // cmeprojects Phase 4: prepares contracts (Staff details access), and has contracts of their own.
+  contracts?: boolean;
+  myContracts?: boolean;
 };
 
 export type Section = "tasks" | "cars" | "people" | "reports" | "settings" | "account";
@@ -76,6 +79,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       peopleManager && { href: "/settings/clients", text: "Clients" },
       requests && approver && { href: "/people/requests", text: "Staff requests" },
       access.seesCompliance && { href: "/compliance", text: "Onboarding" },
+      (admin || Boolean(access.contracts)) && { href: "/contracts", text: "Contracts" },
       !peopleManager && access.canInvite && { href: "/invite", text: "Invite staff" },
     ],
     reports: [
@@ -122,6 +126,7 @@ export function navFor(
     // cmeprojects: HR Pack items, listed under My account.
     ...(features.hr_requests !== false && role !== "system_admin" && role !== "new_starter" ? [{ href: "/requests", label: "My requests", match: ["/requests"] }] : []),
     ...(access.myForms ? [{ href: "/forms", label: "My forms", match: ["/forms"] }] : []),
+    ...(access.myContracts ? [{ href: "/account/contracts", label: "My contracts", match: ["/account/contracts"] }] : []),
     // cmeprojects: the system admin sees the Directory too.
     ...(features.hr_profiles !== false && role !== "new_starter" ? [{ href: "/people", label: "Directory" }] : []),
   ];

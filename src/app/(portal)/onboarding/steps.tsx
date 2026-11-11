@@ -261,7 +261,7 @@ export function DocumentStep({
 }
 
 // A drawn signature (finger, mouse or pen). Gives back a PNG when there's ink.
-function SignaturePad({ onChange }: { onChange: (canvas: HTMLCanvasElement | null) => void }) {
+export function SignaturePad({ onChange }: { onChange: (canvas: HTMLCanvasElement | null) => void }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const inked = useRef(false);

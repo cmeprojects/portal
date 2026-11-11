@@ -27,6 +27,8 @@ export type ComplianceItem = {
   needs_issue_date?: boolean;
   needs_number?: boolean;
   applies_titles?: string[];
+  // cmeprojects Phase 4: only these people (empty: everyone the other choices cover).
+  applies_people?: string[];
 };
 
 export const ITEM_COLUMNS =

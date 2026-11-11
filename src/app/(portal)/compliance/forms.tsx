@@ -22,7 +22,19 @@ function Result({ state }: { state: FormState }) {
 const ROLES_FOR_ITEMS: Role[] = ["new_starter", "support_worker", "team_leader", "manager", "staff_admin"];
 const check = "h-5 w-5 accent-[var(--brand-primary)]";
 
-export function ItemForm({ kind, item, teams, titles = [] }: { kind: ItemKind; item?: ComplianceItem; teams: { id: string; name: string }[]; titles?: { id: string; name: string }[] }) {
+export function ItemForm({
+  kind,
+  item,
+  teams,
+  titles = [],
+  people = [],
+}: {
+  kind: ItemKind;
+  item?: ComplianceItem;
+  teams: { id: string; name: string }[];
+  titles?: { id: string; name: string }[];
+  people?: { id: string; name: string }[];
+}) {
   const [state, action, pending] = useActionState(saveItem, null);
   // cmeprojects: Save is greyed out until something changes (and the title is filled in).
   const { ref, dirty, markClean } = useDirty();
@@ -153,6 +165,22 @@ export function ItemForm({ kind, item, teams, titles = [] }: { kind: ItemKind; i
               </label>
             ))}
           </div>
+        ) : null}
+        {people.length ? (
+          <details className="pt-1" open={Boolean(item?.applies_people?.length)}>
+            <summary className="cursor-pointer text-xs font-semibold">
+              Specific people{item?.applies_people?.length ? ` · ${item.applies_people.length} chosen` : " (optional)"}
+            </summary>
+            <p className="text-xs text-muted">Choose people here to send it only to them (as well as matching the choices above).</p>
+            <div className="grid max-h-56 gap-x-5 overflow-y-auto sm:grid-cols-2">
+              {people.map((p) => (
+                <label key={p.id} className="flex min-h-11 items-center gap-2 text-sm">
+                  <input type="checkbox" name="applies_people" value={p.id} defaultChecked={item?.applies_people?.includes(p.id)} className={check} />
+                  {p.name}
+                </label>
+              ))}
+            </div>
+          </details>
         ) : null}
       </fieldset>
       {item ? (

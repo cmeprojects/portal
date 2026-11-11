@@ -41,6 +41,7 @@ export async function saveItem(_: FormState, form: FormData): Promise<FormState>
     // cmeprojects (update 58): needed before working, document details, job titles.
     before_work: form.get("before_work") === "on",
     applies_titles: form.getAll("applies_titles").map(String).filter((t) => /^[0-9a-f-]{36}$/.test(t)),
+    applies_people: form.getAll("applies_people").map(String).filter((t) => /^[0-9a-f-]{36}$/.test(t)),
   };
   if (kind === "upload") {
     values.category = ["qualification", "certificate", "screening", "licence", "insurance", "identity", "other"].includes(text(form, "category")) ? text(form, "category") : "";

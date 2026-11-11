@@ -50,6 +50,7 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     enquiries: features.assistant === true && (await canSeeEnquiries()),
     tools: role === "manager" || role === "system_admin",
     staffAccess: role === "manager" && (await holdsGrant()),
+    ...(await contractsMenu(profile.id, role)),
     appsLabel: hasApps ? `${initialsOf(brand.companyName) || "Our"} Apps` : undefined,
   };
 });
@@ -74,4 +75,17 @@ async function formsMenu(role: Role, features: Record<string, boolean>): Promise
 async function holdsGrant(): Promise<boolean> {
   const { count, error } = await (await createClient()).from("access_grants").select("id", { count: "exact", head: true }).is("revoked_at", null);
   return !error && (count ?? 0) > 0;
+}
+
+// cmeprojects Phase 4: People → Contracts for people with Staff details access;
+// My contracts for anyone who has been sent one.
+async function contractsMenu(userId: string, role: Role): Promise<Pick<NavAccess, "contracts" | "myContracts">> {
+  const supabase = await createClient();
+  const [grants, mine] = await Promise.all([
+    role === "manager" || role === "staff_admin"
+      ? supabase.from("access_grants").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("area", "staff_details").is("revoked_at", null)
+      : Promise.resolve({ count: 0, error: null }),
+    supabase.from("contracts").select("id", { count: "exact", head: true }).eq("user_id", userId),
+  ]);
+  return { contracts: !grants.error && (grants.count ?? 0) > 0, myContracts: !mine.error && (mine.count ?? 0) > 0 };
 }
