@@ -77,6 +77,8 @@ replacing Supabase is a 4 to 8 week rewrite and isn't recommended.
   `node_modules/next/dist/docs/` before using new APIs. Run `npx next typegen`
   after adding routes.
 
+**Follow `docs/DEVELOPMENT-PROTOCOL.md` on every task** (credit conservation: smallest safe change, proportional testing, short reports, security never traded).
+
 ### Development standards (owner, 11 Nov 2026: apply to all new work)
 - Efficient database queries: no unnecessary requests, and never one query per
   employee or client.
