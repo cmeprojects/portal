@@ -1,0 +1,597 @@
+TABLE|admin_delegations|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|app_settings|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|assistant_chats|rls=true|force=false|acl={postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|assistant_chunks|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|assistant_documents|rls=true|force=false|acl={postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|assistant_messages|rls=true|force=false|acl={postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|assistant_questions|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}
+TABLE|assistant_settings|rls=true|force=false|acl={postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|audit_log|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|car_app_pins|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|car_clients|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwxtm/postgres,authenticated=arwxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|car_purposes|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwxtm/postgres,authenticated=arwxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|car_trips|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|cars|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwxtm/postgres,authenticated=arwxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|client_teams|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=ardxtm/postgres,authenticated=ardxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|compliance_alerts|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|compliance_items|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwxtm/postgres,authenticated=arwxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|compliance_opens|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|compliance_records|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|custom_alert_runs|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|custom_alerts|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|custom_client_targets|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|custom_entries|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|custom_features|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|custom_fields|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|daily_runs|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|delegation_rules|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|delegation_shares|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|demo_records|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|email_outbox|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|email_throttle|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|features|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|form_collaborators|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|form_completions|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|form_questions|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|form_recipients|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|form_responses|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|forms|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|invitations|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|job_titles|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwDxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|leave_periods|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|live_signals|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|notifications|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|organisation|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|people_change_requests|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|profiles|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|record_events|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|records|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|register_templates|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|registries|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwDxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|registry_fields|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwDxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|registry_managers|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|request_events|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|request_types|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rwxtm/postgres,authenticated=rwxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|requests|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|settings_drafts|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|shift_changes|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|sign_in_failures|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|staff_directory|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|staff_private|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|system_heartbeat|rls=true|force=false|acl={postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|task_alerts|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|task_attachments|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|task_events|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|task_helpers|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|task_views|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|tasks|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=rxtm/postgres,authenticated=rxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|team_leaders|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|team_members|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|teams|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|website_enquiries|rls=true|force=false|acl={postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+TABLE|work_overrides|rls=true|force=false|acl={postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}
+FUNC|acknowledge_policy(p_item_id uuid, p_name text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=a6d8e77e535acd3c465582593a28fd5f
+FUNC|active_override(p_user uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=dcb8a523a5e32d54889e1fc990bba3e5
+FUNC|add_change_request(p_kind text, p_user_id uuid, p_team_id uuid, p_from jsonb, p_to jsonb, p_reason text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=dfb39f0fe0f98ffe5e85fa90e88d6f3e
+FUNC|add_creator_as_manager()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=ddc48533a281fb05ed09cd8baa215282
+FUNC|add_register_from_template(p_key text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=5df771328c57c9e9f0f057815499dfda
+FUNC|add_task_attachment(p_task_id uuid, p_path text, p_name text, p_size bigint)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=367f209a261645e71e3f34302a8af2e1
+FUNC|add_task_comment(p_task_id uuid, p_body text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=e5b789e314a4ccb98c246f0bcc2488f7
+FUNC|add_task_helper(p_task_id uuid, p_user_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=3ae71f592d35b545949a9a946a943bbf
+FUNC|apply_conditional_role(p_request_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=5577aa409b1d7bc72c218a8d5cd6a3a3
+FUNC|apply_request(p_request uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=d8d5cb95ec75687816b52f6976f01a8b
+FUNC|ask_form_question(p_form uuid, p_question text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=faca9ca72c7a9e67cb6e8bd902cb5d9e
+FUNC|assistant_chat_touch()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=70a9ebfc5b57ac12cbc73cda66ecf0e4
+FUNC|assistant_index(p_document uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2b16dd7a19e9a582b416c1e2ee3817d5
+FUNC|assistant_search(p_query text, p_audiences text[], p_limit integer)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=950fb0f0e4468da302f1d442471ec972
+FUNC|assistant_touch()|definer=false|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2087ee763cae5a840d5f9851ac4e1eb8
+FUNC|assistant_usage()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=c544d18f5f84fd63e0fe9e763e571995
+FUNC|before_work_missing(p_user uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=a493fa0cfa36d5410c1e9803b6ea6ffa
+FUNC|block_audit_changes()|definer=false|vol=v|cfg=|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=f72825e387773f1bdde5429aea8a387e
+FUNC|can_act_on_request(p_request uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=781c4595fc5fa8f0fe3ee102ebe5b891
+FUNC|can_admin_area(p_area text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=6b2645dee5752f0760f43b1788dc475f
+FUNC|can_approve_task(p_task_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=5ac590c822673b460e437a69bb888959
+FUNC|can_build_features()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=8450bb53a1eea3d0c0bb65ffd5af99b6
+FUNC|can_edit_task(p_task_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=d524153dec15b3809d78bce205a17ee4
+FUNC|can_fill_feature(p_feature uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=16b501e1ddcb088223c39ee6c659e9b2
+FUNC|can_fill_form(p_form uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=13dbd5e42212818aab76569099c92769
+FUNC|can_grant_clearance()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=7fca5017963e867bbbb1fec5cae7c72e
+FUNC|can_help_sign_in(p_user uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=0f01bd50937f709cbd78b0ee57f38550
+FUNC|can_invite()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=7111cc7fe8b6b29170c4530f60294fc9
+FUNC|can_make_forms()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2c7b13e6778ff2e2d56660cd1c4ca35d
+FUNC|can_manage_cars()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=18d67cfbde39936c340616d112360fcb
+FUNC|can_manage_compliance()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=e4af5dfca2b4e47c55e4b7bb2ec47c35
+FUNC|can_manage_feature(p_feature uuid, p_what text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=60849b795a597b4681ba0b8d44bd5b0e
+FUNC|can_manage_form(p_form uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2d08c027169944305997d800524d4aa1
+FUNC|can_manage_people()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=17a6dfe671cccfb2d8828c17a9cc5487
+FUNC|can_manage_role(p_role app_role)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=47cb936feb8d937113f07a7f72219e84
+FUNC|can_see_car_reports()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=0331b037d067f160953c025522caeddc
+FUNC|can_see_enquiries()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=ab5ea425f64ce7d3a4f60a84febcae66
+FUNC|can_see_feature(p_feature uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=021cdf27a2b90f61eccb45ead7f87282
+FUNC|can_see_scoreboard()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=a4b657ac0d9664ba6651f08c163e01e6
+FUNC|can_see_task(p_task_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=f74f49d4e0091d3a9ae97986310fb821
+FUNC|can_setup_registry(p_registry_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=142f245c357267f238a0db15dcdf6e86
+FUNC|can_take_tasks(p_user_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=8c009c4c03190b8f79411384cdae2cce
+FUNC|can_work(p_user uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=2ed69c8c515e4135aac7ded3218fba1b
+FUNC|car_board()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b42038dc3cba09eb14c4c0a9e98aecef
+FUNC|car_client_options()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=ffc12279978b935342c245f81fdc443f
+FUNC|car_managers()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=22053d3cfdddf083e84a29300040d730
+FUNC|car_setting(p_key text, p_default text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=43121858ac86021cd6a9a7028c27b380
+FUNC|cars_on()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=bfa4c9923df588c6174974f079556331
+FUNC|check_onboarding_complete(p_user uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=3cb6298e1f243f7aca1ce3b115e672b9
+FUNC|clean_custom_entry(p_feature uuid, p_data jsonb, p_old jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=f2135dc04e3988900987b3cc4ef240ef
+FUNC|clean_details(p_registry_id uuid, p_details jsonb, p_existing jsonb)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=3839918b97cd231ffba28b23bf1d6c70
+FUNC|client_options()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=f402e80cd0ff5b53d5fa2957724d358f
+FUNC|clients_to_pick()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=9f2b072a30f7b3de28ffe8d7679d269b
+FUNC|complete_training(p_item_id uuid, p_completed_on date, p_provider text, p_path text, p_name text, p_expires date)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=3868e03c8d3852df492c09248db99c79
+FUNC|compliance_applies(p_item compliance_items, p_role app_role, p_teams uuid[])|definer=false|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=779c31e90a0c17f5b28a5b8e4239bb7f
+FUNC|compliance_applies(p_item compliance_items, p_role app_role, p_teams uuid[], p_title uuid)|definer=false|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=e6640aed9fe8d4c75f0cb1d43d38be45
+FUNC|compliance_is_verified(p_user uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=c60769d361d3c97cfd0cfa87a8e6e16a
+FUNC|compliance_item_announce()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=515e8fb9fdc58130dfd29aedbadb13d0
+FUNC|compliance_items_guard()|definer=false|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=941d16ef5513f7a21dfb04878f9c8d82
+FUNC|compliance_items_touch()|definer=false|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=1c4318bee4240d4113d86fad7eb15623
+FUNC|compliance_record_changed()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=859a94e017dbdef417a8019f7d43e019
+FUNC|compliance_status(p_user uuid, p_role app_role, p_teams uuid[])|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=4e8f1c49c03438468fc4f37599461411
+FUNC|compliance_status_all(p_user uuid, p_role app_role, p_teams uuid[])|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=218057789175d090d388c253fa8a98ee
+FUNC|confirm_compliance_item(p_item_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2abed18cd67c53e7d32cae02c1cccedb
+FUNC|correct_car_trip(p_trip_id bigint, p_start_odo integer, p_end_odo integer, p_purpose text, p_client_id uuid, p_reason text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=e2f7b65d30a29e7a83fdb8d777866498
+FUNC|correct_custom_entry(p_id bigint, p_data jsonb, p_reason text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=17c970249534dcbcf7e33b9e263c284f
+FUNC|create_record(p_registry_id uuid, p_title text, p_details jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=e6af8b96fde6f50ae2007263fecc3177
+FUNC|create_task(p_title text, p_registry_id uuid, p_assigned_to uuid, p_description text, p_priority task_priority, p_due_date date, p_helpers uuid[], p_details jsonb, p_date_reported date, p_review_date date, p_parent_task_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=220aa3fa76edb17e33e313a95d8c43a0
+FUNC|custom_client_today(p_feature uuid, p_client uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=d02fea5c0c4347a0fa0b30d330d34957
+FUNC|custom_day_total(p_entry custom_entries, p_with boolean)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=ad79699f692c0e5c9334018634dcd49f
+FUNC|custom_feature_live(p_feature uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=407028543e8f8792419a5d25d5b26d3d
+FUNC|decide_change_request(p_request_id uuid, p_approve boolean, p_note text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2b45f341b61810b2139e573b5c34b1f9
+FUNC|default_org_id()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=fed96b15ac25d00b9aa788122e3b73b0
+FUNC|delete_tasks_completely(p_ids uuid[])|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=95d63245a1d86e67dd2a741513ebf12e
+FUNC|delete_unused_registry(p_registry_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=7b69ac6c2105e4028e479e9ed3388a5b
+FUNC|demo_clear()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=59ae6729e22c291fb114ddf4bffb2543
+FUNC|demo_clear_all_tasks()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b115d2da703724a4ef3d0ee36f47f25c
+FUNC|demo_load()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=647210661b82a62e9fd06a7b98a6a7ec
+FUNC|deploy_drafts()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=acbfd9191bc20ec03494c9dba587d489
+FUNC|discard_drafts()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=e5f782c972451d063da725d08e731ab6
+FUNC|drop_delegation_on_change()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=916927f58d667a0b1e0382e348a9d860
+FUNC|end_work_override(p_id bigint)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=92699deeb8075aaed6df444a7dfc9f38
+FUNC|escalate_requests()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=adcbf9e73c18cf79046a8d1a50b40568
+FUNC|escalate_task(p_task_id uuid, p_reason text, p_to text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=511cc5d8d28861b0fa84777bbeb1b5c2
+FUNC|feature_enabled(p_key text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=1f9c3b3dd4dcd5b44adec1fd3f923e5e
+FUNC|feature_live(p_key text)|definer=false|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=8204f586236997211f15dd2e2b44d71d
+FUNC|filter_email()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=9768d616a2b173bab892d2a098dc18e2
+FUNC|filter_notification()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=06f176cbf55a825f40e2bcf58e6df41e
+FUNC|finish_onboarding_task(p_user uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=fcd8a3f60c09e7e465d32d375dfe4d53
+FUNC|fire_custom_alerts()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=908fd37292aa04fffcac2b791eddd153
+FUNC|form_contact(p_form uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=ec5a207002b606ad206779d6d2e1db52
+FUNC|form_out_of_compliance(p_form uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=20e8e55dc5568d97b3099f36419a10ca
+FUNC|form_people(p_form uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=6fe7dfa7a1b8d5e223070a8ca8a90884
+FUNC|form_to_compliance(p_form uuid, p_roles app_role[], p_teams uuid[])|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=0879d77530b4229d0a9e2bedf9858c69
+FUNC|give_conditional_role(p_user_id uuid, p_role app_role, p_title_id uuid, p_teams uuid[], p_reason text, p_deadline date)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=32f2ea92589580aa8f64e86d2f48275e
+FUNC|grant_clearance(p_user uuid, p_note text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=a75e6860344a355a0950e5e75fd26f84
+FUNC|grant_work_override(p_user uuid, p_reason text, p_until date)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2b229c6cd4f25538fca7fa185b204c69
+FUNC|guard_avatar_ref()|definer=false|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=cc0b618930821d1a480c8e67cc277e5d
+FUNC|guard_cleared_tasks()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=fbeeb2c6f0a708098b63b7d51e94e245
+FUNC|guard_cleared_trips()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b7ca9ac508ff15c498e9a958482ab69b
+FUNC|guard_feature_change()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=31fe9789b92f68eb7230ae8ae9ffbe75
+FUNC|guard_invitation()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=a267a7a87679183defd7a018d725bb2b
+FUNC|guard_job_title()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=946fb4f41c3697f15a22ecc25c9d6200
+FUNC|guard_mfa_exempt()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=c6e90e3a387afedace6b9c3d3bf9023d
+FUNC|guard_profile_update()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=89aeacc500b8cbc4d817382e572a4a47
+FUNC|guard_registry()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=5b91eb930d3189b7dd540225f787d922
+FUNC|guard_registry_field()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=3682f34615819968f6d0ceb163b43d94
+FUNC|guard_task_people()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=97687d36b5677d0a0fa6ebf5a139a58b
+FUNC|guard_team_leader()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=7fa307d827dcde0027e2cc56b727d5ef
+FUNC|guard_team_member()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=88cada4488f9304ccfffcec8b9e674f8
+FUNC|handle_new_user()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=4bcf4df43f94889d054cd7fcb08354d4
+FUNC|has_role(roles app_role[])|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=55123bfd42a066b99c392f80206de7fd
+FUNC|is_member()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=bc48429493fe8658c47e81b45236059c
+FUNC|is_staff_admin()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=245b7a7b6193952770ba3b39a0c2dffd
+FUNC|is_system_admin()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b6cc4174f8e87d53db2b035a26d5c176
+FUNC|leads_user(p_user_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=589e0356befda99d87db022848474f0a
+FUNC|limited_task_guard()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=36e0516cc3c068b7ada2e49ca6fd0953
+FUNC|live_value(p_kind text, p_key text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=74587628ca24871e3fac6b7067859749
+FUNC|local_today()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=87765dff65efcba29ce2f1ceddfb7856
+FUNC|log_admin_action(p_action text, p_user_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b000cb58eee13b998bd742ba2c33a75a
+FUNC|log_car_setup()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=1c1fa30affc60735b6f651ed39ad29dd
+FUNC|log_feature_setup()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=ea8a4b464f0e017d7d1a24612cf0b30b
+FUNC|manages_registry(p_registry_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=83a44d27fcc694146e922074fd750508
+FUNC|mandatory_training_needs_certificate()|definer=false|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2760310a0526c88575f531a2149ea7af
+FUNC|mark_all_notifications_seen()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=6b8430b61cb995f25a367ea49ca46688
+FUNC|mark_all_tasks_seen()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=aea1bc2604c8d568f3c2b62309ff77c7
+FUNC|mark_joined()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=c612cabaa8f03a673604cff9c20eabd1
+FUNC|mark_notification_seen(p_id bigint)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=04abe03c5c7af641b460f8d3f64cb8e0
+FUNC|mark_request_updates_seen(p_kind text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=0677de0b63898924cebef00f758d6275
+FUNC|mark_task_seen(p_task_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=7eb22784c933558764f0433aaaa64c15
+FUNC|may_change(p_kind text, p_key text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=98ffb5ff3581e8ce6dff12b1b242d48a
+FUNC|mfa_ok()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=cdc2771cc34bfe7e10d33b752fca3f05
+FUNC|my_access()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=6904d090986c3e9002d8e9a6e794d4fc
+FUNC|my_admin_areas()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=67ec9ac919ee2fe92973a638fe08a3c8
+FUNC|my_due_alerts()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=d23d35018b185124d248509d7d5449f3
+FUNC|my_forms_to_fill()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=16af140a63a20486fe07eeec01061af5
+FUNC|my_name()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=f632c84c5d5e7ae3beee27b94950082a
+FUNC|my_new_tasks()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=a7166e30e8add62cda4e3e899bcd755e
+FUNC|my_request_updates()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=94917e56b7c18de5ae387ba256374e87
+FUNC|my_role()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=9f7997a4cae93bcda46ae069f70c88d7
+FUNC|my_session_active()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=795a4266eb46a6896c91510c393b4292
+FUNC|my_team_clients()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=52ae2803c8f4347a194f1373735a10b7
+FUNC|new_enquiry_count()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=d0c4b4e44bf1c6bb43ceeb8584a61b50
+FUNC|next_business_day(p_from date)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=0f8769006d785e6ca1f594caa0aa18b2
+FUNC|notification_feature(p_code text)|definer=false|vol=i|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=bb813d9b325f235b57e822a294f349e7
+FUNC|notification_on(p_code text, p_channel text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=95f9b47953bcde93f073347f8c757c88
+FUNC|notify(p_user uuid, p_kind text, p_title text, p_body text, p_href text, p_email boolean)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=99967d3391608d359bf2a78d35e564a9
+FUNC|notify_many(p_people uuid[], p_kind text, p_title text, p_body text, p_href text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=06d35f0455bf43b18553fa268d822ae0
+FUNC|notify_role_changed()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=bb08613acfe2dde1a0c8f84180e8edfd
+FUNC|notify_task_people(p_task_id uuid, p_kind text, p_title text, p_body text, p_email boolean)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=61826778e90069b7089274f870e72b5c
+FUNC|onboarding_missing(p_user uuid, p_role app_role, p_teams uuid[])|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b35045cba0290769da74ec0681a456d1
+FUNC|open_compliance_item(p_item_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=978fdfaaba8190e9918663c0efe754d3
+FUNC|people_admins()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=bb3ff137fd804d154010bfc54923812c
+FUNC|photo_from_onboarding()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=cc243d17ee586a05422d669228a10486
+FUNC|profile_complete(p_user uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=7f6e19059e24e6a500ff08cf87e3a471
+FUNC|profile_required(p_user uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=8200710f992e6c50630b6d90ee746663
+FUNC|profile_saved_check_onboarding()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=5282b908f769cfad5e7ca14dfe20feeb
+FUNC|queue_task_email(p_template text, p_task_id uuid, p_to uuid, p_cc uuid[], p_data jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=8a5642739426cc47fd926c2e8bd7bed0
+FUNC|reassign_task(p_task_id uuid, p_to uuid, p_reason text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=1616b165354c71a4152015c4da93002f
+FUNC|refresh_compliance_verified(p_user uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=035f044229f77f093529e49eb66e894b
+FUNC|register_open_counts()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=776d978c80cdc01bf0d71b0e7bcbc707
+FUNC|register_overview(p_registry_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=4479c3991202ce3d9616b6fdcaf02333
+FUNC|remind_form(p_form uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b8cc6af52d882e2912d80f20e859e48e
+FUNC|remove_avatar(p_user uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=8a79a3456ee89e97b319bd0f0cde9396
+FUNC|request_action(p_request uuid, p_action text, p_comment text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=26645c6d9c24486b93d7cd8d3e633b79
+FUNC|request_approvers(p_request uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=706e5920d68e64d35b2738901f829b76
+FUNC|request_ref(p_request uuid)|definer=false|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=9b64b086e7517806ec078d0785f138c3
+FUNC|request_replacement(p_record_id bigint, p_note text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=aeb439aefde8294f3a938584a91cd905
+FUNC|request_role_change(p_user_id uuid, p_to_role app_role, p_title_id uuid, p_reason text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=3089eb51b7eb2a63cf14e060352df886
+FUNC|request_team_change(p_team_id uuid, p_members uuid[], p_leader uuid, p_reason text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=05725a0563cf424bd5b2083f643ffeec
+FUNC|resolve_people(p_list text[], p_requester uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=0c7ce8b47b63c04efc648668360b7f0e
+FUNC|return_car_trip(p_trip_id bigint, p_end_odo integer, p_photo_path text, p_note text, p_where text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=fb2f41b30a540be350ec89a2ffd15b43
+FUNC|review_compliance_upload(p_record_id bigint, p_accept boolean, p_note text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=815af6afe33351fb5e202079bc0d4d9f
+FUNC|revoke_clearance(p_user uuid, p_reason text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=bdd2fc9caaf48cebbfddb13be28aff2d
+FUNC|role_given_finish_onboarding()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=6a39e97c55cc4e5a20739c1904013bc9
+FUNC|rule_on(p_key text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=86cebea663af70a0124a8b588e0faf15
+FUNC|run_car_alerts(p_now timestamp with time zone)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=977e8b50c566f55fba29051d860368fe
+FUNC|run_compliance_alerts()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=3056933b1dedf3333fc432024ddf6e51
+FUNC|run_due_alerts(p_now timestamp with time zone)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=9ddcc5e346f4f039ad55934a0acc5a2f
+FUNC|run_feature_time_alerts()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=66282a42743245a523bb0bb8b4af0c76
+FUNC|save_draft(p_kind text, p_key text, p_value jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=3522b7a4e522620415eefeb164ed81ca
+FUNC|save_profile(p_user uuid, p jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=8fc9c81d2059cf64f4580773559b9ded
+FUNC|sees_custom_entry(p_feature uuid, p_by uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=e49c5a878dc8d05000bf6dde2b921817
+FUNC|sees_register_overview()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=671d74c8fbc0f64ad6fc778887982f2c
+FUNC|send_due_alert(p_task_id uuid, p_user_id uuid, p_step text, p_due date)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=77d567203404b893fd320d9efc7e6ad2
+FUNC|send_form(p_form uuid, p_users uuid[], p_team uuid, p_everyone boolean)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=6cbf7ccbf16399f40f5463d291326b46
+FUNC|set_custom_field_options(p_field uuid, p_options jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=a68b0c4dfd64ace67cc6c29df20f759e
+FUNC|set_custom_targets(p_feature uuid, p_default numeric, p_targets jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=6b432b07c07ea9d0424568abcdbdedd2
+FUNC|set_delegation(p_user_id uuid, p_areas text[])|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=90af175b7a1482b1928a716c926405b0
+FUNC|set_mfa_exempt(p_user_id uuid, p_exempt boolean)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=a6c51ce906bcdd858083d7f61308016f
+FUNC|set_my_avatar(p_ref text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=cdb8de65f50ff44820f99697253ae746
+FUNC|set_task_client(p_task uuid, p_client uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=9a760c84319f1252eb0ae7ead18eef8a
+FUNC|set_task_status(p_task_id uuid, p_status task_status, p_note text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=19e484c9a93d6f664f534b5488b6238d
+FUNC|set_team(p_team_id uuid, p_members uuid[], p_leader uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=5b6eed0dc34f0b63aaa7632c3c9e4277
+FUNC|setting_area(p_key text)|definer=false|vol=i|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=46dde6c054d2dbb959c78d73df722d4a
+FUNC|setting_roles(p_key text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=26e3ae5e5f6b58602cfe9c6d9cdbfa96
+FUNC|settle_escalation()|definer=false|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=20de9029f7a51c3b2eeca44836d89e28
+FUNC|share_area(p_area text, p_user uuid, p_on boolean)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=667590e6e49dbd79c2b4afbd033bdc9d
+FUNC|sign_agreement(p_item_id uuid, p_name text, p_signature_path text, p_device text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=ea7e0a4318491ef23c278b60f38b8047
+FUNC|sign_in_guard(p_email text, p_event text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=69062e5ec8e4a5bb2af2cd6b07778b76
+FUNC|sign_out_everyone()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b4c9059cbb05db1b484cda9aa1c2557a
+FUNC|sign_out_everywhere(p_user_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=5a9764f6f7847836842517213159e623
+FUNC|sign_out_my_other_devices()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=6e51e71b4f8c5b1ae76c360a58763f44
+FUNC|signal_change()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=b36c9f11ca23557c6f4369112231d5fb
+FUNC|staff_scoreboard(p_days integer)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2af9d9770915041ec297f2ce29073445
+FUNC|start_car_trip(p_car_id uuid, p_purpose_id uuid, p_client_id uuid, p_start_odo integer, p_details text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=243048800cf292cb259664d09eb1c9eb
+FUNC|submit_compliance_upload(p_item_id uuid, p_path text, p_name text, p_expires date)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=74dea565618465f23c356831777c13fe
+FUNC|submit_compliance_upload_for(p_user_id uuid, p_item_id uuid, p_path text, p_name text, p_expires date)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=0403c997f8f7ebdb0db823eba2de216b
+FUNC|submit_custom_entry(p_feature uuid, p_data jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=2ec1e4599706049477fd2e9868654aab
+FUNC|submit_document(p_item_id uuid, p_path text, p_name text, p_expires date, p_issued date, p_number text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=90747fe9224ca9ee03310da2270dc537
+FUNC|submit_form_response(p_form uuid, p_answers jsonb, p_send boolean, p_anonymous boolean)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=037a93589eb6eb964d8c11d0f037650d
+FUNC|submit_request(p_type text, p_subject text, p_details jsonb, p_start date, p_end date, p_swap_with uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=c203db113f452b6f040a3adc19986c4e
+FUNC|sync_title_and_role()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=f8286c8770ea8c42968f0c9c6d154096
+FUNC|system_health()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=c08e13c53f736ca581ee9f044f27595c
+FUNC|take_over_task(p_task_id uuid, p_reason text)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=435603246dd05a50af98e366cd28eba2
+FUNC|take_ref_number(p_registry_id uuid)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=b5d1702a0d8b23ca173cd1a4d1f09248
+FUNC|task_client(p_task uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=1c19bd464266484846555f7d42935103
+FUNC|task_folder_ok(p_name text)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=524c88011de930d8ee90c2f209d691c2
+FUNC|task_label(p_task_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=7109b18f89c2ef021db479199bcc857a
+FUNC|task_managers(p_task_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=527d24fa2462315455fd0c2b843aa83f
+FUNC|task_missing_fields(p_task_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=544c445ee8aa56a24b92077fffa212d0
+FUNC|task_people(p_task_id uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=ec6dfe4c8d89bf96324648232dca407b
+FUNC|task_team_leaders(p_task_id uuid, p_also uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=46635644c82ad05d8c655af6f3f874ce
+FUNC|tidy_teams_after_role_change()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=bd85f1d89096bd565e19845dd3f6ff2a
+FUNC|touch_car()|definer=false|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=1c4318bee4240d4113d86fad7eb15623
+FUNC|touch_car_from_trip()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=abb28925acd4df70955cd402b247e876
+FUNC|track_setting_change()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=26a0976056b02d897ab4269786fdd51f
+FUNC|undo_car_return(p_trip_id bigint)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=ac44ee0f9381df818a97eb23fea0d3b6
+FUNC|undo_car_start(p_trip_id bigint)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=b8884e39a9b977ddae2582780c1e852d
+FUNC|undo_custom_entry(p_id bigint)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=4b8629d29951ade33b6dfd0f81559576
+FUNC|update_record(p_record_id uuid, p_title text, p_details jsonb, p_archived boolean)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=04e9eb6a0261bb0d4b414e557e169352
+FUNC|update_task_details(p_task_id uuid, p_title text, p_description text, p_priority task_priority, p_due_date date, p_date_reported date, p_review_date date, p_outcome text, p_details jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=cceeed3322f2be81dd330c2b0b2d7cdb
+FUNC|website_enquiry_notify()|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=8d047fc668a401f56a31a8e4f0e1d5f4
+FUNC|website_front_page()|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=474b424b54f5488f4456b9ccee32eae8
+FUNC|work_status(p_user uuid)|definer=true|vol=s|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=f49a135e72f98739d03d41e26baa0348
+FUNC|working_days_between(p_from date, p_to date, p_weekdays_only boolean)|definer=false|vol=i|cfg=search_path=""|owner=postgres|acl={=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}|body=62db576d48a28be1ef664dd6ce9870c1
+FUNC|write_audit(p_action text, p_entity text, p_entity_id text, p_details jsonb)|definer=true|vol=v|cfg=search_path=""|owner=postgres|acl={postgres=X/postgres,service_role=X/postgres}|body=9643a1259ce8ab2c984ce82c23c9729a
+TRIG|app_settings|app_settings_track|85ff4e1deee74f655fb521177cb03b9e|enabled=O
+TRIG|assistant_messages|assistant_messages_touch|2b55aa1aa78ffd0aa4ac1e5cfc6f83f0|enabled=O
+TRIG|assistant_settings|assistant_settings_touch|3cdbeb74c61e009d6a1ab57df855b17b|enabled=O
+TRIG|audit_log|audit_log_append_only|1cd346c3b3fd582f1409915a6137d203|enabled=O
+TRIG|audit_log|audit_log_no_truncate|b117b7fe7041b8ddf6fbb98aee89813e|enabled=O
+TRIG|car_clients|car_clients_log|0cbd976703d8705dc5e0c44044c96e1f|enabled=O
+TRIG|car_purposes|car_purposes_log|e117f56a8bb72ddbe542ce236c2ff31b|enabled=O
+TRIG|car_trips|car_trips_touch_car|856dcee45de5619ca5d6eeabb0880cc6|enabled=O
+TRIG|car_trips|guard_cleared_trips|8c396fa207454e44997fb30327dc061a|enabled=O
+TRIG|cars|cars_log|5698122a45c6723343aa70afb488fd73|enabled=O
+TRIG|cars|cars_touch|2786e0a8849fc4785f5ccf22a23de208|enabled=O
+TRIG|compliance_items|compliance_items_announce|96d374040b8808fb177d1024f8201d33|enabled=O
+TRIG|compliance_items|compliance_items_guard|6bae8311a3d4b49267fb200c23303b4b|enabled=O
+TRIG|compliance_items|compliance_items_touch|d1b8d5e0345e906200dd067a0a35e4a3|enabled=O
+TRIG|compliance_items|mandatory_training_needs_certificate|2ad80d15502639c791f63d8ed11952f4|enabled=O
+TRIG|compliance_records|compliance_record_changed|40b728cb96df9b680c52f3d2012b6a92|enabled=O
+TRIG|compliance_records|photo_from_onboarding|775ef438d3172ebd0b1b534cab6b1e79|enabled=O
+TRIG|custom_alerts|custom_alerts_log|45f9aed751b7d545134639207d9c97d9|enabled=O
+TRIG|custom_entries|custom_entries_alerts|82003616d5c4fbad3766bced90b4ab12|enabled=O
+TRIG|custom_features|custom_features_log|c18c59182988bc011e5380da7fd2d539|enabled=O
+TRIG|custom_features|custom_features_signal|9099ee53d91353aad7bc8f4f4887a16a|enabled=O
+TRIG|custom_fields|custom_fields_log|639dcc350cf586dc444a91d36a5a6459|enabled=O
+TRIG|email_outbox|email_outbox_filter|9c099a88cd5c5eb5f979824c43a1cfdf|enabled=O
+TRIG|features|features_guard|c19d93a7c15743045bdc3129bcef94b9|enabled=O
+TRIG|features|features_track|7c24c62244923d987aaae07343d69ace|enabled=O
+TRIG|forms|forms_log|348fc2f15a9ba19e34f14306f078b092|enabled=O
+TRIG|invitations|invitations_guard|f807310fe2060551abe46d3e901edc9c|enabled=O
+TRIG|job_titles|job_titles_guard|1aefa6bbc4220fc8a0c05ea9ba683c32|enabled=O
+TRIG|notifications|notifications_filter|b10c21f1ec58c40ce8d989d6d2edce9f|enabled=O
+TRIG|profiles|guard_avatar_ref|e3795ed4cbe2ff555c5abd72f2afc62a|enabled=O
+TRIG|profiles|profiles_a_sync_title|14373d759b0fe7c86f2ca3e55c75b1cb|enabled=O
+TRIG|profiles|profiles_access_signal|e5311a243ca396f6d9fac20295a42150|enabled=O
+TRIG|profiles|profiles_drop_delegation|c3dd1d5acf65a29b03588edf707bbfae|enabled=O
+TRIG|profiles|profiles_guard_mfa_exempt|a877eda255aa6c73001868c152e9a6b4|enabled=O
+TRIG|profiles|profiles_guard|87e5a6717a01094f67aaaee3ab0bde03|enabled=O
+TRIG|profiles|profiles_role_changed|f4c79310b2176c3d77dfaa4b0914548b|enabled=O
+TRIG|profiles|profiles_tidy_teams|8f97c06e932cb693b7357bcbd811f83e|enabled=O
+TRIG|profiles|role_given_finish_onboarding|d181717887e13187422ecdbc14b4f041|enabled=O
+TRIG|record_events|record_events_append_only|5cfc2f261dac77f556edb514b2e94a13|enabled=O
+TRIG|registries|registries_creator_manager|0c0937b91d75de652b34881e48e97578|enabled=O
+TRIG|registries|registries_guard|48cfc718b08346007b4801b586bea83b|enabled=O
+TRIG|registry_fields|registry_fields_guard|4e8a6d0e8acfaeaa819608f4822bf6e3|enabled=O
+TRIG|staff_directory|profile_saved_check_onboarding|7775565a2697483e47507f691374d962|enabled=O
+TRIG|staff_private|profile_saved_check_onboarding|6a0bcdf42ebea804d7deec1316248bba|enabled=O
+TRIG|task_events|task_events_append_only|50d3d9509034608d0e9727d669fc9a9d|enabled=O
+TRIG|task_events|task_events_no_truncate|97597063f0aabd56a138769414148f94|enabled=O
+TRIG|task_helpers|task_helpers_people_guard|63d95034025481b91b81e5e279715c59|enabled=O
+TRIG|tasks|guard_cleared_tasks|dbc2c105b1f8e93f5a564eabea5941b5|enabled=O
+TRIG|tasks|limited_task_guard|1adcabec2a90dc77741dde895ae03ee1|enabled=O
+TRIG|tasks|tasks_people_guard|ba486a67df6652d51e64e9d7390c2c46|enabled=O
+TRIG|tasks|tasks_settle_escalation|eecbc6661b28070125db1c8503b6ee4c|enabled=O
+TRIG|team_leaders|team_leaders_guard|6776eff755b5dfdfbe933ccd1eb85144|enabled=O
+TRIG|team_members|team_members_guard|9aa43e0c0563a33257e6d71aa3231e6b|enabled=O
+TRIG|website_enquiries|website_enquiries_touch|23092b8a6ce286a21faf03dd17f81791|enabled=O
+TRIG|website_enquiries|website_enquiry_notify|b1d825a69ab92eb01b3fb22328af8d10|enabled=O
+POLICYMETA|admin_delegations|system admin and the delegate read delegations|SELECT|PERMISSIVE|authenticated
+POLICYMETA|app_settings|anyone reads public settings|SELECT|PERMISSIVE|anon,authenticated
+POLICYMETA|app_settings|car managers set the client field|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|app_settings|delegated managers edit their settings|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|app_settings|managers change the SLA|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|app_settings|system admin edits settings|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|assistant_chats|assistant_chats_own|ALL|PERMISSIVE|authenticated
+POLICYMETA|assistant_documents|assistant_documents_all|ALL|PERMISSIVE|authenticated
+POLICYMETA|assistant_messages|assistant_messages_own|ALL|PERMISSIVE|authenticated
+POLICYMETA|assistant_questions|assistant_questions_read|SELECT|PERMISSIVE|authenticated
+POLICYMETA|assistant_settings|assistant_settings_read|SELECT|PERMISSIVE|authenticated
+POLICYMETA|assistant_settings|assistant_settings_write|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|audit_log|delegated managers read the change log|SELECT|PERMISSIVE|authenticated
+POLICYMETA|audit_log|system admin reads the audit log|SELECT|PERMISSIVE|authenticated
+POLICYMETA|car_clients|car managers add clients|INSERT|PERMISSIVE|authenticated
+POLICYMETA|car_clients|car managers change clients|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|car_clients|car managers see clients|SELECT|PERMISSIVE|authenticated
+POLICYMETA|car_clients|people managers add clients|INSERT|PERMISSIVE|authenticated
+POLICYMETA|car_clients|people managers change clients|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|car_clients|people managers see clients|SELECT|PERMISSIVE|authenticated
+POLICYMETA|car_purposes|car managers add purposes|INSERT|PERMISSIVE|authenticated
+POLICYMETA|car_purposes|car managers change purposes|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|car_purposes|staff see purposes|SELECT|PERMISSIVE|authenticated
+POLICYMETA|car_trips|drivers see their trips, reports see all|SELECT|PERMISSIVE|authenticated
+POLICYMETA|cars|car managers add cars|INSERT|PERMISSIVE|authenticated
+POLICYMETA|cars|car managers change cars|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|cars|staff see cars|SELECT|PERMISSIVE|authenticated
+POLICYMETA|client_teams|members see which team looks after which client|SELECT|PERMISSIVE|authenticated
+POLICYMETA|client_teams|people managers link clients to teams|INSERT|PERMISSIVE|authenticated
+POLICYMETA|client_teams|people managers unlink clients from teams|DELETE|PERMISSIVE|authenticated
+POLICYMETA|compliance_items|compliance managers add items|INSERT|PERMISSIVE|authenticated
+POLICYMETA|compliance_items|compliance managers change items|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|compliance_items|members read onboarding items|SELECT|PERMISSIVE|authenticated
+POLICYMETA|compliance_opens|people see their own opens; compliance managers see all|SELECT|PERMISSIVE|authenticated
+POLICYMETA|compliance_records|read your own records, or as compliance manager|SELECT|PERMISSIVE|authenticated
+POLICYMETA|custom_alerts|the builder manages alerts|ALL|PERMISSIVE|authenticated
+POLICYMETA|custom_client_targets|targets follow their feature|SELECT|PERMISSIVE|authenticated
+POLICYMETA|custom_client_targets|the builder sets targets|ALL|PERMISSIVE|authenticated
+POLICYMETA|custom_entries|entries are seen by who may see them|SELECT|PERMISSIVE|authenticated
+POLICYMETA|custom_features|staff see live features, the builder sees all|SELECT|PERMISSIVE|authenticated
+POLICYMETA|custom_features|the builder adds features|INSERT|PERMISSIVE|authenticated
+POLICYMETA|custom_features|the builder changes features|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|custom_features|the builder removes unused features|DELETE|PERMISSIVE|authenticated
+POLICYMETA|custom_fields|fields follow their feature|SELECT|PERMISSIVE|authenticated
+POLICYMETA|custom_fields|the builder adds fields|INSERT|PERMISSIVE|authenticated
+POLICYMETA|custom_fields|the builder changes fields|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|custom_fields|the builder removes unused fields|DELETE|PERMISSIVE|authenticated
+POLICYMETA|delegation_rules|members read delegation|SELECT|PERMISSIVE|authenticated
+POLICYMETA|delegation_shares|members read shares|SELECT|PERMISSIVE|authenticated
+POLICYMETA|features|anyone reads sign-in options|SELECT|PERMISSIVE|anon,authenticated
+POLICYMETA|features|members read features|SELECT|PERMISSIVE|authenticated
+POLICYMETA|features|system admin switches features|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|form_collaborators|collaborators are seen with the form|SELECT|PERMISSIVE|authenticated
+POLICYMETA|form_collaborators|the form's maker shares it|ALL|PERMISSIVE|authenticated
+POLICYMETA|form_completions|completions: your own, or the form's managers|SELECT|PERMISSIVE|authenticated
+POLICYMETA|form_questions|form managers change questions|ALL|PERMISSIVE|authenticated
+POLICYMETA|form_questions|questions follow their form|SELECT|PERMISSIVE|authenticated
+POLICYMETA|form_recipients|recipients see their own, managers all|SELECT|PERMISSIVE|authenticated
+POLICYMETA|form_responses|replies: your own, or the form's managers|SELECT|PERMISSIVE|authenticated
+POLICYMETA|forms|form makers add forms|INSERT|PERMISSIVE|authenticated
+POLICYMETA|forms|form managers change forms|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|forms|form managers delete forms|DELETE|PERMISSIVE|authenticated
+POLICYMETA|forms|forms are seen by their managers, or to fill in|SELECT|PERMISSIVE|authenticated
+POLICYMETA|invitations|inviters create general invitations|INSERT|PERMISSIVE|authenticated
+POLICYMETA|invitations|managers and admins create invitations|INSERT|PERMISSIVE|authenticated
+POLICYMETA|invitations|managers and admins read invitations|SELECT|PERMISSIVE|authenticated
+POLICYMETA|invitations|managers and admins remove pending invitations|DELETE|PERMISSIVE|authenticated
+POLICYMETA|invitations|managers and admins update invitations|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|job_titles|delegated people add job titles|INSERT|PERMISSIVE|authenticated
+POLICYMETA|job_titles|delegated people change job titles|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|job_titles|members read job titles|SELECT|PERMISSIVE|authenticated
+POLICYMETA|leave_periods|the person and people managers see leave|SELECT|PERMISSIVE|authenticated
+POLICYMETA|live_signals|signed-in people see signals|SELECT|PERMISSIVE|authenticated
+POLICYMETA|notifications|read your own notifications|SELECT|PERMISSIVE|authenticated
+POLICYMETA|organisation|members read the company|SELECT|PERMISSIVE|authenticated
+POLICYMETA|organisation|system admin edits the company|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|people_change_requests|managers and admins see change requests|SELECT|PERMISSIVE|authenticated
+POLICYMETA|profiles|managers and admins update people|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|profiles|members read colleagues|SELECT|PERMISSIVE|authenticated
+POLICYMETA|profiles|read own profile|SELECT|PERMISSIVE|authenticated
+POLICYMETA|profiles|update own name|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|record_events|members read record history|SELECT|PERMISSIVE|authenticated
+POLICYMETA|records|members read records|SELECT|PERMISSIVE|authenticated
+POLICYMETA|register_templates|members read register templates|SELECT|PERMISSIVE|authenticated
+POLICYMETA|registries|delegated people create registries|INSERT|PERMISSIVE|authenticated
+POLICYMETA|registries|members read registries|SELECT|PERMISSIVE|authenticated
+POLICYMETA|registries|registry managers update registries|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|registry_fields|members read registry fields|SELECT|PERMISSIVE|authenticated
+POLICYMETA|registry_fields|registry managers change fields|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|registry_fields|registry managers manage fields|INSERT|PERMISSIVE|authenticated
+POLICYMETA|registry_managers|members read registry managers|SELECT|PERMISSIVE|authenticated
+POLICYMETA|registry_managers|registry managers manage managers|ALL|PERMISSIVE|authenticated
+POLICYMETA|request_events|people involved see its history|SELECT|PERMISSIVE|authenticated
+POLICYMETA|request_types|members read request types|SELECT|PERMISSIVE|authenticated
+POLICYMETA|request_types|system admin changes request types|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|requests|people involved see a request|SELECT|PERMISSIVE|authenticated
+POLICYMETA|settings_drafts|see your drafts, the system admin sees all|SELECT|PERMISSIVE|authenticated
+POLICYMETA|shift_changes|the person and people managers see shift changes|SELECT|PERMISSIVE|authenticated
+POLICYMETA|staff_directory|members see the staff directory|SELECT|PERMISSIVE|authenticated
+POLICYMETA|staff_private|the person and people managers see private details|SELECT|PERMISSIVE|authenticated
+POLICYMETA|task_alerts|read your own alerts|SELECT|PERMISSIVE|authenticated
+POLICYMETA|task_attachments|people who see the task see its files|SELECT|PERMISSIVE|authenticated
+POLICYMETA|task_events|see the timeline of tasks you have access to|SELECT|PERMISSIVE|authenticated
+POLICYMETA|task_helpers|see helpers on tasks you have access to|SELECT|PERMISSIVE|authenticated
+POLICYMETA|task_views|read your own views|SELECT|PERMISSIVE|authenticated
+POLICYMETA|tasks|see tasks you have access to|SELECT|PERMISSIVE|authenticated
+POLICYMETA|team_leaders|managers set team leaders|ALL|PERMISSIVE|authenticated
+POLICYMETA|team_leaders|members read team leaders|SELECT|PERMISSIVE|authenticated
+POLICYMETA|team_members|managers change team members|ALL|PERMISSIVE|authenticated
+POLICYMETA|team_members|members read team members|SELECT|PERMISSIVE|authenticated
+POLICYMETA|teams|managers and admins manage teams|ALL|PERMISSIVE|authenticated
+POLICYMETA|teams|members read teams|SELECT|PERMISSIVE|authenticated
+POLICYMETA|website_enquiries|website_enquiries_read|SELECT|PERMISSIVE|authenticated
+POLICYMETA|website_enquiries|website_enquiries_update|UPDATE|PERMISSIVE|authenticated
+POLICYMETA|work_overrides|the person and people who manage staff see overrides|SELECT|PERMISSIVE|authenticated
+POLICYCOND|admin_delegations|system admin and the delegate read delegations|5cbb95f372d7c32d28c9d4e1657e2133
+POLICYCOND|app_settings|anyone reads public settings|23cd133e66b9602da1f5a84c37040a8f
+POLICYCOND|app_settings|car managers set the client field|bfb944ce9ff1efadbefbd30ef1306255
+POLICYCOND|app_settings|delegated managers edit their settings|227b98dfd51c47b6e47fb536fc4001d4
+POLICYCOND|app_settings|managers change the SLA|3c40326c945318ee1ba3bc0ab2bca43d
+POLICYCOND|app_settings|system admin edits settings|405f7889e738a088d5bf90523014f535
+POLICYCOND|assistant_chats|assistant_chats_own|6d4f47dca7bda7959a751488e1ed5c3a
+POLICYCOND|assistant_documents|assistant_documents_all|abaa655d3e5b83cf4345f8472f7dfbd4
+POLICYCOND|assistant_messages|assistant_messages_own|8515d40774a0f7ad45f210458ebca8a2
+POLICYCOND|assistant_questions|assistant_questions_read|af773bd55399f1f1a4ac792157afb119
+POLICYCOND|assistant_settings|assistant_settings_read|af773bd55399f1f1a4ac792157afb119
+POLICYCOND|assistant_settings|assistant_settings_write|abaa655d3e5b83cf4345f8472f7dfbd4
+POLICYCOND|audit_log|delegated managers read the change log|145d65a42542d20176b1134c22eb85b7
+POLICYCOND|audit_log|system admin reads the audit log|e81f15db520c83175fb557351b448005
+POLICYCOND|car_clients|car managers add clients|34e72785365b5f95ff5396cbe642a9dd
+POLICYCOND|car_clients|car managers change clients|a890737ca3284d134451fc33b014f173
+POLICYCOND|car_clients|car managers see clients|28137dcb18d429a5ecce7283713d2145
+POLICYCOND|car_clients|people managers add clients|1e362ef5703c85f7b90ec86238cbc8b1
+POLICYCOND|car_clients|people managers change clients|3f3bf773b642f4c98348235bc103c8ea
+POLICYCOND|car_clients|people managers see clients|30982576b110e9142c7cfe665a331031
+POLICYCOND|car_purposes|car managers add purposes|34e72785365b5f95ff5396cbe642a9dd
+POLICYCOND|car_purposes|car managers change purposes|a890737ca3284d134451fc33b014f173
+POLICYCOND|car_purposes|staff see purposes|712f3bbc8a9bbdd873eca3e193dcb0a9
+POLICYCOND|car_trips|drivers see their trips, reports see all|8e1dd201693e49dd9d068f15f0aa5fc8
+POLICYCOND|cars|car managers add cars|34e72785365b5f95ff5396cbe642a9dd
+POLICYCOND|cars|car managers change cars|a890737ca3284d134451fc33b014f173
+POLICYCOND|cars|staff see cars|712f3bbc8a9bbdd873eca3e193dcb0a9
+POLICYCOND|client_teams|members see which team looks after which client|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|client_teams|people managers link clients to teams|1e362ef5703c85f7b90ec86238cbc8b1
+POLICYCOND|client_teams|people managers unlink clients from teams|30982576b110e9142c7cfe665a331031
+POLICYCOND|compliance_items|compliance managers add items|018c0395e68874b9052119f6e59af738
+POLICYCOND|compliance_items|compliance managers change items|5fc8552c09480274daa46665c54c161f
+POLICYCOND|compliance_items|members read onboarding items|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|compliance_opens|people see their own opens; compliance managers see all|b43ad846b903f3a79d3bd061aafccde9
+POLICYCOND|compliance_records|read your own records, or as compliance manager|b43ad846b903f3a79d3bd061aafccde9
+POLICYCOND|custom_alerts|the builder manages alerts|f7fa36a1a814739cb69d72a6359454fd
+POLICYCOND|custom_client_targets|targets follow their feature|6db957e76b01399334b2048043bf7687
+POLICYCOND|custom_client_targets|the builder sets targets|f7fa36a1a814739cb69d72a6359454fd
+POLICYCOND|custom_entries|entries are seen by who may see them|5a1af4e964c174179ce586d2153f7cea
+POLICYCOND|custom_features|staff see live features, the builder sees all|ac318a8ee21e8c8b46cacdc12f86fef5
+POLICYCOND|custom_features|the builder adds features|024d9e69d1255ff42eb2a74e8a73e1a4
+POLICYCOND|custom_features|the builder changes features|f7fa36a1a814739cb69d72a6359454fd
+POLICYCOND|custom_features|the builder removes unused features|7429411512ee12ed7d7c9f1e273fa877
+POLICYCOND|custom_fields|fields follow their feature|6db957e76b01399334b2048043bf7687
+POLICYCOND|custom_fields|the builder adds fields|024d9e69d1255ff42eb2a74e8a73e1a4
+POLICYCOND|custom_fields|the builder changes fields|f7fa36a1a814739cb69d72a6359454fd
+POLICYCOND|custom_fields|the builder removes unused fields|2ba6be67ffda530e7e88e2039fb04c21
+POLICYCOND|delegation_rules|members read delegation|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|delegation_shares|members read shares|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|features|anyone reads sign-in options|8c7200d9eb634818b0c1ef8205d1819d
+POLICYCOND|features|members read features|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|features|system admin switches features|405f7889e738a088d5bf90523014f535
+POLICYCOND|form_collaborators|collaborators are seen with the form|d82d5de41ade4bfc85cb2adeebc87889
+POLICYCOND|form_collaborators|the form's maker shares it|11f71636ed1e78e61cfa2d6d1a4a4a96
+POLICYCOND|form_completions|completions: your own, or the form's managers|c69772d76a39774ed65dbe9435f8303a
+POLICYCOND|form_questions|form managers change questions|dc3b7926201de9d526ba5c6befddbb9f
+POLICYCOND|form_questions|questions follow their form|f445a46c435456377c43357873fb717a
+POLICYCOND|form_recipients|recipients see their own, managers all|c69772d76a39774ed65dbe9435f8303a
+POLICYCOND|form_responses|replies: your own, or the form's managers|d24ef9b5d9e7424b1a6c40f84fb1c122
+POLICYCOND|forms|form makers add forms|639c0ed33d4fef87f5cca5d5699fca9b
+POLICYCOND|forms|form managers change forms|d515c33cc4ba5d36305b3874ddcd9c3d
+POLICYCOND|forms|form managers delete forms|ebc21c2eef81b32a8d474e0a388fa88e
+POLICYCOND|forms|forms are seen by their managers, or to fill in|c1d2a1a710d5f6882c02bea532ac270f
+POLICYCOND|invitations|inviters create general invitations|7d1e52005fe498fea231a488b03d4848
+POLICYCOND|invitations|managers and admins create invitations|1e362ef5703c85f7b90ec86238cbc8b1
+POLICYCOND|invitations|managers and admins read invitations|30982576b110e9142c7cfe665a331031
+POLICYCOND|invitations|managers and admins remove pending invitations|4b3a1941abd53614f80c7c7aa296e81a
+POLICYCOND|invitations|managers and admins update invitations|3f3bf773b642f4c98348235bc103c8ea
+POLICYCOND|job_titles|delegated people add job titles|487b6b4dbb5f9e18f558ed334226ea3b
+POLICYCOND|job_titles|delegated people change job titles|c602eee0b8e28f469562396a7b1d34bf
+POLICYCOND|job_titles|members read job titles|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|leave_periods|the person and people managers see leave|650b65f2c203c0ac845e2ab431e29fcc
+POLICYCOND|live_signals|signed-in people see signals|8fc83448cc1729047ef68f79e32e6460
+POLICYCOND|notifications|read your own notifications|948ceb8ec34a9af6656999f62b9e28fc
+POLICYCOND|organisation|members read the company|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|organisation|system admin edits the company|405f7889e738a088d5bf90523014f535
+POLICYCOND|people_change_requests|managers and admins see change requests|30982576b110e9142c7cfe665a331031
+POLICYCOND|profiles|managers and admins update people|3f3bf773b642f4c98348235bc103c8ea
+POLICYCOND|profiles|members read colleagues|f2576bf42f79e6f45b0c81a48606cffd
+POLICYCOND|profiles|read own profile|c658d1c33d8431d74957c13ab2c69ac2
+POLICYCOND|profiles|update own name|eae07977a146905a851d9da45522248c
+POLICYCOND|record_events|members read record history|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|records|members read records|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|register_templates|members read register templates|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|registries|delegated people create registries|33089b2fcb5ab75226ce486d4e7799c3
+POLICYCOND|registries|members read registries|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|registries|registry managers update registries|51028aa303256da12ecb36b335b65008
+POLICYCOND|registry_fields|members read registry fields|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|registry_fields|registry managers change fields|e661e5aacf1a1cec408bea5fe8851723
+POLICYCOND|registry_fields|registry managers manage fields|fe3ebd754bf1231200b809261d737954
+POLICYCOND|registry_managers|members read registry managers|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|registry_managers|registry managers manage managers|e661e5aacf1a1cec408bea5fe8851723
+POLICYCOND|request_events|people involved see its history|ad5f069323d2a88df5f3102816c179d5
+POLICYCOND|request_types|members read request types|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|request_types|system admin changes request types|8bc6166d55dba406843bc0926e583b26
+POLICYCOND|requests|people involved see a request|cca85939b3ead67883515b39206c1f76
+POLICYCOND|settings_drafts|see your drafts, the system admin sees all|2fa509d7ec0608b90c386a3e37ce4880
+POLICYCOND|shift_changes|the person and people managers see shift changes|b40543af5d18a84f7800c725848cdbcf
+POLICYCOND|staff_directory|members see the staff directory|012031b4f0eaa3506182c7cde1c81596
+POLICYCOND|staff_private|the person and people managers see private details|333388643f921053b06b9f41258f1dd1
+POLICYCOND|task_alerts|read your own alerts|948ceb8ec34a9af6656999f62b9e28fc
+POLICYCOND|task_attachments|people who see the task see its files|3a91af7323d6fb3b90e1dd0662c2daf0
+POLICYCOND|task_events|see the timeline of tasks you have access to|3a91af7323d6fb3b90e1dd0662c2daf0
+POLICYCOND|task_helpers|see helpers on tasks you have access to|3a91af7323d6fb3b90e1dd0662c2daf0
+POLICYCOND|task_views|read your own views|948ceb8ec34a9af6656999f62b9e28fc
+POLICYCOND|tasks|see tasks you have access to|789a907243b761cebc58822d6e5ac0a8
+POLICYCOND|team_leaders|managers set team leaders|c520c3795d6d266f00310c1ec9366f53
+POLICYCOND|team_leaders|members read team leaders|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|team_members|managers change team members|c520c3795d6d266f00310c1ec9366f53
+POLICYCOND|team_members|members read team members|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|teams|managers and admins manage teams|3f3bf773b642f4c98348235bc103c8ea
+POLICYCOND|teams|members read teams|f0017de0a4ed40eb9d8ece6b2bc0fe58
+POLICYCOND|website_enquiries|website_enquiries_read|ed036a5f3f0e99016b3b103c99a26964
+POLICYCOND|website_enquiries|website_enquiries_update|d8c3f1212150d3b3c37249133f86594a
+POLICYCOND|work_overrides|the person and people who manage staff see overrides|5ea26001b1a4daabcd3008e767ccef0d
+SCHEMA|auth|{supabase_admin=UC/supabase_admin,anon=U/supabase_admin,authenticated=U/supabase_admin,service_role=U/supabase_admin,supabase_auth_admin=UC/supabase_admin,dashboard_user=UC/supabase_admin,postgres=U/supabase_admin}
+SCHEMA|public|{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner,postgres=U/pg_database_owner,anon=U/pg_database_owner,authenticated=U/pg_database_owner,service_role=U/pg_database_owner}
+SCHEMA|storage|{supabase_admin=UC/supabase_admin,postgres=U*/supabase_admin,anon=U/supabase_admin,authenticated=U/supabase_admin,service_role=U/supabase_admin,supabase_storage_admin=U*C*/supabase_admin,dashboard_user=UC/supabase_admin}

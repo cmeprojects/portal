@@ -1,0 +1,836 @@
+Full database test suite (npm run test:db) with migration 20270104000001_rls_once_per_statement.sql in supabase/migrations
+Log file time: 2026-11-11T10:17:57Z
+Checks passed: 784
+Failures: 0
+
+== assistant.test.sql
+  ok - the system admin can index a document
+  ok - the system admin sees the library
+  ok - the system admin changes the settings
+  ok - a manager sees no documents
+  ok - a manager sees no settings
+  ok - a manager can't add a document (refused: new row violates row-level security policy for table "assistant_documents")
+  ok - a manager can't index (refused: Only the system admin (or a manager given Website) can do this)
+  ok - chunks are not open to signed-in people (refused: permission denied for table assistant_chunks)
+  ok - the public can't read documents (refused: permission denied for table assistant_documents)
+  ok - the public can't insert directly (refused: permission denied for table website_enquiries)
+  ok - public visitors find the public policy
+  ok - public visitors can't find staff-only text
+  ok - staff find staff-only text
+  ok - staff can't find managers-only text
+  ok - managers find managers-only text
+  ok - usage counts the question
+  ok - a new enquiry rings the manager's bell
+  ok - a manager sees the enquiry
+  ok - and the count of new ones
+  ok - a manager moves it on
+  ok - a support worker sees no enquiries
+  ok - and no count
+  ok - staff keep their own chat
+  ok - others can't see it, managers included
+  ok - or add to it (no rows changed)
+  ok - the public can't read chats (refused: permission denied for table assistant_chats)
+  ok - the front-page switch can be read before signing in
+== cars.test.sql
+  ok - staff can't add cars (refused: new row violates row-level security policy for table "cars")
+  ok - or purposes (refused: new row violates row-level security policy for table "car_purposes")
+  ok - the same rego can't be added twice (refused: duplicate key value violates unique constraint "cars_rego_unique")
+  ok - cars are switched off, never deleted (refused: permission denied for table cars)
+  ok - adding cars, clients and purposes goes in the change log
+  ok - staff see the cars
+  ok - staff can't read the client list itself
+  ok - they get active client names only
+  ok - the start reading can't be lower than the last one (refused: That's lower than the last reading for this car (48213 km). Check the dashboard.)
+  ok - "Other" needs a few words (refused: Say what the trip is for)
+  ok - a switched-off client can't be chosen (refused: Choose a client from the list)
+  ok - the driver is whoever is signed in, and 7 km since the last return is flagged
+  ok - one car at a time (refused: Return the car you have out first)
+  ok - trips can't be edited directly (refused: permission denied for table car_trips)
+  ok - a car that's out can't be taken (refused: Someone else has this car out. Choose another one.)
+  ok - everyone sees who has it
+  ok - staff don't see other people's trips
+  ok - or return someone else's car (refused: Trip not found)
+  ok - new starters can't use cars yet
+  ok - undo removes the trip
+  ok - not after 10 minutes (refused: It's too late to undo. Return the car instead, or ask a car manager to fix the trip.)
+  ok - the end reading can't be lower than the start (refused: That's lower than the start reading (48220 km). Check the dashboard.)
+  ok - returning works out the km
+  ok - and keeps where they went
+  ok - and updates the car's reading
+  ok - undo return reopens the trip and the reading
+  ok - no undo once someone else has the car (refused: Someone has taken this car since. Ask a car manager to fix the trip.)
+  ok - the driver is reminded at night
+  ok - only once
+  ok - car managers are told the next morning
+  ok - by email too
+  ok - returning for someone needs a reason (refused: Say why you're returning it for them)
+  ok - car managers see everyone's trips
+  ok - corrections need a reason (refused: Say why the trip is being changed)
+  ok - the driver is told it was returned for them
+  ok - the correction is kept in the change log
+  ok - rego due is told once
+  ok - and a service coming up
+  ok - no one ticked: no weekly report
+  ok - only the ticked manager gets it
+  ok - only off, optional or required (refused: new row violates row-level security policy for table "app_settings")
+  ok - a car manager can't change the other car settings without being given Cars (no rows changed)
+  ok - a car manager can make the client required
+  ok - with the client required, it must be chosen (refused: Choose the client)
+  ok - a manager given Cars can change the car settings
+  ok - switched off: nothing shows
+  ok - and the trips are kept
+== cars_app_look.test.sql
+  ok - a phone installing the app can read its name and icon
+  ok - staff can't change them (no rows changed)
+  ok - the system admin names the app
+== client_teams.test.sql
+  ok - a support worker can't link clients to teams (refused: new row violates row-level security policy for table "client_teams")
+  ok - staff can pick from client names
+  ok - a manager links clients to teams
+  ok - the person on the task sets its client
+  ok - someone not on the task can't change its client (refused: Only people working on this task can change its client.)
+  ok - a team leader sees only their team's clients
+  ok - with their open tasks
+== compliance.test.sql
+  ok - a team leader cannot invite by default (refused: You're not set up to send invites. Ask a staff admin.)
+  ok - an allowed team leader still can't invite into a role (refused: Invite them as a new starter; a staff admin sets their role later)
+  ok - the staff admin and the inviter hear once that someone joined
+  ok - and get an email
+  ok - a new starter is told about the items that apply to them
+  ok - a manager cannot manage Compliance by default (refused: new row violates row-level security policy for table "compliance_items")
+  ok - a new starter has three items
+  ok - you can only record a file in your own folder (refused: Upload the file again)
+  ok - an expiry date is needed where asked for (refused: Enter the expiry date)
+  ok - a new starter sees their own records
+  ok - one thing still missing
+  ok - a manager sees someone's progress
+  ok - a manager cannot see the uploaded files
+  ok - a support worker cannot see other people's progress
+  ok - a role can't be given before onboarding is finished (refused: They haven't finished onboarding yet. Give a conditional role with a deadline instead.)
+  ok - a reason is needed (refused: Give a reason for the conditional role)
+  ok - the deadline can't be in the past (refused: Choose a deadline in the next six months)
+  ok - nothing changes until a manager approves
+  ok - the request lists what's missing for the new role
+  ok - the manager is told an approval is needed
+  ok - approved: the role is given
+  ok - and the team
+  ok - a medium "Finish onboarding" task is due on the deadline
+  ok - finishing onboarding completes the task
+  ok - the staff admin hears onboarding is finished
+  ok - a rejected upload needs a reason (refused: Say what's wrong, so they know what to upload)
+  ok - the person is told to upload again
+  ok - a rejected upload counts as missing again
+  ok - an updated document needs confirming again
+  ok - one reminder before a document expires
+  ok - an expired document is a bell and an email
+  ok - with the setting on, a manager manages Compliance
+  ok - a support worker can't upload for someone (refused: Only staff admins and managers can upload for someone else)
+  ok - a staff admin's upload for someone counts as checked
+  ok - the person is told
+  ok - a manager's upload still gets checked
+  ok - an expiring document is emailed to the person
+== conditional_role_nothing_left.test.sql
+  ok - the Staff page shows Licence still to do
+  ok - a role that needs Licence: given on condition, with a Finish onboarding task
+  ok - a role that needs nothing more: a manager just gives it, with no task
+  ok - a staff admin's role changes need approval, a first role too
+  ok - a staff admin can't give a first role directly (refused: Role changes by a staff admin need a manager's approval. Send it as a request.)
+  ok - a staff admin's conditional role always goes to a manager, even with nothing left to do
+== delegation.test.sql
+  ok - a manager can't change branding by default (no rows changed)
+  ok - a manager can't delegate to themselves (refused: Only the system admin delegates)
+  ok - a staff admin can be delegated to
+  ok - security can't be delegated (refused: That area can't be delegated)
+  ok - a delegate can't change security (no rows changed)
+  ok - or general settings (no rows changed)
+  ok - or areas they weren't given (no rows changed)
+  ok - or feature switches (no rows changed)
+  ok - with Change log, they can read it
+  ok - a delegated manager changes branding
+  ok - other managers can't read the change log
+  ok - a role change ends the delegation
+== delete_registers.test.sql
+  ok - a support worker can't delete registers (refused: Only people the system admin chose can delete registers.)
+  ok - a register that's been used can't be deleted (refused: Used register has been used, so it can't be deleted. Turn it off instead: its history is kept.)
+  ok - General tasks can't be deleted (refused: General tasks can't be deleted.)
+  ok - a manager (Adding registers) deletes an unused register
+  ok - the used one is still there
+  ok - it's in the change log
+== demo_data.test.sql
+  ok - a manager can't load sample records (refused: Only the system admin can do this)
+  ok - or clear all tasks (refused: Only the system admin can do this)
+  ok - it loads 15 sample records (12 tasks and 3 enquiries)
+  ok - each sample enquiry made its Call back task
+  ok - incidents go in the Incidents register
+  ok - in different states
+  ok - no emails go out for them
+  ok - deleting sample records removes the 15 tasks (with Call backs) and 3 enquiries
+  ok - real work is kept
+  ok - sample enquiries are gone
+  ok - clear all tasks removes every task
+  ok - task history is append-only again afterwards (refused: The audit log cannot be changed or deleted)
+== due_alerts.test.sql
+  ok - a reminder goes to the person a day before
+  ok - on the day, the person and helpers are told
+  ok - overdue: the person and their team leader
+  ok - no team leader: the managers are told
+  ok - one day late is not escalated yet
+  ok - three days overdue: marked escalated
+  ok - the managers are told about the escalation
+  ok - the escalation is in the task history
+  ok - completed tasks and tasks with no due date never alert
+  ok - staff admins and system admins are not told
+  ok - one morning summary to the manager, listing the three overdue tasks
+  ok - one email per overdue or escalated alert
+  ok - reminders and due today go to the bell only, not email
+  ok - running again sends nothing twice
+  ok - the team leader sees their team's overdue tasks in their bell
+  ok - mark all as seen clears it
+  ok - a new due date starts the steps again
+  ok - no summary before 7am
+  ok - no summary on a Saturday
+  ok - staff cannot run the timer job (refused: permission denied for function run_due_alerts)
+  ok - no summary before the chosen time
+  ok - the summary goes out at the chosen time
+  ok - with Auto-escalation off, nothing is escalated
+== enquiry_intake.test.sql
+  ok - Friday's enquiry is due Monday
+  ok - Christmas Eve's is due after the holidays
+  ok - a weekday's is due the next day
+  ok - it's a Call back task for the staff admin, due the next business day
+  ok - with a bell note
+  ok - and an email waiting to go
+  ok - the system admin can change who does intake
+== escalate_to.test.sql
+  ok - a support worker can send it to their team leader
+  ok - it's escalated to the team leader, by Sam
+  ok - the team leader is told, not the managers
+  ok - a team leader's escalation goes to a manager
+  ok - and the manager is told
+  ok - taking it over deals with the escalation
+  ok - a support worker can choose a manager
+  ok - reassigning deals with it too
+  ok - an automatic escalation goes to managers
+== feature_alerts.test.sql
+  ok - only the system admin sets up alerts (refused: new row violates row-level security policy for table "custom_alerts")
+  ok - and only they see them
+  ok - an ordinary entry tells nobody
+  ok - a refused drink tells managers by bell and email
+  ok - saying what happened, for whom, and who entered it
+  ok - the person who entered it isn't told
+  ok - over the limit tells their team leader (bell only)
+  ok - reaching the goal sends the message the admin wrote
+  ok - the goal alert is once a day, not on every entry after
+  ok - a time alert that is off sends nothing
+  ok - and nothing-entered stays quiet when there are entries today
+  ok - switched on: managers hear which clients are under their target
+  ok - only once a day
+  ok - time alerts don't go off on each entry
+== feature_builder.test.sql
+  ok - only the system admin builds features (refused: new row violates row-level security policy for table "custom_features")
+  ok - building goes in the change log
+  ok - staff don't see drafts
+  ok - or fill them in (refused: You can't fill this in)
+  ok - once published, staff see the form
+  ok - required fields must be filled (refused: Client: this is needed)
+  ok - numbers stay within the limits (refused: Amount: the largest allowed is 2000)
+  ok - and must be numbers (refused: Amount: enter a number)
+  ok - an entry keeps the client, team, typed drink and number, and drops unknown answers
+  ok - and records who entered it
+  ok - entries can't be edited directly (refused: permission denied for table custom_entries)
+  ok - other staff don't see Sam's entries
+  ok - but they see today's entries for a client, for the daily total
+  ok - a team leader sees their own team's entries only
+  ok - managers see everyone's
+  ok - and the per-client targets
+  ok - staff can undo their own entry
+  ok - but not after the undo time (refused: It's too late to undo. Ask a manager to fix it.)
+  ok - switched off: staff don't see it
+  ok - or fill it in (refused: You can't fill this in)
+  ok - and the entries are kept
+  ok - a feature with entries can't be deleted (no rows changed)
+== feature_manager_rights.test.sql
+  ok - a typed drink joins the list for next time
+  ok - but only where the builder ticked it
+  ok - and isn't added twice
+  ok - a manager not in "who sees" doesn't see entries
+  ok - or fix them (refused: You can't fix this entry)
+  ok - or set targets (refused: You can't change these targets)
+  ok - or change options (refused: You can't change this list)
+  ok - ticked: a manager who fixes entries sees them all
+  ok - a fix needs a reason (refused: Say why it's being changed)
+  ok - and is checked like a new entry (refused: Amount: the largest allowed is 2000)
+  ok - the entry is fixed, still shows who made it, and says why
+  ok - managers set targets
+  ok - and the drop-down options, tidied
+  ok - but not the rest of the form (no rows changed)
+  ok - the form is unchanged
+  ok - the change log keeps the before, after and reason
+  ok - target changes are logged
+  ok - staff admins can't set targets (refused: You can't change these targets)
+  ok - staff can't fix entries (refused: You can't fix this entry)
+== forms.test.sql
+  ok - Forms is off: no one can make forms (refused: new row violates row-level security policy for table "forms")
+  ok - staff admins can't make forms unless ticked (refused: new row violates row-level security policy for table "forms")
+  ok - a manager makes a form (and gets it straight back)
+  ok - staff don't see drafts
+  ok - or fill them in (refused: This form isn't open)
+  ok - another manager can't change it (no rows changed)
+  ok - once shared, they can change it
+  ok - but only the maker shares it further (refused: new row violates row-level security policy for table "form_collaborators")
+  ok - sent to a team
+  ok - Sam gets a bell note
+  ok - and an email
+  ok - required questions must be answered (refused: Happy at work?: this is needed)
+  ok - choices come from the list (refused: Best part: choose from the list)
+  ok - save and finish later keeps a draft
+  ok - a once-only form can't be filled in twice (refused: You've already filled this in)
+  ok - Sam ticked Answer anonymously: the draft became a reply without their name
+  ok - Lee didn't tick it: their name is kept
+  ok - the maker sees the replies and that Sam and Lee have done it
+  ok - no one left to remind
+  ok - other staff only see their own reply
+  ok - nor do staff admins who aren't sharing the form
+  ok - it shows in Compliance as to do
+  ok - and Lee is asked to fill it in, with a link to the form
+  ok - and is done once filled in
+  ok - a turned-off form takes no replies (refused: This form isn't open)
+  ok - someone else can't delete it (no rows changed)
+  ok - Sam asks a question
+  ok - it's a task for Morgan, from Sam
+== foundations.test.sql
+  ok - first account becomes an active system admin
+  ok - invited person gets the invited role and name (email matched case-insensitively)
+  ok - invitation is marked accepted
+  ok - invited person joins the invited team
+  ok - someone with no invitation starts deactivated
+  ok - signed out: only public (branding) settings are visible
+  ok - signed out: company name is visible for the sign-in page
+  ok - signed out: only the sign-in options are visible from the feature list
+  ok - support worker sees registries
+  ok - support worker sees colleagues (for assigning tasks), but not the system admin
+  ok - support worker cannot promote themselves (refused: Only managers and admins can change roles, teams or access)
+  ok - support worker cannot deactivate others (no rows changed)
+  ok - support worker cannot switch features (no rows changed)
+  ok - support worker cannot invite (refused: You're not set up to send invites. Ask a staff admin.)
+  ok - support worker cannot read the audit log
+  ok - support worker cannot read invitations
+  ok - support worker can change their own name
+  ok - manager without two-factor sees only their own profile
+  ok - manager without two-factor sees no registries
+  ok - my_access tells the app the manager still needs two-factor
+  ok - manager with two-factor sees colleagues, but not the system admin
+  ok - manager cannot change their own role (refused: You cannot change your own role or deactivate yourself)
+  ok - manager cannot change system settings (no rows changed)
+  ok - staff admin must finish two-factor login first (no rows changed)
+  ok - a staff admin cannot change a role without a manager's approval (refused: Role changes by a staff admin need a manager's approval. Send it as a request.)
+  ok - a staff admin cannot add a register (refused: new row violates row-level security policy for table "registries")
+  ok - staff admin cannot make a system admin (refused: Only a system admin can manage system admins)
+  ok - staff admin cannot make another staff admin (refused: Role changes by a staff admin need a manager's approval. Send it as a request.)
+  ok - staff admin cannot deactivate a system admin (no rows changed)
+  ok - staff admin cannot deactivate themselves (refused: You cannot change your own role or deactivate yourself)
+  ok - staff admin cannot invite a system admin (refused: Only a system admin can invite a system admin)
+  ok - staff admin cannot switch features (no rows changed)
+  ok - staff admin cannot read the audit log
+  ok - staff admin cannot log a two-factor reset (refused: You can't do this for them. Ask the system admin.)
+  ok - only known admin actions can be logged (refused: Not allowed)
+  ok - staff admin deactivated someone (and the role stayed the same)
+  ok - deactivated person sees only their own profile (so the app can tell them)
+  ok - deactivated person sees no registries
+  ok - system admin always needs two-factor login (no rows changed)
+  ok - system admin switched a feature on, and it was logged
+  ok - setting change was logged
+  ok - resent invite was logged
+  ok - role changes were logged
+  ok - system admin cannot edit the audit log (refused: permission denied for table audit_log)
+  ok - system admin cannot delete the audit log (refused: permission denied for table audit_log)
+  ok - system admin cannot demote themselves (refused: You cannot change your own role or deactivate yourself)
+  ok - database owner cannot delete the audit log (refused: The audit log cannot be changed or deleted)
+  ok - the last system admin cannot be removed (refused: There must always be at least one active system admin)
+  ok - feature_enabled reads the switch
+== hr_profiles.test.sql
+  ok - leave requests are on by default
+  ok - HR Pack off switches every HR part off, three levels down
+  ok - switching My requests off leaves profiles on
+  ok - each request type has its own switch
+  ok - staff can't change their own department (refused: Only people who manage staff can change department and employment details.)
+  ok - staff can't change someone else's profile (refused: You can only change your own profile.)
+  ok - nobody edits profiles directly (refused: permission denied for table staff_directory)
+  ok - a person saves their own card (blank skills dropped)
+  ok - colleagues see the directory card
+  ok - colleagues can't see private details
+  ok - a team leader sees their team member's availability
+  ok - a staff admin sees private details
+  ok - a staff admin sets employment details
+  ok - with profiles switched off, the directory is hidden
+== limited_tasks.test.sql
+  ok - a support worker raises a General task
+  ok - but not a task in another register (refused: You can raise General tasks and questions only)
+  ok - managers use any register, and can give support workers those tasks
+  ok - with nobody limited, support workers use any register again
+== live_updates.test.sql
+  ok - a trip marks its car as changed
+  ok - staff see the signal for a feature they can't see
+  ok - but can't send one (refused: permission denied for table live_signals)
+== managers.test.sql
+  ok - a manager cannot invite a system admin (refused: Only a system admin can invite a system admin)
+  ok - a manager cannot change their own role (refused: You cannot change your own role or deactivate yourself)
+  ok - a manager cannot see the system admin
+  ok - a manager can invite managers and staff admins
+  ok - a manager can change roles straight away (even another manager's)
+  ok - a staff admin cannot invite a system admin (refused: Only a system admin can invite a system admin)
+  ok - a staff admin cannot change a role directly (refused: Role changes by a staff admin need a manager's approval. Send it as a request.)
+  ok - a staff admin cannot request a change to their own role (refused: You cannot change your own role)
+  ok - a staff admin cannot touch the system admin (refused: Only a system admin can manage system admins)
+  ok - a staff admin cannot see the system admin
+  ok - the role stays the same until a manager approves
+  ok - a staff admin can deactivate a manager
+  ok - a team leader cannot approve role changes (refused: Only managers can approve these changes)
+  ok - a manager approved the staff admin's request and the role changed
+  ok - the request and the approval are in the change log
+  ok - a manager cannot approve a change to their own role (refused: You cannot approve a change about yourself)
+  ok - a declined request changes nothing
+  ok - a system admin can see system admins
+  ok - a system admin cannot be given a task (refused: Choose someone who can sign in to look after this task (system admins can't be given tasks))
+  ok - a system admin cannot be added as a helper (refused: System admins can't be added as helpers)
+  ok - a system admin picked as a helper is left off
+  ok - a manager cannot change other system settings (no rows changed)
+  ok - a manager can change the SLA
+  ok - a staff admin cannot change the SLA (no rows changed)
+  ok - a team leader can be in one team only (refused: A team leader can be in one team only)
+  ok - staff admins are in the core team, not in other teams (refused: Managers and staff admins are in the core team, which works across every team)
+  ok - nobody is added to the core team by hand (refused: The core team is managers and staff admins, automatically)
+  ok - a support worker can be in more than one team
+  ok - the team leader is a member of the team they lead
+  ok - a staff admin does not see other people's tasks
+  ok - a team leader sees their team's tasks
+  ok - a team leader does not see other teams' tasks
+  ok - a manager sees every team's tasks
+  ok - a staff admin cannot change a team straight away (refused: Only managers change who is in a team. Send it as a request.)
+  ok - the team stays the same until approved
+  ok - the approved team change is made
+  ok - someone made a manager leaves their teams for the core team
+  ok - a role cannot have system admin access (refused: new row for relation "job_titles" violates check constraint "job_titles_access_level_check")
+  ok - giving someone a role sets their access level
+  ok - a staff admin cannot add roles (refused: new row violates row-level security policy for table "job_titles")
+  ok - a staff admin cannot change a role directly (refused: Role changes by a staff admin need a manager's approval. Send it as a request.)
+  ok - a role in use cannot change access level (refused: People have this role, so its access level can't change. Give them another role first.)
+  ok - an approved request gives the role and its access level
+  ok - an invited person gets their role and team
+  ok - a staff admin sees managers' answers to their requests
+  ok - a declined request shows with the manager's note
+  ok - opening Teams clears only team answers
+  ok - mark all as seen clears them
+  ok - only the requester is told
+  ok - a staff admin cannot deactivate the only manager (refused: They're the only manager left, so they can't be deactivated or given another role. Add another manager first.)
+  ok - nor ask to change their role (refused: They're the only manager left, so their role can't change. Add another manager first.)
+  ok - the system admin can, if really needed
+== mfa_per_person.test.sql
+  ok - a manager without a code isn't through when managers need it
+  ok - and can't let themselves off (refused: Only the system admin can change two-factor login for a person.)
+  ok - system admins always need it (refused: System admins always need two-factor login.)
+  ok - once let off, they get in without a code
+  ok - and aren't asked for one
+  ok - it's in the change log
+== my_requests.test.sql
+  ok - an end date before the start is refused (refused: The end date is before the start date.)
+  ok - the person can't approve their own request (refused: You're not an approver for this request.)
+  ok - a request gets a reference and starts pending
+  ok - the team leader is told first, not the manager
+  ok - colleagues can't see someone else's request
+  ok - an approver asks for more information
+  ok - the person's reply puts it back to pending
+  ok - first approval moves it to the second approver
+  ok - the manager is told for final approval
+  ok - no leave yet before final approval
+  ok - the team leader can't do the second approval too (refused: You're not an approver for this request.)
+  ok - final approval
+  ok - approved leave becomes a leave period
+  ok - the full history is kept (sent, info asked, reply, first and final approval)
+  ok - a swap can't be approved before the colleague accepts (refused: Wait until the other person accepts the swap.)
+  ok - an approved swap is recorded for both people
+  ok - HR enquiries go to the staff admin first
+  ok - declining needs a reason (refused: Give a reason for declining.)
+  ok - a staff admin declines with a reason
+  ok - an approved availability change updates their availability (no team leader: managers approve)
+  ok - the person withdraws a pending request
+  ok - a switched-off request type can't be sent (refused: Shift swap requests are switched off.)
+  ok - a request left unattended is escalated to the manager
+  ok - and only once
+== new_starters.test.sql
+  ok - a general invite makes an active new starter
+  ok - a new starter is in no team
+  ok - a new starter cannot create tasks (refused: You'll be able to use tasks once a staff admin has set up your role)
+  ok - a new starter sees no tasks
+  ok - a new starter cannot be given a task (refused: Choose someone who can sign in to look after this task (system admins can't be given tasks))
+  ok - a staff admin gives a new starter their first role straight away
+  ok - later role changes by a staff admin still need a manager (refused: Role changes by a staff admin need a manager's approval. Send it as a request.)
+  ok - a staff admin cannot make a new starter a system admin (refused: Only a system admin can manage system admins)
+  ok - a role cannot have new starter access (refused: new row for relation "job_titles" violates check constraint "job_titles_access_level_check")
+  ok - with "first role needs approval" on, a staff admin must ask (refused: Role changes by a staff admin need a manager's approval. Send it as a request.)
+  ok - with role approval off, a staff admin changes roles straight away
+  ok - with general invites only, a manager cannot invite into a role (refused: Invites are general: they join as a new starter and you set their role afterwards)
+  ok - with the switch on, a new starter can be given tasks
+  ok - only the system admin changes the people rules (no rows changed)
+== notifications.test.sql
+  ok - Sam has two new tasks (one to look after, one to help on)
+  ok - nothing is new for the person who created them
+  ok - nobody can write views for someone else (refused: permission denied for table task_views)
+  ok - opening a task clears it from the bell
+  ok - mark all as seen clears the bell
+== onboarding_clearance.test.sql
+  ok - the NDIS orientation training is a default, needed before working
+  ok - common documents are added, switched off
+  ok - a sample agreement is added, switched off
+  ok - a mandatory training always asks for a certificate, whatever it was set to
+  ok - a new starter isn't cleared to work
+  ok - staff added after the update need clearing too
+  ok - can't acknowledge a policy before opening it (refused: Open and read the policy first)
+  ok - the typed name must be theirs (refused: Type your full name exactly as it is on your account (Nia New))
+  ok - a training needing a certificate can't be completed without one (refused: Upload your certificate to complete this training)
+  ok - the completion date can't be in the future (refused: Enter the date you completed it (not in the future))
+  ok - a document needing a number can't be sent without it (refused: Enter the document or card number)
+  ok - the signature must be their own upload (refused: Draw your signature, then sign again)
+  ok - the upload is waiting to be checked, with its number
+  ok - the signature records the image, name, version fingerprint and device
+  ok - the acknowledgement records which version was read
+  ok - only the licence is left for onboarding
+  ok - what's needed before working must also be checked
+  ok - not verified while things wait to be checked
+  ok - can't clear someone before the checks are done (refused: Still needed before working: NDIS orientation, Screening check. Finish and check these first, or give an override.)
+  ok - a replacement request puts the document back on their list
+  ok - the history keeps both uploads
+  ok - a staff admin can't clear people unless delegated (refused: Only managers (or staff admins they've delegated to) can clear people to work)
+  ok - everything needed before working is done and checked
+  ok - cleared to work
+  ok - a new starter isn't given the task yet
+  ok - once they get a role, the rest becomes a Finish onboarding task due within a week
+  ok - clearance is in the change log
+  ok - a delegated staff admin can clear people
+  ok - a cleared-only register can't be given to someone not cleared (refused: This register is for cleared staff only, and Sam Worker isn't cleared to work yet)
+  ok - an override needs a real reason (refused: Give a reason for the override)
+  ok - an override lasts at most 30 days (refused: Choose an end date within the next 30 days)
+  ok - an override lets them work for now
+  ok - overrides are in the change log
+  ok - support workers can't give overrides (refused: Only managers (or staff admins they've delegated to) can give an override)
+  ok - people see their own work status
+  ok - but not other people's
+  ok - an expired screening check stops them being cleared for duties
+  ok - car trips are checked for clearance
+  ok - who can clear people is an HR Pack setting, not a Compliance one
+  ok - a manager looks after HR Pack when delegated
+  ok - a staff admin the manager shared it with looks after it too
+  ok - and can see request types
+  ok - so they can change request approvals
+  ok - cars for cleared staff only sits with the Cars settings
+  ok - other compliance settings can still be delegated
+== premium.test.sql
+  ok - Cars is a premium feature
+  ok - a manager can't change the plan (no rows changed)
+  ok - the system admin can take Cars out of the plan
+  ok - and put it back in
+  ok - not included: Cars doesn't work, even if it was on
+  ok - staff see no cars
+  ok - switching it on alone isn't enough while it's out of the plan (refused: Cars isn't included in the plan.)
+== profile_requirement.test.sql
+  ok - a new starter must complete their profile
+  ok - so must existing staff while profiles are on
+  ok - the system admin doesn't
+  ok - a new starter can't get a role before their profile is done (refused: They haven't finished onboarding yet. Give a conditional role with a deadline instead.)
+  ok - a phone alone isn't enough
+  ok - phone and emergency contact complete it
+  ok - finishing the profile completes onboarding straight away
+  ok - with profiles switched off, it isn't required
+== quick_fixes.test.sql
+  ok - an open form is in everyone's To fill in
+  ok - a form sent to Sam is in his list
+  ok - a Compliance form for staff admins isn't in Sam's list
+  ok - Lee doesn't get the form sent only to Sam
+  ok - the staff admin gets the Compliance form
+  ok - managers see enquiries by default
+  ok - staff admins don't, by default
+  ok - once chosen, staff admins see them
+  ok - and managers no longer do
+  ok - the chosen role gets the bell
+  ok - others don't
+  ok - one wrong password doesn't lock
+  ok - the fifth locks it for 15 minutes
+  ok - other people aren't affected
+  ok - after 15 minutes they can try again, and signing in clears it
+  ok - signed-in people can't see the lock list (refused: permission denied for table sign_in_failures)
+  ok - or call the guard (refused: permission denied for function sign_in_guard)
+  ok - with Compliance off, nothing is added to it (refused: Compliance is switched off)
+== register_overview.test.sql
+  ok - a staff admin still can't open task details
+  ok - a staff admin sees the number of open tasks per register
+  ok - a staff admin sees the title, description, due date and who it's assigned to
+  ok - only open tasks are listed
+  ok - a staff admin cannot add a register (refused: new row violates row-level security policy for table "registries")
+  ok - a staff admin cannot set up a register (no rows changed)
+  ok - a staff admin does not manage registers
+  ok - a support worker doesn't get the overview
+  ok - a manager can still add a register
+== register_setup.test.sql
+  ok - a manager who isn't its manager can't change a register
+  ok - with Setting up registers, every manager can
+  ok - and the change is saved
+  ok - a chosen staff admin can too
+  ok - other managers can't any more
+== register_templates.test.sql
+  ok - the library has 8 standard registers
+  ok - a support worker can't add registers (refused: Only people the system admin chose can add registers.)
+  ok - the system admin adds the Incident Register
+  ok - but not twice (refused: Incident Register is already added (or another register uses the prefix INC).)
+  ok - with all its fields
+  ok - and its colours
+  ok - a register already there isn't added again (refused: Asset Register is already added (or another register uses the prefix AST).)
+  ok - a manager adds the Asset Register
+  ok - as a list of records
+== registers.test.sql
+  ok - every install has one built-in General tasks registry
+  ok - a support worker cannot create a registry (refused: new row violates row-level security policy for table "registries")
+  ok - a new registry gets a prefix from its initials
+  ok - the manager who creates a registry becomes its manager
+  ok - a manager cannot add fields to a registry they do not manage (refused: new row violates row-level security policy for table "registry_fields")
+  ok - a manager cannot change a registry they do not manage (no rows changed)
+  ok - fields are never deleted (only retired) (refused: permission denied for table registry_fields)
+  ok - registries are never deleted (refused: permission denied for table registries)
+  ok - the General tasks registry cannot be retired (refused: The General tasks registry can't be retired)
+  ok - the General tasks registry can be renamed
+  ok - a required custom field must be filled in when the setting says so (refused: Risk rating is required)
+  ok - a dropdown only accepts its own choices (refused: Choose one of the options for Risk rating)
+  ok - an asset field must point at a real asset (refused: Choose an item for Asset)
+  ok - tasks cannot be created in a records register (refused: Choose a registry that is in use)
+  ok - custom field values are saved and unknown fields are dropped
+  ok - each registry numbers its own entries (RSK-0001, RSK-0002)
+  ok - General tasks have their own numbers too (GEN-0001)
+  ok - the person looking after it can update the details
+  ok - the timeline lists which fields changed
+  ok - someone who cannot see the task cannot change it (refused: You can't change this task)
+  ok - a field's type cannot change once it has data (refused: A field's type can't change once it has been filled in. Retire it and add a new field instead.)
+  ok - values of a retired field are kept
+  ok - only the register's managers can add assets (refused: Only this register's managers can add to it)
+  ok - records can only go in a records register (refused: Choose a register that is in use)
+  ok - everyone can look up assets
+  ok - nobody can insert records directly (refused: permission denied for table records)
+  ok - a maintenance task can link to an asset
+  ok - asset changes are kept in its history
+  ok - a follow-up action belongs to the same register as its task
+  ok - adding an action shows on the main task's timeline
+  ok - the person given the action is emailed
+  ok - you cannot add actions to a task you cannot change (refused: You can't add actions to this task)
+== role_change_ownership.test.sql
+  ok - the staff admin manages the form she made
+  ok - and the People settings she was given
+  ok - after becoming a team leader she still manages the form she made
+  ok - but can't make new forms (her new role isn't a form maker)
+  ok - and the People settings she was given as a staff admin aren't kept
+  ok - who made the form is kept
+  ok - if the creator leaves, the system admin still manages the form
+== round2.test.sql
+  ok - the website is the front page
+  ok - a manager given Website changes where it looks
+  ok - and adds documents
+  ok - and the website wording
+  ok - another manager can't see Website settings
+  ok - or add documents (refused: new row violates row-level security policy for table "assistant_documents")
+  ok - a staff admin changes a staff member's name
+  ok - a support worker can't rename others (no rows changed)
+  ok - task_label can't be called directly (refused: permission denied for function task_label)
+  ok - not by the public either (refused: permission denied for function task_label)
+== round3.test.sql
+  ok - the system admin can still use Forms while it's off
+  ok - but it's off for everyone else
+  ok - a manager can't
+  ok - emails off applies to the system admin too
+  ok - no email goes out while Emails is off, whoever triggered it
+  ok - an external contractor isn't a member yet
+  ok - and sees no registers
+  ok - a support worker can't use other registers by default (refused: You can raise General tasks and questions only)
+  ok - once the register allows support workers, they can
+  ok - a register limited to team leaders refuses others (refused: This register only takes new tasks from chosen roles)
+  ok - roles can't be shared (refused: This area can't be shared.)
+  ok - only with staff admins (refused: Areas can only be shared with active staff admins.)
+  ok - the staff admin now looks after branding
+  ok - until the manager no longer has it
+  ok - with a staff admin, a manager doesn't manage Compliance by default
+  ok - with no active staff admin, managers do
+  ok - the weekly report has its day, hour and period
+== scoreboard.test.sql
+  ok - Sam: one overdue, one stuck, one done late
+  ok - Kim: one done on time
+  ok - you and the system admin aren't on the scoreboard
+  ok - a team leader can't see it by default
+  ok - when allowed, a team leader sees only their team
+  ok - a support worker can't see it
+== settings_revamp.test.sql
+  ok - the form builder follows Forms
+  ok - Teams and Roles start on
+  ok - managers add registers and job titles, as today
+  ok - but not branding
+  ok - a manager can't save a branding draft (refused: You don't have permission to change this.)
+  ok - or delegate (refused: You don't have permission to change this.)
+  ok - a setting is saved as a draft
+  ok - and isn't live yet
+  ok - branding goes to selected people
+  ok - selected needs at least one person (refused: Choose at least one manager or staff admin.)
+  ok - Teams switched off as a draft
+  ok - switching it back removes the draft
+  ok - Roles off as a draft
+  ok - a notification switched off as a draft
+  ok - four drafts waiting
+  ok - deploy makes all four live
+  ok - the setting is live
+  ok - Roles is off
+  ok - only the staff admin was kept (a support worker can't be delegated to)
+  ok - the deploy is in the change log
+  ok - the staff admin looks after branding
+  ok - and saves a draft
+  ok - a manager doesn't see someone else's draft
+  ok - or deploy it
+  ok - the system admin sees everyone's drafts
+  ok - and can discard them
+  ok - a website part is saved as a draft
+  ok - only real website settings can be saved (refused: Something went wrong. Please refresh and try again.)
+  ok - and deployed
+  ok - the website part is live
+  ok - a switched-off bell notification isn't created
+  ok - others still are
+  ok - nothing is sent for a feature that's off
+  ok - both items count while their parts are on
+  ok - switching off uploads stops the upload counting
+  ok - a manager makes forms while the builder is on
+  ok - but not when the builder is off
+  ok - the system admin still can
+  ok - a team leader leads their team
+  ok - not while Teams is off
+  ok - Assistant off: the sign-in page is the front page
+  ok - Assistant on: the website is the front page
+== sign_in_help.test.sql
+  ok - by default a staff admin can't (refused: You can't do this for them. Ask the system admin.)
+  ok - the system admin can help anyone
+  ok - but not themselves
+  ok - once allowed, a staff admin can help a manager
+  ok - but never the system admin (refused: You can't do this for them. Ask the system admin.)
+  ok - or themselves (refused: You can't do this for them. Ask the system admin.)
+  ok - and can't read the email limits (refused: permission denied for table email_throttle)
+  ok - each one is in the change log
+== sign_out_devices.test.sql
+  ok - Sam's phone is signed in
+  ok - Sam signs out his two other devices
+  ok - his phone stays signed in
+  ok - staff can't sign other people out (refused: Only the system admin can do this.)
+  ok - or everyone (refused: Only the system admin can do this.)
+  ok - only one of Sam's sessions is left
+  ok - a signed-out device is no longer active
+  ok - a manager can't sign someone out everywhere (refused: Only the system admin can do this.)
+  ok - the system admin signs Sam out everywhere
+  ok - but not themselves (refused: To sign yourself out of other devices, use My account.)
+  ok - then everyone else (the manager)
+  ok - and stays signed in themselves
+  ok - only the system admin's session is left
+  ok - each one is in the change log
+== staff_app.test.sql
+  ok - the Staff app is premium and off to start with
+  ok - so it isn't available
+  ok - a manager can't switch it on (no rows changed)
+  ok - or change its settings (no rows changed)
+  ok - the system admin switches it on
+  ok - a phone installing the app can read its name and icon
+  ok - icon colours must be real colours (refused: new row for relation "custom_features" violates check constraint "custom_features_app_colour_check")
+  ok - built features are in the app by default with a checklist icon
+  ok - Sam is told their role changed
+  ok - and open pages are told to refresh
+  ok - a turned-off person still hears the signal
+== staff_photos.test.sql
+  ok - every copy has a Profile photo upload in onboarding
+  ok - Sam can't use a file in someone else's folder (refused: Choose a photo and wait for it to upload.)
+  ok - Sam can't point his photo at someone's documents (refused: Choose a photo and wait for it to upload.)
+  ok - nobody edits the photo field directly (refused: Change the photo from My account.)
+  ok - a support worker can't remove someone else's photo (refused: Only you, or people who manage staff, can remove this photo.)
+  ok - Sam sets his own photo
+  ok - a staff admin removes a photo
+  ok - it's in the change log
+  ok - sending the onboarding photo sets it
+  ok - sending it back removes it
+  ok - a file outside their own folder is never used
+== system_health.test.sql
+  ok - a manager can't see System health (refused: Only the system admin can see System health)
+  ok - or read the timer directly (refused: permission denied for table system_heartbeat)
+  ok - the system admin sees the database size
+  ok - and when the hourly timer last ran
+== task_workflow.test.sql
+  ok - an empty comment is refused (refused: Write a comment first)
+  ok - completing in an approval register waits for approval
+  ok - the others on the task hear about comments
+  ok - the register's manager is asked to approve
+  ok - other managers aren't
+  ok - a manager who doesn't manage the register can't approve (refused: A manager of this register approves it)
+  ok - sending back needs a reason (refused: Say what still needs doing, so they know)
+  ok - sent back to Sam with the reason
+  ok - approved: completed
+  ok - the person who did it can't close it themselves (refused: The person who created it, a team leader or a manager closes it)
+  ok - the creator closes it
+  ok - reopening needs a reason (refused: Give a reason for reopening the task)
+  ok - the team leader reopens it
+  ok - open follow-up actions must be finished first (refused: Finish or close its follow-up actions first)
+  ok - no approval needed: completed straight away
+  ok - escalating needs a reason (refused: Say why it needs escalating)
+  ok - a helper escalates; the register manager is told
+  ok - and emailed
+  ok - a system admin can't be given it (refused: Choose someone who can be given tasks)
+  ok - reassigned to the helper, who is no longer a helper
+  ok - the new person gets the new task email
+  ok - a support worker can't take over (refused: Team leaders and managers can take over tasks)
+  ok - a manager takes it over
+  ok - files go in the task's folder (refused: Upload the file again)
+  ok - people on the task see its files
+  ok - others can't
+  ok - a task can be created without its required fields
+  ok - the missing fields are listed
+  ok - it can't be completed until they're filled in (refused: Fill these in first: Risk rating, Consequence of risk, Effectiveness of controls, Risk reduction strategies)
+  ok - once filled in, nothing is missing
+  ok - then it can be completed (or sent for approval)
+  ok - no files while Attachments is switched off (refused: Attachments are switched off)
+  ok - a manager completes their own task without approval
+  ok - the register manager is asked
+== tasks.test.sql
+  ok - nobody can insert into tasks directly (refused: permission denied for table tasks)
+  ok - a task needs a title (refused: Give the task a title)
+  ok - task is created by the signed-in person, starts as Assigned and gets number 1
+  ok - the person looking after a task is never also listed as a helper
+  ok - creating and adding a helper are on the timeline
+  ok - one email to the assignee with the helper copied in (no manager on Maintenance)
+  ok - the manager is not emailed about a task they created themselves
+  ok - registry manager is emailed about a new task in their registry
+  ok - nobody is emailed about a task they assigned to themselves (only task 2 emailed Kim)
+  ok - support worker sees only the task assigned to them
+  ok - helper sees the task they help on
+  ok - creator sees tasks they created and tasks assigned to them
+  ok - team leader sees tasks of support workers in their team
+  ok - manager sees every team's tasks
+  ok - staff admin does not see task content
+  ok - system admin sees every task
+  ok - support worker sees the timeline of their task only
+  ok - nobody can edit tasks directly (refused: permission denied for table tasks)
+  ok - nobody can delete tasks (refused: permission denied for table tasks)
+  ok - nobody can read the email queue from the app (refused: permission denied for table email_outbox)
+  ok - the same helper cannot be added twice (refused: They are already helping on this task)
+  ok - the person looking after the task cannot be added as a helper (refused: They are already looking after this task)
+  ok - you cannot add helpers to a task you cannot see (refused: You can't change this task)
+  ok - the new helper is emailed
+  ok - no emails are queued when email notifications are switched off
+  ok - tasks stay readable when the Tasks feature is switched off
+  ok - no new tasks while the Tasks feature is switched off (refused: Tasks are switched off at the moment)
+  ok - the timeline cannot be edited (refused: The audit log cannot be changed or deleted)
+  ok - the timeline cannot be deleted (refused: The audit log cannot be changed or deleted)
+== two_factor.test.sql
+  ok - switch on: manager without a code sees only their own profile
+  ok - switch on: manager is told a code is needed
+  ok - a manager cannot turn two-factor off (no rows changed)
+  ok - turning two-factor off is logged
+  ok - switch off: manager without a code sees colleagues
+  ok - switch off: nobody is told a code is needed
+  ok - switch off: system admin without a code can turn it back on
+== fresh install
+  ok - the fresh install is current, runs in one go and holds no client content

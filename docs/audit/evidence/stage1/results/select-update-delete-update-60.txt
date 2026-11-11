@@ -1,0 +1,1116 @@
+system admin|admin_delegations|SELECT|0:-
+system admin|admin_delegations|UPDATE|ERROR permission denied for table admin_delegations
+system admin|admin_delegations|DELETE|ERROR permission denied for table admin_delegations
+system admin|app_settings|SELECT|80:6b34026c3ce20dd7ce10821b49426dcf
+system admin|app_settings|UPDATE|80:8835c92e928a04cf35db835cd6efefbb
+system admin|app_settings|DELETE|0:-
+system admin|assistant_chats|SELECT|0:-
+system admin|assistant_chats|UPDATE|0:-
+system admin|assistant_chats|DELETE|0:-
+system admin|assistant_documents|SELECT|0:-
+system admin|assistant_documents|UPDATE|0:-
+system admin|assistant_documents|DELETE|0:-
+system admin|assistant_messages|SELECT|0:-
+system admin|assistant_messages|UPDATE|0:-
+system admin|assistant_messages|DELETE|0:-
+system admin|assistant_questions|SELECT|0:-
+system admin|assistant_questions|UPDATE|ERROR permission denied for table assistant_questions
+system admin|assistant_questions|DELETE|ERROR permission denied for table assistant_questions
+system admin|assistant_settings|SELECT|1:f486f0918f313c8b2c38011ad3778095
+system admin|assistant_settings|UPDATE|1:d0d02e6eb7f00fba332e877a75fdda60
+system admin|assistant_settings|DELETE|0:-
+system admin|audit_log|SELECT|366:74fcd1f237d21b31bea88c4b4a471a46
+system admin|audit_log|UPDATE|ERROR permission denied for table audit_log
+system admin|audit_log|DELETE|ERROR permission denied for table audit_log
+system admin|car_clients|SELECT|0:-
+system admin|car_clients|UPDATE|0:-
+system admin|car_clients|DELETE|ERROR permission denied for table car_clients
+system admin|car_purposes|SELECT|6:e12d90ba78570f25ed92e0e4ad30cb25
+system admin|car_purposes|UPDATE|6:c5ec305b9453f761a7f4f86ddcc23c4f
+system admin|car_purposes|DELETE|ERROR permission denied for table car_purposes
+system admin|car_trips|SELECT|0:-
+system admin|car_trips|UPDATE|ERROR permission denied for table car_trips
+system admin|car_trips|DELETE|ERROR permission denied for table car_trips
+system admin|cars|SELECT|0:-
+system admin|cars|UPDATE|0:-
+system admin|cars|DELETE|ERROR permission denied for table cars
+system admin|client_teams|SELECT|0:-
+system admin|client_teams|UPDATE|ERROR permission denied for table client_teams
+system admin|client_teams|DELETE|0:-
+system admin|compliance_items|SELECT|11:2b34c416d940f284a7469df3fdae2ef1
+system admin|compliance_items|UPDATE|11:97f4bf326c2fef916bac0781d68eb7d2
+system admin|compliance_items|DELETE|ERROR permission denied for table compliance_items
+system admin|compliance_opens|SELECT|6:7cb7a95cb7b0d34d7647338daad9b23e
+system admin|compliance_opens|UPDATE|0:-
+system admin|compliance_opens|DELETE|0:-
+system admin|compliance_records|SELECT|908:782b599b4b8042df51f46cd134b76338
+system admin|compliance_records|UPDATE|ERROR permission denied for table compliance_records
+system admin|compliance_records|DELETE|ERROR permission denied for table compliance_records
+system admin|custom_alerts|SELECT|0:-
+system admin|custom_alerts|UPDATE|0:-
+system admin|custom_alerts|DELETE|0:-
+system admin|custom_client_targets|SELECT|0:-
+system admin|custom_client_targets|UPDATE|0:-
+system admin|custom_client_targets|DELETE|0:-
+system admin|custom_entries|SELECT|0:-
+system admin|custom_entries|UPDATE|ERROR permission denied for table custom_entries
+system admin|custom_entries|DELETE|ERROR permission denied for table custom_entries
+system admin|custom_features|SELECT|0:-
+system admin|custom_features|UPDATE|0:-
+system admin|custom_features|DELETE|0:-
+system admin|custom_fields|SELECT|0:-
+system admin|custom_fields|UPDATE|0:-
+system admin|custom_fields|DELETE|0:-
+system admin|delegation_rules|SELECT|13:a4598e15d1bb86a6d977b6a0f71811bd
+system admin|delegation_rules|UPDATE|ERROR permission denied for table delegation_rules
+system admin|delegation_rules|DELETE|ERROR permission denied for table delegation_rules
+system admin|delegation_shares|SELECT|0:-
+system admin|delegation_shares|UPDATE|ERROR permission denied for table delegation_shares
+system admin|delegation_shares|DELETE|ERROR permission denied for table delegation_shares
+system admin|features|SELECT|31:9b2ebcdc46c505fb4c74dd26d5124e26
+system admin|features|UPDATE|31:b517d9b27acbc597a19396901886015c
+system admin|features|DELETE|0:-
+system admin|form_collaborators|SELECT|0:-
+system admin|form_collaborators|UPDATE|0:-
+system admin|form_collaborators|DELETE|0:-
+system admin|form_completions|SELECT|0:-
+system admin|form_completions|UPDATE|ERROR permission denied for table form_completions
+system admin|form_completions|DELETE|ERROR permission denied for table form_completions
+system admin|form_questions|SELECT|0:-
+system admin|form_questions|UPDATE|0:-
+system admin|form_questions|DELETE|0:-
+system admin|form_recipients|SELECT|0:-
+system admin|form_recipients|UPDATE|ERROR permission denied for table form_recipients
+system admin|form_recipients|DELETE|ERROR permission denied for table form_recipients
+system admin|form_responses|SELECT|0:-
+system admin|form_responses|UPDATE|ERROR permission denied for table form_responses
+system admin|form_responses|DELETE|ERROR permission denied for table form_responses
+system admin|forms|SELECT|0:-
+system admin|forms|UPDATE|0:-
+system admin|forms|DELETE|0:-
+system admin|invitations|SELECT|313:819cc2a32bf7d7606e0718fb30fe85fe
+system admin|invitations|UPDATE|313:3015cf3be014c42c8e918f392c652b5d
+system admin|invitations|DELETE|0:-
+system admin|job_titles|SELECT|0:-
+system admin|job_titles|UPDATE|0:-
+system admin|job_titles|DELETE|ERROR permission denied for table job_titles
+system admin|leave_periods|SELECT|1:25f4111ef93770d466e4aaf1e56b9eaa
+system admin|leave_periods|UPDATE|ERROR permission denied for table leave_periods
+system admin|leave_periods|DELETE|ERROR permission denied for table leave_periods
+system admin|live_signals|SELECT|1:3aa5af9152a11b3ccf554b8356340c6d
+system admin|live_signals|UPDATE|ERROR permission denied for table live_signals
+system admin|live_signals|DELETE|ERROR permission denied for table live_signals
+system admin|notifications|SELECT|2:9b5a8dbbc995dddfe2517ed76d1f09b9
+system admin|notifications|UPDATE|ERROR permission denied for table notifications
+system admin|notifications|DELETE|ERROR permission denied for table notifications
+system admin|organisation|SELECT|1:f76559afcb90d9619dcdc9bc6d63ad3f
+system admin|organisation|UPDATE|1:78b54b49a9124002ddde626ae3e783ed
+system admin|organisation|DELETE|0:-
+system admin|people_change_requests|SELECT|0:-
+system admin|people_change_requests|UPDATE|ERROR permission denied for table people_change_requests
+system admin|people_change_requests|DELETE|ERROR permission denied for table people_change_requests
+system admin|profiles|SELECT|314:571a016749cfda8757df4d610d941bdf
+system admin|profiles|UPDATE|314:7005a7659375faeed5f106c1870325f1
+system admin|profiles|DELETE|0:-
+system admin|record_events|SELECT|0:-
+system admin|record_events|UPDATE|ERROR permission denied for table record_events
+system admin|record_events|DELETE|ERROR permission denied for table record_events
+system admin|records|SELECT|0:-
+system admin|records|UPDATE|ERROR permission denied for table records
+system admin|records|DELETE|ERROR permission denied for table records
+system admin|register_templates|SELECT|8:3a638cd6a928e4643a2808ae4e22c75d
+system admin|register_templates|UPDATE|ERROR permission denied for table register_templates
+system admin|register_templates|DELETE|ERROR permission denied for table register_templates
+system admin|registries|SELECT|8:b79e1c6d42c6293ce8d19266c5851012
+system admin|registries|UPDATE|8:5219ce7d8ec4234c7f0cb2b9d2cbc2c1
+system admin|registries|DELETE|ERROR permission denied for table registries
+system admin|registry_fields|SELECT|29:3b6b63c2939caf3f72949a541d8a2c26
+system admin|registry_fields|UPDATE|29:22435c87f69504d3bd685c634eec982b
+system admin|registry_fields|DELETE|ERROR permission denied for table registry_fields
+system admin|registry_managers|SELECT|0:-
+system admin|registry_managers|UPDATE|0:-
+system admin|registry_managers|DELETE|0:-
+system admin|request_events|SELECT|3:38a3a2e59bd244fe35e4484b57e6ee07
+system admin|request_events|UPDATE|ERROR permission denied for table request_events
+system admin|request_events|DELETE|ERROR permission denied for table request_events
+system admin|request_types|SELECT|7:5649b2e9a5b5e1f667b21c70d89b036c
+system admin|request_types|UPDATE|7:c34bd6df057c5b8bd09914ba0f9a800a
+system admin|request_types|DELETE|ERROR permission denied for table request_types
+system admin|requests|SELECT|1:1f0376594419e1ca069946190edbc277
+system admin|requests|UPDATE|ERROR permission denied for table requests
+system admin|requests|DELETE|ERROR permission denied for table requests
+system admin|settings_drafts|SELECT|0:-
+system admin|settings_drafts|UPDATE|ERROR permission denied for table settings_drafts
+system admin|settings_drafts|DELETE|ERROR permission denied for table settings_drafts
+system admin|shift_changes|SELECT|0:-
+system admin|shift_changes|UPDATE|ERROR permission denied for table shift_changes
+system admin|shift_changes|DELETE|ERROR permission denied for table shift_changes
+system admin|staff_directory|SELECT|4:cc0cc677b04e2b7578045e5c7baf8e4f
+system admin|staff_directory|UPDATE|ERROR permission denied for table staff_directory
+system admin|staff_directory|DELETE|ERROR permission denied for table staff_directory
+system admin|staff_private|SELECT|4:47ee7fa0cfbe5a5562803336efc195b2
+system admin|staff_private|UPDATE|ERROR permission denied for table staff_private
+system admin|staff_private|DELETE|ERROR permission denied for table staff_private
+system admin|task_alerts|SELECT|0:-
+system admin|task_alerts|UPDATE|ERROR permission denied for table task_alerts
+system admin|task_alerts|DELETE|ERROR permission denied for table task_alerts
+system admin|task_attachments|SELECT|0:-
+system admin|task_attachments|UPDATE|ERROR permission denied for table task_attachments
+system admin|task_attachments|DELETE|ERROR permission denied for table task_attachments
+system admin|task_events|SELECT|17:2c662610e97de17523b08812ea3a8222
+system admin|task_events|UPDATE|ERROR permission denied for table task_events
+system admin|task_events|DELETE|ERROR permission denied for table task_events
+system admin|task_helpers|SELECT|0:-
+system admin|task_helpers|UPDATE|ERROR permission denied for table task_helpers
+system admin|task_helpers|DELETE|ERROR permission denied for table task_helpers
+system admin|task_views|SELECT|15:8beccc807887f548e924ee35abba68e3
+system admin|task_views|UPDATE|ERROR permission denied for table task_views
+system admin|task_views|DELETE|ERROR permission denied for table task_views
+system admin|tasks|SELECT|10515:cfb317ea7960f4a6828130d2b32eec8f
+system admin|tasks|UPDATE|ERROR permission denied for table tasks
+system admin|tasks|DELETE|ERROR permission denied for table tasks
+system admin|team_leaders|SELECT|1:5dfe9002a663e7b8c7ef331ea6decd8f
+system admin|team_leaders|UPDATE|1:5dfe9002a663e7b8c7ef331ea6decd8f
+system admin|team_leaders|DELETE|1:5dfe9002a663e7b8c7ef331ea6decd8f
+system admin|team_members|SELECT|2:bda3066b1ea4982645789d60364bb3e3
+system admin|team_members|UPDATE|2:525a3015709b8dfa75a2096ee9915d62
+system admin|team_members|DELETE|2:525a3015709b8dfa75a2096ee9915d62
+system admin|teams|SELECT|2:63cbf7acd1543ba2f61b8651e88cedd1
+system admin|teams|UPDATE|2:94f0215c6faf961d1501c2397ecc235e
+system admin|teams|DELETE|2:94f0215c6faf961d1501c2397ecc235e
+system admin|website_enquiries|SELECT|3:a7308754cd1da3c90c9a0505037d8ecf
+system admin|website_enquiries|UPDATE|3:3018e2fa463e1956e91996e979907e4e
+system admin|website_enquiries|DELETE|0:-
+system admin|work_overrides|SELECT|1:f7e9dd00a7622d86859fa2b7ee441b3c
+system admin|work_overrides|UPDATE|0:-
+system admin|work_overrides|DELETE|0:-
+manager|admin_delegations|SELECT|0:-
+manager|admin_delegations|UPDATE|ERROR permission denied for table admin_delegations
+manager|admin_delegations|DELETE|ERROR permission denied for table admin_delegations
+manager|app_settings|SELECT|80:6b34026c3ce20dd7ce10821b49426dcf
+manager|app_settings|UPDATE|6:826974a64d81f58c549e363fe00dcbb6
+manager|app_settings|DELETE|0:-
+manager|assistant_chats|SELECT|0:-
+manager|assistant_chats|UPDATE|0:-
+manager|assistant_chats|DELETE|0:-
+manager|assistant_documents|SELECT|0:-
+manager|assistant_documents|UPDATE|0:-
+manager|assistant_documents|DELETE|0:-
+manager|assistant_messages|SELECT|0:-
+manager|assistant_messages|UPDATE|0:-
+manager|assistant_messages|DELETE|0:-
+manager|assistant_questions|SELECT|0:-
+manager|assistant_questions|UPDATE|ERROR permission denied for table assistant_questions
+manager|assistant_questions|DELETE|ERROR permission denied for table assistant_questions
+manager|assistant_settings|SELECT|0:-
+manager|assistant_settings|UPDATE|0:-
+manager|assistant_settings|DELETE|0:-
+manager|audit_log|SELECT|0:-
+manager|audit_log|UPDATE|ERROR permission denied for table audit_log
+manager|audit_log|DELETE|ERROR permission denied for table audit_log
+manager|car_clients|SELECT|0:-
+manager|car_clients|UPDATE|0:-
+manager|car_clients|DELETE|ERROR permission denied for table car_clients
+manager|car_purposes|SELECT|6:e12d90ba78570f25ed92e0e4ad30cb25
+manager|car_purposes|UPDATE|6:c5ec305b9453f761a7f4f86ddcc23c4f
+manager|car_purposes|DELETE|ERROR permission denied for table car_purposes
+manager|car_trips|SELECT|0:-
+manager|car_trips|UPDATE|ERROR permission denied for table car_trips
+manager|car_trips|DELETE|ERROR permission denied for table car_trips
+manager|cars|SELECT|0:-
+manager|cars|UPDATE|0:-
+manager|cars|DELETE|ERROR permission denied for table cars
+manager|client_teams|SELECT|0:-
+manager|client_teams|UPDATE|ERROR permission denied for table client_teams
+manager|client_teams|DELETE|0:-
+manager|compliance_items|SELECT|11:2b34c416d940f284a7469df3fdae2ef1
+manager|compliance_items|UPDATE|0:-
+manager|compliance_items|DELETE|ERROR permission denied for table compliance_items
+manager|compliance_opens|SELECT|0:-
+manager|compliance_opens|UPDATE|0:-
+manager|compliance_opens|DELETE|0:-
+manager|compliance_records|SELECT|0:-
+manager|compliance_records|UPDATE|ERROR permission denied for table compliance_records
+manager|compliance_records|DELETE|ERROR permission denied for table compliance_records
+manager|custom_alerts|SELECT|0:-
+manager|custom_alerts|UPDATE|0:-
+manager|custom_alerts|DELETE|0:-
+manager|custom_client_targets|SELECT|0:-
+manager|custom_client_targets|UPDATE|0:-
+manager|custom_client_targets|DELETE|0:-
+manager|custom_entries|SELECT|0:-
+manager|custom_entries|UPDATE|ERROR permission denied for table custom_entries
+manager|custom_entries|DELETE|ERROR permission denied for table custom_entries
+manager|custom_features|SELECT|0:-
+manager|custom_features|UPDATE|0:-
+manager|custom_features|DELETE|0:-
+manager|custom_fields|SELECT|0:-
+manager|custom_fields|UPDATE|0:-
+manager|custom_fields|DELETE|0:-
+manager|delegation_rules|SELECT|13:a4598e15d1bb86a6d977b6a0f71811bd
+manager|delegation_rules|UPDATE|ERROR permission denied for table delegation_rules
+manager|delegation_rules|DELETE|ERROR permission denied for table delegation_rules
+manager|delegation_shares|SELECT|0:-
+manager|delegation_shares|UPDATE|ERROR permission denied for table delegation_shares
+manager|delegation_shares|DELETE|ERROR permission denied for table delegation_shares
+manager|features|SELECT|31:9b2ebcdc46c505fb4c74dd26d5124e26
+manager|features|UPDATE|0:-
+manager|features|DELETE|0:-
+manager|form_collaborators|SELECT|0:-
+manager|form_collaborators|UPDATE|0:-
+manager|form_collaborators|DELETE|0:-
+manager|form_completions|SELECT|0:-
+manager|form_completions|UPDATE|ERROR permission denied for table form_completions
+manager|form_completions|DELETE|ERROR permission denied for table form_completions
+manager|form_questions|SELECT|0:-
+manager|form_questions|UPDATE|0:-
+manager|form_questions|DELETE|0:-
+manager|form_recipients|SELECT|0:-
+manager|form_recipients|UPDATE|ERROR permission denied for table form_recipients
+manager|form_recipients|DELETE|ERROR permission denied for table form_recipients
+manager|form_responses|SELECT|0:-
+manager|form_responses|UPDATE|ERROR permission denied for table form_responses
+manager|form_responses|DELETE|ERROR permission denied for table form_responses
+manager|forms|SELECT|0:-
+manager|forms|UPDATE|0:-
+manager|forms|DELETE|0:-
+manager|invitations|SELECT|313:819cc2a32bf7d7606e0718fb30fe85fe
+manager|invitations|UPDATE|313:3015cf3be014c42c8e918f392c652b5d
+manager|invitations|DELETE|0:-
+manager|job_titles|SELECT|0:-
+manager|job_titles|UPDATE|0:-
+manager|job_titles|DELETE|ERROR permission denied for table job_titles
+manager|leave_periods|SELECT|1:25f4111ef93770d466e4aaf1e56b9eaa
+manager|leave_periods|UPDATE|ERROR permission denied for table leave_periods
+manager|leave_periods|DELETE|ERROR permission denied for table leave_periods
+manager|live_signals|SELECT|1:3aa5af9152a11b3ccf554b8356340c6d
+manager|live_signals|UPDATE|ERROR permission denied for table live_signals
+manager|live_signals|DELETE|ERROR permission denied for table live_signals
+manager|notifications|SELECT|3006:9be28416691a9091f8e70572dc6398e4
+manager|notifications|UPDATE|ERROR permission denied for table notifications
+manager|notifications|DELETE|ERROR permission denied for table notifications
+manager|organisation|SELECT|1:f76559afcb90d9619dcdc9bc6d63ad3f
+manager|organisation|UPDATE|0:-
+manager|organisation|DELETE|0:-
+manager|people_change_requests|SELECT|0:-
+manager|people_change_requests|UPDATE|ERROR permission denied for table people_change_requests
+manager|people_change_requests|DELETE|ERROR permission denied for table people_change_requests
+manager|profiles|SELECT|313:61763b50424e497a14fbd33c9af2ea38
+manager|profiles|UPDATE|313:4e64909af2728e47160038847973c224
+manager|profiles|DELETE|0:-
+manager|record_events|SELECT|0:-
+manager|record_events|UPDATE|ERROR permission denied for table record_events
+manager|record_events|DELETE|ERROR permission denied for table record_events
+manager|records|SELECT|0:-
+manager|records|UPDATE|ERROR permission denied for table records
+manager|records|DELETE|ERROR permission denied for table records
+manager|register_templates|SELECT|8:3a638cd6a928e4643a2808ae4e22c75d
+manager|register_templates|UPDATE|ERROR permission denied for table register_templates
+manager|register_templates|DELETE|ERROR permission denied for table register_templates
+manager|registries|SELECT|8:b79e1c6d42c6293ce8d19266c5851012
+manager|registries|UPDATE|0:-
+manager|registries|DELETE|ERROR permission denied for table registries
+manager|registry_fields|SELECT|29:3b6b63c2939caf3f72949a541d8a2c26
+manager|registry_fields|UPDATE|0:-
+manager|registry_fields|DELETE|ERROR permission denied for table registry_fields
+manager|registry_managers|SELECT|0:-
+manager|registry_managers|UPDATE|0:-
+manager|registry_managers|DELETE|0:-
+manager|request_events|SELECT|3:38a3a2e59bd244fe35e4484b57e6ee07
+manager|request_events|UPDATE|ERROR permission denied for table request_events
+manager|request_events|DELETE|ERROR permission denied for table request_events
+manager|request_types|SELECT|7:5649b2e9a5b5e1f667b21c70d89b036c
+manager|request_types|UPDATE|0:-
+manager|request_types|DELETE|ERROR permission denied for table request_types
+manager|requests|SELECT|1:1f0376594419e1ca069946190edbc277
+manager|requests|UPDATE|ERROR permission denied for table requests
+manager|requests|DELETE|ERROR permission denied for table requests
+manager|settings_drafts|SELECT|0:-
+manager|settings_drafts|UPDATE|ERROR permission denied for table settings_drafts
+manager|settings_drafts|DELETE|ERROR permission denied for table settings_drafts
+manager|shift_changes|SELECT|0:-
+manager|shift_changes|UPDATE|ERROR permission denied for table shift_changes
+manager|shift_changes|DELETE|ERROR permission denied for table shift_changes
+manager|staff_directory|SELECT|4:cc0cc677b04e2b7578045e5c7baf8e4f
+manager|staff_directory|UPDATE|ERROR permission denied for table staff_directory
+manager|staff_directory|DELETE|ERROR permission denied for table staff_directory
+manager|staff_private|SELECT|4:47ee7fa0cfbe5a5562803336efc195b2
+manager|staff_private|UPDATE|ERROR permission denied for table staff_private
+manager|staff_private|DELETE|ERROR permission denied for table staff_private
+manager|task_alerts|SELECT|0:-
+manager|task_alerts|UPDATE|ERROR permission denied for table task_alerts
+manager|task_alerts|DELETE|ERROR permission denied for table task_alerts
+manager|task_attachments|SELECT|0:-
+manager|task_attachments|UPDATE|ERROR permission denied for table task_attachments
+manager|task_attachments|DELETE|ERROR permission denied for table task_attachments
+manager|task_events|SELECT|17:2c662610e97de17523b08812ea3a8222
+manager|task_events|UPDATE|ERROR permission denied for table task_events
+manager|task_events|DELETE|ERROR permission denied for table task_events
+manager|task_helpers|SELECT|0:-
+manager|task_helpers|UPDATE|ERROR permission denied for table task_helpers
+manager|task_helpers|DELETE|ERROR permission denied for table task_helpers
+manager|task_views|SELECT|15:b2b4016d3d0d25e9ea6e16dc7550f379
+manager|task_views|UPDATE|ERROR permission denied for table task_views
+manager|task_views|DELETE|ERROR permission denied for table task_views
+manager|tasks|SELECT|10515:cfb317ea7960f4a6828130d2b32eec8f
+manager|tasks|UPDATE|ERROR permission denied for table tasks
+manager|tasks|DELETE|ERROR permission denied for table tasks
+manager|team_leaders|SELECT|1:5dfe9002a663e7b8c7ef331ea6decd8f
+manager|team_leaders|UPDATE|1:5dfe9002a663e7b8c7ef331ea6decd8f
+manager|team_leaders|DELETE|1:5dfe9002a663e7b8c7ef331ea6decd8f
+manager|team_members|SELECT|2:bda3066b1ea4982645789d60364bb3e3
+manager|team_members|UPDATE|2:525a3015709b8dfa75a2096ee9915d62
+manager|team_members|DELETE|2:525a3015709b8dfa75a2096ee9915d62
+manager|teams|SELECT|2:63cbf7acd1543ba2f61b8651e88cedd1
+manager|teams|UPDATE|2:94f0215c6faf961d1501c2397ecc235e
+manager|teams|DELETE|2:94f0215c6faf961d1501c2397ecc235e
+manager|website_enquiries|SELECT|3:a7308754cd1da3c90c9a0505037d8ecf
+manager|website_enquiries|UPDATE|3:3018e2fa463e1956e91996e979907e4e
+manager|website_enquiries|DELETE|0:-
+manager|work_overrides|SELECT|1:f7e9dd00a7622d86859fa2b7ee441b3c
+manager|work_overrides|UPDATE|0:-
+manager|work_overrides|DELETE|0:-
+staff admin|admin_delegations|SELECT|0:-
+staff admin|admin_delegations|UPDATE|ERROR permission denied for table admin_delegations
+staff admin|admin_delegations|DELETE|ERROR permission denied for table admin_delegations
+staff admin|app_settings|SELECT|80:6b34026c3ce20dd7ce10821b49426dcf
+staff admin|app_settings|UPDATE|0:-
+staff admin|app_settings|DELETE|0:-
+staff admin|assistant_chats|SELECT|0:-
+staff admin|assistant_chats|UPDATE|0:-
+staff admin|assistant_chats|DELETE|0:-
+staff admin|assistant_documents|SELECT|0:-
+staff admin|assistant_documents|UPDATE|0:-
+staff admin|assistant_documents|DELETE|0:-
+staff admin|assistant_messages|SELECT|0:-
+staff admin|assistant_messages|UPDATE|0:-
+staff admin|assistant_messages|DELETE|0:-
+staff admin|assistant_questions|SELECT|0:-
+staff admin|assistant_questions|UPDATE|ERROR permission denied for table assistant_questions
+staff admin|assistant_questions|DELETE|ERROR permission denied for table assistant_questions
+staff admin|assistant_settings|SELECT|0:-
+staff admin|assistant_settings|UPDATE|0:-
+staff admin|assistant_settings|DELETE|0:-
+staff admin|audit_log|SELECT|0:-
+staff admin|audit_log|UPDATE|ERROR permission denied for table audit_log
+staff admin|audit_log|DELETE|ERROR permission denied for table audit_log
+staff admin|car_clients|SELECT|0:-
+staff admin|car_clients|UPDATE|0:-
+staff admin|car_clients|DELETE|ERROR permission denied for table car_clients
+staff admin|car_purposes|SELECT|6:e12d90ba78570f25ed92e0e4ad30cb25
+staff admin|car_purposes|UPDATE|0:-
+staff admin|car_purposes|DELETE|ERROR permission denied for table car_purposes
+staff admin|car_trips|SELECT|0:-
+staff admin|car_trips|UPDATE|ERROR permission denied for table car_trips
+staff admin|car_trips|DELETE|ERROR permission denied for table car_trips
+staff admin|cars|SELECT|0:-
+staff admin|cars|UPDATE|0:-
+staff admin|cars|DELETE|ERROR permission denied for table cars
+staff admin|client_teams|SELECT|0:-
+staff admin|client_teams|UPDATE|ERROR permission denied for table client_teams
+staff admin|client_teams|DELETE|0:-
+staff admin|compliance_items|SELECT|11:2b34c416d940f284a7469df3fdae2ef1
+staff admin|compliance_items|UPDATE|11:97f4bf326c2fef916bac0781d68eb7d2
+staff admin|compliance_items|DELETE|ERROR permission denied for table compliance_items
+staff admin|compliance_opens|SELECT|6:7cb7a95cb7b0d34d7647338daad9b23e
+staff admin|compliance_opens|UPDATE|0:-
+staff admin|compliance_opens|DELETE|0:-
+staff admin|compliance_records|SELECT|908:782b599b4b8042df51f46cd134b76338
+staff admin|compliance_records|UPDATE|ERROR permission denied for table compliance_records
+staff admin|compliance_records|DELETE|ERROR permission denied for table compliance_records
+staff admin|custom_alerts|SELECT|0:-
+staff admin|custom_alerts|UPDATE|0:-
+staff admin|custom_alerts|DELETE|0:-
+staff admin|custom_client_targets|SELECT|0:-
+staff admin|custom_client_targets|UPDATE|0:-
+staff admin|custom_client_targets|DELETE|0:-
+staff admin|custom_entries|SELECT|0:-
+staff admin|custom_entries|UPDATE|ERROR permission denied for table custom_entries
+staff admin|custom_entries|DELETE|ERROR permission denied for table custom_entries
+staff admin|custom_features|SELECT|0:-
+staff admin|custom_features|UPDATE|0:-
+staff admin|custom_features|DELETE|0:-
+staff admin|custom_fields|SELECT|0:-
+staff admin|custom_fields|UPDATE|0:-
+staff admin|custom_fields|DELETE|0:-
+staff admin|delegation_rules|SELECT|13:a4598e15d1bb86a6d977b6a0f71811bd
+staff admin|delegation_rules|UPDATE|ERROR permission denied for table delegation_rules
+staff admin|delegation_rules|DELETE|ERROR permission denied for table delegation_rules
+staff admin|delegation_shares|SELECT|0:-
+staff admin|delegation_shares|UPDATE|ERROR permission denied for table delegation_shares
+staff admin|delegation_shares|DELETE|ERROR permission denied for table delegation_shares
+staff admin|features|SELECT|31:9b2ebcdc46c505fb4c74dd26d5124e26
+staff admin|features|UPDATE|0:-
+staff admin|features|DELETE|0:-
+staff admin|form_collaborators|SELECT|0:-
+staff admin|form_collaborators|UPDATE|0:-
+staff admin|form_collaborators|DELETE|0:-
+staff admin|form_completions|SELECT|0:-
+staff admin|form_completions|UPDATE|ERROR permission denied for table form_completions
+staff admin|form_completions|DELETE|ERROR permission denied for table form_completions
+staff admin|form_questions|SELECT|0:-
+staff admin|form_questions|UPDATE|0:-
+staff admin|form_questions|DELETE|0:-
+staff admin|form_recipients|SELECT|0:-
+staff admin|form_recipients|UPDATE|ERROR permission denied for table form_recipients
+staff admin|form_recipients|DELETE|ERROR permission denied for table form_recipients
+staff admin|form_responses|SELECT|0:-
+staff admin|form_responses|UPDATE|ERROR permission denied for table form_responses
+staff admin|form_responses|DELETE|ERROR permission denied for table form_responses
+staff admin|forms|SELECT|0:-
+staff admin|forms|UPDATE|0:-
+staff admin|forms|DELETE|0:-
+staff admin|invitations|SELECT|313:819cc2a32bf7d7606e0718fb30fe85fe
+staff admin|invitations|UPDATE|313:3015cf3be014c42c8e918f392c652b5d
+staff admin|invitations|DELETE|0:-
+staff admin|job_titles|SELECT|0:-
+staff admin|job_titles|UPDATE|0:-
+staff admin|job_titles|DELETE|ERROR permission denied for table job_titles
+staff admin|leave_periods|SELECT|1:25f4111ef93770d466e4aaf1e56b9eaa
+staff admin|leave_periods|UPDATE|ERROR permission denied for table leave_periods
+staff admin|leave_periods|DELETE|ERROR permission denied for table leave_periods
+staff admin|live_signals|SELECT|1:3aa5af9152a11b3ccf554b8356340c6d
+staff admin|live_signals|UPDATE|ERROR permission denied for table live_signals
+staff admin|live_signals|DELETE|ERROR permission denied for table live_signals
+staff admin|notifications|SELECT|15:095de5e44f079b38be5404c6d9f1dc20
+staff admin|notifications|UPDATE|ERROR permission denied for table notifications
+staff admin|notifications|DELETE|ERROR permission denied for table notifications
+staff admin|organisation|SELECT|1:f76559afcb90d9619dcdc9bc6d63ad3f
+staff admin|organisation|UPDATE|0:-
+staff admin|organisation|DELETE|0:-
+staff admin|people_change_requests|SELECT|0:-
+staff admin|people_change_requests|UPDATE|ERROR permission denied for table people_change_requests
+staff admin|people_change_requests|DELETE|ERROR permission denied for table people_change_requests
+staff admin|profiles|SELECT|313:61763b50424e497a14fbd33c9af2ea38
+staff admin|profiles|UPDATE|313:4e64909af2728e47160038847973c224
+staff admin|profiles|DELETE|0:-
+staff admin|record_events|SELECT|0:-
+staff admin|record_events|UPDATE|ERROR permission denied for table record_events
+staff admin|record_events|DELETE|ERROR permission denied for table record_events
+staff admin|records|SELECT|0:-
+staff admin|records|UPDATE|ERROR permission denied for table records
+staff admin|records|DELETE|ERROR permission denied for table records
+staff admin|register_templates|SELECT|8:3a638cd6a928e4643a2808ae4e22c75d
+staff admin|register_templates|UPDATE|ERROR permission denied for table register_templates
+staff admin|register_templates|DELETE|ERROR permission denied for table register_templates
+staff admin|registries|SELECT|8:b79e1c6d42c6293ce8d19266c5851012
+staff admin|registries|UPDATE|0:-
+staff admin|registries|DELETE|ERROR permission denied for table registries
+staff admin|registry_fields|SELECT|29:3b6b63c2939caf3f72949a541d8a2c26
+staff admin|registry_fields|UPDATE|0:-
+staff admin|registry_fields|DELETE|ERROR permission denied for table registry_fields
+staff admin|registry_managers|SELECT|0:-
+staff admin|registry_managers|UPDATE|0:-
+staff admin|registry_managers|DELETE|0:-
+staff admin|request_events|SELECT|3:38a3a2e59bd244fe35e4484b57e6ee07
+staff admin|request_events|UPDATE|ERROR permission denied for table request_events
+staff admin|request_events|DELETE|ERROR permission denied for table request_events
+staff admin|request_types|SELECT|7:5649b2e9a5b5e1f667b21c70d89b036c
+staff admin|request_types|UPDATE|0:-
+staff admin|request_types|DELETE|ERROR permission denied for table request_types
+staff admin|requests|SELECT|1:1f0376594419e1ca069946190edbc277
+staff admin|requests|UPDATE|ERROR permission denied for table requests
+staff admin|requests|DELETE|ERROR permission denied for table requests
+staff admin|settings_drafts|SELECT|0:-
+staff admin|settings_drafts|UPDATE|ERROR permission denied for table settings_drafts
+staff admin|settings_drafts|DELETE|ERROR permission denied for table settings_drafts
+staff admin|shift_changes|SELECT|0:-
+staff admin|shift_changes|UPDATE|ERROR permission denied for table shift_changes
+staff admin|shift_changes|DELETE|ERROR permission denied for table shift_changes
+staff admin|staff_directory|SELECT|4:cc0cc677b04e2b7578045e5c7baf8e4f
+staff admin|staff_directory|UPDATE|ERROR permission denied for table staff_directory
+staff admin|staff_directory|DELETE|ERROR permission denied for table staff_directory
+staff admin|staff_private|SELECT|4:47ee7fa0cfbe5a5562803336efc195b2
+staff admin|staff_private|UPDATE|ERROR permission denied for table staff_private
+staff admin|staff_private|DELETE|ERROR permission denied for table staff_private
+staff admin|task_alerts|SELECT|0:-
+staff admin|task_alerts|UPDATE|ERROR permission denied for table task_alerts
+staff admin|task_alerts|DELETE|ERROR permission denied for table task_alerts
+staff admin|task_attachments|SELECT|0:-
+staff admin|task_attachments|UPDATE|ERROR permission denied for table task_attachments
+staff admin|task_attachments|DELETE|ERROR permission denied for table task_attachments
+staff admin|task_events|SELECT|7:e273bf052f53d04ff37c94f4ec902f3d
+staff admin|task_events|UPDATE|ERROR permission denied for table task_events
+staff admin|task_events|DELETE|ERROR permission denied for table task_events
+staff admin|task_helpers|SELECT|0:-
+staff admin|task_helpers|UPDATE|ERROR permission denied for table task_helpers
+staff admin|task_helpers|DELETE|ERROR permission denied for table task_helpers
+staff admin|task_views|SELECT|6:9b62c9975ed06117b1fa66ea2382e42a
+staff admin|task_views|UPDATE|ERROR permission denied for table task_views
+staff admin|task_views|DELETE|ERROR permission denied for table task_views
+staff admin|tasks|SELECT|6:309af138e13e71a3d1804e21eebec78e
+staff admin|tasks|UPDATE|ERROR permission denied for table tasks
+staff admin|tasks|DELETE|ERROR permission denied for table tasks
+staff admin|team_leaders|SELECT|1:5dfe9002a663e7b8c7ef331ea6decd8f
+staff admin|team_leaders|UPDATE|0:-
+staff admin|team_leaders|DELETE|0:-
+staff admin|team_members|SELECT|2:bda3066b1ea4982645789d60364bb3e3
+staff admin|team_members|UPDATE|0:-
+staff admin|team_members|DELETE|0:-
+staff admin|teams|SELECT|2:63cbf7acd1543ba2f61b8651e88cedd1
+staff admin|teams|UPDATE|2:94f0215c6faf961d1501c2397ecc235e
+staff admin|teams|DELETE|2:94f0215c6faf961d1501c2397ecc235e
+staff admin|website_enquiries|SELECT|0:-
+staff admin|website_enquiries|UPDATE|0:-
+staff admin|website_enquiries|DELETE|0:-
+staff admin|work_overrides|SELECT|1:f7e9dd00a7622d86859fa2b7ee441b3c
+staff admin|work_overrides|UPDATE|0:-
+staff admin|work_overrides|DELETE|0:-
+team leader|admin_delegations|SELECT|0:-
+team leader|admin_delegations|UPDATE|ERROR permission denied for table admin_delegations
+team leader|admin_delegations|DELETE|ERROR permission denied for table admin_delegations
+team leader|app_settings|SELECT|80:6b34026c3ce20dd7ce10821b49426dcf
+team leader|app_settings|UPDATE|0:-
+team leader|app_settings|DELETE|0:-
+team leader|assistant_chats|SELECT|0:-
+team leader|assistant_chats|UPDATE|0:-
+team leader|assistant_chats|DELETE|0:-
+team leader|assistant_documents|SELECT|0:-
+team leader|assistant_documents|UPDATE|0:-
+team leader|assistant_documents|DELETE|0:-
+team leader|assistant_messages|SELECT|0:-
+team leader|assistant_messages|UPDATE|0:-
+team leader|assistant_messages|DELETE|0:-
+team leader|assistant_questions|SELECT|0:-
+team leader|assistant_questions|UPDATE|ERROR permission denied for table assistant_questions
+team leader|assistant_questions|DELETE|ERROR permission denied for table assistant_questions
+team leader|assistant_settings|SELECT|0:-
+team leader|assistant_settings|UPDATE|0:-
+team leader|assistant_settings|DELETE|0:-
+team leader|audit_log|SELECT|0:-
+team leader|audit_log|UPDATE|ERROR permission denied for table audit_log
+team leader|audit_log|DELETE|ERROR permission denied for table audit_log
+team leader|car_clients|SELECT|0:-
+team leader|car_clients|UPDATE|0:-
+team leader|car_clients|DELETE|ERROR permission denied for table car_clients
+team leader|car_purposes|SELECT|6:e12d90ba78570f25ed92e0e4ad30cb25
+team leader|car_purposes|UPDATE|0:-
+team leader|car_purposes|DELETE|ERROR permission denied for table car_purposes
+team leader|car_trips|SELECT|0:-
+team leader|car_trips|UPDATE|ERROR permission denied for table car_trips
+team leader|car_trips|DELETE|ERROR permission denied for table car_trips
+team leader|cars|SELECT|0:-
+team leader|cars|UPDATE|0:-
+team leader|cars|DELETE|ERROR permission denied for table cars
+team leader|client_teams|SELECT|0:-
+team leader|client_teams|UPDATE|ERROR permission denied for table client_teams
+team leader|client_teams|DELETE|0:-
+team leader|compliance_items|SELECT|11:2b34c416d940f284a7469df3fdae2ef1
+team leader|compliance_items|UPDATE|0:-
+team leader|compliance_items|DELETE|ERROR permission denied for table compliance_items
+team leader|compliance_opens|SELECT|0:-
+team leader|compliance_opens|UPDATE|0:-
+team leader|compliance_opens|DELETE|0:-
+team leader|compliance_records|SELECT|0:-
+team leader|compliance_records|UPDATE|ERROR permission denied for table compliance_records
+team leader|compliance_records|DELETE|ERROR permission denied for table compliance_records
+team leader|custom_alerts|SELECT|0:-
+team leader|custom_alerts|UPDATE|0:-
+team leader|custom_alerts|DELETE|0:-
+team leader|custom_client_targets|SELECT|0:-
+team leader|custom_client_targets|UPDATE|0:-
+team leader|custom_client_targets|DELETE|0:-
+team leader|custom_entries|SELECT|0:-
+team leader|custom_entries|UPDATE|ERROR permission denied for table custom_entries
+team leader|custom_entries|DELETE|ERROR permission denied for table custom_entries
+team leader|custom_features|SELECT|0:-
+team leader|custom_features|UPDATE|0:-
+team leader|custom_features|DELETE|0:-
+team leader|custom_fields|SELECT|0:-
+team leader|custom_fields|UPDATE|0:-
+team leader|custom_fields|DELETE|0:-
+team leader|delegation_rules|SELECT|13:a4598e15d1bb86a6d977b6a0f71811bd
+team leader|delegation_rules|UPDATE|ERROR permission denied for table delegation_rules
+team leader|delegation_rules|DELETE|ERROR permission denied for table delegation_rules
+team leader|delegation_shares|SELECT|0:-
+team leader|delegation_shares|UPDATE|ERROR permission denied for table delegation_shares
+team leader|delegation_shares|DELETE|ERROR permission denied for table delegation_shares
+team leader|features|SELECT|31:9b2ebcdc46c505fb4c74dd26d5124e26
+team leader|features|UPDATE|0:-
+team leader|features|DELETE|0:-
+team leader|form_collaborators|SELECT|0:-
+team leader|form_collaborators|UPDATE|0:-
+team leader|form_collaborators|DELETE|0:-
+team leader|form_completions|SELECT|0:-
+team leader|form_completions|UPDATE|ERROR permission denied for table form_completions
+team leader|form_completions|DELETE|ERROR permission denied for table form_completions
+team leader|form_questions|SELECT|0:-
+team leader|form_questions|UPDATE|0:-
+team leader|form_questions|DELETE|0:-
+team leader|form_recipients|SELECT|0:-
+team leader|form_recipients|UPDATE|ERROR permission denied for table form_recipients
+team leader|form_recipients|DELETE|ERROR permission denied for table form_recipients
+team leader|form_responses|SELECT|0:-
+team leader|form_responses|UPDATE|ERROR permission denied for table form_responses
+team leader|form_responses|DELETE|ERROR permission denied for table form_responses
+team leader|forms|SELECT|0:-
+team leader|forms|UPDATE|0:-
+team leader|forms|DELETE|0:-
+team leader|invitations|SELECT|0:-
+team leader|invitations|UPDATE|0:-
+team leader|invitations|DELETE|0:-
+team leader|job_titles|SELECT|0:-
+team leader|job_titles|UPDATE|0:-
+team leader|job_titles|DELETE|ERROR permission denied for table job_titles
+team leader|leave_periods|SELECT|1:25f4111ef93770d466e4aaf1e56b9eaa
+team leader|leave_periods|UPDATE|ERROR permission denied for table leave_periods
+team leader|leave_periods|DELETE|ERROR permission denied for table leave_periods
+team leader|live_signals|SELECT|1:3aa5af9152a11b3ccf554b8356340c6d
+team leader|live_signals|UPDATE|ERROR permission denied for table live_signals
+team leader|live_signals|DELETE|ERROR permission denied for table live_signals
+team leader|notifications|SELECT|6:7c2ba55ce05ec5c4385142d45f8c1067
+team leader|notifications|UPDATE|ERROR permission denied for table notifications
+team leader|notifications|DELETE|ERROR permission denied for table notifications
+team leader|organisation|SELECT|1:f76559afcb90d9619dcdc9bc6d63ad3f
+team leader|organisation|UPDATE|0:-
+team leader|organisation|DELETE|0:-
+team leader|people_change_requests|SELECT|0:-
+team leader|people_change_requests|UPDATE|ERROR permission denied for table people_change_requests
+team leader|people_change_requests|DELETE|ERROR permission denied for table people_change_requests
+team leader|profiles|SELECT|313:61763b50424e497a14fbd33c9af2ea38
+team leader|profiles|UPDATE|1:f5e2abe8da3a3fe707c8856da0cdd632
+team leader|profiles|DELETE|0:-
+team leader|record_events|SELECT|0:-
+team leader|record_events|UPDATE|ERROR permission denied for table record_events
+team leader|record_events|DELETE|ERROR permission denied for table record_events
+team leader|records|SELECT|0:-
+team leader|records|UPDATE|ERROR permission denied for table records
+team leader|records|DELETE|ERROR permission denied for table records
+team leader|register_templates|SELECT|8:3a638cd6a928e4643a2808ae4e22c75d
+team leader|register_templates|UPDATE|ERROR permission denied for table register_templates
+team leader|register_templates|DELETE|ERROR permission denied for table register_templates
+team leader|registries|SELECT|8:b79e1c6d42c6293ce8d19266c5851012
+team leader|registries|UPDATE|0:-
+team leader|registries|DELETE|ERROR permission denied for table registries
+team leader|registry_fields|SELECT|29:3b6b63c2939caf3f72949a541d8a2c26
+team leader|registry_fields|UPDATE|0:-
+team leader|registry_fields|DELETE|ERROR permission denied for table registry_fields
+team leader|registry_managers|SELECT|0:-
+team leader|registry_managers|UPDATE|0:-
+team leader|registry_managers|DELETE|0:-
+team leader|request_events|SELECT|0:-
+team leader|request_events|UPDATE|ERROR permission denied for table request_events
+team leader|request_events|DELETE|ERROR permission denied for table request_events
+team leader|request_types|SELECT|7:5649b2e9a5b5e1f667b21c70d89b036c
+team leader|request_types|UPDATE|0:-
+team leader|request_types|DELETE|ERROR permission denied for table request_types
+team leader|requests|SELECT|0:-
+team leader|requests|UPDATE|ERROR permission denied for table requests
+team leader|requests|DELETE|ERROR permission denied for table requests
+team leader|settings_drafts|SELECT|0:-
+team leader|settings_drafts|UPDATE|ERROR permission denied for table settings_drafts
+team leader|settings_drafts|DELETE|ERROR permission denied for table settings_drafts
+team leader|shift_changes|SELECT|0:-
+team leader|shift_changes|UPDATE|ERROR permission denied for table shift_changes
+team leader|shift_changes|DELETE|ERROR permission denied for table shift_changes
+team leader|staff_directory|SELECT|4:cc0cc677b04e2b7578045e5c7baf8e4f
+team leader|staff_directory|UPDATE|ERROR permission denied for table staff_directory
+team leader|staff_directory|DELETE|ERROR permission denied for table staff_directory
+team leader|staff_private|SELECT|2:0c3ab314acbdd89273bec54f9866906f
+team leader|staff_private|UPDATE|ERROR permission denied for table staff_private
+team leader|staff_private|DELETE|ERROR permission denied for table staff_private
+team leader|task_alerts|SELECT|0:-
+team leader|task_alerts|UPDATE|ERROR permission denied for table task_alerts
+team leader|task_alerts|DELETE|ERROR permission denied for table task_alerts
+team leader|task_attachments|SELECT|0:-
+team leader|task_attachments|UPDATE|ERROR permission denied for table task_attachments
+team leader|task_attachments|DELETE|ERROR permission denied for table task_attachments
+team leader|task_events|SELECT|7:37d60f9706c50370e9fa263282c547f4
+team leader|task_events|UPDATE|ERROR permission denied for table task_events
+team leader|task_events|DELETE|ERROR permission denied for table task_events
+team leader|task_helpers|SELECT|0:-
+team leader|task_helpers|UPDATE|ERROR permission denied for table task_helpers
+team leader|task_helpers|DELETE|ERROR permission denied for table task_helpers
+team leader|task_views|SELECT|6:2901fa04a64fa8a05ae8ea19eca157f3
+team leader|task_views|UPDATE|ERROR permission denied for table task_views
+team leader|task_views|DELETE|ERROR permission denied for table task_views
+team leader|tasks|SELECT|6:21d3ae65e595ad8d5c948eac2e10e8d4
+team leader|tasks|UPDATE|ERROR permission denied for table tasks
+team leader|tasks|DELETE|ERROR permission denied for table tasks
+team leader|team_leaders|SELECT|1:5dfe9002a663e7b8c7ef331ea6decd8f
+team leader|team_leaders|UPDATE|0:-
+team leader|team_leaders|DELETE|0:-
+team leader|team_members|SELECT|2:bda3066b1ea4982645789d60364bb3e3
+team leader|team_members|UPDATE|0:-
+team leader|team_members|DELETE|0:-
+team leader|teams|SELECT|2:63cbf7acd1543ba2f61b8651e88cedd1
+team leader|teams|UPDATE|0:-
+team leader|teams|DELETE|0:-
+team leader|website_enquiries|SELECT|0:-
+team leader|website_enquiries|UPDATE|0:-
+team leader|website_enquiries|DELETE|0:-
+team leader|work_overrides|SELECT|0:-
+team leader|work_overrides|UPDATE|0:-
+team leader|work_overrides|DELETE|0:-
+staff|admin_delegations|SELECT|0:-
+staff|admin_delegations|UPDATE|ERROR permission denied for table admin_delegations
+staff|admin_delegations|DELETE|ERROR permission denied for table admin_delegations
+staff|app_settings|SELECT|80:6b34026c3ce20dd7ce10821b49426dcf
+staff|app_settings|UPDATE|0:-
+staff|app_settings|DELETE|0:-
+staff|assistant_chats|SELECT|0:-
+staff|assistant_chats|UPDATE|0:-
+staff|assistant_chats|DELETE|0:-
+staff|assistant_documents|SELECT|0:-
+staff|assistant_documents|UPDATE|0:-
+staff|assistant_documents|DELETE|0:-
+staff|assistant_messages|SELECT|0:-
+staff|assistant_messages|UPDATE|0:-
+staff|assistant_messages|DELETE|0:-
+staff|assistant_questions|SELECT|0:-
+staff|assistant_questions|UPDATE|ERROR permission denied for table assistant_questions
+staff|assistant_questions|DELETE|ERROR permission denied for table assistant_questions
+staff|assistant_settings|SELECT|0:-
+staff|assistant_settings|UPDATE|0:-
+staff|assistant_settings|DELETE|0:-
+staff|audit_log|SELECT|0:-
+staff|audit_log|UPDATE|ERROR permission denied for table audit_log
+staff|audit_log|DELETE|ERROR permission denied for table audit_log
+staff|car_clients|SELECT|0:-
+staff|car_clients|UPDATE|0:-
+staff|car_clients|DELETE|ERROR permission denied for table car_clients
+staff|car_purposes|SELECT|6:e12d90ba78570f25ed92e0e4ad30cb25
+staff|car_purposes|UPDATE|0:-
+staff|car_purposes|DELETE|ERROR permission denied for table car_purposes
+staff|car_trips|SELECT|0:-
+staff|car_trips|UPDATE|ERROR permission denied for table car_trips
+staff|car_trips|DELETE|ERROR permission denied for table car_trips
+staff|cars|SELECT|0:-
+staff|cars|UPDATE|0:-
+staff|cars|DELETE|ERROR permission denied for table cars
+staff|client_teams|SELECT|0:-
+staff|client_teams|UPDATE|ERROR permission denied for table client_teams
+staff|client_teams|DELETE|0:-
+staff|compliance_items|SELECT|11:2b34c416d940f284a7469df3fdae2ef1
+staff|compliance_items|UPDATE|0:-
+staff|compliance_items|DELETE|ERROR permission denied for table compliance_items
+staff|compliance_opens|SELECT|0:-
+staff|compliance_opens|UPDATE|0:-
+staff|compliance_opens|DELETE|0:-
+staff|compliance_records|SELECT|0:-
+staff|compliance_records|UPDATE|ERROR permission denied for table compliance_records
+staff|compliance_records|DELETE|ERROR permission denied for table compliance_records
+staff|custom_alerts|SELECT|0:-
+staff|custom_alerts|UPDATE|0:-
+staff|custom_alerts|DELETE|0:-
+staff|custom_client_targets|SELECT|0:-
+staff|custom_client_targets|UPDATE|0:-
+staff|custom_client_targets|DELETE|0:-
+staff|custom_entries|SELECT|0:-
+staff|custom_entries|UPDATE|ERROR permission denied for table custom_entries
+staff|custom_entries|DELETE|ERROR permission denied for table custom_entries
+staff|custom_features|SELECT|0:-
+staff|custom_features|UPDATE|0:-
+staff|custom_features|DELETE|0:-
+staff|custom_fields|SELECT|0:-
+staff|custom_fields|UPDATE|0:-
+staff|custom_fields|DELETE|0:-
+staff|delegation_rules|SELECT|13:a4598e15d1bb86a6d977b6a0f71811bd
+staff|delegation_rules|UPDATE|ERROR permission denied for table delegation_rules
+staff|delegation_rules|DELETE|ERROR permission denied for table delegation_rules
+staff|delegation_shares|SELECT|0:-
+staff|delegation_shares|UPDATE|ERROR permission denied for table delegation_shares
+staff|delegation_shares|DELETE|ERROR permission denied for table delegation_shares
+staff|features|SELECT|31:9b2ebcdc46c505fb4c74dd26d5124e26
+staff|features|UPDATE|0:-
+staff|features|DELETE|0:-
+staff|form_collaborators|SELECT|0:-
+staff|form_collaborators|UPDATE|0:-
+staff|form_collaborators|DELETE|0:-
+staff|form_completions|SELECT|0:-
+staff|form_completions|UPDATE|ERROR permission denied for table form_completions
+staff|form_completions|DELETE|ERROR permission denied for table form_completions
+staff|form_questions|SELECT|0:-
+staff|form_questions|UPDATE|0:-
+staff|form_questions|DELETE|0:-
+staff|form_recipients|SELECT|0:-
+staff|form_recipients|UPDATE|ERROR permission denied for table form_recipients
+staff|form_recipients|DELETE|ERROR permission denied for table form_recipients
+staff|form_responses|SELECT|0:-
+staff|form_responses|UPDATE|ERROR permission denied for table form_responses
+staff|form_responses|DELETE|ERROR permission denied for table form_responses
+staff|forms|SELECT|0:-
+staff|forms|UPDATE|0:-
+staff|forms|DELETE|0:-
+staff|invitations|SELECT|0:-
+staff|invitations|UPDATE|0:-
+staff|invitations|DELETE|0:-
+staff|job_titles|SELECT|0:-
+staff|job_titles|UPDATE|0:-
+staff|job_titles|DELETE|ERROR permission denied for table job_titles
+staff|leave_periods|SELECT|1:25f4111ef93770d466e4aaf1e56b9eaa
+staff|leave_periods|UPDATE|ERROR permission denied for table leave_periods
+staff|leave_periods|DELETE|ERROR permission denied for table leave_periods
+staff|live_signals|SELECT|1:3aa5af9152a11b3ccf554b8356340c6d
+staff|live_signals|UPDATE|ERROR permission denied for table live_signals
+staff|live_signals|DELETE|ERROR permission denied for table live_signals
+staff|notifications|SELECT|8:a86032639283e5ecd0a0d49af86b5d80
+staff|notifications|UPDATE|ERROR permission denied for table notifications
+staff|notifications|DELETE|ERROR permission denied for table notifications
+staff|organisation|SELECT|1:f76559afcb90d9619dcdc9bc6d63ad3f
+staff|organisation|UPDATE|0:-
+staff|organisation|DELETE|0:-
+staff|people_change_requests|SELECT|0:-
+staff|people_change_requests|UPDATE|ERROR permission denied for table people_change_requests
+staff|people_change_requests|DELETE|ERROR permission denied for table people_change_requests
+staff|profiles|SELECT|313:61763b50424e497a14fbd33c9af2ea38
+staff|profiles|UPDATE|1:a9f096cde10e3cb4e1e23beb83eb981f
+staff|profiles|DELETE|0:-
+staff|record_events|SELECT|0:-
+staff|record_events|UPDATE|ERROR permission denied for table record_events
+staff|record_events|DELETE|ERROR permission denied for table record_events
+staff|records|SELECT|0:-
+staff|records|UPDATE|ERROR permission denied for table records
+staff|records|DELETE|ERROR permission denied for table records
+staff|register_templates|SELECT|8:3a638cd6a928e4643a2808ae4e22c75d
+staff|register_templates|UPDATE|ERROR permission denied for table register_templates
+staff|register_templates|DELETE|ERROR permission denied for table register_templates
+staff|registries|SELECT|8:b79e1c6d42c6293ce8d19266c5851012
+staff|registries|UPDATE|0:-
+staff|registries|DELETE|ERROR permission denied for table registries
+staff|registry_fields|SELECT|29:3b6b63c2939caf3f72949a541d8a2c26
+staff|registry_fields|UPDATE|0:-
+staff|registry_fields|DELETE|ERROR permission denied for table registry_fields
+staff|registry_managers|SELECT|0:-
+staff|registry_managers|UPDATE|0:-
+staff|registry_managers|DELETE|0:-
+staff|request_events|SELECT|3:38a3a2e59bd244fe35e4484b57e6ee07
+staff|request_events|UPDATE|ERROR permission denied for table request_events
+staff|request_events|DELETE|ERROR permission denied for table request_events
+staff|request_types|SELECT|7:5649b2e9a5b5e1f667b21c70d89b036c
+staff|request_types|UPDATE|0:-
+staff|request_types|DELETE|ERROR permission denied for table request_types
+staff|requests|SELECT|1:1f0376594419e1ca069946190edbc277
+staff|requests|UPDATE|ERROR permission denied for table requests
+staff|requests|DELETE|ERROR permission denied for table requests
+staff|settings_drafts|SELECT|0:-
+staff|settings_drafts|UPDATE|ERROR permission denied for table settings_drafts
+staff|settings_drafts|DELETE|ERROR permission denied for table settings_drafts
+staff|shift_changes|SELECT|0:-
+staff|shift_changes|UPDATE|ERROR permission denied for table shift_changes
+staff|shift_changes|DELETE|ERROR permission denied for table shift_changes
+staff|staff_directory|SELECT|4:cc0cc677b04e2b7578045e5c7baf8e4f
+staff|staff_directory|UPDATE|ERROR permission denied for table staff_directory
+staff|staff_directory|DELETE|ERROR permission denied for table staff_directory
+staff|staff_private|SELECT|1:b8de0a905c651d7a33a332521f7160ea
+staff|staff_private|UPDATE|ERROR permission denied for table staff_private
+staff|staff_private|DELETE|ERROR permission denied for table staff_private
+staff|task_alerts|SELECT|0:-
+staff|task_alerts|UPDATE|ERROR permission denied for table task_alerts
+staff|task_alerts|DELETE|ERROR permission denied for table task_alerts
+staff|task_attachments|SELECT|0:-
+staff|task_attachments|UPDATE|ERROR permission denied for table task_attachments
+staff|task_attachments|DELETE|ERROR permission denied for table task_attachments
+staff|task_events|SELECT|4:d2ac72a2655ccb53c908a740a8483680
+staff|task_events|UPDATE|ERROR permission denied for table task_events
+staff|task_events|DELETE|ERROR permission denied for table task_events
+staff|task_helpers|SELECT|0:-
+staff|task_helpers|UPDATE|ERROR permission denied for table task_helpers
+staff|task_helpers|DELETE|ERROR permission denied for table task_helpers
+staff|task_views|SELECT|3:dad39a6844fce3f7614b1044f58839f6
+staff|task_views|UPDATE|ERROR permission denied for table task_views
+staff|task_views|DELETE|ERROR permission denied for table task_views
+staff|tasks|SELECT|3:b5f517401306932809e4d68281f14fae
+staff|tasks|UPDATE|ERROR permission denied for table tasks
+staff|tasks|DELETE|ERROR permission denied for table tasks
+staff|team_leaders|SELECT|1:5dfe9002a663e7b8c7ef331ea6decd8f
+staff|team_leaders|UPDATE|0:-
+staff|team_leaders|DELETE|0:-
+staff|team_members|SELECT|2:bda3066b1ea4982645789d60364bb3e3
+staff|team_members|UPDATE|0:-
+staff|team_members|DELETE|0:-
+staff|teams|SELECT|2:63cbf7acd1543ba2f61b8651e88cedd1
+staff|teams|UPDATE|0:-
+staff|teams|DELETE|0:-
+staff|website_enquiries|SELECT|0:-
+staff|website_enquiries|UPDATE|0:-
+staff|website_enquiries|DELETE|0:-
+staff|work_overrides|SELECT|0:-
+staff|work_overrides|UPDATE|0:-
+staff|work_overrides|DELETE|0:-
+signed out|admin_delegations|SELECT|0:-
+signed out|admin_delegations|UPDATE|ERROR permission denied for table admin_delegations
+signed out|admin_delegations|DELETE|ERROR permission denied for table admin_delegations
+signed out|app_settings|SELECT|30:63afc5229f5d8e05c254dfe6f23b9f56
+signed out|app_settings|UPDATE|0:-
+signed out|app_settings|DELETE|0:-
+signed out|assistant_chats|SELECT|ERROR permission denied for table assistant_chats
+signed out|assistant_chats|UPDATE|ERROR permission denied for table assistant_chats
+signed out|assistant_chats|DELETE|ERROR permission denied for table assistant_chats
+signed out|assistant_documents|SELECT|ERROR permission denied for table assistant_documents
+signed out|assistant_documents|UPDATE|ERROR permission denied for table assistant_documents
+signed out|assistant_documents|DELETE|ERROR permission denied for table assistant_documents
+signed out|assistant_messages|SELECT|ERROR permission denied for table assistant_messages
+signed out|assistant_messages|UPDATE|ERROR permission denied for table assistant_messages
+signed out|assistant_messages|DELETE|ERROR permission denied for table assistant_messages
+signed out|assistant_questions|SELECT|ERROR permission denied for table assistant_questions
+signed out|assistant_questions|UPDATE|ERROR permission denied for table assistant_questions
+signed out|assistant_questions|DELETE|ERROR permission denied for table assistant_questions
+signed out|assistant_settings|SELECT|ERROR permission denied for table assistant_settings
+signed out|assistant_settings|UPDATE|ERROR permission denied for table assistant_settings
+signed out|assistant_settings|DELETE|ERROR permission denied for table assistant_settings
+signed out|audit_log|SELECT|0:-
+signed out|audit_log|UPDATE|ERROR permission denied for table audit_log
+signed out|audit_log|DELETE|ERROR permission denied for table audit_log
+signed out|car_clients|SELECT|0:-
+signed out|car_clients|UPDATE|0:-
+signed out|car_clients|DELETE|ERROR permission denied for table car_clients
+signed out|car_purposes|SELECT|0:-
+signed out|car_purposes|UPDATE|0:-
+signed out|car_purposes|DELETE|ERROR permission denied for table car_purposes
+signed out|car_trips|SELECT|0:-
+signed out|car_trips|UPDATE|ERROR permission denied for table car_trips
+signed out|car_trips|DELETE|ERROR permission denied for table car_trips
+signed out|cars|SELECT|0:-
+signed out|cars|UPDATE|0:-
+signed out|cars|DELETE|ERROR permission denied for table cars
+signed out|client_teams|SELECT|0:-
+signed out|client_teams|UPDATE|ERROR permission denied for table client_teams
+signed out|client_teams|DELETE|0:-
+signed out|compliance_items|SELECT|0:-
+signed out|compliance_items|UPDATE|0:-
+signed out|compliance_items|DELETE|ERROR permission denied for table compliance_items
+signed out|compliance_opens|SELECT|0:-
+signed out|compliance_opens|UPDATE|0:-
+signed out|compliance_opens|DELETE|0:-
+signed out|compliance_records|SELECT|0:-
+signed out|compliance_records|UPDATE|ERROR permission denied for table compliance_records
+signed out|compliance_records|DELETE|ERROR permission denied for table compliance_records
+signed out|custom_alerts|SELECT|0:-
+signed out|custom_alerts|UPDATE|0:-
+signed out|custom_alerts|DELETE|0:-
+signed out|custom_client_targets|SELECT|0:-
+signed out|custom_client_targets|UPDATE|0:-
+signed out|custom_client_targets|DELETE|0:-
+signed out|custom_entries|SELECT|0:-
+signed out|custom_entries|UPDATE|ERROR permission denied for table custom_entries
+signed out|custom_entries|DELETE|ERROR permission denied for table custom_entries
+signed out|custom_features|SELECT|0:-
+signed out|custom_features|UPDATE|0:-
+signed out|custom_features|DELETE|0:-
+signed out|custom_fields|SELECT|0:-
+signed out|custom_fields|UPDATE|0:-
+signed out|custom_fields|DELETE|0:-
+signed out|delegation_rules|SELECT|0:-
+signed out|delegation_rules|UPDATE|ERROR permission denied for table delegation_rules
+signed out|delegation_rules|DELETE|ERROR permission denied for table delegation_rules
+signed out|delegation_shares|SELECT|0:-
+signed out|delegation_shares|UPDATE|ERROR permission denied for table delegation_shares
+signed out|delegation_shares|DELETE|ERROR permission denied for table delegation_shares
+signed out|features|SELECT|2:5d7bface620ba1d9bcd1c59fd7d6a47d
+signed out|features|UPDATE|0:-
+signed out|features|DELETE|0:-
+signed out|form_collaborators|SELECT|0:-
+signed out|form_collaborators|UPDATE|0:-
+signed out|form_collaborators|DELETE|0:-
+signed out|form_completions|SELECT|0:-
+signed out|form_completions|UPDATE|ERROR permission denied for table form_completions
+signed out|form_completions|DELETE|ERROR permission denied for table form_completions
+signed out|form_questions|SELECT|0:-
+signed out|form_questions|UPDATE|0:-
+signed out|form_questions|DELETE|0:-
+signed out|form_recipients|SELECT|0:-
+signed out|form_recipients|UPDATE|ERROR permission denied for table form_recipients
+signed out|form_recipients|DELETE|ERROR permission denied for table form_recipients
+signed out|form_responses|SELECT|0:-
+signed out|form_responses|UPDATE|ERROR permission denied for table form_responses
+signed out|form_responses|DELETE|ERROR permission denied for table form_responses
+signed out|forms|SELECT|0:-
+signed out|forms|UPDATE|0:-
+signed out|forms|DELETE|0:-
+signed out|invitations|SELECT|0:-
+signed out|invitations|UPDATE|0:-
+signed out|invitations|DELETE|0:-
+signed out|job_titles|SELECT|0:-
+signed out|job_titles|UPDATE|0:-
+signed out|job_titles|DELETE|ERROR permission denied for table job_titles
+signed out|leave_periods|SELECT|0:-
+signed out|leave_periods|UPDATE|ERROR permission denied for table leave_periods
+signed out|leave_periods|DELETE|ERROR permission denied for table leave_periods
+signed out|live_signals|SELECT|0:-
+signed out|live_signals|UPDATE|ERROR permission denied for table live_signals
+signed out|live_signals|DELETE|ERROR permission denied for table live_signals
+signed out|notifications|SELECT|0:-
+signed out|notifications|UPDATE|ERROR permission denied for table notifications
+signed out|notifications|DELETE|ERROR permission denied for table notifications
+signed out|organisation|SELECT|0:-
+signed out|organisation|UPDATE|0:-
+signed out|organisation|DELETE|0:-
+signed out|people_change_requests|SELECT|0:-
+signed out|people_change_requests|UPDATE|ERROR permission denied for table people_change_requests
+signed out|people_change_requests|DELETE|ERROR permission denied for table people_change_requests
+signed out|profiles|SELECT|0:-
+signed out|profiles|UPDATE|0:-
+signed out|profiles|DELETE|0:-
+signed out|record_events|SELECT|0:-
+signed out|record_events|UPDATE|ERROR permission denied for table record_events
+signed out|record_events|DELETE|ERROR permission denied for table record_events
+signed out|records|SELECT|0:-
+signed out|records|UPDATE|ERROR permission denied for table records
+signed out|records|DELETE|ERROR permission denied for table records
+signed out|register_templates|SELECT|0:-
+signed out|register_templates|UPDATE|ERROR permission denied for table register_templates
+signed out|register_templates|DELETE|ERROR permission denied for table register_templates
+signed out|registries|SELECT|0:-
+signed out|registries|UPDATE|0:-
+signed out|registries|DELETE|ERROR permission denied for table registries
+signed out|registry_fields|SELECT|0:-
+signed out|registry_fields|UPDATE|0:-
+signed out|registry_fields|DELETE|ERROR permission denied for table registry_fields
+signed out|registry_managers|SELECT|0:-
+signed out|registry_managers|UPDATE|0:-
+signed out|registry_managers|DELETE|0:-
+signed out|request_events|SELECT|0:-
+signed out|request_events|UPDATE|ERROR permission denied for table request_events
+signed out|request_events|DELETE|ERROR permission denied for table request_events
+signed out|request_types|SELECT|0:-
+signed out|request_types|UPDATE|0:-
+signed out|request_types|DELETE|ERROR permission denied for table request_types
+signed out|requests|SELECT|0:-
+signed out|requests|UPDATE|ERROR permission denied for table requests
+signed out|requests|DELETE|ERROR permission denied for table requests
+signed out|settings_drafts|SELECT|0:-
+signed out|settings_drafts|UPDATE|ERROR permission denied for table settings_drafts
+signed out|settings_drafts|DELETE|ERROR permission denied for table settings_drafts
+signed out|shift_changes|SELECT|0:-
+signed out|shift_changes|UPDATE|ERROR permission denied for table shift_changes
+signed out|shift_changes|DELETE|ERROR permission denied for table shift_changes
+signed out|staff_directory|SELECT|0:-
+signed out|staff_directory|UPDATE|ERROR permission denied for table staff_directory
+signed out|staff_directory|DELETE|ERROR permission denied for table staff_directory
+signed out|staff_private|SELECT|0:-
+signed out|staff_private|UPDATE|ERROR permission denied for table staff_private
+signed out|staff_private|DELETE|ERROR permission denied for table staff_private
+signed out|task_alerts|SELECT|0:-
+signed out|task_alerts|UPDATE|ERROR permission denied for table task_alerts
+signed out|task_alerts|DELETE|ERROR permission denied for table task_alerts
+signed out|task_attachments|SELECT|0:-
+signed out|task_attachments|UPDATE|ERROR permission denied for table task_attachments
+signed out|task_attachments|DELETE|ERROR permission denied for table task_attachments
+signed out|task_events|SELECT|0:-
+signed out|task_events|UPDATE|ERROR permission denied for table task_events
+signed out|task_events|DELETE|ERROR permission denied for table task_events
+signed out|task_helpers|SELECT|0:-
+signed out|task_helpers|UPDATE|ERROR permission denied for table task_helpers
+signed out|task_helpers|DELETE|ERROR permission denied for table task_helpers
+signed out|task_views|SELECT|0:-
+signed out|task_views|UPDATE|ERROR permission denied for table task_views
+signed out|task_views|DELETE|ERROR permission denied for table task_views
+signed out|tasks|SELECT|0:-
+signed out|tasks|UPDATE|ERROR permission denied for table tasks
+signed out|tasks|DELETE|ERROR permission denied for table tasks
+signed out|team_leaders|SELECT|0:-
+signed out|team_leaders|UPDATE|0:-
+signed out|team_leaders|DELETE|0:-
+signed out|team_members|SELECT|0:-
+signed out|team_members|UPDATE|0:-
+signed out|team_members|DELETE|0:-
+signed out|teams|SELECT|0:-
+signed out|teams|UPDATE|0:-
+signed out|teams|DELETE|0:-
+signed out|website_enquiries|SELECT|ERROR permission denied for table website_enquiries
+signed out|website_enquiries|UPDATE|ERROR permission denied for table website_enquiries
+signed out|website_enquiries|DELETE|ERROR permission denied for table website_enquiries
+signed out|work_overrides|SELECT|0:-
+signed out|work_overrides|UPDATE|0:-
+signed out|work_overrides|DELETE|0:-

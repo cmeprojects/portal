@@ -1,0 +1,976 @@
+system admin|admin_delegations|constructed own|REFUSED: permission denied for table admin_delegations
+system admin|admin_delegations|constructed other|REFUSED: permission denied for table admin_delegations
+manager|admin_delegations|constructed own|REFUSED: permission denied for table admin_delegations
+manager|admin_delegations|constructed other|REFUSED: permission denied for table admin_delegations
+staff admin|admin_delegations|constructed own|REFUSED: permission denied for table admin_delegations
+staff admin|admin_delegations|constructed other|REFUSED: permission denied for table admin_delegations
+team leader|admin_delegations|constructed own|REFUSED: permission denied for table admin_delegations
+team leader|admin_delegations|constructed other|REFUSED: permission denied for table admin_delegations
+staff|admin_delegations|constructed own|REFUSED: permission denied for table admin_delegations
+staff|admin_delegations|constructed other|REFUSED: permission denied for table admin_delegations
+signed out|admin_delegations|constructed own|REFUSED: permission denied for table admin_delegations
+signed out|admin_delegations|constructed other|REFUSED: permission denied for table admin_delegations
+system admin|app_settings|general|REFUSED: new row violates row-level security policy for table "…"
+system admin|app_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|app_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|app_settings|general|REFUSED: new row violates row-level security policy for table "…"
+manager|app_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|app_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|app_settings|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|app_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|app_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|app_settings|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|app_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|app_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|app_settings|general|REFUSED: new row violates row-level security policy for table "…"
+staff|app_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|app_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|app_settings|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|app_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|app_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|assistant_chats|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|assistant_chats|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|assistant_chats|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|assistant_chats|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|assistant_chats|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|assistant_chats|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|assistant_chats|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+team leader|assistant_chats|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|assistant_chats|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff|assistant_chats|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|assistant_chats|constructed own|REFUSED: permission denied for table assistant_chats
+signed out|assistant_chats|constructed other|REFUSED: permission denied for table assistant_chats
+system admin|assistant_documents|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|assistant_documents|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|assistant_documents|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|assistant_documents|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|assistant_documents|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|assistant_documents|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|assistant_documents|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|assistant_documents|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|assistant_documents|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|assistant_documents|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|assistant_documents|constructed own|REFUSED: permission denied for table assistant_documents
+signed out|assistant_documents|constructed other|REFUSED: permission denied for table assistant_documents
+system admin|assistant_messages|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|assistant_messages|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|assistant_messages|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|assistant_messages|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|assistant_messages|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|assistant_messages|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|assistant_messages|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|assistant_messages|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|assistant_messages|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|assistant_messages|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|assistant_messages|constructed own|REFUSED: permission denied for table assistant_messages
+signed out|assistant_messages|constructed other|REFUSED: permission denied for table assistant_messages
+system admin|assistant_questions|constructed own|REFUSED: permission denied for table assistant_questions
+system admin|assistant_questions|constructed other|REFUSED: permission denied for table assistant_questions
+manager|assistant_questions|constructed own|REFUSED: permission denied for table assistant_questions
+manager|assistant_questions|constructed other|REFUSED: permission denied for table assistant_questions
+staff admin|assistant_questions|constructed own|REFUSED: permission denied for table assistant_questions
+staff admin|assistant_questions|constructed other|REFUSED: permission denied for table assistant_questions
+team leader|assistant_questions|constructed own|REFUSED: permission denied for table assistant_questions
+team leader|assistant_questions|constructed other|REFUSED: permission denied for table assistant_questions
+staff|assistant_questions|constructed own|REFUSED: permission denied for table assistant_questions
+staff|assistant_questions|constructed other|REFUSED: permission denied for table assistant_questions
+signed out|assistant_questions|constructed own|REFUSED: permission denied for table assistant_questions
+signed out|assistant_questions|constructed other|REFUSED: permission denied for table assistant_questions
+system admin|assistant_settings|general|REFUSED: new row violates row-level security policy for table "…"
+system admin|assistant_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|assistant_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|assistant_settings|general|REFUSED: new row violates row-level security policy for table "…"
+manager|assistant_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|assistant_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|assistant_settings|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|assistant_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|assistant_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|assistant_settings|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|assistant_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|assistant_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|assistant_settings|general|REFUSED: new row violates row-level security policy for table "…"
+staff|assistant_settings|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|assistant_settings|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|assistant_settings|general|REFUSED: permission denied for table assistant_settings
+signed out|assistant_settings|constructed own|REFUSED: permission denied for table assistant_settings
+signed out|assistant_settings|constructed other|REFUSED: permission denied for table assistant_settings
+system admin|audit_log|general|REFUSED: permission denied for table audit_log
+system admin|audit_log|constructed own|REFUSED: permission denied for table audit_log
+system admin|audit_log|constructed other|REFUSED: permission denied for table audit_log
+manager|audit_log|general|REFUSED: permission denied for table audit_log
+manager|audit_log|their own|REFUSED: permission denied for table audit_log
+manager|audit_log|constructed own|REFUSED: permission denied for table audit_log
+manager|audit_log|constructed other|REFUSED: permission denied for table audit_log
+staff admin|audit_log|general|REFUSED: permission denied for table audit_log
+staff admin|audit_log|their own|REFUSED: permission denied for table audit_log
+staff admin|audit_log|constructed own|REFUSED: permission denied for table audit_log
+staff admin|audit_log|constructed other|REFUSED: permission denied for table audit_log
+team leader|audit_log|general|REFUSED: permission denied for table audit_log
+team leader|audit_log|their own|REFUSED: permission denied for table audit_log
+team leader|audit_log|constructed own|REFUSED: permission denied for table audit_log
+team leader|audit_log|constructed other|REFUSED: permission denied for table audit_log
+staff|audit_log|general|REFUSED: permission denied for table audit_log
+staff|audit_log|constructed own|REFUSED: permission denied for table audit_log
+staff|audit_log|constructed other|REFUSED: permission denied for table audit_log
+signed out|audit_log|general|REFUSED: permission denied for table audit_log
+signed out|audit_log|constructed own|REFUSED: permission denied for table audit_log
+signed out|audit_log|constructed other|REFUSED: permission denied for table audit_log
+system admin|car_clients|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|car_clients|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|car_clients|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|car_clients|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|car_clients|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|car_clients|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+team leader|car_clients|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|car_clients|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|car_clients|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|car_clients|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|car_clients|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|car_clients|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|car_purposes|general|REFUSED: duplicate key value violates unique constraint "…"
+system admin|car_purposes|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|car_purposes|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|car_purposes|general|REFUSED: duplicate key value violates unique constraint "…"
+manager|car_purposes|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|car_purposes|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|car_purposes|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|car_purposes|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|car_purposes|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|car_purposes|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|car_purposes|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|car_purposes|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|car_purposes|general|REFUSED: new row violates row-level security policy for table "…"
+staff|car_purposes|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|car_purposes|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|car_purposes|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|car_purposes|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|car_purposes|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|car_trips|constructed own|REFUSED: permission denied for table car_trips
+system admin|car_trips|constructed other|REFUSED: permission denied for table car_trips
+manager|car_trips|constructed own|REFUSED: permission denied for table car_trips
+manager|car_trips|constructed other|REFUSED: permission denied for table car_trips
+staff admin|car_trips|constructed own|REFUSED: permission denied for table car_trips
+staff admin|car_trips|constructed other|REFUSED: permission denied for table car_trips
+team leader|car_trips|constructed own|REFUSED: permission denied for table car_trips
+team leader|car_trips|constructed other|REFUSED: permission denied for table car_trips
+staff|car_trips|constructed own|REFUSED: permission denied for table car_trips
+staff|car_trips|constructed other|REFUSED: permission denied for table car_trips
+signed out|car_trips|constructed own|REFUSED: permission denied for table car_trips
+signed out|car_trips|constructed other|REFUSED: permission denied for table car_trips
+system admin|cars|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|cars|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|cars|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|cars|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|cars|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|cars|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|cars|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|cars|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|cars|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|cars|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|cars|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|cars|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|client_teams|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+system admin|client_teams|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+manager|client_teams|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+manager|client_teams|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+staff admin|client_teams|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+staff admin|client_teams|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+team leader|client_teams|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|client_teams|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|client_teams|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|client_teams|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|client_teams|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|client_teams|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|compliance_items|general|ALLOWED
+system admin|compliance_items|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|compliance_items|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|compliance_items|general|REFUSED: new row violates row-level security policy for table "…"
+manager|compliance_items|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|compliance_items|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|compliance_items|general|ALLOWED
+staff admin|compliance_items|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|compliance_items|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+team leader|compliance_items|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|compliance_items|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|compliance_items|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|compliance_items|general|REFUSED: new row violates row-level security policy for table "…"
+staff|compliance_items|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|compliance_items|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|compliance_items|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|compliance_items|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|compliance_items|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|compliance_opens|general|REFUSED: new row violates row-level security policy for table "…"
+system admin|compliance_opens|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|compliance_opens|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|compliance_opens|general|REFUSED: new row violates row-level security policy for table "…"
+manager|compliance_opens|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|compliance_opens|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|compliance_opens|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|compliance_opens|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|compliance_opens|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|compliance_opens|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|compliance_opens|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|compliance_opens|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|compliance_opens|general|REFUSED: new row violates row-level security policy for table "…"
+staff|compliance_opens|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|compliance_opens|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|compliance_opens|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|compliance_opens|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|compliance_opens|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|compliance_records|general|REFUSED: permission denied for table compliance_records
+system admin|compliance_records|constructed own|REFUSED: permission denied for table compliance_records
+system admin|compliance_records|constructed other|REFUSED: permission denied for table compliance_records
+manager|compliance_records|general|REFUSED: permission denied for table compliance_records
+manager|compliance_records|constructed own|REFUSED: permission denied for table compliance_records
+manager|compliance_records|constructed other|REFUSED: permission denied for table compliance_records
+staff admin|compliance_records|general|REFUSED: permission denied for table compliance_records
+staff admin|compliance_records|their own|REFUSED: permission denied for table compliance_records
+staff admin|compliance_records|constructed own|REFUSED: permission denied for table compliance_records
+staff admin|compliance_records|constructed other|REFUSED: permission denied for table compliance_records
+team leader|compliance_records|general|REFUSED: permission denied for table compliance_records
+team leader|compliance_records|constructed own|REFUSED: permission denied for table compliance_records
+team leader|compliance_records|constructed other|REFUSED: permission denied for table compliance_records
+staff|compliance_records|general|REFUSED: permission denied for table compliance_records
+staff|compliance_records|constructed own|REFUSED: permission denied for table compliance_records
+staff|compliance_records|constructed other|REFUSED: permission denied for table compliance_records
+signed out|compliance_records|general|REFUSED: permission denied for table compliance_records
+signed out|compliance_records|constructed own|REFUSED: permission denied for table compliance_records
+signed out|compliance_records|constructed other|REFUSED: permission denied for table compliance_records
+system admin|custom_alerts|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|custom_alerts|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|custom_alerts|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|custom_alerts|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|custom_alerts|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|custom_alerts|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|custom_alerts|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|custom_alerts|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|custom_alerts|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|custom_alerts|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|custom_alerts|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|custom_alerts|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|custom_client_targets|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|custom_client_targets|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|custom_client_targets|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|custom_client_targets|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|custom_client_targets|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|custom_client_targets|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|custom_client_targets|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|custom_client_targets|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|custom_client_targets|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|custom_client_targets|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|custom_client_targets|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|custom_client_targets|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|custom_entries|constructed own|REFUSED: permission denied for table custom_entries
+system admin|custom_entries|constructed other|REFUSED: permission denied for table custom_entries
+manager|custom_entries|constructed own|REFUSED: permission denied for table custom_entries
+manager|custom_entries|constructed other|REFUSED: permission denied for table custom_entries
+staff admin|custom_entries|constructed own|REFUSED: permission denied for table custom_entries
+staff admin|custom_entries|constructed other|REFUSED: permission denied for table custom_entries
+team leader|custom_entries|constructed own|REFUSED: permission denied for table custom_entries
+team leader|custom_entries|constructed other|REFUSED: permission denied for table custom_entries
+staff|custom_entries|constructed own|REFUSED: permission denied for table custom_entries
+staff|custom_entries|constructed other|REFUSED: permission denied for table custom_entries
+signed out|custom_entries|constructed own|REFUSED: permission denied for table custom_entries
+signed out|custom_entries|constructed other|REFUSED: permission denied for table custom_entries
+system admin|custom_features|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|custom_features|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|custom_features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|custom_features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|custom_features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|custom_features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|custom_features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|custom_features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|custom_features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|custom_features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|custom_features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|custom_features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|custom_fields|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|custom_fields|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|custom_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|custom_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|custom_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|custom_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|custom_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|custom_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|custom_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|custom_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|custom_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|custom_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|delegation_rules|general|REFUSED: permission denied for table delegation_rules
+system admin|delegation_rules|constructed own|REFUSED: permission denied for table delegation_rules
+system admin|delegation_rules|constructed other|REFUSED: permission denied for table delegation_rules
+manager|delegation_rules|general|REFUSED: permission denied for table delegation_rules
+manager|delegation_rules|constructed own|REFUSED: permission denied for table delegation_rules
+manager|delegation_rules|constructed other|REFUSED: permission denied for table delegation_rules
+staff admin|delegation_rules|general|REFUSED: permission denied for table delegation_rules
+staff admin|delegation_rules|constructed own|REFUSED: permission denied for table delegation_rules
+staff admin|delegation_rules|constructed other|REFUSED: permission denied for table delegation_rules
+team leader|delegation_rules|general|REFUSED: permission denied for table delegation_rules
+team leader|delegation_rules|constructed own|REFUSED: permission denied for table delegation_rules
+team leader|delegation_rules|constructed other|REFUSED: permission denied for table delegation_rules
+staff|delegation_rules|general|REFUSED: permission denied for table delegation_rules
+staff|delegation_rules|constructed own|REFUSED: permission denied for table delegation_rules
+staff|delegation_rules|constructed other|REFUSED: permission denied for table delegation_rules
+signed out|delegation_rules|general|REFUSED: permission denied for table delegation_rules
+signed out|delegation_rules|constructed own|REFUSED: permission denied for table delegation_rules
+signed out|delegation_rules|constructed other|REFUSED: permission denied for table delegation_rules
+system admin|delegation_shares|constructed own|REFUSED: permission denied for table delegation_shares
+system admin|delegation_shares|constructed other|REFUSED: permission denied for table delegation_shares
+manager|delegation_shares|constructed own|REFUSED: permission denied for table delegation_shares
+manager|delegation_shares|constructed other|REFUSED: permission denied for table delegation_shares
+staff admin|delegation_shares|constructed own|REFUSED: permission denied for table delegation_shares
+staff admin|delegation_shares|constructed other|REFUSED: permission denied for table delegation_shares
+team leader|delegation_shares|constructed own|REFUSED: permission denied for table delegation_shares
+team leader|delegation_shares|constructed other|REFUSED: permission denied for table delegation_shares
+staff|delegation_shares|constructed own|REFUSED: permission denied for table delegation_shares
+staff|delegation_shares|constructed other|REFUSED: permission denied for table delegation_shares
+signed out|delegation_shares|constructed own|REFUSED: permission denied for table delegation_shares
+signed out|delegation_shares|constructed other|REFUSED: permission denied for table delegation_shares
+system admin|features|general|REFUSED: new row violates row-level security policy for table "…"
+system admin|features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|features|general|REFUSED: new row violates row-level security policy for table "…"
+manager|features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|features|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|features|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|features|general|REFUSED: new row violates row-level security policy for table "…"
+staff|features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|features|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|features|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|features|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|form_collaborators|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+system admin|form_collaborators|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+manager|form_collaborators|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|form_collaborators|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|form_collaborators|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|form_collaborators|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|form_collaborators|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|form_collaborators|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|form_collaborators|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|form_collaborators|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|form_collaborators|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|form_collaborators|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|form_completions|constructed own|REFUSED: permission denied for table form_completions
+system admin|form_completions|constructed other|REFUSED: permission denied for table form_completions
+manager|form_completions|constructed own|REFUSED: permission denied for table form_completions
+manager|form_completions|constructed other|REFUSED: permission denied for table form_completions
+staff admin|form_completions|constructed own|REFUSED: permission denied for table form_completions
+staff admin|form_completions|constructed other|REFUSED: permission denied for table form_completions
+team leader|form_completions|constructed own|REFUSED: permission denied for table form_completions
+team leader|form_completions|constructed other|REFUSED: permission denied for table form_completions
+staff|form_completions|constructed own|REFUSED: permission denied for table form_completions
+staff|form_completions|constructed other|REFUSED: permission denied for table form_completions
+signed out|form_completions|constructed own|REFUSED: permission denied for table form_completions
+signed out|form_completions|constructed other|REFUSED: permission denied for table form_completions
+system admin|form_questions|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|form_questions|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|form_questions|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|form_questions|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|form_questions|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|form_questions|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|form_questions|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|form_questions|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|form_questions|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|form_questions|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|form_questions|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|form_questions|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|form_recipients|constructed own|REFUSED: permission denied for table form_recipients
+system admin|form_recipients|constructed other|REFUSED: permission denied for table form_recipients
+manager|form_recipients|constructed own|REFUSED: permission denied for table form_recipients
+manager|form_recipients|constructed other|REFUSED: permission denied for table form_recipients
+staff admin|form_recipients|constructed own|REFUSED: permission denied for table form_recipients
+staff admin|form_recipients|constructed other|REFUSED: permission denied for table form_recipients
+team leader|form_recipients|constructed own|REFUSED: permission denied for table form_recipients
+team leader|form_recipients|constructed other|REFUSED: permission denied for table form_recipients
+staff|form_recipients|constructed own|REFUSED: permission denied for table form_recipients
+staff|form_recipients|constructed other|REFUSED: permission denied for table form_recipients
+signed out|form_recipients|constructed own|REFUSED: permission denied for table form_recipients
+signed out|form_recipients|constructed other|REFUSED: permission denied for table form_recipients
+system admin|form_responses|constructed own|REFUSED: permission denied for table form_responses
+system admin|form_responses|constructed other|REFUSED: permission denied for table form_responses
+manager|form_responses|constructed own|REFUSED: permission denied for table form_responses
+manager|form_responses|constructed other|REFUSED: permission denied for table form_responses
+staff admin|form_responses|constructed own|REFUSED: permission denied for table form_responses
+staff admin|form_responses|constructed other|REFUSED: permission denied for table form_responses
+team leader|form_responses|constructed own|REFUSED: permission denied for table form_responses
+team leader|form_responses|constructed other|REFUSED: permission denied for table form_responses
+staff|form_responses|constructed own|REFUSED: permission denied for table form_responses
+staff|form_responses|constructed other|REFUSED: permission denied for table form_responses
+signed out|form_responses|constructed own|REFUSED: permission denied for table form_responses
+signed out|form_responses|constructed other|REFUSED: permission denied for table form_responses
+system admin|forms|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|forms|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|forms|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|forms|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|forms|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|forms|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|forms|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|forms|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|forms|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|forms|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|forms|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|forms|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|invitations|general|ALLOWED
+system admin|invitations|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|invitations|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|invitations|general|ALLOWED
+manager|invitations|their own|ALLOWED
+manager|invitations|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|invitations|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|invitations|general|ALLOWED
+staff admin|invitations|their own|ALLOWED
+staff admin|invitations|constructed own|REFUSED: Add them to a team once they've joined; a manager approves team changes
+staff admin|invitations|constructed other|REFUSED: Add them to a team once they've joined; a manager approves team changes
+team leader|invitations|general|REFUSED: You're not set up to send invites. Ask a staff admin.
+team leader|invitations|their own|REFUSED: You're not set up to send invites. Ask a staff admin.
+team leader|invitations|constructed own|REFUSED: You're not set up to send invites. Ask a staff admin.
+team leader|invitations|constructed other|REFUSED: You're not set up to send invites. Ask a staff admin.
+staff|invitations|general|REFUSED: You're not set up to send invites. Ask a staff admin.
+staff|invitations|their own|REFUSED: You're not set up to send invites. Ask a staff admin.
+staff|invitations|constructed own|REFUSED: You're not set up to send invites. Ask a staff admin.
+staff|invitations|constructed other|REFUSED: You're not set up to send invites. Ask a staff admin.
+signed out|invitations|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|invitations|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|invitations|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|job_titles|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|job_titles|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|job_titles|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|job_titles|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|job_titles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|job_titles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|job_titles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|job_titles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|job_titles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|job_titles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|job_titles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|job_titles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|leave_periods|general|REFUSED: permission denied for table leave_periods
+system admin|leave_periods|constructed own|REFUSED: permission denied for table leave_periods
+system admin|leave_periods|constructed other|REFUSED: permission denied for table leave_periods
+manager|leave_periods|general|REFUSED: permission denied for table leave_periods
+manager|leave_periods|constructed own|REFUSED: permission denied for table leave_periods
+manager|leave_periods|constructed other|REFUSED: permission denied for table leave_periods
+staff admin|leave_periods|general|REFUSED: permission denied for table leave_periods
+staff admin|leave_periods|constructed own|REFUSED: permission denied for table leave_periods
+staff admin|leave_periods|constructed other|REFUSED: permission denied for table leave_periods
+team leader|leave_periods|general|REFUSED: permission denied for table leave_periods
+team leader|leave_periods|constructed own|REFUSED: permission denied for table leave_periods
+team leader|leave_periods|constructed other|REFUSED: permission denied for table leave_periods
+staff|leave_periods|general|REFUSED: permission denied for table leave_periods
+staff|leave_periods|their own|REFUSED: permission denied for table leave_periods
+staff|leave_periods|constructed own|REFUSED: permission denied for table leave_periods
+staff|leave_periods|constructed other|REFUSED: permission denied for table leave_periods
+signed out|leave_periods|general|REFUSED: permission denied for table leave_periods
+signed out|leave_periods|constructed own|REFUSED: permission denied for table leave_periods
+signed out|leave_periods|constructed other|REFUSED: permission denied for table leave_periods
+system admin|live_signals|general|REFUSED: permission denied for table live_signals
+system admin|live_signals|constructed own|REFUSED: permission denied for table live_signals
+system admin|live_signals|constructed other|REFUSED: permission denied for table live_signals
+manager|live_signals|general|REFUSED: permission denied for table live_signals
+manager|live_signals|constructed own|REFUSED: permission denied for table live_signals
+manager|live_signals|constructed other|REFUSED: permission denied for table live_signals
+staff admin|live_signals|general|REFUSED: permission denied for table live_signals
+staff admin|live_signals|constructed own|REFUSED: permission denied for table live_signals
+staff admin|live_signals|constructed other|REFUSED: permission denied for table live_signals
+team leader|live_signals|general|REFUSED: permission denied for table live_signals
+team leader|live_signals|constructed own|REFUSED: permission denied for table live_signals
+team leader|live_signals|constructed other|REFUSED: permission denied for table live_signals
+staff|live_signals|general|REFUSED: permission denied for table live_signals
+staff|live_signals|constructed own|REFUSED: permission denied for table live_signals
+staff|live_signals|constructed other|REFUSED: permission denied for table live_signals
+signed out|live_signals|general|REFUSED: permission denied for table live_signals
+signed out|live_signals|constructed own|REFUSED: permission denied for table live_signals
+signed out|live_signals|constructed other|REFUSED: permission denied for table live_signals
+system admin|notifications|general|REFUSED: permission denied for table notifications
+system admin|notifications|their own|REFUSED: permission denied for table notifications
+system admin|notifications|constructed own|REFUSED: permission denied for table notifications
+system admin|notifications|constructed other|REFUSED: permission denied for table notifications
+manager|notifications|general|REFUSED: permission denied for table notifications
+manager|notifications|their own|REFUSED: permission denied for table notifications
+manager|notifications|constructed own|REFUSED: permission denied for table notifications
+manager|notifications|constructed other|REFUSED: permission denied for table notifications
+staff admin|notifications|general|REFUSED: permission denied for table notifications
+staff admin|notifications|their own|REFUSED: permission denied for table notifications
+staff admin|notifications|constructed own|REFUSED: permission denied for table notifications
+staff admin|notifications|constructed other|REFUSED: permission denied for table notifications
+team leader|notifications|general|REFUSED: permission denied for table notifications
+team leader|notifications|their own|REFUSED: permission denied for table notifications
+team leader|notifications|constructed own|REFUSED: permission denied for table notifications
+team leader|notifications|constructed other|REFUSED: permission denied for table notifications
+staff|notifications|general|REFUSED: permission denied for table notifications
+staff|notifications|their own|REFUSED: permission denied for table notifications
+staff|notifications|constructed own|REFUSED: permission denied for table notifications
+staff|notifications|constructed other|REFUSED: permission denied for table notifications
+signed out|notifications|general|REFUSED: permission denied for table notifications
+signed out|notifications|constructed own|REFUSED: permission denied for table notifications
+signed out|notifications|constructed other|REFUSED: permission denied for table notifications
+system admin|organisation|general|REFUSED: new row violates row-level security policy for table "…"
+system admin|organisation|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|organisation|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|organisation|general|REFUSED: new row violates row-level security policy for table "…"
+manager|organisation|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|organisation|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|organisation|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|organisation|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|organisation|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|organisation|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|organisation|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|organisation|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|organisation|general|REFUSED: new row violates row-level security policy for table "…"
+staff|organisation|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|organisation|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|organisation|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|organisation|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|organisation|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|people_change_requests|constructed own|REFUSED: permission denied for table people_change_requests
+system admin|people_change_requests|constructed other|REFUSED: permission denied for table people_change_requests
+manager|people_change_requests|constructed own|REFUSED: permission denied for table people_change_requests
+manager|people_change_requests|constructed other|REFUSED: permission denied for table people_change_requests
+staff admin|people_change_requests|constructed own|REFUSED: permission denied for table people_change_requests
+staff admin|people_change_requests|constructed other|REFUSED: permission denied for table people_change_requests
+team leader|people_change_requests|constructed own|REFUSED: permission denied for table people_change_requests
+team leader|people_change_requests|constructed other|REFUSED: permission denied for table people_change_requests
+staff|people_change_requests|constructed own|REFUSED: permission denied for table people_change_requests
+staff|people_change_requests|constructed other|REFUSED: permission denied for table people_change_requests
+signed out|people_change_requests|constructed own|REFUSED: permission denied for table people_change_requests
+signed out|people_change_requests|constructed other|REFUSED: permission denied for table people_change_requests
+system admin|profiles|general|REFUSED: new row violates row-level security policy for table "…"
+system admin|profiles|their own|REFUSED: new row violates row-level security policy for table "…"
+system admin|profiles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|profiles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|profiles|general|REFUSED: new row violates row-level security policy for table "…"
+manager|profiles|their own|REFUSED: new row violates row-level security policy for table "…"
+manager|profiles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|profiles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|profiles|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|profiles|their own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|profiles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|profiles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|profiles|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|profiles|their own|REFUSED: new row violates row-level security policy for table "…"
+team leader|profiles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|profiles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|profiles|general|REFUSED: new row violates row-level security policy for table "…"
+staff|profiles|their own|REFUSED: new row violates row-level security policy for table "…"
+staff|profiles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|profiles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|profiles|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|profiles|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|profiles|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|record_events|constructed own|REFUSED: permission denied for table record_events
+system admin|record_events|constructed other|REFUSED: permission denied for table record_events
+manager|record_events|constructed own|REFUSED: permission denied for table record_events
+manager|record_events|constructed other|REFUSED: permission denied for table record_events
+staff admin|record_events|constructed own|REFUSED: permission denied for table record_events
+staff admin|record_events|constructed other|REFUSED: permission denied for table record_events
+team leader|record_events|constructed own|REFUSED: permission denied for table record_events
+team leader|record_events|constructed other|REFUSED: permission denied for table record_events
+staff|record_events|constructed own|REFUSED: permission denied for table record_events
+staff|record_events|constructed other|REFUSED: permission denied for table record_events
+signed out|record_events|constructed own|REFUSED: permission denied for table record_events
+signed out|record_events|constructed other|REFUSED: permission denied for table record_events
+system admin|records|constructed own|REFUSED: permission denied for table records
+system admin|records|constructed other|REFUSED: permission denied for table records
+manager|records|constructed own|REFUSED: permission denied for table records
+manager|records|constructed other|REFUSED: permission denied for table records
+staff admin|records|constructed own|REFUSED: permission denied for table records
+staff admin|records|constructed other|REFUSED: permission denied for table records
+team leader|records|constructed own|REFUSED: permission denied for table records
+team leader|records|constructed other|REFUSED: permission denied for table records
+staff|records|constructed own|REFUSED: permission denied for table records
+staff|records|constructed other|REFUSED: permission denied for table records
+signed out|records|constructed own|REFUSED: permission denied for table records
+signed out|records|constructed other|REFUSED: permission denied for table records
+system admin|register_templates|general|REFUSED: permission denied for table register_templates
+system admin|register_templates|constructed own|REFUSED: permission denied for table register_templates
+system admin|register_templates|constructed other|REFUSED: permission denied for table register_templates
+manager|register_templates|general|REFUSED: permission denied for table register_templates
+manager|register_templates|constructed own|REFUSED: permission denied for table register_templates
+manager|register_templates|constructed other|REFUSED: permission denied for table register_templates
+staff admin|register_templates|general|REFUSED: permission denied for table register_templates
+staff admin|register_templates|constructed own|REFUSED: permission denied for table register_templates
+staff admin|register_templates|constructed other|REFUSED: permission denied for table register_templates
+team leader|register_templates|general|REFUSED: permission denied for table register_templates
+team leader|register_templates|constructed own|REFUSED: permission denied for table register_templates
+team leader|register_templates|constructed other|REFUSED: permission denied for table register_templates
+staff|register_templates|general|REFUSED: permission denied for table register_templates
+staff|register_templates|constructed own|REFUSED: permission denied for table register_templates
+staff|register_templates|constructed other|REFUSED: permission denied for table register_templates
+signed out|register_templates|general|REFUSED: permission denied for table register_templates
+signed out|register_templates|constructed own|REFUSED: permission denied for table register_templates
+signed out|register_templates|constructed other|REFUSED: permission denied for table register_templates
+system admin|registries|general|REFUSED: duplicate key value violates unique constraint "…"
+system admin|registries|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|registries|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|registries|general|REFUSED: duplicate key value violates unique constraint "…"
+manager|registries|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|registries|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|registries|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|registries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|registries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|registries|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|registries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|registries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|registries|general|REFUSED: new row violates row-level security policy for table "…"
+staff|registries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|registries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|registries|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|registries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|registries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|registry_fields|general|REFUSED: duplicate key value violates unique constraint "…"
+system admin|registry_fields|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|registry_fields|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|registry_fields|general|REFUSED: new row violates row-level security policy for table "…"
+manager|registry_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|registry_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|registry_fields|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|registry_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|registry_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|registry_fields|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|registry_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|registry_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|registry_fields|general|REFUSED: new row violates row-level security policy for table "…"
+staff|registry_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|registry_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|registry_fields|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|registry_fields|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|registry_fields|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|registry_managers|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+system admin|registry_managers|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+manager|registry_managers|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|registry_managers|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|registry_managers|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|registry_managers|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|registry_managers|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|registry_managers|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|registry_managers|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|registry_managers|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|registry_managers|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|registry_managers|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|request_events|general|REFUSED: permission denied for table request_events
+system admin|request_events|constructed own|REFUSED: permission denied for table request_events
+system admin|request_events|constructed other|REFUSED: permission denied for table request_events
+manager|request_events|general|REFUSED: permission denied for table request_events
+manager|request_events|their own|REFUSED: permission denied for table request_events
+manager|request_events|constructed own|REFUSED: permission denied for table request_events
+manager|request_events|constructed other|REFUSED: permission denied for table request_events
+staff admin|request_events|general|REFUSED: permission denied for table request_events
+staff admin|request_events|constructed own|REFUSED: permission denied for table request_events
+staff admin|request_events|constructed other|REFUSED: permission denied for table request_events
+team leader|request_events|general|REFUSED: permission denied for table request_events
+team leader|request_events|their own|REFUSED: permission denied for table request_events
+team leader|request_events|constructed own|REFUSED: permission denied for table request_events
+team leader|request_events|constructed other|REFUSED: permission denied for table request_events
+staff|request_events|general|REFUSED: permission denied for table request_events
+staff|request_events|their own|REFUSED: permission denied for table request_events
+staff|request_events|constructed own|REFUSED: permission denied for table request_events
+staff|request_events|constructed other|REFUSED: permission denied for table request_events
+signed out|request_events|general|REFUSED: permission denied for table request_events
+signed out|request_events|constructed own|REFUSED: permission denied for table request_events
+signed out|request_events|constructed other|REFUSED: permission denied for table request_events
+system admin|request_types|general|REFUSED: permission denied for table request_types
+system admin|request_types|constructed own|REFUSED: permission denied for table request_types
+system admin|request_types|constructed other|REFUSED: permission denied for table request_types
+manager|request_types|general|REFUSED: permission denied for table request_types
+manager|request_types|constructed own|REFUSED: permission denied for table request_types
+manager|request_types|constructed other|REFUSED: permission denied for table request_types
+staff admin|request_types|general|REFUSED: permission denied for table request_types
+staff admin|request_types|constructed own|REFUSED: permission denied for table request_types
+staff admin|request_types|constructed other|REFUSED: permission denied for table request_types
+team leader|request_types|general|REFUSED: permission denied for table request_types
+team leader|request_types|constructed own|REFUSED: permission denied for table request_types
+team leader|request_types|constructed other|REFUSED: permission denied for table request_types
+staff|request_types|general|REFUSED: permission denied for table request_types
+staff|request_types|constructed own|REFUSED: permission denied for table request_types
+staff|request_types|constructed other|REFUSED: permission denied for table request_types
+signed out|request_types|general|REFUSED: permission denied for table request_types
+signed out|request_types|constructed own|REFUSED: permission denied for table request_types
+signed out|request_types|constructed other|REFUSED: permission denied for table request_types
+system admin|requests|general|REFUSED: permission denied for table requests
+system admin|requests|constructed own|REFUSED: permission denied for table requests
+system admin|requests|constructed other|REFUSED: permission denied for table requests
+manager|requests|general|REFUSED: permission denied for table requests
+manager|requests|constructed own|REFUSED: permission denied for table requests
+manager|requests|constructed other|REFUSED: permission denied for table requests
+staff admin|requests|general|REFUSED: permission denied for table requests
+staff admin|requests|constructed own|REFUSED: permission denied for table requests
+staff admin|requests|constructed other|REFUSED: permission denied for table requests
+team leader|requests|general|REFUSED: permission denied for table requests
+team leader|requests|constructed own|REFUSED: permission denied for table requests
+team leader|requests|constructed other|REFUSED: permission denied for table requests
+staff|requests|general|REFUSED: permission denied for table requests
+staff|requests|their own|REFUSED: permission denied for table requests
+staff|requests|constructed own|REFUSED: permission denied for table requests
+staff|requests|constructed other|REFUSED: permission denied for table requests
+signed out|requests|general|REFUSED: permission denied for table requests
+signed out|requests|constructed own|REFUSED: permission denied for table requests
+signed out|requests|constructed other|REFUSED: permission denied for table requests
+system admin|settings_drafts|constructed own|REFUSED: permission denied for table settings_drafts
+system admin|settings_drafts|constructed other|REFUSED: permission denied for table settings_drafts
+manager|settings_drafts|constructed own|REFUSED: permission denied for table settings_drafts
+manager|settings_drafts|constructed other|REFUSED: permission denied for table settings_drafts
+staff admin|settings_drafts|constructed own|REFUSED: permission denied for table settings_drafts
+staff admin|settings_drafts|constructed other|REFUSED: permission denied for table settings_drafts
+team leader|settings_drafts|constructed own|REFUSED: permission denied for table settings_drafts
+team leader|settings_drafts|constructed other|REFUSED: permission denied for table settings_drafts
+staff|settings_drafts|constructed own|REFUSED: permission denied for table settings_drafts
+staff|settings_drafts|constructed other|REFUSED: permission denied for table settings_drafts
+signed out|settings_drafts|constructed own|REFUSED: permission denied for table settings_drafts
+signed out|settings_drafts|constructed other|REFUSED: permission denied for table settings_drafts
+system admin|shift_changes|constructed own|REFUSED: permission denied for table shift_changes
+system admin|shift_changes|constructed other|REFUSED: permission denied for table shift_changes
+manager|shift_changes|constructed own|REFUSED: permission denied for table shift_changes
+manager|shift_changes|constructed other|REFUSED: permission denied for table shift_changes
+staff admin|shift_changes|constructed own|REFUSED: permission denied for table shift_changes
+staff admin|shift_changes|constructed other|REFUSED: permission denied for table shift_changes
+team leader|shift_changes|constructed own|REFUSED: permission denied for table shift_changes
+team leader|shift_changes|constructed other|REFUSED: permission denied for table shift_changes
+staff|shift_changes|constructed own|REFUSED: permission denied for table shift_changes
+staff|shift_changes|constructed other|REFUSED: permission denied for table shift_changes
+signed out|shift_changes|constructed own|REFUSED: permission denied for table shift_changes
+signed out|shift_changes|constructed other|REFUSED: permission denied for table shift_changes
+system admin|staff_directory|general|REFUSED: permission denied for table staff_directory
+system admin|staff_directory|constructed own|REFUSED: permission denied for table staff_directory
+system admin|staff_directory|constructed other|REFUSED: permission denied for table staff_directory
+manager|staff_directory|general|REFUSED: permission denied for table staff_directory
+manager|staff_directory|their own|REFUSED: permission denied for table staff_directory
+manager|staff_directory|constructed own|REFUSED: permission denied for table staff_directory
+manager|staff_directory|constructed other|REFUSED: permission denied for table staff_directory
+staff admin|staff_directory|general|REFUSED: permission denied for table staff_directory
+staff admin|staff_directory|constructed own|REFUSED: permission denied for table staff_directory
+staff admin|staff_directory|constructed other|REFUSED: permission denied for table staff_directory
+team leader|staff_directory|general|REFUSED: permission denied for table staff_directory
+team leader|staff_directory|their own|REFUSED: permission denied for table staff_directory
+team leader|staff_directory|constructed own|REFUSED: permission denied for table staff_directory
+team leader|staff_directory|constructed other|REFUSED: permission denied for table staff_directory
+staff|staff_directory|general|REFUSED: permission denied for table staff_directory
+staff|staff_directory|their own|REFUSED: permission denied for table staff_directory
+staff|staff_directory|constructed own|REFUSED: permission denied for table staff_directory
+staff|staff_directory|constructed other|REFUSED: permission denied for table staff_directory
+signed out|staff_directory|general|REFUSED: permission denied for table staff_directory
+signed out|staff_directory|constructed own|REFUSED: permission denied for table staff_directory
+signed out|staff_directory|constructed other|REFUSED: permission denied for table staff_directory
+system admin|staff_private|general|REFUSED: permission denied for table staff_private
+system admin|staff_private|constructed own|REFUSED: permission denied for table staff_private
+system admin|staff_private|constructed other|REFUSED: permission denied for table staff_private
+manager|staff_private|general|REFUSED: permission denied for table staff_private
+manager|staff_private|their own|REFUSED: permission denied for table staff_private
+manager|staff_private|constructed own|REFUSED: permission denied for table staff_private
+manager|staff_private|constructed other|REFUSED: permission denied for table staff_private
+staff admin|staff_private|general|REFUSED: permission denied for table staff_private
+staff admin|staff_private|constructed own|REFUSED: permission denied for table staff_private
+staff admin|staff_private|constructed other|REFUSED: permission denied for table staff_private
+team leader|staff_private|general|REFUSED: permission denied for table staff_private
+team leader|staff_private|their own|REFUSED: permission denied for table staff_private
+team leader|staff_private|constructed own|REFUSED: permission denied for table staff_private
+team leader|staff_private|constructed other|REFUSED: permission denied for table staff_private
+staff|staff_private|general|REFUSED: permission denied for table staff_private
+staff|staff_private|their own|REFUSED: permission denied for table staff_private
+staff|staff_private|constructed own|REFUSED: permission denied for table staff_private
+staff|staff_private|constructed other|REFUSED: permission denied for table staff_private
+signed out|staff_private|general|REFUSED: permission denied for table staff_private
+signed out|staff_private|constructed own|REFUSED: permission denied for table staff_private
+signed out|staff_private|constructed other|REFUSED: permission denied for table staff_private
+system admin|task_alerts|constructed own|REFUSED: permission denied for table task_alerts
+system admin|task_alerts|constructed other|REFUSED: permission denied for table task_alerts
+manager|task_alerts|constructed own|REFUSED: permission denied for table task_alerts
+manager|task_alerts|constructed other|REFUSED: permission denied for table task_alerts
+staff admin|task_alerts|constructed own|REFUSED: permission denied for table task_alerts
+staff admin|task_alerts|constructed other|REFUSED: permission denied for table task_alerts
+team leader|task_alerts|constructed own|REFUSED: permission denied for table task_alerts
+team leader|task_alerts|constructed other|REFUSED: permission denied for table task_alerts
+staff|task_alerts|constructed own|REFUSED: permission denied for table task_alerts
+staff|task_alerts|constructed other|REFUSED: permission denied for table task_alerts
+signed out|task_alerts|constructed own|REFUSED: permission denied for table task_alerts
+signed out|task_alerts|constructed other|REFUSED: permission denied for table task_alerts
+system admin|task_attachments|constructed own|REFUSED: permission denied for table task_attachments
+system admin|task_attachments|constructed other|REFUSED: permission denied for table task_attachments
+manager|task_attachments|constructed own|REFUSED: permission denied for table task_attachments
+manager|task_attachments|constructed other|REFUSED: permission denied for table task_attachments
+staff admin|task_attachments|constructed own|REFUSED: permission denied for table task_attachments
+staff admin|task_attachments|constructed other|REFUSED: permission denied for table task_attachments
+team leader|task_attachments|constructed own|REFUSED: permission denied for table task_attachments
+team leader|task_attachments|constructed other|REFUSED: permission denied for table task_attachments
+staff|task_attachments|constructed own|REFUSED: permission denied for table task_attachments
+staff|task_attachments|constructed other|REFUSED: permission denied for table task_attachments
+signed out|task_attachments|constructed own|REFUSED: permission denied for table task_attachments
+signed out|task_attachments|constructed other|REFUSED: permission denied for table task_attachments
+system admin|task_events|general|REFUSED: permission denied for table task_events
+system admin|task_events|their own|REFUSED: permission denied for table task_events
+system admin|task_events|constructed own|REFUSED: permission denied for table task_events
+system admin|task_events|constructed other|REFUSED: permission denied for table task_events
+manager|task_events|general|REFUSED: permission denied for table task_events
+manager|task_events|their own|REFUSED: permission denied for table task_events
+manager|task_events|constructed own|REFUSED: permission denied for table task_events
+manager|task_events|constructed other|REFUSED: permission denied for table task_events
+staff admin|task_events|general|REFUSED: permission denied for table task_events
+staff admin|task_events|their own|REFUSED: permission denied for table task_events
+staff admin|task_events|constructed own|REFUSED: permission denied for table task_events
+staff admin|task_events|constructed other|REFUSED: permission denied for table task_events
+team leader|task_events|general|REFUSED: permission denied for table task_events
+team leader|task_events|constructed own|REFUSED: permission denied for table task_events
+team leader|task_events|constructed other|REFUSED: permission denied for table task_events
+staff|task_events|general|REFUSED: permission denied for table task_events
+staff|task_events|constructed own|REFUSED: permission denied for table task_events
+staff|task_events|constructed other|REFUSED: permission denied for table task_events
+signed out|task_events|general|REFUSED: permission denied for table task_events
+signed out|task_events|constructed own|REFUSED: permission denied for table task_events
+signed out|task_events|constructed other|REFUSED: permission denied for table task_events
+system admin|task_helpers|constructed own|REFUSED: permission denied for table task_helpers
+system admin|task_helpers|constructed other|REFUSED: permission denied for table task_helpers
+manager|task_helpers|constructed own|REFUSED: permission denied for table task_helpers
+manager|task_helpers|constructed other|REFUSED: permission denied for table task_helpers
+staff admin|task_helpers|constructed own|REFUSED: permission denied for table task_helpers
+staff admin|task_helpers|constructed other|REFUSED: permission denied for table task_helpers
+team leader|task_helpers|constructed own|REFUSED: permission denied for table task_helpers
+team leader|task_helpers|constructed other|REFUSED: permission denied for table task_helpers
+staff|task_helpers|constructed own|REFUSED: permission denied for table task_helpers
+staff|task_helpers|constructed other|REFUSED: permission denied for table task_helpers
+signed out|task_helpers|constructed own|REFUSED: permission denied for table task_helpers
+signed out|task_helpers|constructed other|REFUSED: permission denied for table task_helpers
+system admin|task_views|general|REFUSED: permission denied for table task_views
+system admin|task_views|their own|REFUSED: permission denied for table task_views
+system admin|task_views|constructed own|REFUSED: permission denied for table task_views
+system admin|task_views|constructed other|REFUSED: permission denied for table task_views
+manager|task_views|general|REFUSED: permission denied for table task_views
+manager|task_views|their own|REFUSED: permission denied for table task_views
+manager|task_views|constructed own|REFUSED: permission denied for table task_views
+manager|task_views|constructed other|REFUSED: permission denied for table task_views
+staff admin|task_views|general|REFUSED: permission denied for table task_views
+staff admin|task_views|their own|REFUSED: permission denied for table task_views
+staff admin|task_views|constructed own|REFUSED: permission denied for table task_views
+staff admin|task_views|constructed other|REFUSED: permission denied for table task_views
+team leader|task_views|general|REFUSED: permission denied for table task_views
+team leader|task_views|their own|REFUSED: permission denied for table task_views
+team leader|task_views|constructed own|REFUSED: permission denied for table task_views
+team leader|task_views|constructed other|REFUSED: permission denied for table task_views
+staff|task_views|general|REFUSED: permission denied for table task_views
+staff|task_views|their own|REFUSED: permission denied for table task_views
+staff|task_views|constructed own|REFUSED: permission denied for table task_views
+staff|task_views|constructed other|REFUSED: permission denied for table task_views
+signed out|task_views|general|REFUSED: permission denied for table task_views
+signed out|task_views|constructed own|REFUSED: permission denied for table task_views
+signed out|task_views|constructed other|REFUSED: permission denied for table task_views
+system admin|tasks|general|REFUSED: permission denied for table tasks
+system admin|tasks|their own|REFUSED: permission denied for table tasks
+system admin|tasks|constructed own|REFUSED: permission denied for table tasks
+system admin|tasks|constructed other|REFUSED: permission denied for table tasks
+manager|tasks|general|REFUSED: permission denied for table tasks
+manager|tasks|their own|REFUSED: permission denied for table tasks
+manager|tasks|constructed own|REFUSED: permission denied for table tasks
+manager|tasks|constructed other|REFUSED: permission denied for table tasks
+staff admin|tasks|general|REFUSED: permission denied for table tasks
+staff admin|tasks|their own|REFUSED: permission denied for table tasks
+staff admin|tasks|constructed own|REFUSED: permission denied for table tasks
+staff admin|tasks|constructed other|REFUSED: permission denied for table tasks
+team leader|tasks|general|REFUSED: permission denied for table tasks
+team leader|tasks|their own|REFUSED: permission denied for table tasks
+team leader|tasks|constructed own|REFUSED: permission denied for table tasks
+team leader|tasks|constructed other|REFUSED: permission denied for table tasks
+staff|tasks|general|REFUSED: permission denied for table tasks
+staff|tasks|their own|REFUSED: permission denied for table tasks
+staff|tasks|constructed own|REFUSED: permission denied for table tasks
+staff|tasks|constructed other|REFUSED: permission denied for table tasks
+signed out|tasks|general|REFUSED: permission denied for table tasks
+signed out|tasks|constructed own|REFUSED: permission denied for table tasks
+signed out|tasks|constructed other|REFUSED: permission denied for table tasks
+system admin|team_leaders|general|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+system admin|team_leaders|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+system admin|team_leaders|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+manager|team_leaders|general|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+manager|team_leaders|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+manager|team_leaders|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+staff admin|team_leaders|general|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+staff admin|team_leaders|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+staff admin|team_leaders|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+team leader|team_leaders|general|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+team leader|team_leaders|their own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+team leader|team_leaders|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+team leader|team_leaders|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+staff|team_leaders|general|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+staff|team_leaders|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+staff|team_leaders|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+signed out|team_leaders|general|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+signed out|team_leaders|constructed own|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+signed out|team_leaders|constructed other|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+system admin|team_members|general|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+system admin|team_members|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|team_members|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|team_members|general|REFUSED: insert or update on table "…" violates foreign key constraint "…"
+manager|team_members|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|team_members|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|team_members|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|team_members|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|team_members|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|team_members|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|team_members|their own|REFUSED: new row violates row-level security policy for table "…"
+team leader|team_members|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|team_members|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|team_members|general|REFUSED: new row violates row-level security policy for table "…"
+staff|team_members|their own|REFUSED: new row violates row-level security policy for table "…"
+staff|team_members|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|team_members|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|team_members|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|team_members|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|team_members|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|teams|general|REFUSED: duplicate key value violates unique constraint "…"
+system admin|teams|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+system admin|teams|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|teams|general|REFUSED: duplicate key value violates unique constraint "…"
+manager|teams|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+manager|teams|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|teams|general|REFUSED: duplicate key value violates unique constraint "…"
+staff admin|teams|constructed own|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+staff admin|teams|constructed other|REFUSED: null value in column "…" of relation "…" violates not-null constraint
+team leader|teams|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|teams|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|teams|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|teams|general|REFUSED: new row violates row-level security policy for table "…"
+staff|teams|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|teams|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|teams|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|teams|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|teams|constructed other|REFUSED: new row violates row-level security policy for table "…"
+system admin|website_enquiries|general|REFUSED: new row violates row-level security policy for table "…"
+system admin|website_enquiries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|website_enquiries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|website_enquiries|general|REFUSED: new row violates row-level security policy for table "…"
+manager|website_enquiries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|website_enquiries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|website_enquiries|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|website_enquiries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|website_enquiries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|website_enquiries|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|website_enquiries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|website_enquiries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|website_enquiries|general|REFUSED: new row violates row-level security policy for table "…"
+staff|website_enquiries|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|website_enquiries|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|website_enquiries|general|REFUSED: permission denied for table website_enquiries
+signed out|website_enquiries|constructed own|REFUSED: permission denied for table website_enquiries
+signed out|website_enquiries|constructed other|REFUSED: permission denied for table website_enquiries
+system admin|work_overrides|general|REFUSED: new row violates row-level security policy for table "…"
+system admin|work_overrides|constructed own|REFUSED: new row violates row-level security policy for table "…"
+system admin|work_overrides|constructed other|REFUSED: new row violates row-level security policy for table "…"
+manager|work_overrides|general|REFUSED: new row violates row-level security policy for table "…"
+manager|work_overrides|their own|REFUSED: new row violates row-level security policy for table "…"
+manager|work_overrides|constructed own|REFUSED: new row violates row-level security policy for table "…"
+manager|work_overrides|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff admin|work_overrides|general|REFUSED: new row violates row-level security policy for table "…"
+staff admin|work_overrides|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff admin|work_overrides|constructed other|REFUSED: new row violates row-level security policy for table "…"
+team leader|work_overrides|general|REFUSED: new row violates row-level security policy for table "…"
+team leader|work_overrides|constructed own|REFUSED: new row violates row-level security policy for table "…"
+team leader|work_overrides|constructed other|REFUSED: new row violates row-level security policy for table "…"
+staff|work_overrides|general|REFUSED: new row violates row-level security policy for table "…"
+staff|work_overrides|constructed own|REFUSED: new row violates row-level security policy for table "…"
+staff|work_overrides|constructed other|REFUSED: new row violates row-level security policy for table "…"
+signed out|work_overrides|general|REFUSED: new row violates row-level security policy for table "…"
+signed out|work_overrides|constructed own|REFUSED: new row violates row-level security policy for table "…"
+signed out|work_overrides|constructed other|REFUSED: new row violates row-level security policy for table "…"

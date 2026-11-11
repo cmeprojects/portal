@@ -1,0 +1,714 @@
+admin_delegations|system admin and the delegate read delegations|USING|system admin|0:-|0:-
+admin_delegations|system admin and the delegate read delegations|USING|manager|0:-|0:-
+admin_delegations|system admin and the delegate read delegations|USING|staff admin|0:-|0:-
+admin_delegations|system admin and the delegate read delegations|USING|team leader|0:-|0:-
+admin_delegations|system admin and the delegate read delegations|USING|staff|0:-|0:-
+admin_delegations|system admin and the delegate read delegations|USING|signed out|0:-|0:-
+app_settings|anyone reads public settings|USING|system admin|80:6b34026c3ce20dd7ce10821b49426dcf|80:6b34026c3ce20dd7ce10821b49426dcf
+app_settings|anyone reads public settings|USING|manager|80:6b34026c3ce20dd7ce10821b49426dcf|80:6b34026c3ce20dd7ce10821b49426dcf
+app_settings|anyone reads public settings|USING|staff admin|80:6b34026c3ce20dd7ce10821b49426dcf|80:6b34026c3ce20dd7ce10821b49426dcf
+app_settings|anyone reads public settings|USING|team leader|80:6b34026c3ce20dd7ce10821b49426dcf|80:6b34026c3ce20dd7ce10821b49426dcf
+app_settings|anyone reads public settings|USING|staff|80:6b34026c3ce20dd7ce10821b49426dcf|80:6b34026c3ce20dd7ce10821b49426dcf
+app_settings|anyone reads public settings|USING|signed out|30:63afc5229f5d8e05c254dfe6f23b9f56|30:63afc5229f5d8e05c254dfe6f23b9f56
+app_settings|car managers set the client field|USING|system admin|1:a74a0b83144255be5bf825215b8481aa|1:a74a0b83144255be5bf825215b8481aa
+app_settings|car managers set the client field|USING|manager|1:a74a0b83144255be5bf825215b8481aa|1:a74a0b83144255be5bf825215b8481aa
+app_settings|car managers set the client field|USING|staff admin|0:-|0:-
+app_settings|car managers set the client field|USING|team leader|0:-|0:-
+app_settings|car managers set the client field|USING|staff|0:-|0:-
+app_settings|car managers set the client field|USING|signed out|0:-|0:-
+app_settings|car managers set the client field|CHECK|system admin|1:a74a0b83144255be5bf825215b8481aa|1:a74a0b83144255be5bf825215b8481aa
+app_settings|car managers set the client field|CHECK|manager|1:a74a0b83144255be5bf825215b8481aa|1:a74a0b83144255be5bf825215b8481aa
+app_settings|car managers set the client field|CHECK|staff admin|0:-|0:-
+app_settings|car managers set the client field|CHECK|team leader|0:-|0:-
+app_settings|car managers set the client field|CHECK|staff|0:-|0:-
+app_settings|car managers set the client field|CHECK|signed out|0:-|0:-
+app_settings|system admin edits settings|USING|system admin|80:6b34026c3ce20dd7ce10821b49426dcf|80:6b34026c3ce20dd7ce10821b49426dcf
+app_settings|system admin edits settings|USING|manager|0:-|0:-
+app_settings|system admin edits settings|USING|staff admin|0:-|0:-
+app_settings|system admin edits settings|USING|team leader|0:-|0:-
+app_settings|system admin edits settings|USING|staff|0:-|0:-
+app_settings|system admin edits settings|USING|signed out|0:-|0:-
+app_settings|system admin edits settings|CHECK|system admin|80:6b34026c3ce20dd7ce10821b49426dcf|80:6b34026c3ce20dd7ce10821b49426dcf
+app_settings|system admin edits settings|CHECK|manager|0:-|0:-
+app_settings|system admin edits settings|CHECK|staff admin|0:-|0:-
+app_settings|system admin edits settings|CHECK|team leader|0:-|0:-
+app_settings|system admin edits settings|CHECK|staff|0:-|0:-
+app_settings|system admin edits settings|CHECK|signed out|0:-|0:-
+assistant_chats|assistant_chats_own|USING|system admin|0:-|0:-
+assistant_chats|assistant_chats_own|USING|manager|0:-|0:-
+assistant_chats|assistant_chats_own|USING|staff admin|0:-|0:-
+assistant_chats|assistant_chats_own|USING|team leader|0:-|0:-
+assistant_chats|assistant_chats_own|USING|staff|0:-|0:-
+assistant_chats|assistant_chats_own|USING|signed out|0:-|0:-
+assistant_chats|assistant_chats_own|CHECK|system admin|0:-|0:-
+assistant_chats|assistant_chats_own|CHECK|manager|0:-|0:-
+assistant_chats|assistant_chats_own|CHECK|staff admin|0:-|0:-
+assistant_chats|assistant_chats_own|CHECK|team leader|0:-|0:-
+assistant_chats|assistant_chats_own|CHECK|staff|0:-|0:-
+assistant_chats|assistant_chats_own|CHECK|signed out|0:-|0:-
+assistant_documents|assistant_documents_all|USING|system admin|0:-|0:-
+assistant_documents|assistant_documents_all|USING|manager|0:-|0:-
+assistant_documents|assistant_documents_all|USING|staff admin|0:-|0:-
+assistant_documents|assistant_documents_all|USING|team leader|0:-|0:-
+assistant_documents|assistant_documents_all|USING|staff|0:-|0:-
+assistant_documents|assistant_documents_all|USING|signed out|0:-|0:-
+assistant_documents|assistant_documents_all|CHECK|system admin|0:-|0:-
+assistant_documents|assistant_documents_all|CHECK|manager|0:-|0:-
+assistant_documents|assistant_documents_all|CHECK|staff admin|0:-|0:-
+assistant_documents|assistant_documents_all|CHECK|team leader|0:-|0:-
+assistant_documents|assistant_documents_all|CHECK|staff|0:-|0:-
+assistant_documents|assistant_documents_all|CHECK|signed out|0:-|0:-
+assistant_messages|assistant_messages_own|USING|system admin|0:-|0:-
+assistant_messages|assistant_messages_own|USING|manager|0:-|0:-
+assistant_messages|assistant_messages_own|USING|staff admin|0:-|0:-
+assistant_messages|assistant_messages_own|USING|team leader|0:-|0:-
+assistant_messages|assistant_messages_own|USING|staff|0:-|0:-
+assistant_messages|assistant_messages_own|USING|signed out|0:-|0:-
+assistant_messages|assistant_messages_own|CHECK|system admin|0:-|0:-
+assistant_messages|assistant_messages_own|CHECK|manager|0:-|0:-
+assistant_messages|assistant_messages_own|CHECK|staff admin|0:-|0:-
+assistant_messages|assistant_messages_own|CHECK|team leader|0:-|0:-
+assistant_messages|assistant_messages_own|CHECK|staff|0:-|0:-
+assistant_messages|assistant_messages_own|CHECK|signed out|0:-|0:-
+assistant_questions|assistant_questions_read|USING|system admin|0:-|0:-
+assistant_questions|assistant_questions_read|USING|manager|0:-|0:-
+assistant_questions|assistant_questions_read|USING|staff admin|0:-|0:-
+assistant_questions|assistant_questions_read|USING|team leader|0:-|0:-
+assistant_questions|assistant_questions_read|USING|staff|0:-|0:-
+assistant_questions|assistant_questions_read|USING|signed out|0:-|0:-
+assistant_settings|assistant_settings_read|USING|system admin|1:f486f0918f313c8b2c38011ad3778095|1:f486f0918f313c8b2c38011ad3778095
+assistant_settings|assistant_settings_read|USING|manager|0:-|0:-
+assistant_settings|assistant_settings_read|USING|staff admin|0:-|0:-
+assistant_settings|assistant_settings_read|USING|team leader|0:-|0:-
+assistant_settings|assistant_settings_read|USING|staff|0:-|0:-
+assistant_settings|assistant_settings_read|USING|signed out|0:-|0:-
+assistant_settings|assistant_settings_write|USING|system admin|1:f486f0918f313c8b2c38011ad3778095|1:f486f0918f313c8b2c38011ad3778095
+assistant_settings|assistant_settings_write|USING|manager|0:-|0:-
+assistant_settings|assistant_settings_write|USING|staff admin|0:-|0:-
+assistant_settings|assistant_settings_write|USING|team leader|0:-|0:-
+assistant_settings|assistant_settings_write|USING|staff|0:-|0:-
+assistant_settings|assistant_settings_write|USING|signed out|0:-|0:-
+assistant_settings|assistant_settings_write|CHECK|system admin|1:f486f0918f313c8b2c38011ad3778095|1:f486f0918f313c8b2c38011ad3778095
+assistant_settings|assistant_settings_write|CHECK|manager|0:-|0:-
+assistant_settings|assistant_settings_write|CHECK|staff admin|0:-|0:-
+assistant_settings|assistant_settings_write|CHECK|team leader|0:-|0:-
+assistant_settings|assistant_settings_write|CHECK|staff|0:-|0:-
+assistant_settings|assistant_settings_write|CHECK|signed out|0:-|0:-
+audit_log|delegated managers read the change log|USING|system admin|366:74fcd1f237d21b31bea88c4b4a471a46|366:74fcd1f237d21b31bea88c4b4a471a46
+audit_log|delegated managers read the change log|USING|manager|0:-|0:-
+audit_log|delegated managers read the change log|USING|staff admin|0:-|0:-
+audit_log|delegated managers read the change log|USING|team leader|0:-|0:-
+audit_log|delegated managers read the change log|USING|staff|0:-|0:-
+audit_log|delegated managers read the change log|USING|signed out|0:-|0:-
+audit_log|system admin reads the audit log|USING|system admin|366:74fcd1f237d21b31bea88c4b4a471a46|366:74fcd1f237d21b31bea88c4b4a471a46
+audit_log|system admin reads the audit log|USING|manager|0:-|0:-
+audit_log|system admin reads the audit log|USING|staff admin|0:-|0:-
+audit_log|system admin reads the audit log|USING|team leader|0:-|0:-
+audit_log|system admin reads the audit log|USING|staff|0:-|0:-
+audit_log|system admin reads the audit log|USING|signed out|0:-|0:-
+car_clients|car managers add clients|CHECK|system admin|0:-|0:-
+car_clients|car managers add clients|CHECK|manager|0:-|0:-
+car_clients|car managers add clients|CHECK|staff admin|0:-|0:-
+car_clients|car managers add clients|CHECK|team leader|0:-|0:-
+car_clients|car managers add clients|CHECK|staff|0:-|0:-
+car_clients|car managers add clients|CHECK|signed out|0:-|0:-
+car_clients|car managers change clients|USING|system admin|0:-|0:-
+car_clients|car managers change clients|USING|manager|0:-|0:-
+car_clients|car managers change clients|USING|staff admin|0:-|0:-
+car_clients|car managers change clients|USING|team leader|0:-|0:-
+car_clients|car managers change clients|USING|staff|0:-|0:-
+car_clients|car managers change clients|USING|signed out|0:-|0:-
+car_clients|car managers change clients|CHECK|system admin|0:-|0:-
+car_clients|car managers change clients|CHECK|manager|0:-|0:-
+car_clients|car managers change clients|CHECK|staff admin|0:-|0:-
+car_clients|car managers change clients|CHECK|team leader|0:-|0:-
+car_clients|car managers change clients|CHECK|staff|0:-|0:-
+car_clients|car managers change clients|CHECK|signed out|0:-|0:-
+car_clients|car managers see clients|USING|system admin|0:-|0:-
+car_clients|car managers see clients|USING|manager|0:-|0:-
+car_clients|car managers see clients|USING|staff admin|0:-|0:-
+car_clients|car managers see clients|USING|team leader|0:-|0:-
+car_clients|car managers see clients|USING|staff|0:-|0:-
+car_clients|car managers see clients|USING|signed out|0:-|0:-
+car_clients|people managers add clients|CHECK|system admin|0:-|0:-
+car_clients|people managers add clients|CHECK|manager|0:-|0:-
+car_clients|people managers add clients|CHECK|staff admin|0:-|0:-
+car_clients|people managers add clients|CHECK|team leader|0:-|0:-
+car_clients|people managers add clients|CHECK|staff|0:-|0:-
+car_clients|people managers add clients|CHECK|signed out|0:-|0:-
+car_clients|people managers change clients|USING|system admin|0:-|0:-
+car_clients|people managers change clients|USING|manager|0:-|0:-
+car_clients|people managers change clients|USING|staff admin|0:-|0:-
+car_clients|people managers change clients|USING|team leader|0:-|0:-
+car_clients|people managers change clients|USING|staff|0:-|0:-
+car_clients|people managers change clients|USING|signed out|0:-|0:-
+car_clients|people managers change clients|CHECK|system admin|0:-|0:-
+car_clients|people managers change clients|CHECK|manager|0:-|0:-
+car_clients|people managers change clients|CHECK|staff admin|0:-|0:-
+car_clients|people managers change clients|CHECK|team leader|0:-|0:-
+car_clients|people managers change clients|CHECK|staff|0:-|0:-
+car_clients|people managers change clients|CHECK|signed out|0:-|0:-
+car_clients|people managers see clients|USING|system admin|0:-|0:-
+car_clients|people managers see clients|USING|manager|0:-|0:-
+car_clients|people managers see clients|USING|staff admin|0:-|0:-
+car_clients|people managers see clients|USING|team leader|0:-|0:-
+car_clients|people managers see clients|USING|staff|0:-|0:-
+car_clients|people managers see clients|USING|signed out|0:-|0:-
+car_purposes|car managers add purposes|CHECK|system admin|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|car managers add purposes|CHECK|manager|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|car managers add purposes|CHECK|staff admin|0:-|0:-
+car_purposes|car managers add purposes|CHECK|team leader|0:-|0:-
+car_purposes|car managers add purposes|CHECK|staff|0:-|0:-
+car_purposes|car managers add purposes|CHECK|signed out|0:-|0:-
+car_purposes|car managers change purposes|USING|system admin|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|car managers change purposes|USING|manager|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|car managers change purposes|USING|staff admin|0:-|0:-
+car_purposes|car managers change purposes|USING|team leader|0:-|0:-
+car_purposes|car managers change purposes|USING|staff|0:-|0:-
+car_purposes|car managers change purposes|USING|signed out|0:-|0:-
+car_purposes|car managers change purposes|CHECK|system admin|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|car managers change purposes|CHECK|manager|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|car managers change purposes|CHECK|staff admin|0:-|0:-
+car_purposes|car managers change purposes|CHECK|team leader|0:-|0:-
+car_purposes|car managers change purposes|CHECK|staff|0:-|0:-
+car_purposes|car managers change purposes|CHECK|signed out|0:-|0:-
+car_purposes|staff see purposes|USING|system admin|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|staff see purposes|USING|manager|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|staff see purposes|USING|staff admin|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|staff see purposes|USING|team leader|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|staff see purposes|USING|staff|6:e12d90ba78570f25ed92e0e4ad30cb25|6:e12d90ba78570f25ed92e0e4ad30cb25
+car_purposes|staff see purposes|USING|signed out|0:-|0:-
+car_trips|drivers see their trips, reports see all|USING|system admin|0:-|0:-
+car_trips|drivers see their trips, reports see all|USING|manager|0:-|0:-
+car_trips|drivers see their trips, reports see all|USING|staff admin|0:-|0:-
+car_trips|drivers see their trips, reports see all|USING|team leader|0:-|0:-
+car_trips|drivers see their trips, reports see all|USING|staff|0:-|0:-
+car_trips|drivers see their trips, reports see all|USING|signed out|0:-|0:-
+cars|car managers add cars|CHECK|system admin|0:-|0:-
+cars|car managers add cars|CHECK|manager|0:-|0:-
+cars|car managers add cars|CHECK|staff admin|0:-|0:-
+cars|car managers add cars|CHECK|team leader|0:-|0:-
+cars|car managers add cars|CHECK|staff|0:-|0:-
+cars|car managers add cars|CHECK|signed out|0:-|0:-
+cars|car managers change cars|USING|system admin|0:-|0:-
+cars|car managers change cars|USING|manager|0:-|0:-
+cars|car managers change cars|USING|staff admin|0:-|0:-
+cars|car managers change cars|USING|team leader|0:-|0:-
+cars|car managers change cars|USING|staff|0:-|0:-
+cars|car managers change cars|USING|signed out|0:-|0:-
+cars|car managers change cars|CHECK|system admin|0:-|0:-
+cars|car managers change cars|CHECK|manager|0:-|0:-
+cars|car managers change cars|CHECK|staff admin|0:-|0:-
+cars|car managers change cars|CHECK|team leader|0:-|0:-
+cars|car managers change cars|CHECK|staff|0:-|0:-
+cars|car managers change cars|CHECK|signed out|0:-|0:-
+cars|staff see cars|USING|system admin|0:-|0:-
+cars|staff see cars|USING|manager|0:-|0:-
+cars|staff see cars|USING|staff admin|0:-|0:-
+cars|staff see cars|USING|team leader|0:-|0:-
+cars|staff see cars|USING|staff|0:-|0:-
+cars|staff see cars|USING|signed out|0:-|0:-
+client_teams|members see which team looks after which client|USING|system admin|0:-|0:-
+client_teams|members see which team looks after which client|USING|manager|0:-|0:-
+client_teams|members see which team looks after which client|USING|staff admin|0:-|0:-
+client_teams|members see which team looks after which client|USING|team leader|0:-|0:-
+client_teams|members see which team looks after which client|USING|staff|0:-|0:-
+client_teams|members see which team looks after which client|USING|signed out|0:-|0:-
+client_teams|people managers link clients to teams|CHECK|system admin|0:-|0:-
+client_teams|people managers link clients to teams|CHECK|manager|0:-|0:-
+client_teams|people managers link clients to teams|CHECK|staff admin|0:-|0:-
+client_teams|people managers link clients to teams|CHECK|team leader|0:-|0:-
+client_teams|people managers link clients to teams|CHECK|staff|0:-|0:-
+client_teams|people managers link clients to teams|CHECK|signed out|0:-|0:-
+client_teams|people managers unlink clients from teams|USING|system admin|0:-|0:-
+client_teams|people managers unlink clients from teams|USING|manager|0:-|0:-
+client_teams|people managers unlink clients from teams|USING|staff admin|0:-|0:-
+client_teams|people managers unlink clients from teams|USING|team leader|0:-|0:-
+client_teams|people managers unlink clients from teams|USING|staff|0:-|0:-
+client_teams|people managers unlink clients from teams|USING|signed out|0:-|0:-
+compliance_items|compliance managers add items|CHECK|system admin|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|compliance managers add items|CHECK|manager|0:-|0:-
+compliance_items|compliance managers add items|CHECK|staff admin|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|compliance managers add items|CHECK|team leader|0:-|0:-
+compliance_items|compliance managers add items|CHECK|staff|0:-|0:-
+compliance_items|compliance managers add items|CHECK|signed out|0:-|0:-
+compliance_items|compliance managers change items|USING|system admin|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|compliance managers change items|USING|manager|0:-|0:-
+compliance_items|compliance managers change items|USING|staff admin|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|compliance managers change items|USING|team leader|0:-|0:-
+compliance_items|compliance managers change items|USING|staff|0:-|0:-
+compliance_items|compliance managers change items|USING|signed out|0:-|0:-
+compliance_items|compliance managers change items|CHECK|system admin|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|compliance managers change items|CHECK|manager|0:-|0:-
+compliance_items|compliance managers change items|CHECK|staff admin|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|compliance managers change items|CHECK|team leader|0:-|0:-
+compliance_items|compliance managers change items|CHECK|staff|0:-|0:-
+compliance_items|compliance managers change items|CHECK|signed out|0:-|0:-
+compliance_items|members read onboarding items|USING|system admin|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|members read onboarding items|USING|manager|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|members read onboarding items|USING|staff admin|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|members read onboarding items|USING|team leader|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|members read onboarding items|USING|staff|11:2b34c416d940f284a7469df3fdae2ef1|11:2b34c416d940f284a7469df3fdae2ef1
+compliance_items|members read onboarding items|USING|signed out|0:-|0:-
+compliance_opens|people see their own opens; compliance managers see all|USING|system admin|6:7cb7a95cb7b0d34d7647338daad9b23e|6:7cb7a95cb7b0d34d7647338daad9b23e
+compliance_opens|people see their own opens; compliance managers see all|USING|manager|0:-|0:-
+compliance_opens|people see their own opens; compliance managers see all|USING|staff admin|6:7cb7a95cb7b0d34d7647338daad9b23e|6:7cb7a95cb7b0d34d7647338daad9b23e
+compliance_opens|people see their own opens; compliance managers see all|USING|team leader|0:-|0:-
+compliance_opens|people see their own opens; compliance managers see all|USING|staff|0:-|0:-
+compliance_opens|people see their own opens; compliance managers see all|USING|signed out|0:-|0:-
+compliance_records|read your own records, or as compliance manager|USING|system admin|908:782b599b4b8042df51f46cd134b76338|908:782b599b4b8042df51f46cd134b76338
+compliance_records|read your own records, or as compliance manager|USING|manager|0:-|0:-
+compliance_records|read your own records, or as compliance manager|USING|staff admin|908:782b599b4b8042df51f46cd134b76338|908:782b599b4b8042df51f46cd134b76338
+compliance_records|read your own records, or as compliance manager|USING|team leader|0:-|0:-
+compliance_records|read your own records, or as compliance manager|USING|staff|0:-|0:-
+compliance_records|read your own records, or as compliance manager|USING|signed out|0:-|0:-
+custom_alerts|the builder manages alerts|USING|system admin|0:-|0:-
+custom_alerts|the builder manages alerts|USING|manager|0:-|0:-
+custom_alerts|the builder manages alerts|USING|staff admin|0:-|0:-
+custom_alerts|the builder manages alerts|USING|team leader|0:-|0:-
+custom_alerts|the builder manages alerts|USING|staff|0:-|0:-
+custom_alerts|the builder manages alerts|USING|signed out|0:-|0:-
+custom_alerts|the builder manages alerts|CHECK|system admin|0:-|0:-
+custom_alerts|the builder manages alerts|CHECK|manager|0:-|0:-
+custom_alerts|the builder manages alerts|CHECK|staff admin|0:-|0:-
+custom_alerts|the builder manages alerts|CHECK|team leader|0:-|0:-
+custom_alerts|the builder manages alerts|CHECK|staff|0:-|0:-
+custom_alerts|the builder manages alerts|CHECK|signed out|0:-|0:-
+custom_client_targets|targets follow their feature|USING|system admin|0:-|0:-
+custom_client_targets|targets follow their feature|USING|manager|0:-|0:-
+custom_client_targets|targets follow their feature|USING|staff admin|0:-|0:-
+custom_client_targets|targets follow their feature|USING|team leader|0:-|0:-
+custom_client_targets|targets follow their feature|USING|staff|0:-|0:-
+custom_client_targets|targets follow their feature|USING|signed out|0:-|0:-
+custom_client_targets|the builder sets targets|USING|system admin|0:-|0:-
+custom_client_targets|the builder sets targets|USING|manager|0:-|0:-
+custom_client_targets|the builder sets targets|USING|staff admin|0:-|0:-
+custom_client_targets|the builder sets targets|USING|team leader|0:-|0:-
+custom_client_targets|the builder sets targets|USING|staff|0:-|0:-
+custom_client_targets|the builder sets targets|USING|signed out|0:-|0:-
+custom_client_targets|the builder sets targets|CHECK|system admin|0:-|0:-
+custom_client_targets|the builder sets targets|CHECK|manager|0:-|0:-
+custom_client_targets|the builder sets targets|CHECK|staff admin|0:-|0:-
+custom_client_targets|the builder sets targets|CHECK|team leader|0:-|0:-
+custom_client_targets|the builder sets targets|CHECK|staff|0:-|0:-
+custom_client_targets|the builder sets targets|CHECK|signed out|0:-|0:-
+custom_features|staff see live features, the builder sees all|USING|system admin|0:-|0:-
+custom_features|staff see live features, the builder sees all|USING|manager|0:-|0:-
+custom_features|staff see live features, the builder sees all|USING|staff admin|0:-|0:-
+custom_features|staff see live features, the builder sees all|USING|team leader|0:-|0:-
+custom_features|staff see live features, the builder sees all|USING|staff|0:-|0:-
+custom_features|staff see live features, the builder sees all|USING|signed out|0:-|0:-
+custom_features|the builder adds features|CHECK|system admin|0:-|0:-
+custom_features|the builder adds features|CHECK|manager|0:-|0:-
+custom_features|the builder adds features|CHECK|staff admin|0:-|0:-
+custom_features|the builder adds features|CHECK|team leader|0:-|0:-
+custom_features|the builder adds features|CHECK|staff|0:-|0:-
+custom_features|the builder adds features|CHECK|signed out|0:-|0:-
+custom_features|the builder changes features|USING|system admin|0:-|0:-
+custom_features|the builder changes features|USING|manager|0:-|0:-
+custom_features|the builder changes features|USING|staff admin|0:-|0:-
+custom_features|the builder changes features|USING|team leader|0:-|0:-
+custom_features|the builder changes features|USING|staff|0:-|0:-
+custom_features|the builder changes features|USING|signed out|0:-|0:-
+custom_features|the builder changes features|CHECK|system admin|0:-|0:-
+custom_features|the builder changes features|CHECK|manager|0:-|0:-
+custom_features|the builder changes features|CHECK|staff admin|0:-|0:-
+custom_features|the builder changes features|CHECK|team leader|0:-|0:-
+custom_features|the builder changes features|CHECK|staff|0:-|0:-
+custom_features|the builder changes features|CHECK|signed out|0:-|0:-
+custom_features|the builder removes unused features|USING|system admin|0:-|0:-
+custom_features|the builder removes unused features|USING|manager|0:-|0:-
+custom_features|the builder removes unused features|USING|staff admin|0:-|0:-
+custom_features|the builder removes unused features|USING|team leader|0:-|0:-
+custom_features|the builder removes unused features|USING|staff|0:-|0:-
+custom_features|the builder removes unused features|USING|signed out|0:-|0:-
+custom_fields|fields follow their feature|USING|system admin|0:-|0:-
+custom_fields|fields follow their feature|USING|manager|0:-|0:-
+custom_fields|fields follow their feature|USING|staff admin|0:-|0:-
+custom_fields|fields follow their feature|USING|team leader|0:-|0:-
+custom_fields|fields follow their feature|USING|staff|0:-|0:-
+custom_fields|fields follow their feature|USING|signed out|0:-|0:-
+custom_fields|the builder adds fields|CHECK|system admin|0:-|0:-
+custom_fields|the builder adds fields|CHECK|manager|0:-|0:-
+custom_fields|the builder adds fields|CHECK|staff admin|0:-|0:-
+custom_fields|the builder adds fields|CHECK|team leader|0:-|0:-
+custom_fields|the builder adds fields|CHECK|staff|0:-|0:-
+custom_fields|the builder adds fields|CHECK|signed out|0:-|0:-
+custom_fields|the builder changes fields|USING|system admin|0:-|0:-
+custom_fields|the builder changes fields|USING|manager|0:-|0:-
+custom_fields|the builder changes fields|USING|staff admin|0:-|0:-
+custom_fields|the builder changes fields|USING|team leader|0:-|0:-
+custom_fields|the builder changes fields|USING|staff|0:-|0:-
+custom_fields|the builder changes fields|USING|signed out|0:-|0:-
+custom_fields|the builder changes fields|CHECK|system admin|0:-|0:-
+custom_fields|the builder changes fields|CHECK|manager|0:-|0:-
+custom_fields|the builder changes fields|CHECK|staff admin|0:-|0:-
+custom_fields|the builder changes fields|CHECK|team leader|0:-|0:-
+custom_fields|the builder changes fields|CHECK|staff|0:-|0:-
+custom_fields|the builder changes fields|CHECK|signed out|0:-|0:-
+custom_fields|the builder removes unused fields|USING|system admin|0:-|0:-
+custom_fields|the builder removes unused fields|USING|manager|0:-|0:-
+custom_fields|the builder removes unused fields|USING|staff admin|0:-|0:-
+custom_fields|the builder removes unused fields|USING|team leader|0:-|0:-
+custom_fields|the builder removes unused fields|USING|staff|0:-|0:-
+custom_fields|the builder removes unused fields|USING|signed out|0:-|0:-
+delegation_rules|members read delegation|USING|system admin|13:a4598e15d1bb86a6d977b6a0f71811bd|13:a4598e15d1bb86a6d977b6a0f71811bd
+delegation_rules|members read delegation|USING|manager|13:a4598e15d1bb86a6d977b6a0f71811bd|13:a4598e15d1bb86a6d977b6a0f71811bd
+delegation_rules|members read delegation|USING|staff admin|13:a4598e15d1bb86a6d977b6a0f71811bd|13:a4598e15d1bb86a6d977b6a0f71811bd
+delegation_rules|members read delegation|USING|team leader|13:a4598e15d1bb86a6d977b6a0f71811bd|13:a4598e15d1bb86a6d977b6a0f71811bd
+delegation_rules|members read delegation|USING|staff|13:a4598e15d1bb86a6d977b6a0f71811bd|13:a4598e15d1bb86a6d977b6a0f71811bd
+delegation_rules|members read delegation|USING|signed out|0:-|0:-
+delegation_shares|members read shares|USING|system admin|0:-|0:-
+delegation_shares|members read shares|USING|manager|0:-|0:-
+delegation_shares|members read shares|USING|staff admin|0:-|0:-
+delegation_shares|members read shares|USING|team leader|0:-|0:-
+delegation_shares|members read shares|USING|staff|0:-|0:-
+delegation_shares|members read shares|USING|signed out|0:-|0:-
+features|members read features|USING|system admin|31:9b2ebcdc46c505fb4c74dd26d5124e26|31:9b2ebcdc46c505fb4c74dd26d5124e26
+features|members read features|USING|manager|31:9b2ebcdc46c505fb4c74dd26d5124e26|31:9b2ebcdc46c505fb4c74dd26d5124e26
+features|members read features|USING|staff admin|31:9b2ebcdc46c505fb4c74dd26d5124e26|31:9b2ebcdc46c505fb4c74dd26d5124e26
+features|members read features|USING|team leader|31:9b2ebcdc46c505fb4c74dd26d5124e26|31:9b2ebcdc46c505fb4c74dd26d5124e26
+features|members read features|USING|staff|31:9b2ebcdc46c505fb4c74dd26d5124e26|31:9b2ebcdc46c505fb4c74dd26d5124e26
+features|members read features|USING|signed out|0:-|0:-
+features|system admin switches features|USING|system admin|31:9b2ebcdc46c505fb4c74dd26d5124e26|31:9b2ebcdc46c505fb4c74dd26d5124e26
+features|system admin switches features|USING|manager|0:-|0:-
+features|system admin switches features|USING|staff admin|0:-|0:-
+features|system admin switches features|USING|team leader|0:-|0:-
+features|system admin switches features|USING|staff|0:-|0:-
+features|system admin switches features|USING|signed out|0:-|0:-
+features|system admin switches features|CHECK|system admin|31:9b2ebcdc46c505fb4c74dd26d5124e26|31:9b2ebcdc46c505fb4c74dd26d5124e26
+features|system admin switches features|CHECK|manager|0:-|0:-
+features|system admin switches features|CHECK|staff admin|0:-|0:-
+features|system admin switches features|CHECK|team leader|0:-|0:-
+features|system admin switches features|CHECK|staff|0:-|0:-
+features|system admin switches features|CHECK|signed out|0:-|0:-
+form_collaborators|the form's maker shares it|USING|system admin|0:-|0:-
+form_collaborators|the form's maker shares it|USING|manager|0:-|0:-
+form_collaborators|the form's maker shares it|USING|staff admin|0:-|0:-
+form_collaborators|the form's maker shares it|USING|team leader|0:-|0:-
+form_collaborators|the form's maker shares it|USING|staff|0:-|0:-
+form_collaborators|the form's maker shares it|USING|signed out|0:-|0:-
+form_collaborators|the form's maker shares it|CHECK|system admin|0:-|0:-
+form_collaborators|the form's maker shares it|CHECK|manager|0:-|0:-
+form_collaborators|the form's maker shares it|CHECK|staff admin|0:-|0:-
+form_collaborators|the form's maker shares it|CHECK|team leader|0:-|0:-
+form_collaborators|the form's maker shares it|CHECK|staff|0:-|0:-
+form_collaborators|the form's maker shares it|CHECK|signed out|0:-|0:-
+form_completions|completions: your own, or the form's managers|USING|system admin|0:-|0:-
+form_completions|completions: your own, or the form's managers|USING|manager|0:-|0:-
+form_completions|completions: your own, or the form's managers|USING|staff admin|0:-|0:-
+form_completions|completions: your own, or the form's managers|USING|team leader|0:-|0:-
+form_completions|completions: your own, or the form's managers|USING|staff|0:-|0:-
+form_completions|completions: your own, or the form's managers|USING|signed out|0:-|0:-
+form_recipients|recipients see their own, managers all|USING|system admin|0:-|0:-
+form_recipients|recipients see their own, managers all|USING|manager|0:-|0:-
+form_recipients|recipients see their own, managers all|USING|staff admin|0:-|0:-
+form_recipients|recipients see their own, managers all|USING|team leader|0:-|0:-
+form_recipients|recipients see their own, managers all|USING|staff|0:-|0:-
+form_recipients|recipients see their own, managers all|USING|signed out|0:-|0:-
+form_responses|replies: your own, or the form's managers|USING|system admin|0:-|0:-
+form_responses|replies: your own, or the form's managers|USING|manager|0:-|0:-
+form_responses|replies: your own, or the form's managers|USING|staff admin|0:-|0:-
+form_responses|replies: your own, or the form's managers|USING|team leader|0:-|0:-
+form_responses|replies: your own, or the form's managers|USING|staff|0:-|0:-
+form_responses|replies: your own, or the form's managers|USING|signed out|0:-|0:-
+forms|form makers add forms|CHECK|system admin|0:-|0:-
+forms|form makers add forms|CHECK|manager|0:-|0:-
+forms|form makers add forms|CHECK|staff admin|0:-|0:-
+forms|form makers add forms|CHECK|team leader|0:-|0:-
+forms|form makers add forms|CHECK|staff|0:-|0:-
+forms|form makers add forms|CHECK|signed out|0:-|0:-
+forms|forms are seen by their managers, or to fill in|USING|system admin|0:-|0:-
+forms|forms are seen by their managers, or to fill in|USING|manager|0:-|0:-
+forms|forms are seen by their managers, or to fill in|USING|staff admin|0:-|0:-
+forms|forms are seen by their managers, or to fill in|USING|team leader|0:-|0:-
+forms|forms are seen by their managers, or to fill in|USING|staff|0:-|0:-
+forms|forms are seen by their managers, or to fill in|USING|signed out|0:-|0:-
+invitations|inviters create general invitations|CHECK|system admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|inviters create general invitations|CHECK|manager|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|inviters create general invitations|CHECK|staff admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|inviters create general invitations|CHECK|team leader|0:-|0:-
+invitations|inviters create general invitations|CHECK|staff|0:-|0:-
+invitations|inviters create general invitations|CHECK|signed out|0:-|0:-
+invitations|managers and admins create invitations|CHECK|system admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins create invitations|CHECK|manager|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins create invitations|CHECK|staff admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins create invitations|CHECK|team leader|0:-|0:-
+invitations|managers and admins create invitations|CHECK|staff|0:-|0:-
+invitations|managers and admins create invitations|CHECK|signed out|0:-|0:-
+invitations|managers and admins read invitations|USING|system admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins read invitations|USING|manager|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins read invitations|USING|staff admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins read invitations|USING|team leader|0:-|0:-
+invitations|managers and admins read invitations|USING|staff|0:-|0:-
+invitations|managers and admins read invitations|USING|signed out|0:-|0:-
+invitations|managers and admins remove pending invitations|USING|system admin|0:-|0:-
+invitations|managers and admins remove pending invitations|USING|manager|0:-|0:-
+invitations|managers and admins remove pending invitations|USING|staff admin|0:-|0:-
+invitations|managers and admins remove pending invitations|USING|team leader|0:-|0:-
+invitations|managers and admins remove pending invitations|USING|staff|0:-|0:-
+invitations|managers and admins remove pending invitations|USING|signed out|0:-|0:-
+invitations|managers and admins update invitations|USING|system admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins update invitations|USING|manager|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins update invitations|USING|staff admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins update invitations|USING|team leader|0:-|0:-
+invitations|managers and admins update invitations|USING|staff|0:-|0:-
+invitations|managers and admins update invitations|USING|signed out|0:-|0:-
+invitations|managers and admins update invitations|CHECK|system admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins update invitations|CHECK|manager|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins update invitations|CHECK|staff admin|313:819cc2a32bf7d7606e0718fb30fe85fe|313:819cc2a32bf7d7606e0718fb30fe85fe
+invitations|managers and admins update invitations|CHECK|team leader|0:-|0:-
+invitations|managers and admins update invitations|CHECK|staff|0:-|0:-
+invitations|managers and admins update invitations|CHECK|signed out|0:-|0:-
+job_titles|delegated people add job titles|CHECK|system admin|0:-|0:-
+job_titles|delegated people add job titles|CHECK|manager|0:-|0:-
+job_titles|delegated people add job titles|CHECK|staff admin|0:-|0:-
+job_titles|delegated people add job titles|CHECK|team leader|0:-|0:-
+job_titles|delegated people add job titles|CHECK|staff|0:-|0:-
+job_titles|delegated people add job titles|CHECK|signed out|0:-|0:-
+job_titles|delegated people change job titles|USING|system admin|0:-|0:-
+job_titles|delegated people change job titles|USING|manager|0:-|0:-
+job_titles|delegated people change job titles|USING|staff admin|0:-|0:-
+job_titles|delegated people change job titles|USING|team leader|0:-|0:-
+job_titles|delegated people change job titles|USING|staff|0:-|0:-
+job_titles|delegated people change job titles|USING|signed out|0:-|0:-
+job_titles|delegated people change job titles|CHECK|system admin|0:-|0:-
+job_titles|delegated people change job titles|CHECK|manager|0:-|0:-
+job_titles|delegated people change job titles|CHECK|staff admin|0:-|0:-
+job_titles|delegated people change job titles|CHECK|team leader|0:-|0:-
+job_titles|delegated people change job titles|CHECK|staff|0:-|0:-
+job_titles|delegated people change job titles|CHECK|signed out|0:-|0:-
+job_titles|members read job titles|USING|system admin|0:-|0:-
+job_titles|members read job titles|USING|manager|0:-|0:-
+job_titles|members read job titles|USING|staff admin|0:-|0:-
+job_titles|members read job titles|USING|team leader|0:-|0:-
+job_titles|members read job titles|USING|staff|0:-|0:-
+job_titles|members read job titles|USING|signed out|0:-|0:-
+leave_periods|the person and people managers see leave|USING|system admin|1:25f4111ef93770d466e4aaf1e56b9eaa|1:25f4111ef93770d466e4aaf1e56b9eaa
+leave_periods|the person and people managers see leave|USING|manager|1:25f4111ef93770d466e4aaf1e56b9eaa|1:25f4111ef93770d466e4aaf1e56b9eaa
+leave_periods|the person and people managers see leave|USING|staff admin|1:25f4111ef93770d466e4aaf1e56b9eaa|1:25f4111ef93770d466e4aaf1e56b9eaa
+leave_periods|the person and people managers see leave|USING|team leader|1:25f4111ef93770d466e4aaf1e56b9eaa|1:25f4111ef93770d466e4aaf1e56b9eaa
+leave_periods|the person and people managers see leave|USING|staff|1:25f4111ef93770d466e4aaf1e56b9eaa|1:25f4111ef93770d466e4aaf1e56b9eaa
+leave_periods|the person and people managers see leave|USING|signed out|0:-|0:-
+notifications|read your own notifications|USING|system admin|2:9b5a8dbbc995dddfe2517ed76d1f09b9|2:9b5a8dbbc995dddfe2517ed76d1f09b9
+notifications|read your own notifications|USING|manager|3006:9be28416691a9091f8e70572dc6398e4|3006:9be28416691a9091f8e70572dc6398e4
+notifications|read your own notifications|USING|staff admin|15:095de5e44f079b38be5404c6d9f1dc20|15:095de5e44f079b38be5404c6d9f1dc20
+notifications|read your own notifications|USING|team leader|6:7c2ba55ce05ec5c4385142d45f8c1067|6:7c2ba55ce05ec5c4385142d45f8c1067
+notifications|read your own notifications|USING|staff|8:a86032639283e5ecd0a0d49af86b5d80|8:a86032639283e5ecd0a0d49af86b5d80
+notifications|read your own notifications|USING|signed out|0:-|0:-
+organisation|members read the company|USING|system admin|1:f76559afcb90d9619dcdc9bc6d63ad3f|1:f76559afcb90d9619dcdc9bc6d63ad3f
+organisation|members read the company|USING|manager|1:f76559afcb90d9619dcdc9bc6d63ad3f|1:f76559afcb90d9619dcdc9bc6d63ad3f
+organisation|members read the company|USING|staff admin|1:f76559afcb90d9619dcdc9bc6d63ad3f|1:f76559afcb90d9619dcdc9bc6d63ad3f
+organisation|members read the company|USING|team leader|1:f76559afcb90d9619dcdc9bc6d63ad3f|1:f76559afcb90d9619dcdc9bc6d63ad3f
+organisation|members read the company|USING|staff|1:f76559afcb90d9619dcdc9bc6d63ad3f|1:f76559afcb90d9619dcdc9bc6d63ad3f
+organisation|members read the company|USING|signed out|0:-|0:-
+organisation|system admin edits the company|USING|system admin|1:f76559afcb90d9619dcdc9bc6d63ad3f|1:f76559afcb90d9619dcdc9bc6d63ad3f
+organisation|system admin edits the company|USING|manager|0:-|0:-
+organisation|system admin edits the company|USING|staff admin|0:-|0:-
+organisation|system admin edits the company|USING|team leader|0:-|0:-
+organisation|system admin edits the company|USING|staff|0:-|0:-
+organisation|system admin edits the company|USING|signed out|0:-|0:-
+organisation|system admin edits the company|CHECK|system admin|1:f76559afcb90d9619dcdc9bc6d63ad3f|1:f76559afcb90d9619dcdc9bc6d63ad3f
+organisation|system admin edits the company|CHECK|manager|0:-|0:-
+organisation|system admin edits the company|CHECK|staff admin|0:-|0:-
+organisation|system admin edits the company|CHECK|team leader|0:-|0:-
+organisation|system admin edits the company|CHECK|staff|0:-|0:-
+organisation|system admin edits the company|CHECK|signed out|0:-|0:-
+people_change_requests|managers and admins see change requests|USING|system admin|0:-|0:-
+people_change_requests|managers and admins see change requests|USING|manager|0:-|0:-
+people_change_requests|managers and admins see change requests|USING|staff admin|0:-|0:-
+people_change_requests|managers and admins see change requests|USING|team leader|0:-|0:-
+people_change_requests|managers and admins see change requests|USING|staff|0:-|0:-
+people_change_requests|managers and admins see change requests|USING|signed out|0:-|0:-
+profiles|managers and admins update people|USING|system admin|314:571a016749cfda8757df4d610d941bdf|314:571a016749cfda8757df4d610d941bdf
+profiles|managers and admins update people|USING|manager|314:571a016749cfda8757df4d610d941bdf|314:571a016749cfda8757df4d610d941bdf
+profiles|managers and admins update people|USING|staff admin|314:571a016749cfda8757df4d610d941bdf|314:571a016749cfda8757df4d610d941bdf
+profiles|managers and admins update people|USING|team leader|0:-|0:-
+profiles|managers and admins update people|USING|staff|0:-|0:-
+profiles|managers and admins update people|USING|signed out|0:-|0:-
+profiles|managers and admins update people|CHECK|system admin|314:571a016749cfda8757df4d610d941bdf|314:571a016749cfda8757df4d610d941bdf
+profiles|managers and admins update people|CHECK|manager|314:571a016749cfda8757df4d610d941bdf|314:571a016749cfda8757df4d610d941bdf
+profiles|managers and admins update people|CHECK|staff admin|314:571a016749cfda8757df4d610d941bdf|314:571a016749cfda8757df4d610d941bdf
+profiles|managers and admins update people|CHECK|team leader|0:-|0:-
+profiles|managers and admins update people|CHECK|staff|0:-|0:-
+profiles|managers and admins update people|CHECK|signed out|0:-|0:-
+profiles|members read colleagues|USING|system admin|314:571a016749cfda8757df4d610d941bdf|314:571a016749cfda8757df4d610d941bdf
+profiles|members read colleagues|USING|manager|313:61763b50424e497a14fbd33c9af2ea38|313:61763b50424e497a14fbd33c9af2ea38
+profiles|members read colleagues|USING|staff admin|313:61763b50424e497a14fbd33c9af2ea38|313:61763b50424e497a14fbd33c9af2ea38
+profiles|members read colleagues|USING|team leader|313:61763b50424e497a14fbd33c9af2ea38|313:61763b50424e497a14fbd33c9af2ea38
+profiles|members read colleagues|USING|staff|313:61763b50424e497a14fbd33c9af2ea38|313:61763b50424e497a14fbd33c9af2ea38
+profiles|members read colleagues|USING|signed out|0:-|0:-
+profiles|read own profile|USING|system admin|1:e73df3f036e5de175b1ce6d1b2d87073|1:e73df3f036e5de175b1ce6d1b2d87073
+profiles|read own profile|USING|manager|1:5959fc7c299fe071cd3ad93cdf560df8|1:5959fc7c299fe071cd3ad93cdf560df8
+profiles|read own profile|USING|staff admin|1:b7dc7102f9f2af40061c508ec4bce585|1:b7dc7102f9f2af40061c508ec4bce585
+profiles|read own profile|USING|team leader|1:c70640b73f59d92d1c79b74810f1a197|1:c70640b73f59d92d1c79b74810f1a197
+profiles|read own profile|USING|staff|1:db491923c23ee4f2e3ef9c82319ad4c8|1:db491923c23ee4f2e3ef9c82319ad4c8
+profiles|read own profile|USING|signed out|0:-|0:-
+profiles|update own name|USING|system admin|1:e73df3f036e5de175b1ce6d1b2d87073|1:e73df3f036e5de175b1ce6d1b2d87073
+profiles|update own name|USING|manager|1:5959fc7c299fe071cd3ad93cdf560df8|1:5959fc7c299fe071cd3ad93cdf560df8
+profiles|update own name|USING|staff admin|1:b7dc7102f9f2af40061c508ec4bce585|1:b7dc7102f9f2af40061c508ec4bce585
+profiles|update own name|USING|team leader|1:c70640b73f59d92d1c79b74810f1a197|1:c70640b73f59d92d1c79b74810f1a197
+profiles|update own name|USING|staff|1:db491923c23ee4f2e3ef9c82319ad4c8|1:db491923c23ee4f2e3ef9c82319ad4c8
+profiles|update own name|USING|signed out|0:-|0:-
+profiles|update own name|CHECK|system admin|1:e73df3f036e5de175b1ce6d1b2d87073|1:e73df3f036e5de175b1ce6d1b2d87073
+profiles|update own name|CHECK|manager|1:5959fc7c299fe071cd3ad93cdf560df8|1:5959fc7c299fe071cd3ad93cdf560df8
+profiles|update own name|CHECK|staff admin|1:b7dc7102f9f2af40061c508ec4bce585|1:b7dc7102f9f2af40061c508ec4bce585
+profiles|update own name|CHECK|team leader|1:c70640b73f59d92d1c79b74810f1a197|1:c70640b73f59d92d1c79b74810f1a197
+profiles|update own name|CHECK|staff|1:db491923c23ee4f2e3ef9c82319ad4c8|1:db491923c23ee4f2e3ef9c82319ad4c8
+profiles|update own name|CHECK|signed out|0:-|0:-
+record_events|members read record history|USING|system admin|0:-|0:-
+record_events|members read record history|USING|manager|0:-|0:-
+record_events|members read record history|USING|staff admin|0:-|0:-
+record_events|members read record history|USING|team leader|0:-|0:-
+record_events|members read record history|USING|staff|0:-|0:-
+record_events|members read record history|USING|signed out|0:-|0:-
+records|members read records|USING|system admin|0:-|0:-
+records|members read records|USING|manager|0:-|0:-
+records|members read records|USING|staff admin|0:-|0:-
+records|members read records|USING|team leader|0:-|0:-
+records|members read records|USING|staff|0:-|0:-
+records|members read records|USING|signed out|0:-|0:-
+register_templates|members read register templates|USING|system admin|8:3a638cd6a928e4643a2808ae4e22c75d|8:3a638cd6a928e4643a2808ae4e22c75d
+register_templates|members read register templates|USING|manager|8:3a638cd6a928e4643a2808ae4e22c75d|8:3a638cd6a928e4643a2808ae4e22c75d
+register_templates|members read register templates|USING|staff admin|8:3a638cd6a928e4643a2808ae4e22c75d|8:3a638cd6a928e4643a2808ae4e22c75d
+register_templates|members read register templates|USING|team leader|8:3a638cd6a928e4643a2808ae4e22c75d|8:3a638cd6a928e4643a2808ae4e22c75d
+register_templates|members read register templates|USING|staff|8:3a638cd6a928e4643a2808ae4e22c75d|8:3a638cd6a928e4643a2808ae4e22c75d
+register_templates|members read register templates|USING|signed out|0:-|0:-
+registries|delegated people create registries|CHECK|system admin|8:b79e1c6d42c6293ce8d19266c5851012|8:b79e1c6d42c6293ce8d19266c5851012
+registries|delegated people create registries|CHECK|manager|8:b79e1c6d42c6293ce8d19266c5851012|8:b79e1c6d42c6293ce8d19266c5851012
+registries|delegated people create registries|CHECK|staff admin|0:-|0:-
+registries|delegated people create registries|CHECK|team leader|0:-|0:-
+registries|delegated people create registries|CHECK|staff|0:-|0:-
+registries|delegated people create registries|CHECK|signed out|0:-|0:-
+registries|members read registries|USING|system admin|8:b79e1c6d42c6293ce8d19266c5851012|8:b79e1c6d42c6293ce8d19266c5851012
+registries|members read registries|USING|manager|8:b79e1c6d42c6293ce8d19266c5851012|8:b79e1c6d42c6293ce8d19266c5851012
+registries|members read registries|USING|staff admin|8:b79e1c6d42c6293ce8d19266c5851012|8:b79e1c6d42c6293ce8d19266c5851012
+registries|members read registries|USING|team leader|8:b79e1c6d42c6293ce8d19266c5851012|8:b79e1c6d42c6293ce8d19266c5851012
+registries|members read registries|USING|staff|8:b79e1c6d42c6293ce8d19266c5851012|8:b79e1c6d42c6293ce8d19266c5851012
+registries|members read registries|USING|signed out|0:-|0:-
+registry_fields|members read registry fields|USING|system admin|29:3b6b63c2939caf3f72949a541d8a2c26|29:3b6b63c2939caf3f72949a541d8a2c26
+registry_fields|members read registry fields|USING|manager|29:3b6b63c2939caf3f72949a541d8a2c26|29:3b6b63c2939caf3f72949a541d8a2c26
+registry_fields|members read registry fields|USING|staff admin|29:3b6b63c2939caf3f72949a541d8a2c26|29:3b6b63c2939caf3f72949a541d8a2c26
+registry_fields|members read registry fields|USING|team leader|29:3b6b63c2939caf3f72949a541d8a2c26|29:3b6b63c2939caf3f72949a541d8a2c26
+registry_fields|members read registry fields|USING|staff|29:3b6b63c2939caf3f72949a541d8a2c26|29:3b6b63c2939caf3f72949a541d8a2c26
+registry_fields|members read registry fields|USING|signed out|0:-|0:-
+registry_managers|members read registry managers|USING|system admin|0:-|0:-
+registry_managers|members read registry managers|USING|manager|0:-|0:-
+registry_managers|members read registry managers|USING|staff admin|0:-|0:-
+registry_managers|members read registry managers|USING|team leader|0:-|0:-
+registry_managers|members read registry managers|USING|staff|0:-|0:-
+registry_managers|members read registry managers|USING|signed out|0:-|0:-
+request_types|members read request types|USING|system admin|7:5649b2e9a5b5e1f667b21c70d89b036c|7:5649b2e9a5b5e1f667b21c70d89b036c
+request_types|members read request types|USING|manager|7:5649b2e9a5b5e1f667b21c70d89b036c|7:5649b2e9a5b5e1f667b21c70d89b036c
+request_types|members read request types|USING|staff admin|7:5649b2e9a5b5e1f667b21c70d89b036c|7:5649b2e9a5b5e1f667b21c70d89b036c
+request_types|members read request types|USING|team leader|7:5649b2e9a5b5e1f667b21c70d89b036c|7:5649b2e9a5b5e1f667b21c70d89b036c
+request_types|members read request types|USING|staff|7:5649b2e9a5b5e1f667b21c70d89b036c|7:5649b2e9a5b5e1f667b21c70d89b036c
+request_types|members read request types|USING|signed out|0:-|0:-
+request_types|system admin changes request types|USING|system admin|7:5649b2e9a5b5e1f667b21c70d89b036c|7:5649b2e9a5b5e1f667b21c70d89b036c
+request_types|system admin changes request types|USING|manager|0:-|0:-
+request_types|system admin changes request types|USING|staff admin|0:-|0:-
+request_types|system admin changes request types|USING|team leader|0:-|0:-
+request_types|system admin changes request types|USING|staff|0:-|0:-
+request_types|system admin changes request types|USING|signed out|0:-|0:-
+request_types|system admin changes request types|CHECK|system admin|7:5649b2e9a5b5e1f667b21c70d89b036c|7:5649b2e9a5b5e1f667b21c70d89b036c
+request_types|system admin changes request types|CHECK|manager|0:-|0:-
+request_types|system admin changes request types|CHECK|staff admin|0:-|0:-
+request_types|system admin changes request types|CHECK|team leader|0:-|0:-
+request_types|system admin changes request types|CHECK|staff|0:-|0:-
+request_types|system admin changes request types|CHECK|signed out|0:-|0:-
+requests|people involved see a request|USING|system admin|1:1f0376594419e1ca069946190edbc277|1:1f0376594419e1ca069946190edbc277
+requests|people involved see a request|USING|manager|1:1f0376594419e1ca069946190edbc277|1:1f0376594419e1ca069946190edbc277
+requests|people involved see a request|USING|staff admin|1:1f0376594419e1ca069946190edbc277|1:1f0376594419e1ca069946190edbc277
+requests|people involved see a request|USING|team leader|0:-|0:-
+requests|people involved see a request|USING|staff|1:1f0376594419e1ca069946190edbc277|1:1f0376594419e1ca069946190edbc277
+requests|people involved see a request|USING|signed out|0:-|0:-
+settings_drafts|see your drafts, the system admin sees all|USING|system admin|0:-|0:-
+settings_drafts|see your drafts, the system admin sees all|USING|manager|0:-|0:-
+settings_drafts|see your drafts, the system admin sees all|USING|staff admin|0:-|0:-
+settings_drafts|see your drafts, the system admin sees all|USING|team leader|0:-|0:-
+settings_drafts|see your drafts, the system admin sees all|USING|staff|0:-|0:-
+settings_drafts|see your drafts, the system admin sees all|USING|signed out|0:-|0:-
+shift_changes|the person and people managers see shift changes|USING|system admin|0:-|0:-
+shift_changes|the person and people managers see shift changes|USING|manager|0:-|0:-
+shift_changes|the person and people managers see shift changes|USING|staff admin|0:-|0:-
+shift_changes|the person and people managers see shift changes|USING|team leader|0:-|0:-
+shift_changes|the person and people managers see shift changes|USING|staff|0:-|0:-
+shift_changes|the person and people managers see shift changes|USING|signed out|0:-|0:-
+staff_directory|members see the staff directory|USING|system admin|4:cc0cc677b04e2b7578045e5c7baf8e4f|4:cc0cc677b04e2b7578045e5c7baf8e4f
+staff_directory|members see the staff directory|USING|manager|4:cc0cc677b04e2b7578045e5c7baf8e4f|4:cc0cc677b04e2b7578045e5c7baf8e4f
+staff_directory|members see the staff directory|USING|staff admin|4:cc0cc677b04e2b7578045e5c7baf8e4f|4:cc0cc677b04e2b7578045e5c7baf8e4f
+staff_directory|members see the staff directory|USING|team leader|4:cc0cc677b04e2b7578045e5c7baf8e4f|4:cc0cc677b04e2b7578045e5c7baf8e4f
+staff_directory|members see the staff directory|USING|staff|4:cc0cc677b04e2b7578045e5c7baf8e4f|4:cc0cc677b04e2b7578045e5c7baf8e4f
+staff_directory|members see the staff directory|USING|signed out|0:-|0:-
+staff_private|the person and people managers see private details|USING|system admin|4:47ee7fa0cfbe5a5562803336efc195b2|4:47ee7fa0cfbe5a5562803336efc195b2
+staff_private|the person and people managers see private details|USING|manager|4:47ee7fa0cfbe5a5562803336efc195b2|4:47ee7fa0cfbe5a5562803336efc195b2
+staff_private|the person and people managers see private details|USING|staff admin|4:47ee7fa0cfbe5a5562803336efc195b2|4:47ee7fa0cfbe5a5562803336efc195b2
+staff_private|the person and people managers see private details|USING|team leader|2:0c3ab314acbdd89273bec54f9866906f|2:0c3ab314acbdd89273bec54f9866906f
+staff_private|the person and people managers see private details|USING|staff|1:b8de0a905c651d7a33a332521f7160ea|1:b8de0a905c651d7a33a332521f7160ea
+staff_private|the person and people managers see private details|USING|signed out|0:-|0:-
+task_alerts|read your own alerts|USING|system admin|0:-|0:-
+task_alerts|read your own alerts|USING|manager|0:-|0:-
+task_alerts|read your own alerts|USING|staff admin|0:-|0:-
+task_alerts|read your own alerts|USING|team leader|0:-|0:-
+task_alerts|read your own alerts|USING|staff|0:-|0:-
+task_alerts|read your own alerts|USING|signed out|0:-|0:-
+task_views|read your own views|USING|system admin|15:8beccc807887f548e924ee35abba68e3|15:8beccc807887f548e924ee35abba68e3
+task_views|read your own views|USING|manager|15:b2b4016d3d0d25e9ea6e16dc7550f379|15:b2b4016d3d0d25e9ea6e16dc7550f379
+task_views|read your own views|USING|staff admin|6:9b62c9975ed06117b1fa66ea2382e42a|6:9b62c9975ed06117b1fa66ea2382e42a
+task_views|read your own views|USING|team leader|6:2901fa04a64fa8a05ae8ea19eca157f3|6:2901fa04a64fa8a05ae8ea19eca157f3
+task_views|read your own views|USING|staff|3:dad39a6844fce3f7614b1044f58839f6|3:dad39a6844fce3f7614b1044f58839f6
+task_views|read your own views|USING|signed out|0:-|0:-
+team_leaders|members read team leaders|USING|system admin|1:5dfe9002a663e7b8c7ef331ea6decd8f|1:5dfe9002a663e7b8c7ef331ea6decd8f
+team_leaders|members read team leaders|USING|manager|1:5dfe9002a663e7b8c7ef331ea6decd8f|1:5dfe9002a663e7b8c7ef331ea6decd8f
+team_leaders|members read team leaders|USING|staff admin|1:5dfe9002a663e7b8c7ef331ea6decd8f|1:5dfe9002a663e7b8c7ef331ea6decd8f
+team_leaders|members read team leaders|USING|team leader|1:5dfe9002a663e7b8c7ef331ea6decd8f|1:5dfe9002a663e7b8c7ef331ea6decd8f
+team_leaders|members read team leaders|USING|staff|1:5dfe9002a663e7b8c7ef331ea6decd8f|1:5dfe9002a663e7b8c7ef331ea6decd8f
+team_leaders|members read team leaders|USING|signed out|0:-|0:-
+team_members|members read team members|USING|system admin|2:bda3066b1ea4982645789d60364bb3e3|2:bda3066b1ea4982645789d60364bb3e3
+team_members|members read team members|USING|manager|2:bda3066b1ea4982645789d60364bb3e3|2:bda3066b1ea4982645789d60364bb3e3
+team_members|members read team members|USING|staff admin|2:bda3066b1ea4982645789d60364bb3e3|2:bda3066b1ea4982645789d60364bb3e3
+team_members|members read team members|USING|team leader|2:bda3066b1ea4982645789d60364bb3e3|2:bda3066b1ea4982645789d60364bb3e3
+team_members|members read team members|USING|staff|2:bda3066b1ea4982645789d60364bb3e3|2:bda3066b1ea4982645789d60364bb3e3
+team_members|members read team members|USING|signed out|0:-|0:-
+teams|managers and admins manage teams|USING|system admin|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|managers and admins manage teams|USING|manager|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|managers and admins manage teams|USING|staff admin|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|managers and admins manage teams|USING|team leader|0:-|0:-
+teams|managers and admins manage teams|USING|staff|0:-|0:-
+teams|managers and admins manage teams|USING|signed out|0:-|0:-
+teams|managers and admins manage teams|CHECK|system admin|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|managers and admins manage teams|CHECK|manager|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|managers and admins manage teams|CHECK|staff admin|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|managers and admins manage teams|CHECK|team leader|0:-|0:-
+teams|managers and admins manage teams|CHECK|staff|0:-|0:-
+teams|managers and admins manage teams|CHECK|signed out|0:-|0:-
+teams|members read teams|USING|system admin|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|members read teams|USING|manager|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|members read teams|USING|staff admin|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|members read teams|USING|team leader|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|members read teams|USING|staff|2:63cbf7acd1543ba2f61b8651e88cedd1|2:63cbf7acd1543ba2f61b8651e88cedd1
+teams|members read teams|USING|signed out|0:-|0:-
+website_enquiries|website_enquiries_read|USING|system admin|3:a7308754cd1da3c90c9a0505037d8ecf|3:a7308754cd1da3c90c9a0505037d8ecf
+website_enquiries|website_enquiries_read|USING|manager|3:a7308754cd1da3c90c9a0505037d8ecf|3:a7308754cd1da3c90c9a0505037d8ecf
+website_enquiries|website_enquiries_read|USING|staff admin|0:-|0:-
+website_enquiries|website_enquiries_read|USING|team leader|0:-|0:-
+website_enquiries|website_enquiries_read|USING|staff|0:-|0:-
+website_enquiries|website_enquiries_read|USING|signed out|0:-|0:-
+website_enquiries|website_enquiries_update|USING|system admin|3:a7308754cd1da3c90c9a0505037d8ecf|3:a7308754cd1da3c90c9a0505037d8ecf
+website_enquiries|website_enquiries_update|USING|manager|3:a7308754cd1da3c90c9a0505037d8ecf|3:a7308754cd1da3c90c9a0505037d8ecf
+website_enquiries|website_enquiries_update|USING|staff admin|0:-|0:-
+website_enquiries|website_enquiries_update|USING|team leader|0:-|0:-
+website_enquiries|website_enquiries_update|USING|staff|0:-|0:-
+website_enquiries|website_enquiries_update|USING|signed out|0:-|0:-
+website_enquiries|website_enquiries_update|CHECK|system admin|3:a7308754cd1da3c90c9a0505037d8ecf|3:a7308754cd1da3c90c9a0505037d8ecf
+website_enquiries|website_enquiries_update|CHECK|manager|3:a7308754cd1da3c90c9a0505037d8ecf|3:a7308754cd1da3c90c9a0505037d8ecf
+website_enquiries|website_enquiries_update|CHECK|staff admin|0:-|0:-
+website_enquiries|website_enquiries_update|CHECK|team leader|0:-|0:-
+website_enquiries|website_enquiries_update|CHECK|staff|0:-|0:-
+website_enquiries|website_enquiries_update|CHECK|signed out|0:-|0:-
+work_overrides|the person and people who manage staff see overrides|USING|system admin|1:f7e9dd00a7622d86859fa2b7ee441b3c|1:f7e9dd00a7622d86859fa2b7ee441b3c
+work_overrides|the person and people who manage staff see overrides|USING|manager|1:f7e9dd00a7622d86859fa2b7ee441b3c|1:f7e9dd00a7622d86859fa2b7ee441b3c
+work_overrides|the person and people who manage staff see overrides|USING|staff admin|1:f7e9dd00a7622d86859fa2b7ee441b3c|1:f7e9dd00a7622d86859fa2b7ee441b3c
+work_overrides|the person and people who manage staff see overrides|USING|team leader|0:-|0:-
+work_overrides|the person and people who manage staff see overrides|USING|staff|0:-|0:-
+work_overrides|the person and people who manage staff see overrides|USING|signed out|0:-|0:-
