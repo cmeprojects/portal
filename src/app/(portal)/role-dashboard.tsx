@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { Celebrations } from "@/components/celebrations";
 import { getPeople } from "@/lib/register-data";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -360,6 +361,8 @@ export async function RoleDashboard() {
           </Link>
         }
       />
+      {/* cmeprojects Phase 5: birthdays and work anniversaries. */}
+      <Celebrations me={profile.id} />
       {parts.map((p, i) => (p.board ? <div key={`b${i}`} className="contents">{p.board}</div> : null))}
       {parts.some((p) => p.tile) ? <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{parts.map((p, i) => (p.tile ? <div key={i} className="contents">{p.tile}</div> : null))}</div> : null}
       <div className="grid gap-4 lg:grid-cols-2">{parts.map((p, i) => (p.panel ? <div key={i} className="contents">{p.panel}</div> : null))}</div>

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABELS } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { NameForm, PasswordForm, PhotoForm } from "./forms";
+import { BirthdayForm } from "./birthday-form";
 import { photoLinks } from "@/lib/avatars";
 import { TurnOffTwoFactor } from "./two-factor";
 import { OtherDevices } from "./devices";
@@ -23,6 +24,7 @@ export default async function AccountPage() {
   const switchedOff = features.two_factor === false;
   const { data: mine } = await supabase.from("profiles").select("id, avatar_ref").eq("id", profile.id).maybeSingle();
   const photo = mine ? (await photoLinks([mine]))[profile.id] : undefined;
+  const birthday = await supabase.from("staff_birthdays").select("month, day, show").eq("user_id", profile.id).maybeSingle();
 
   let help: string;
   if (switchedOff) help = "Two-factor login is switched off for everyone at the moment.";
@@ -42,6 +44,12 @@ export default async function AccountPage() {
         {mine ? <PhotoForm userId={profile.id} name={profile.full_name || profile.email} src={photo} /> : null}
         <NameForm name={profile.full_name} canEdit={profile.role === "system_admin"} />
       </Card>
+      {/* cmeprojects Phase 5: birthday (day and month), shown only if chosen. */}
+      {birthday.error ? null : (
+        <Card className="p-5 sm:p-6">
+          <BirthdayForm month={birthday.data?.month ?? null} day={birthday.data?.day ?? null} show={birthday.data?.show ?? false} />
+        </Card>
+      )}
       {/* cmeprojects Phase 3: private pay and work-rights records. */}
       <Card className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
         <div>

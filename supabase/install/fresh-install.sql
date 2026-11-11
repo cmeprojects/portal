@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270108000001_contracts.sql
+-- Built from every migration up to: 20270109000001_celebrations.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,7 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and to_regclass('public.staff_birthdays') is not null then v_upto := 82; end if;
   if v_upto = 0 and to_regclass('public.compliance_item_versions') is not null and to_regclass('public.contracts') is not null and to_regclass('public.contract_signatures') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'compliance_items' and column_name = 'applies_people') then v_upto := 81; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'assistant_settings' and column_name = 'blocked_sites') then v_upto := 80; end if;
   if v_upto = 0 and to_regclass('public.staff_bank') is not null and to_regclass('public.staff_super') is not null and to_regclass('public.staff_work_rights') is not null and to_regclass('public.sensitive_access_log') is not null then v_upto := 79; end if;
@@ -169,7 +170,8 @@ begin
     (78, '20270105000001_access_grants.sql'),
     (79, '20270106000001_staff_records.sql'),
     (80, '20270107000001_assistant_internet.sql'),
-    (81, '20270108000001_contracts.sql')
+    (81, '20270108000001_contracts.sql'),
+    (82, '20270109000001_celebrations.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -16910,5 +16912,53 @@ $$;
 
 $m081$;
   insert into public.install_log (name) values ('20270108000001_contracts.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270109000001_celebrations.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270109000001_celebrations.sql') then
+    return;
+  end if;
+  execute $m082$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects Phase 5: birthdays and work anniversaries.
+--   * Birthdays: day and month only (the year is never asked or stored, so no
+--     age can be shown or worked out). Shown to colleagues only when the person
+--     chooses "Show my birthday" (off by default); they can change it any time.
+--   * Only active staff appear.
+--   * Work anniversaries use the commencement date (staff_private.start_date),
+--     which keeps its existing privacy: the person and people who manage
+--     staff see it. No change there.
+-- No new SECURITY DEFINER function.
+
+create table if not exists public.staff_birthdays (
+  user_id   uuid primary key references public.profiles (id) on delete cascade,
+  month     int not null check (month between 1 and 12),
+  day       int not null check (day between 1 and 31),
+  show      boolean not null default false,
+  updated_at timestamptz not null default now(),
+  check ((month, day) not in ((2, 30), (2, 31), (4, 31), (6, 31), (9, 31), (11, 31)))
+);
+alter table public.staff_birthdays enable row level security;
+revoke all on public.staff_birthdays from anon;
+revoke truncate on public.staff_birthdays from authenticated;
+grant select, insert, update, delete on public.staff_birthdays to authenticated;
+
+-- Your own always; colleagues' only when shown and they're active.
+drop policy if exists "birthdays: your own, or shown by active colleagues" on public.staff_birthdays;
+create policy "birthdays: your own, or shown by active colleagues" on public.staff_birthdays for select to authenticated
+  using ((select public.is_member()) and (user_id = (select auth.uid())
+         or (show and exists (select 1 from public.profiles p where p.id = staff_birthdays.user_id and p.active))));
+drop policy if exists "birthdays: only your own" on public.staff_birthdays;
+create policy "birthdays: only your own" on public.staff_birthdays for all to authenticated
+  using (user_id = (select auth.uid()) and (select public.is_member()))
+  with check (user_id = (select auth.uid()) and (select public.is_member()));
+
+$m082$;
+  insert into public.install_log (name) values ('20270109000001_celebrations.sql');
 end;
 $part$;

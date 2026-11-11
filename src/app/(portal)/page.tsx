@@ -11,6 +11,7 @@ import { Card, PageHeader } from "@/components/ui";
 import { RoleDashboard, WorkerReminders, hasRoleDashboard } from "./role-dashboard";
 import { PlatformDashboard } from "./platform-dashboard";
 import { MyTasksView } from "./my-tasks-view";
+import { Celebrations } from "@/components/celebrations";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -40,6 +41,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <>
       <WorkerReminders />
+      <Celebrations me={profile.id} />
       <MyTasksView basePath="/" params={params} />
     </>
   );

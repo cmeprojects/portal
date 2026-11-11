@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgeCheck, Briefcase, ChevronDown, CircleCheck, CircleDashed, ClipboardList, FileCheck2, GraduationCap, PenLine, ShieldCheck, UserRound } from "lucide-react";
+import { BadgeCheck, Briefcase, ChevronDown, Landmark, CircleCheck, CircleDashed, ClipboardList, FileCheck2, GraduationCap, PenLine, ShieldCheck, UserRound } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { onboardingOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
@@ -46,6 +46,8 @@ type Rec = {
 const SECTIONS: { key: string; title: string; icon: typeof UserRound; kinds?: ItemKind[] }[] = [
   { key: "personal", title: "Personal information", icon: UserRound },
   { key: "employment", title: "Employment details", icon: Briefcase },
+  // cmeprojects: bank, super, right to work, and a contract to sign.
+  { key: "pay", title: "Pay, work rights and contract", icon: Landmark },
   { key: "policies", title: "Policies and acknowledgements", icon: ClipboardList, kinds: ["read"] },
   { key: "training", title: "Training", icon: GraduationCap, kinds: ["training"] },
   { key: "documents", title: "Documents and qualifications", icon: FileCheck2, kinds: ["upload"] },
@@ -62,12 +64,28 @@ export default async function MyOnboardingPage() {
   const supabase = await createClient();
   // cmeprojects: only onboarding forms count here; other forms sent to this
   // person are in My forms (no duplicates).
-  const [{ data: rows }, { data: work }, { data: profileNeeded }, person] = await Promise.all([
+  const [{ data: rows }, { data: work }, { data: profileNeeded }, person, bankQ, superQ, rightsQ, contractsQ] = await Promise.all([
     supabase.rpc("compliance_status", { p_user: profile.id }),
     supabase.rpc("work_status", { p_user: profile.id }),
     supabase.rpc("profile_required", { p_user: profile.id }),
     features.hr_profiles !== false && (await profilesReady()) ? loadPerson(profile.id) : Promise.resolve(null),
+    supabase.from("staff_bank").select("account_number, verified_at").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("staff_super").select("fund_name, verified_at").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("staff_work_rights").select("status, verified_at").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("contracts").select("id, title, status").eq("user_id", profile.id).in("status", ["awaiting_employee", "awaiting_employer", "fully_signed"]).order("created_at", { ascending: false }),
   ]);
+  // cmeprojects: pay and work rights (only once this copy has update 62), and contracts (update 64).
+  const payItems = bankQ.error
+    ? []
+    : [
+        { key: "bank", title: "Bank account for your pay", given: Boolean(bankQ.data?.account_number), checked: Boolean(bankQ.data?.verified_at), href: "/account/records" },
+        { key: "super", title: "Superannuation", given: Boolean(superQ.data?.fund_name), checked: Boolean(superQ.data?.verified_at), href: "/account/records" },
+        { key: "rights", title: "Right to work in Australia", given: Boolean(rightsQ.data?.status), checked: Boolean(rightsQ.data?.verified_at), href: "/account/records" },
+      ];
+  const myContracts = (contractsQ.error ? [] : (contractsQ.data ?? [])) as { id: string; title: string; status: string }[];
+  const toSign = myContracts.filter((c) => c.status === "awaiting_employee");
+  const payTotal = payItems.length + toSign.length + (toSign.length ? 0 : myContracts.length ? 1 : 0);
+  const payDone = payItems.filter((i) => i.given).length + (toSign.length ? 0 : myContracts.length ? 1 : 0);
   const status = (rows ?? []) as StatusRow[];
   const ws = (work ?? null) as WorkStatus;
   const ids = status.map((s) => s.item_id);
@@ -102,13 +120,14 @@ export default async function MyOnboardingPage() {
       : status.filter((s) => SECTIONS.find((x) => x.key === key)?.kinds?.includes(s.kind) && !photoIds.has(s.item_id));
   const profileApplies = profileNeeded === true || profileNeeded === false ? features.hr_profiles !== false : false;
   const profileDone = profileNeeded === false;
-  const total = status.length + (profileApplies ? 1 : 0);
-  const done = status.filter((s) => isDone(s.state)).length + (profileApplies && profileDone ? 1 : 0);
+  const total = status.length + (profileApplies ? 1 : 0) + payTotal;
+  const done = status.filter((s) => isDone(s.state)).length + (profileApplies && profileDone ? 1 : 0) + payDone;
   const pct = total ? Math.round((done / total) * 100) : 100;
   const counts = (key: string) => {
     const list = inSection(key);
     const extra = key === "personal" && profileApplies ? 1 : 0;
     const extraDone = key === "personal" && profileApplies && profileDone ? 1 : 0;
+    if (key === "pay") return { total: payTotal, done: payDone };
     return { total: list.length + extra, done: list.filter((s) => isDone(s.state)).length + extraDone };
   };
   const visible = SECTIONS.filter((s) => s.key === "employment" || s.key === "final" || counts(s.key).total > 0);
@@ -324,6 +343,36 @@ export default async function MyOnboardingPage() {
                     ) : null}
                     {inSection("personal").map(itemCard)}
                   </>
+                ) : sec.key === "pay" ? (
+                  <Card className="divide-y divide-line p-0">
+                    {payItems.map((i) => (
+                      <div key={i.key} className="flex flex-wrap items-center gap-3 px-5 py-4">
+                        <StateIcon done={i.given} />
+                        <span className="min-w-48 flex-1">
+                          <span className="block font-semibold">{i.title}</span>
+                          <span className="block text-sm text-muted">{!i.given ? "Not given yet" : i.checked ? "Given and checked" : "Given, waiting to be checked"}</span>
+                        </span>
+                        <Link href={i.href} className={buttonClass(i.given ? "outline" : "primary", "", "sm")}>
+                          {i.given ? "View or change" : "Fill in"}
+                        </Link>
+                      </div>
+                    ))}
+                    {myContracts.map((c) => (
+                      <div key={c.id} className="flex flex-wrap items-center gap-3 px-5 py-4">
+                        <StateIcon done={c.status !== "awaiting_employee"} />
+                        <span className="min-w-48 flex-1">
+                          <span className="block font-semibold">{c.title}</span>
+                          <span className="block text-sm text-muted">
+                            {c.status === "awaiting_employee" ? "Please read and sign" : c.status === "awaiting_employer" ? "You've signed; waiting for the employer" : "Fully signed"}
+                          </span>
+                        </span>
+                        <Link href={`/account/contracts/${c.id}`} className={buttonClass(c.status === "awaiting_employee" ? "primary" : "outline", "", "sm")}>
+                          {c.status === "awaiting_employee" ? "Read and sign" : "Open"}
+                        </Link>
+                      </div>
+                    ))}
+                    <p className="px-5 py-3 text-xs text-muted">Private: only you and the people who look after payroll or work rights see these.</p>
+                  </Card>
                 ) : sec.key === "employment" ? (
                   <Card className="flex flex-col gap-3 p-5">
                     <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
