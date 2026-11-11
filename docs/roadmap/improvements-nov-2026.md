@@ -82,7 +82,7 @@ Staff Portal · © cmeproject · 11 November 2026 · **Review only: nothing chan
 **Legal note:** Australian law (*Electronic Transactions Act 1999* (Cth) and the Victorian equivalent) generally allows electronic signatures for employment contracts, but requirements depend on the document and circumstances. **Have an employment lawyer confirm the process.** No method is claimed to satisfy all legal requirements.
 
 ## 5. Destructive operations (each needs explicit approval)
-- **Deleting test forms** (data). The Forms module's tables and code stay.
+- **Deleting test forms:** not needed (owner removed them).
 - **Dropping the Welcome page's ability to change the name.** Not destructive to data, but changes behaviour.
 - **Nothing else** deletes data or structures.
 
@@ -95,11 +95,14 @@ Staff Portal · © cmeproject · 11 November 2026 · **Review only: nothing chan
 | **4. Agreements and contracts** | Version history; assign to selected people; per-employee contracts with statuses, enhanced signing, signed PDF | Yes |
 | **5. Dashboard and requests** | Birthdays and anniversaries (with consent); dashboard layout; optional follow-up task from a request; notification checks; delete approved test forms | Small |
 
-## 7. Decisions needed from the owner
-1. **Remembered email:** OK as an opt-in "Remember my email on this device" (off by default)?
-2. **Birthdays:** OK to add an optional date of birth with "show my birthday" consent (day and month only)?
-3. **Sensitive records:** OK not to store the TFN number (form file only)? Who besides the system admin should see bank, super and visa: a delegated "Payroll and HR records" area?
-4. **E-signatures:** enhanced in-app first (recommended), or a third-party provider now?
-5. **System admin settings:** keep Deploy for the system admin, or make every save live straight away for everyone?
-6. **Test forms:** were they loaded with "Load sample data"? If not, I'll list them for approval.
-7. **Approve Phase 1** to start.
+## 7. Owner decisions (11 November 2026)
+1. **Remembered email:** approved as opt-in, off by default (for now).
+2. **Birthdays and anniversaries:** approved. Shown as a greeting on the day ("Happy birthday, Sam" / "Sam: 3 years today"), plus upcoming. Date of birth optional, shown only with the person's consent, day and month only.
+3. **Sensitive records:** store the **TFN number as well** as the form. Access: system admin, and managers **when delegated** ("Payroll and HR records"); managers can pass it on to staff admins. Design for the TFN number:
+   - encrypted by the app before saving (key kept in Vercel settings, never in the database), so a database copy or export doesn't reveal it;
+   - shown masked (last 3 digits); "Reveal" is logged; never in notifications, reports or exports;
+   - format check (9 digits, ATO check digit).
+4. **E-signatures:** our own (enhanced in-app). No third-party cost.
+5. **Settings:** system admin keeps Deploy; managers' saves go live straight away.
+6. **Test forms:** none left (removed by the owner). No delete step needed.
+7. **Phase 1:** awaiting go-ahead.
