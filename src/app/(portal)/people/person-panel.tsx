@@ -44,7 +44,8 @@ export async function PersonPanel({
   const supabase = await createClient();
   const today = todayIn(await getTimeZone());
   // Their open tasks (only what the viewer may see; the database decides).
-  const [{ data: tasks }, { data: reqs }] = await Promise.all([
+  // cmeprojects: editing someone's details needs a Staff details grant covering them.
+  const [{ data: tasks }, { data: reqs }, { data: canEdit }] = await Promise.all([
     overseer || me
       ? supabase
           .from("tasks")
@@ -62,6 +63,7 @@ export async function PersonPanel({
           .order("created_at", { ascending: false })
           .limit(6)
       : Promise.resolve({ data: null }),
+    me ? Promise.resolve({ data: false }) : supabase.rpc("has_access", { p_area: "staff_details", p_person: id }),
   ]);
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -77,12 +79,14 @@ export async function PersonPanel({
                 Edit your details in My account
               </Link>
             </p>
-          ) : manager ? (
+          ) : canEdit === true ? (
             <EditProfileDialog
               key={person.id}
               person={person}
-              employment={manager}
+              employment
             />
+          ) : manager ? (
+            <p className="text-sm text-muted">You don&apos;t have access to edit staff details. The system admin can give it to you.</p>
           ) : null}
           {manager && onboardingOn(features) ? (
             <Link

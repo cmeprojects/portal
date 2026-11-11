@@ -40,7 +40,7 @@ export default async function AccountPage() {
       <Card className="grid grid-cols-[minmax(0,1fr)] gap-6 p-5 sm:p-6 lg:grid-cols-2">
         {/* Only once this copy has staff photos (live update 53). */}
         {mine ? <PhotoForm userId={profile.id} name={profile.full_name || profile.email} src={photo} /> : null}
-        <NameForm name={profile.full_name} />
+        <NameForm name={profile.full_name} canEdit={profile.role === "system_admin"} />
       </Card>
       {me ? (
         <Card className="p-5 sm:p-6">

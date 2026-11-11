@@ -46,6 +46,12 @@ export function ProfileForm({ person, employment }: { person: PersonCard; employ
       {employment ? (
         <section className="grid gap-4 rounded-lg border border-line p-4 sm:grid-cols-2">
           <p className="text-sm font-semibold sm:col-span-2">Employment details</p>
+          {/* cmeprojects: names are changed here, by people with Staff details access (logged). */}
+          <div className="sm:col-span-2">
+            <Field label="Full name" htmlFor="pf-full-name" hint="Staff can't change their own name. Changes are recorded in the change log.">
+              <input id="pf-full-name" name="full_name" defaultValue={person.name} required minLength={2} maxLength={120} className={inputClass} />
+            </Field>
+          </div>
           <Field label="Department" htmlFor="pf-dept">
             <input id="pf-dept" name="department" defaultValue={d.department} maxLength={80} className={inputClass} />
           </Field>

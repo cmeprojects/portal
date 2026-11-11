@@ -39,7 +39,16 @@ select test.ok((select count(*) from public.assistant_settings) = 0, 'another ma
 select test.refused($$insert into public.assistant_documents (title, body) values ('Mine', 'Some words here')$$, 'or add documents');
 reset role;
 
--- Names: a staff admin can fix a staff member's name.
+-- Names: a staff admin with Staff details access can fix a staff member's name
+-- (cmeprojects Phase 2: access is given by the system admin).
+select test.act_as('office@example.com');
+set role authenticated;
+select test.refused($$update public.profiles set full_name = 'Samuel Sample' where id = test.pid('sam@example.com')$$, 'not without Staff details access');
+reset role;
+select test.act_as('owner@example.com');
+set role authenticated;
+insert into public.access_grants (area, user_id, granted_by) values ('staff_details', test.pid('office@example.com'), test.pid('owner@example.com'));
+reset role;
 select test.act_as('office@example.com');
 set role authenticated;
 update public.profiles set full_name = 'Samuel Sample' where id = test.pid('sam@example.com');

@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { SLA_KEYS } from "@/lib/sla";
 import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -95,13 +96,13 @@ const ROWS: Row[] = [
   {
     id: "tasks",
     label: "Tasks and registers",
-    intro: "Always on. Due dates, reminders, escalation and required fields. Managers also set due dates on the Due dates (SLA) page.",
+    intro: "Always on. Reminders, escalation and required fields. Due dates by priority are on Settings → SLA settings.",
     always: true,
     switches: ["auto_escalation", "attachments"],
-    sections: [{ title: "Task settings", area: "tasks", keys: (k) => k.startsWith("tasks.") }],
+    sections: [{ title: "Task settings", area: "tasks", keys: (k) => k.startsWith("tasks.") && !SLA_KEYS.includes(k) }],
     areas: ["tasks", "registers", "register_setup"],
     links: [
-      { href: "/settings/sla", text: "Due dates (SLA)" },
+      { href: "/settings/sla", text: "SLA settings" },
       { href: "/registers", text: "Registers" },
     ],
   },

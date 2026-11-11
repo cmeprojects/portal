@@ -49,6 +49,7 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     assistant: features.assistant === true && role !== "new_starter",
     enquiries: features.assistant === true && (await canSeeEnquiries()),
     tools: role === "manager" || role === "system_admin",
+    staffAccess: role === "manager" && (await holdsGrant()),
     appsLabel: hasApps ? `${initialsOf(brand.companyName) || "Our"} Apps` : undefined,
   };
 });
@@ -67,4 +68,10 @@ async function formsMenu(role: Role, features: Record<string, boolean>): Promise
   if (features.forms !== true || (role === "new_starter" && onboardingOn(features))) return { forms: false, myForms: false };
   const maker = role === "system_admin" || (await canMakeForms());
   return { forms: maker, myForms: !maker };
+}
+
+// cmeprojects: does this manager hold any staff-records access (shows the Staff access page)?
+async function holdsGrant(): Promise<boolean> {
+  const { count, error } = await (await createClient()).from("access_grants").select("id", { count: "exact", head: true }).is("revoked_at", null);
+  return !error && (count ?? 0) > 0;
 }

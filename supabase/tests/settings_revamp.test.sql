@@ -51,7 +51,8 @@ reset role;
 select test.act_as('office@example.com');
 set role authenticated;
 select test.ok(public.can_admin_area('branding'), 'the staff admin looks after branding');
-select test.ok(public.save_draft('setting', 'brand.portal_name', '"Staff hub"') = 'saved', 'and saves a draft');
+-- cmeprojects Phase 2: only the system admin keeps drafts; this applies straight away.
+select test.ok(public.save_draft('setting', 'brand.portal_name', '"Staff hub"') = 'live', 'and their change is live straight away');
 reset role;
 select test.act_as('boss@example.com');
 set role authenticated;
@@ -60,8 +61,9 @@ select test.ok(public.deploy_drafts() = 0, 'or deploy it');
 reset role;
 select test.act_as('owner@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.settings_drafts) = 1, 'the system admin sees everyone''s drafts');
-select test.ok(public.discard_drafts() = 1, 'and can discard them');
+select test.ok((select value from public.app_settings where key = 'brand.portal_name') = '"Staff hub"', 'the staff admin''s change is live');
+select test.ok((select count(*) from public.settings_drafts) = 0, 'and left no draft');
+select test.ok(public.discard_drafts() = 0, 'so there''s nothing to discard');
 -- Website settings too.
 select test.ok(public.save_draft('website', 'landing', '{"heading": "How can we help?", "suggestions": ["Who are you?"]}') = 'saved', 'a website part is saved as a draft');
 select test.refused($$select public.save_draft('website', 'landing', '{"id": false}')$$, 'only real website settings can be saved');

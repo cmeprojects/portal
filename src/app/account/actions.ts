@@ -4,6 +4,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requireSession } from "@/lib/session";
 import { confirmIdentity } from "@/lib/reauth";
 import { sendPasswordReset } from "@/lib/email/password-reset";
 import { EMAIL, text, type FormState } from "@/lib/form";
@@ -31,16 +32,21 @@ export async function finishWelcome(_: FormState, form: FormData): Promise<FormS
   const userId = claims?.claims?.sub;
   if (!userId) redirect("/login");
 
-  const fullName = text(form, "full_name");
-  if (!fullName) return { error: "Tell us your name." };
+  // cmeprojects: the name is only set here when the office left it blank.
+  const { data: current } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  const blank = !current?.full_name?.trim();
+  const fullName = blank ? text(form, "full_name") : "";
+  if (blank && !fullName) return { error: "Tell us your name." };
 
   if (form.get("skip_password") !== "1") {
     const problem = await setPassword(supabase, form);
     if (problem) return { error: problem };
   }
 
-  const { error } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", userId);
-  if (error) return { error: "We couldn't save your name. Please try again." };
+  if (blank) {
+    const { error } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", userId);
+    if (error) return { error: "We couldn't save your name. Please try again." };
+  }
   // Lets the staff admins know they've joined (once).
   await supabase.rpc("mark_joined");
   // cmeprojects: account set up. Sign out here and ask them to sign in with
@@ -59,7 +65,11 @@ export async function changePassword(_: FormState, form: FormData): Promise<Form
   return { message: "Password saved." };
 }
 
+// cmeprojects: only the system admin changes their own name here; everyone
+// else's name is set by the office (the database enforces it too).
 export async function updateMyName(_: FormState, form: FormData): Promise<FormState> {
+  const { profile } = await requireSession();
+  if (profile.role !== "system_admin") return { error: "Your name is set by the office. Ask your manager or the system admin to change it." };
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   const userId = claims?.claims?.sub;

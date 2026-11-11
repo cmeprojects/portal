@@ -6,13 +6,16 @@ import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { AREA_LABELS, isArea } from "@/lib/delegation";
 
-// cmeprojects: settings are saved as drafts and go live together on Deploy.
+// cmeprojects: the system admin's settings are saved as drafts and go live
+// together on Deploy; everyone else's apply as soon as they're saved.
 
 export type DraftKind = "setting" | "feature" | "delegation" | "website";
 export type Draft = { kind: DraftKind; key: string; value: unknown; saved_by: string; saved_at: string };
 
 export const SAVED_NOT_LIVE = "Saved. Not live yet: press Deploy to make it live.";
 export const NOTHING_CHANGED = "Nothing has changed.";
+// cmeprojects: everyone but the system admin: saved and applied in one step.
+export const SAVED_LIVE = "Saved: it's live now.";
 const NEEDS_UPDATE = "This needs the latest database update (update 46).";
 
 // The drafts the signed-in person can see: everyone's for the system admin, their own for others.
@@ -31,7 +34,7 @@ export async function draftOf(kind: DraftKind, key: string): Promise<Draft | und
 export async function saveDraft(kind: DraftKind, key: string, value: unknown): Promise<FormState> {
   const { data, error } = await (await createClient()).rpc("save_draft", { p_kind: kind, p_key: key, p_value: value });
   if (error) return { error: error.code === "PGRST202" ? NEEDS_UPDATE : friendlyError(error) };
-  return { message: data === "unchanged" ? NOTHING_CHANGED : SAVED_NOT_LIVE };
+  return { message: data === "unchanged" ? NOTHING_CHANGED : data === "live" ? SAVED_LIVE : SAVED_NOT_LIVE };
 }
 
 const WEBSITE_PARTS: Record<string, string> = { landing: "Website: landing page", answers: "Website: where it looks for answers", limits: "Website: model, limits and credit" };

@@ -7,20 +7,19 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { SettingForm } from "../../system/forms";
 import { withSettingDrafts } from "@/lib/drafts";
+import { SLA_KEYS } from "@/lib/sla";
+import { getMyAdminAreas } from "@/lib/settings";
+import { notFound } from "next/navigation";
 
-export const metadata: Metadata = { title: "Due dates (SLA)" };
+export const metadata: Metadata = { title: "SLA settings" };
 
-const KEYS = [
-  "tasks.sla_days",
-  "tasks.sla_weekdays_only",
-  "tasks.sla_remind_days",
-  "tasks.sla_escalate_days",
-  "tasks.sla_manager_summary",
-];
+const KEYS = SLA_KEYS;
 
-// Managers and system admins set the company's default due dates.
+// Managers, the system admin, and anyone looking after Task settings set the
+// company's default due dates (the database checks this too).
 export default async function SlaPage() {
-  await requireRole(["manager", "system_admin"]);
+  const { profile } = await requireRole(["manager", "system_admin", "staff_admin"]);
+  if (profile.role === "staff_admin" && !(await getMyAdminAreas(profile.role)).includes("tasks")) notFound();
   const supabase = await createClient();
   const { data: settings } = await supabase
     .from("app_settings")
@@ -34,8 +33,8 @@ export default async function SlaPage() {
     <>
       <SectionTabs section="settings" current="/settings/sla" />
       <PageHeader
-        title="Due dates (SLA)"
-        intro="Due dates for new tasks, set by priority. People can still choose another date."
+        title="SLA settings"
+        intro="Due dates for new tasks, set by priority, with reminders and escalation. People can still choose another date."
       />
       <Card className="max-w-3xl px-5 py-2">
         {ordered.map((s) => (

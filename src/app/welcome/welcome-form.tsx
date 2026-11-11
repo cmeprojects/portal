@@ -12,8 +12,14 @@ export function WelcomeForm({ name, email }: { name: string; email: string }) {
   return (
     <form action={action} className="flex flex-col gap-4">
       <Field label="Your name" htmlFor="full_name">
-        <input id="full_name" name="full_name" defaultValue={name} autoComplete="name" required className={inputClass} />
+        {/* cmeprojects: a name the office already set can't be changed here. */}
+        {name.trim() ? (
+          <input id="full_name" value={name} readOnly className={`${inputClass} border-line bg-page text-muted`} />
+        ) : (
+          <input id="full_name" name="full_name" autoComplete="name" required className={inputClass} />
+        )}
       </Field>
+      {name.trim() ? <p className="-mt-2 text-xs text-muted">Set by the office. If it&apos;s wrong, tell your manager.</p> : null}
       <Field label="Email" htmlFor="email">
         <input id="email" value={email} readOnly className={`${inputClass} border-line bg-page text-muted`} />
       </Field>

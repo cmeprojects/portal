@@ -74,10 +74,10 @@ select test.refused($$insert into public.invitations (email) values ('x@example.
   'support worker cannot invite');
 select test.ok((select count(*) from public.audit_log) = 0, 'support worker cannot read the audit log');
 select test.ok((select count(*) from public.invitations) = 0, 'support worker cannot read invitations');
-update public.profiles set full_name = 'Sam N.' where email = 'sam@example.com';
+-- cmeprojects Phase 2: names are set by the office (owner decision, Nov 2026).
+select test.refused($$update public.profiles set full_name = 'Sam N.' where email = 'sam@example.com'$$,
+  'support worker can''t change their own name');
 reset role;
-select test.ok((select full_name = 'Sam N.' from public.profiles where email = 'sam@example.com'),
-  'support worker can change their own name');
 
 -- ---------------------------------------------------------------------------
 -- Two-factor login

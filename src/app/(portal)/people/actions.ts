@@ -43,7 +43,19 @@ export async function saveProfile(_: FormState, form: FormData): Promise<FormSta
   if (!emergency.ok) return { error: `Emergency contact's phone: ${emergency.error}` };
   p.emergency_phone = emergency.value;
   if (/^[\d\s+()-]{6,}$/.test(String(p.emergency_name))) return { error: "Emergency contact's name: that looks like a phone number. Put the name here and the number below." };
-  const { error } = await (await createClient()).rpc("save_profile", { p_user: userId, p });
+  const supabase = await createClient();
+  // cmeprojects: a name change (Staff details access only; the database checks it and logs it).
+  const fullName = str("full_name").slice(0, 120);
+  if (form.get("employment") === "1" && fullName) {
+    if (fullName.length < 2) return { error: "Type their full name." };
+    const { data: current } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+    if (current && current.full_name !== fullName) {
+      const { data: changed, error: nameError } = await supabase.from("profiles").update({ full_name: fullName }).eq("id", userId).select("id");
+      if (nameError) return { error: friendlyError(nameError) };
+      if (!changed?.length) return { error: "You don't have access to change this person's name." };
+    }
+  }
+  const { error } = await supabase.rpc("save_profile", { p_user: userId, p });
   if (error) return { error: friendlyError(error) };
   revalidatePath("/people");
   revalidatePath("/account");

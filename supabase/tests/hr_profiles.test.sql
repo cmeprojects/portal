@@ -50,6 +50,15 @@ set role authenticated;
 select test.ok((select count(*) from public.staff_private where user_id = test.pid('sam@example.com')) = 1, 'a team leader sees their team member''s availability');
 reset role;
 
+-- cmeprojects Phase 2: employment details need Staff details access (given by the system admin).
+select test.act_as('office@example.com');
+set role authenticated;
+select test.refused($$select public.save_profile(test.pid('sam@example.com'), '{"department": "Community"}')$$, 'a staff admin without Staff details access can''t set employment details');
+reset role;
+select test.act_as('owner@example.com');
+set role authenticated;
+insert into public.access_grants (area, user_id, granted_by) values ('staff_details', test.pid('office@example.com'), test.pid('owner@example.com'));
+reset role;
 select test.act_as('office@example.com');
 set role authenticated;
 select public.save_profile(test.pid('sam@example.com'), '{"department": "Community", "employment_type": "casual", "start_date": "2026-01-05", "employee_id": "E42"}');

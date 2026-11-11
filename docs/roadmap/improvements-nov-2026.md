@@ -145,3 +145,14 @@ No method here is claimed to satisfy every legal requirement.
 6. **`pdf-lib`:** approved for Phase 4.
 7. **Retention:** keep **5 years** after employment ends for now. Setting to change the period; system admin can **export** a leaver's records or **delete them permanently** (confirmation, logged; signed documents and the audit entry of the deletion kept as required). To be confirmed with accountant/lawyer.
 8. **Phase 1:** approved, started 11 November 2026.
+
+## 11. Progress
+- **Phase 1:** done 11 Nov 2026 (no database change). 60/60 browser checks, six identities.
+- **Phase 2:** done 11 Nov 2026. **Update 61** (undo-61).
+  - `access_grants` (scope all / teams / people, optional end date, may pass on, can reveal TFN); grants are never deleted, and removal is recorded.
+  - `has_access()`; names set by the office (database rule, change log); Staff details needed to edit other people's details.
+  - Managers' and staff admins' settings save live in one transaction; the system admin keeps Deploy.
+  - SLA settings only on Settings → SLA settings; new Settings → Staff access page.
+  - No new SECURITY DEFINER function (the new functions are SECURITY INVOKER; existing definer functions were updated).
+  - Rollout: active managers (may pass on) and staff admins keep Staff details (all staff), visible and removable on Staff access.
+  - Tests: 832/832 database checks (45 new), 22/22 Phase 2 browser checks, Phase 1's 60 rechecked. Update and undo each run twice; undo restores the original definitions exactly.

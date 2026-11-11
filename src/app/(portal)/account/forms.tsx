@@ -56,18 +56,28 @@ export function PhotoForm({ userId, name, src }: { userId: string; name: string;
   );
 }
 
-export function NameForm({ name }: { name: string }) {
+export function NameForm({ name, canEdit }: { name: string; canEdit: boolean }) {
   const [state, action, pending] = useActionState(updateMyName, null);
   const { ref: dirtyRef, dirty, markClean } = useDirty();
   useAfterSuccess(state, markClean);
   return (
     <form ref={dirtyRef} action={action} className="flex flex-col gap-3">
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+      {!canEdit ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-semibold">Your name</p>
+          <p className="text-lg font-semibold">{name || "Not set yet"}</p>
+          <p className="text-xs text-muted">Set by the office. If it&apos;s wrong, ask your manager or the system admin to change it.</p>
+        </div>
+      ) : (
+      <>
       <Field label="Your name" htmlFor="full_name">
         <input id="full_name" name="full_name" defaultValue={name} required className={inputClass} />
       </Field>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <Button variant="outline" className="self-start" disabled={pending || !dirty}>{pending ? "Saving…" : "Save name"}</Button>
+      </>
+      )}
     </form>
   );
 }

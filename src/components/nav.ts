@@ -37,6 +37,8 @@ export type NavAccess = {
   appsLabel?: string;
   // Areas of System settings delegated to this manager.
   adminAreas?: string[];
+  // Holds a staff-records grant (Staff access page).
+  staffAccess?: boolean;
 };
 
 export type Section = "tasks" | "cars" | "people" | "reports" | "settings" | "account";
@@ -83,13 +85,15 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       ...(features.reports !== false ? (access.featureReports ?? []) : []).map((f) => ({ href: `/reports/f/${f.slug}`, text: f.label })),
     ],
     settings: [
-      // The system admin sets due dates in Features → Tasks; managers here.
-      role === "manager" && { href: "/settings/sla", text: "Due dates (SLA)" },
+      // cmeprojects: one place for due dates: Settings → SLA settings.
+      (admin || role === "manager" || (access.adminAreas ?? []).includes("tasks")) && { href: "/settings/sla", text: "SLA settings" },
       (admin || settingsAreas.length > 0) && { href: "/system", text: "System settings" },
       // The system admin always sees Website settings (to set it up before switching it on).
       (admin || (features.assistant === true && (access.adminAreas ?? []).includes("website"))) && { href: "/assistant", text: "Website settings" },
       // cmeprojects: HR Pack request approvals (the system admin, or whoever looks after HR Pack).
       (admin || (access.adminAreas ?? []).includes("hr")) && features.hr_requests !== false && { href: "/settings/requests", text: "Request approvals" },
+      // cmeprojects Phase 2: who can see and change staff records.
+      (admin || Boolean(access.staffAccess)) && { href: "/settings/access", text: "Staff access" },
       (admin || (access.adminAreas ?? []).includes("audit")) && { href: "/system/audit", text: "Change log" },
       admin && { href: "/system/builder", text: "Feature builder" },
       admin && { href: "/system/health", text: "System health" },

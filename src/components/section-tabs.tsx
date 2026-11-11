@@ -43,11 +43,12 @@ const TAB_ICONS: Record<string, LucideIcon> = {
   Tasks: ListChecks,
   Cars: Car,
   Compliance: GraduationCap,
-  "Due dates (SLA)": Clock,
+  "SLA settings": Clock,
   "System settings": Settings,
   "Website settings": KeyRound,
   "Request approvals": ClipboardCheck,
   "Change log": History,
+  "Staff access": KeyRound,
   "Feature builder": Puzzle,
   "System health": Activity,
 };
