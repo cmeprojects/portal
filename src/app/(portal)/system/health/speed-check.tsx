@@ -20,7 +20,7 @@ const PAGES: [string, string][] = [
   ["System settings", "/system"],
 ];
 type Row = { name: string; ms: number | null; kb: number | null; note?: string };
-type Health = { region?: string; database_ms?: (number | string)[]; signin_service_ms?: number | string };
+type Health = { region?: string; database_ms?: (number | string)[]; signin_service_ms?: number | string; browser_ms?: number | null };
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
@@ -33,8 +33,18 @@ export function SpeedCheck() {
   async function run() {
     setRunning(true);
     setRows([]);
+    // Your connection to the app server alone (no database): a tiny request, 3 tries.
+    const hops: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const t0 = performance.now();
+      try {
+        await (await fetch("/robots.txt", { cache: "no-store" })).text();
+        hops.push(Math.round(performance.now() - t0));
+      } catch {}
+    }
     try {
-      setHealth((await (await fetch("/health", { cache: "no-store" })).json()) as Health);
+      const h = (await (await fetch("/health", { cache: "no-store" })).json()) as Health;
+      setHealth({ ...h, browser_ms: hops.length ? median(hops) : null });
     } catch {
       setHealth(null);
     }
@@ -72,10 +82,14 @@ export function SpeedCheck() {
         <p className="text-xs text-muted">Takes about 30 seconds. Times include your internet connection. Nothing is changed.</p>
       </div>
       {health ? (
-        <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+        <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
           <div>
             <dt className="text-xs text-muted">App runs in</dt>
             <dd className="font-medium">{health.region === "syd1" ? "Sydney (syd1)" : (health.region ?? "unknown")}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Your connection to the app (no database)</dt>
+            <dd className="font-medium">{typeof health.browser_ms === "number" ? `${health.browser_ms} ms` : "unknown"}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted">Database round trip (from the app)</dt>
