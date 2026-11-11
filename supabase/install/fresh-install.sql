@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270109000001_celebrations.sql
+-- Built from every migration up to: 20270110000001_contract_letterhead.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,7 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'contracts' and column_name = 'letterhead') then v_upto := 83; end if;
   if v_upto = 0 and to_regclass('public.staff_birthdays') is not null then v_upto := 82; end if;
   if v_upto = 0 and to_regclass('public.compliance_item_versions') is not null and to_regclass('public.contracts') is not null and to_regclass('public.contract_signatures') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'compliance_items' and column_name = 'applies_people') then v_upto := 81; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'assistant_settings' and column_name = 'blocked_sites') then v_upto := 80; end if;
@@ -171,7 +172,8 @@ begin
     (79, '20270106000001_staff_records.sql'),
     (80, '20270107000001_assistant_internet.sql'),
     (81, '20270108000001_contracts.sql'),
-    (82, '20270109000001_celebrations.sql')
+    (82, '20270109000001_celebrations.sql'),
+    (83, '20270110000001_contract_letterhead.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -16960,5 +16962,24 @@ create policy "birthdays: only your own" on public.staff_birthdays for all to au
 
 $m082$;
   insert into public.install_log (name) values ('20270109000001_celebrations.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270110000001_contract_letterhead.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270110000001_contract_letterhead.sql') then
+    return;
+  end if;
+  execute $m083$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects: each contract can carry the company logo and letterhead on
+-- every page of the signed copy (on by default; chosen while it's a draft).
+alter table public.contracts add column if not exists letterhead boolean not null default true;
+
+$m083$;
+  insert into public.install_log (name) values ('20270110000001_contract_letterhead.sql');
 end;
 $part$;

@@ -12,7 +12,8 @@ import { getBranding } from "@/lib/branding";
 import { getTimeZone } from "@/lib/settings";
 import type { FormState } from "@/lib/form";
 import { CONSENT_TEXT, CONTRACTS_BUCKET, type Contract, type Signature } from "@/lib/contracts";
-import { buildSignedPdf, sha256 } from "@/lib/contract-pdf";
+import { buildSignedPdf, logoForPdf, sha256 } from "@/lib/contract-pdf";
+import { env } from "@/lib/env";
 
 const UUID = /^[0-9a-f-]{36}$/;
 const str = (f: FormData, k: string, max: number) => String(f.get(k) ?? "").trim().slice(0, max);
@@ -53,7 +54,7 @@ export async function saveDraft(_: FormState, form: FormData): Promise<FormState
   const supabase = await createClient();
   if (id) {
     if (!UUID.test(id)) return { error: "Something went wrong." };
-    const { data, error } = await supabase.from("contracts").update({ title, body, sign_by: signBy || null }).eq("id", id).eq("status", "draft").select("id");
+    const { data, error } = await supabase.from("contracts").update({ title, body, sign_by: signBy || null, letterhead: form.get("letterhead") === "on" }).eq("id", id).eq("status", "draft").select("id");
     if (error) return { error: friendlyError(error) };
     if (!data?.length) return { error: "Only drafts can be changed. Make a new version instead." };
     done(id);
@@ -62,7 +63,7 @@ export async function saveDraft(_: FormState, form: FormData): Promise<FormState
   if (!UUID.test(userId)) return { error: "Choose the employee." };
   const { data, error } = await supabase
     .from("contracts")
-    .insert({ user_id: userId, title, body, sign_by: signBy || null, supersedes: UUID.test(supersedes) ? supersedes : null })
+    .insert({ user_id: userId, title, body, sign_by: signBy || null, letterhead: form.get("letterhead") === "on", supersedes: UUID.test(supersedes) ? supersedes : null })
     .select("id")
     .single();
   if (error) return { error: error.code === "42501" ? "You don't have access to prepare contracts for this person." : friendlyError(error) };
@@ -182,7 +183,10 @@ export async function finishContract(id: string): Promise<FormState> {
     if (!file) return { error: "A signature image couldn't be read." };
     withImages.push({ ...s, signerName: nameOf.get(s.signer_id) ?? "Unknown", image: new Uint8Array(await file.arrayBuffer()) });
   }
+  const logo = contract.letterhead !== false ? await logoForPdf(brand.logoUrl, env.siteUrl) : null;
   const bytes = await buildSignedPdf({
+    logo,
+    brandColour: brand.colorPrimary,
     company: brand.companyName,
     contract,
     employeeName: (nameOf.get(contract.user_id) ?? "").replace(/ \(.*\)$/, ""),

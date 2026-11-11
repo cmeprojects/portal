@@ -30,7 +30,7 @@ export function DraftForm({
   defaults,
 }: {
   people: Person[];
-  draft?: { id: string; title: string; body: string; sign_by: string | null };
+  draft?: { id: string; title: string; body: string; sign_by: string | null; letterhead?: boolean };
   supersedes?: { id: string; userId: string };
   defaults?: { title: string; body: string };
 }) {
@@ -76,6 +76,13 @@ export function DraftForm({
       <Field label="Contract wording" htmlFor="c-body" hint="Exactly what they'll read and sign. Once sent, it can't be changed: make a new version instead.">
         <textarea id="c-body" name="body" required rows={16} maxLength={100000} defaultValue={draft?.body ?? defaults?.body ?? ""} className={`${inputClass} h-auto py-3 font-mono text-[13px] leading-relaxed`} />
       </Field>
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="letterhead" defaultChecked={draft?.letterhead ?? true} className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" />
+        <span>
+          Include our logo and letterhead
+          <span className="block text-xs text-muted">The company logo and name at the top of every page of the signed copy.</span>
+        </span>
+      </label>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <Button className="self-start" disabled={pending || (Boolean(draft) && !dirty)}>
         <Save aria-hidden="true" className="size-4" />

@@ -27,7 +27,7 @@ export function ContractView({ data, viewer, viewerName, holder }: { data: Loade
         {c.status === "draft" && holder ? (
           <Card className="p-5 sm:p-6">
             <h2 className="heading-sm mb-4">Edit draft</h2>
-            <DraftForm people={[]} draft={{ id: c.id, title: c.title, body: c.body, sign_by: c.sign_by }} />
+            <DraftForm people={[]} draft={{ id: c.id, title: c.title, body: c.body, sign_by: c.sign_by, letterhead: c.letterhead }} />
           </Card>
         ) : (
           <Card className="p-5 sm:p-6">

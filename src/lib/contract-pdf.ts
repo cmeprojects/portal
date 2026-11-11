@@ -42,7 +42,25 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
 
 export const sha256 = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
 
+// cmeprojects: the company logo as PNG for the letterhead (PNG and JPEG are
+// used as they are; SVG and WebP are converted). Null if it can't be read.
+export async function logoForPdf(url: string, site: string): Promise<{ bytes: Uint8Array; png: boolean } | null> {
+  try {
+    const res = await fetch(new URL(url, site), { cache: "no-store" });
+    if (!res.ok) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes[0] === 0x89 && bytes[1] === 0x50) return { bytes, png: true };
+    if (bytes[0] === 0xff && bytes[1] === 0xd8) return { bytes, png: false };
+    const sharp = (await import("sharp")).default;
+    return { bytes: new Uint8Array(await sharp(Buffer.from(bytes), { density: 300 }).resize({ height: 240, withoutEnlargement: false }).png().toBuffer()), png: true };
+  } catch {
+    return null;
+  }
+}
+
 export async function buildSignedPdf(opts: {
+  logo?: { bytes: Uint8Array; png: boolean } | null;
+  brandColour?: string;
   company: string;
   contract: Contract;
   employeeName: string;
@@ -60,12 +78,32 @@ export async function buildSignedPdf(opts: {
   const W = 595.28;
   const H = 841.89;
   const M = 56;
-  let page: PDFPage = pdf.addPage([W, H]);
-  let y = H - M;
+  // cmeprojects: letterhead (logo, company name, a line in the brand colour) on every page, when chosen.
+  const head = contract.letterhead !== false;
+  const logo = head && opts.logo ? await (opts.logo.png ? pdf.embedPng(opts.logo.bytes) : pdf.embedJpg(opts.logo.bytes)).catch(() => null) : null;
+  const hex = /^#?([0-9a-f]{6})$/i.exec(opts.brandColour ?? "")?.[1] ?? "134f8e";
+  const brand = rgb(parseInt(hex.slice(0, 2), 16) / 255, parseInt(hex.slice(2, 4), 16) / 255, parseInt(hex.slice(4, 6), 16) / 255);
+  const TOP = head ? H - M - 66 : H - M;
+  const newPage = () => {
+    const pg = pdf.addPage([W, H]);
+    if (head) {
+      if (logo) {
+        const s = Math.min(130 / logo.width, 38 / logo.height);
+        pg.drawImage(logo, { x: M, y: H - M - 38 + (38 - logo.height * s) / 2, width: logo.width * s, height: logo.height * s });
+      }
+      const name = safe(opts.company);
+      const nw = bold.widthOfTextAtSize(name, 11);
+      pg.drawText(name, { x: logo ? W - M - nw : M, y: H - M - 24, size: 11, font: bold, color: brand });
+      pg.drawLine({ start: { x: M, y: H - M - 48 }, end: { x: W - M, y: H - M - 48 }, thickness: 1.2, color: brand });
+    }
+    return pg;
+  };
+  let page: PDFPage = newPage();
+  let y = TOP - 10;
   const line = (text: string, f = font, size = 10.5, gap = 15) => {
     if (y < M + gap) {
-      page = pdf.addPage([W, H]);
-      y = H - M;
+      page = newPage();
+      y = TOP - 10;
     }
     page.drawText(text, { x: M, y, size, font: f, color: rgb(0.1, 0.12, 0.16) });
     y -= gap;
@@ -73,7 +111,7 @@ export async function buildSignedPdf(opts: {
   const when = (iso: string) => new Intl.DateTimeFormat("en-AU", { dateStyle: "long", timeStyle: "long", timeZone: opts.timeZone }).format(new Date(iso));
 
   // The contract, exactly as signed.
-  for (const l of wrap(opts.company, bold, 11, W - 2 * M)) line(l, bold, 11);
+  if (!head) for (const l of wrap(opts.company, bold, 11, W - 2 * M)) line(l, bold, 11);
   for (const l of wrap(contract.title, bold, 16, W - 2 * M)) line(l, bold, 16, 22);
   line(`Employee: ${safe(opts.employeeName)}   ·   Version ${contract.version}`, font, 9.5);
   y -= 8;
@@ -84,8 +122,8 @@ export async function buildSignedPdf(opts: {
   line("Signatures", bold, 13, 20);
   for (const s of signatures) {
     if (y < M + 120) {
-      page = pdf.addPage([W, H]);
-      y = H - M;
+      page = newPage();
+      y = TOP - 10;
     }
     line(s.party === "employee" ? "Employee" : "For the employer", bold, 10.5);
     const img = await pdf.embedPng(s.image);
@@ -97,8 +135,8 @@ export async function buildSignedPdf(opts: {
   }
 
   // Audit page.
-  page = pdf.addPage([W, H]);
-  y = H - M;
+  page = newPage();
+  y = TOP - 10;
   line("Signing record", bold, 16, 24);
   const facts: [string, string][] = [
     ["Document", `${contract.title} (version ${contract.version})`],
@@ -138,5 +176,11 @@ export async function buildSignedPdf(opts: {
     W - 2 * M,
   ))
     line(l, font, 8.5, 11);
+  // Footer on every page: the document and page number.
+  const pages = pdf.getPages();
+  pages.forEach((pg, i) => {
+    const text = safe(`${contract.title} · version ${contract.version} · page ${i + 1} of ${pages.length}`);
+    pg.drawText(text, { x: M, y: M / 2, size: 8, font, color: rgb(0.45, 0.47, 0.5) });
+  });
   return pdf.save({ useObjectStreams: false });
 }

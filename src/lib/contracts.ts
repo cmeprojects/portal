@@ -22,6 +22,8 @@ export type Contract = {
   completed_at: string | null;
   created_by: string | null;
   created_at: string;
+  // Logo and letterhead on the signed copy (update 66; on by default).
+  letterhead?: boolean;
 };
 
 export type Signature = {
