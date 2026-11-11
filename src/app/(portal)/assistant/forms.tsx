@@ -4,7 +4,7 @@
 import { PhoneField } from "@/components/phone-field";
 import { useActionState, useState, useTransition, type ReactNode } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
-import { AUDIENCE_LABELS, AUDIENCES, SCOPE_LABELS, type AssistantSettings, type Scope } from "@/lib/assistant-shared";
+import { AUDIENCE_LABELS, AUDIENCES, SCOPE_LABELS, SCOPES, type AssistantSettings, type Scope } from "@/lib/assistant-shared";
 import { addDocument, saveAssistantSettings, testAiConnection } from "./actions";
 import { useDirty } from "@/components/use-dirty";
 import { useAfterSuccess } from "@/components/use-after-success";
@@ -77,7 +77,7 @@ export function AnswersForm({ s, aiReady }: { s: AssistantSettings; aiReady: boo
   const scope = (name: "scope_public" | "scope_staff" | "scope_managers", label: string) => (
     <Field label={label} htmlFor={name}>
       <select id={name} name={name} defaultValue={s[name]} className={inputClass}>
-        {(Object.keys(SCOPE_LABELS) as Scope[]).map((k) => (
+        {SCOPES.map((k: Scope) => (
           <option key={k} value={k}>
             {SCOPE_LABELS[k]}
           </option>
@@ -87,7 +87,11 @@ export function AnswersForm({ s, aiReady }: { s: AssistantSettings; aiReady: boo
   );
   return (
     <PartForm part="answers">
-      {!aiReady ? <Notice>Listed websites need the AI key. Until it&apos;s added, the Assistant answers from your documents only, whatever you choose here.</Notice> : null}
+      {!aiReady ? <Notice>Websites and internet searches need the AI key. Until it&apos;s added, the Assistant answers from your documents only, whatever you choose here.</Notice> : null}
+      <p className="text-sm text-muted">
+        For each group, choose where answers come from. It always tries them in this order and stops at the first that answers: <strong>your documents</strong>, then{" "}
+        <strong>the listed websites</strong>, then <strong>the whole internet</strong>. Internet answers show their sources; you can block websites below.
+      </p>
       <div className="grid gap-4 sm:grid-cols-3">
         {scope("scope_public", "Public visitors")}
         {scope("scope_staff", "Staff (signed in)")}
@@ -95,6 +99,13 @@ export function AnswersForm({ s, aiReady }: { s: AssistantSettings; aiReady: boo
       </div>
       <Field label="Listed websites it may search (one per line)" htmlFor="trusted_sites" hint="Only these sites are searched, for example ndis.gov.au. Each web search costs about 1 cent.">
         {area("trusted_sites", s.trusted_sites.join("\n"), 4)}
+      </Field>
+      <Field
+        label="Websites it must never use (one per line, optional)"
+        htmlFor="blocked_sites"
+        hint="Only for whole-internet searches, for example competitors or forums. Each web search costs about 1 cent; an internet answer can use up to 3."
+      >
+        {area("blocked_sites", (s.blocked_sites ?? []).join("\n"), 3)}
       </Field>
       <Field label="What it says when it can't answer" htmlFor="fallback">
         {area("fallback", s.fallback, 2, 400)}

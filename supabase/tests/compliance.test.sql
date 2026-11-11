@@ -189,7 +189,7 @@ update public.compliance_records set expires_on = current_date + 5 where file_na
 delete from public.email_outbox;
 select public.run_compliance_alerts();
 select test.ok(exists (select 1 from public.email_outbox where template = 'notice' and to_user = test.pid('nico@example.com')
-                         and data ->> 'title' like 'Police check expires soon'), 'an expiring document is emailed to the person');
+                         and data ->> 'title' like 'Police check expires in % days'), 'an expiring document is emailed to the person (with days left)');
 
 \o
 \echo 'All compliance tests passed.'

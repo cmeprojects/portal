@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
-import { AUD_PER_USD, DEFAULT_SETTINGS, type Answer, type Audience, type AssistantSettings, type Scope, type Source } from "@/lib/assistant-shared";
+import { AUD_PER_USD, DEFAULT_SETTINGS, scopeUses, type Answer, type Audience, type AssistantSettings, type Scope, type Source } from "@/lib/assistant-shared";
 
 // Website and Assistant (cmeprojects). The public website talks to the
 // database through the server only; who can use which documents is decided
@@ -77,8 +77,9 @@ export async function answerQuestion(question: string, settings: AssistantSettin
 
   // Earlier questions in this chat help find the right pieces ("what about weekends?").
   const lastQ = history.at(-1)?.question ?? "";
+  const uses = scopeUses(scope);
   let hits: { title: string; content: string }[] = [];
-  if (scope !== "web") {
+  if (uses.docs) {
     const { data } = await admin.rpc("assistant_search", { p_query: q, p_audiences: audiences, p_limit: 5 });
     hits = (data ?? []) as typeof hits;
     if (!hits.length && lastQ) {
@@ -123,29 +124,38 @@ export async function answerQuestion(question: string, settings: AssistantSettin
     }
   }
 
-  // Listed websites: when chosen, and the documents didn't answer it.
-  if (!answer.answered && scope !== "documents" && aiReady && settings.trusted_sites.length) {
+  // cmeprojects: a web search, either limited to the listed websites or the
+  // whole internet (minus the websites the company blocked).
+  const search = async (wide: boolean): Promise<Answer | null> => {
     try {
+      const where = wide
+        ? { ...(settings.blocked_sites.length ? { blocked_domains: settings.blocked_sites } : {}) }
+        : { allowed_domains: settings.trusted_sites };
       const res = await new Anthropic().messages.create({
         model: model.id,
         max_tokens: 800,
-        system: `${RULES}\n- Search only the allowed websites and answer from what you find there.`,
+        system: wide
+          ? `${RULES}\n- Search the web. Prefer official Australian sources (government, the NDIS and the NDIS Commission, peak bodies) over blogs and forums, and say where the answer comes from.`
+          : `${RULES}\n- Search only the allowed websites and answer from what you find there.`,
         output_config: { effort: "low" },
-        tools: [{ type: model.search, name: "web_search", max_uses: 2, allowed_domains: settings.trusted_sites } as Anthropic.Messages.ToolUnion],
+        tools: [{ type: model.search, name: "web_search", max_uses: wide ? 3 : 2, ...where } as Anthropic.Messages.ToolUnion],
         messages: [{ role: "user", content: `${context ? `<earlier>\n${context}\n</earlier>\n\n` : ""}<question>\n${q}\n</question>` }],
       });
       costUsd += cost(res.usage, model) + (res.usage.server_tool_use?.web_search_requests ?? 0) * USD_PER_SEARCH;
       const reply = textOf(res);
-      if (res.stop_reason !== "refusal" && reply && !reply.includes("NOT_FOUND")) {
-        const cited: Source[] = res.content.flatMap((b) =>
-          b.type === "text" ? (b.citations ?? []).flatMap((c) => (c.type === "web_search_result_location" ? [{ title: c.title || new URL(c.url).hostname, url: c.url }] : [])) : [],
-        );
-        answer = { text: reply, sources: uniq(cited).slice(0, 4), from: "web", answered: true, offerCall };
-      }
+      if (res.stop_reason === "refusal" || !reply || reply.includes("NOT_FOUND")) return null;
+      const cited: Source[] = res.content.flatMap((b) =>
+        b.type === "text" ? (b.citations ?? []).flatMap((c) => (c.type === "web_search_result_location" ? [{ title: c.title || new URL(c.url).hostname, url: c.url }] : [])) : [],
+      );
+      return { text: reply, sources: uniq(cited).slice(0, 4), from: "web", answered: true, offerCall };
     } catch {
-      // The web search isn't available: keep the "can't find it" answer.
+      return null; // The web search isn't available: keep the "can't find it" answer.
     }
-  }
+  };
+  // Listed websites, when chosen and the documents didn't answer it.
+  if (!answer.answered && uses.sites && aiReady && settings.trusted_sites.length) answer = (await search(false)) ?? answer;
+  // Then the whole internet, when chosen.
+  if (!answer.answered && uses.internet && aiReady) answer = (await search(true)) ?? answer;
 
   if (settings.log_questions) {
     await admin.from("assistant_questions").insert({

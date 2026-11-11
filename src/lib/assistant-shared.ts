@@ -18,11 +18,30 @@ export type AssistantSettings = {
   scope_staff: Scope;
   scope_managers: Scope;
   trusted_sites: string[];
+  // cmeprojects: websites never used when searching the whole internet.
+  blocked_sites: string[];
 };
 
 // Where the assistant looks for each group.
-export type Scope = "documents" | "web" | "both";
-export const SCOPE_LABELS: Record<Scope, string> = { documents: "Our documents only", web: "Listed websites only", both: "Documents first, then listed websites" };
+// cmeprojects: always in this order: our documents, then listed websites,
+// then the whole internet, stopping at the first that answers.
+export type Scope = "documents" | "both" | "docs_web" | "docs_sites_web" | "web" | "sites_web" | "internet";
+export const SCOPE_LABELS: Record<Scope, string> = {
+  documents: "Our documents only",
+  both: "Our documents, then listed websites",
+  docs_web: "Our documents, then the whole internet",
+  docs_sites_web: "Our documents, then listed websites, then the whole internet",
+  web: "Listed websites only",
+  sites_web: "Listed websites, then the whole internet",
+  internet: "The whole internet only",
+};
+export const SCOPES = Object.keys(SCOPE_LABELS) as Scope[];
+// Which sources a choice uses.
+export const scopeUses = (s: Scope) => ({
+  docs: ["documents", "both", "docs_web", "docs_sites_web"].includes(s),
+  sites: ["both", "docs_sites_web", "web", "sites_web"].includes(s),
+  internet: ["docs_web", "docs_sites_web", "sites_web", "internet"].includes(s),
+});
 
 // One source shown under an answer.
 export type Source = { title: string; url?: string };
@@ -45,6 +64,7 @@ export const DEFAULT_SETTINGS: AssistantSettings = {
   scope_staff: "documents",
   scope_managers: "documents",
   trusted_sites: ["ndis.gov.au", "ndiscommission.gov.au", "legislation.gov.au"],
+  blocked_sites: [],
 };
 
 export const AUDIENCES = ["public", "staff", "managers"] as const;

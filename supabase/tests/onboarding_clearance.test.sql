@@ -19,7 +19,7 @@ grant execute on all functions in schema test to authenticated;
 -- Defaults were added once: the NDIS training (mandatory, certificate needed)
 -- and common documents and a sample agreement, switched off.
 select test.ok((select count(*) = 1 from public.compliance_items where title like 'NDIS Worker Orientation%' and before_work and certificate = 'required'), 'the NDIS orientation training is a default, needed before working');
-select test.ok((select count(*) = 7 from public.compliance_items where kind = 'upload' and not active and category <> ''), 'common documents are added, switched off');
+select test.ok((select count(*) = 10 from public.compliance_items where kind = 'upload' and not active and category <> ''), 'common documents (with First Aid, CPR and Life saving from Phase 3) are added, switched off');
 select test.ok((select count(*) = 1 from public.compliance_items where kind = 'agreement' and not active), 'a sample agreement is added, switched off');
 
 -- Set up: only these items apply.

@@ -10,7 +10,7 @@ import { canManageCompliance, getPeopleRules, seesCompliance } from "@/lib/setti
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { CATEGORY_LABELS, FILES_BUCKET, KIND_TAB, isDone, stateBadges, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
 import { formatDate } from "@/lib/registers";
-import { Badge, Card, Notice, PageHeader, Tabs } from "@/components/ui";
+import { Badge, Card, Notice, PageHeader, Tabs, buttonClass } from "@/components/ui";
 import { ItemForm, ReviewForm } from "./forms";
 
 export const metadata: Metadata = { title: "Onboarding" };
@@ -52,6 +52,11 @@ export default async function CompliancePage({ searchParams }: PageProps<"/compl
           manages
             ? "Everyone's onboarding and compliance: what's done, what's waiting to be checked, what's expired, and who's cleared to work."
             : "Onboarding progress for your people. Only Compliance managers can open uploaded documents."
+        }
+        action={
+          <Link href="/compliance/expiry" className={buttonClass("outline")}>
+            Expiry list
+          </Link>
         }
       />
       {tabs.length ? <Tabs label="Compliance sections" items={tabs} /> : null}

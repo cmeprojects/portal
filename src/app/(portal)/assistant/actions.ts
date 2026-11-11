@@ -8,7 +8,7 @@ import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import { text, type FormState } from "@/lib/form";
-import { AUDIENCES } from "@/lib/assistant-shared";
+import { AUDIENCES, SCOPES } from "@/lib/assistant-shared";
 import { readScanned } from "@/lib/assistant";
 import { saveDraft } from "@/lib/drafts";
 
@@ -55,16 +55,19 @@ export async function saveAssistantSettings(_: FormState, form: FormData): Promi
       offer_call: form.get("offer_call") === "on",
     };
   } else if (part === "answers") {
-    const scope = (name: string) => (["documents", "web", "both"].includes(text(form, name)) ? text(form, name) : "documents");
+    const scope = (name: string) => ((SCOPES as string[]).includes(text(form, name)) ? text(form, name) : "documents");
     // Websites: just the address, like ndis.gov.au.
-    const sites = lines("trusted_sites", 30, 100)
-      .map((l) => l.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase())
-      .filter((l) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(l));
+    const domains = (name: string) =>
+      lines(name, 30, 100)
+        .map((l) => l.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase())
+        .filter((l) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(l));
+    const sites = domains("trusted_sites");
     row = {
       scope_public: scope("scope_public"),
       scope_staff: scope("scope_staff"),
       scope_managers: scope("scope_managers"),
       trusted_sites: [...new Set(sites)],
+      blocked_sites: [...new Set(domains("blocked_sites"))],
       fallback: text(form, "fallback").slice(0, 400),
     };
   } else if (part === "limits") {

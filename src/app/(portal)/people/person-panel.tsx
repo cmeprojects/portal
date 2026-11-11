@@ -20,6 +20,7 @@ import { onboardingOn } from "@/lib/feature-parts";
 import type { Role } from "@/lib/roles";
 import { ProfileCard } from "@/components/profile-card";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
+import { SensitiveRecords } from "./sensitive-records";
 import { Card } from "@/components/ui";
 
 const PEOPLE_MANAGERS = ["manager", "staff_admin", "system_admin"];
@@ -149,6 +150,8 @@ export async function PersonPanel({
             ) : null}
           </Card>
         ) : null}
+        {/* cmeprojects Phase 3: only for people whose access covers them. */}
+        <SensitiveRecords subject={id} viewer={viewer.id} />
         {reqs && reqs.length ? (
           <Card className="p-5">
             <h2 className="heading-sm mb-2">Requests</h2>

@@ -42,6 +42,16 @@ export default async function AccountPage() {
         {mine ? <PhotoForm userId={profile.id} name={profile.full_name || profile.email} src={photo} /> : null}
         <NameForm name={profile.full_name} canEdit={profile.role === "system_admin"} />
       </Card>
+      {/* cmeprojects Phase 3: private pay and work-rights records. */}
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
+        <div>
+          <h2 className="heading-sm">Pay and work rights</h2>
+          <p className="text-sm text-muted">Your bank account, super and right to work. Private to you and payroll.</p>
+        </div>
+        <Link href="/account/records" className={buttonClass("outline")}>
+          Open
+        </Link>
+      </Card>
       {me ? (
         <Card className="p-5 sm:p-6">
           <h2 className="heading-sm mb-4">My details</h2>

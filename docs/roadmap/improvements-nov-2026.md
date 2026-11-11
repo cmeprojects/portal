@@ -156,3 +156,16 @@ No method here is claimed to satisfy every legal requirement.
   - No new SECURITY DEFINER function (the new functions are SECURITY INVOKER; existing definer functions were updated).
   - Rollout: active managers (may pass on) and staff admins keep Staff details (all staff), visible and removable on Staff access.
   - Tests: 832/832 database checks (45 new), 22/22 Phase 2 browser checks, Phase 1's 60 rechecked. Update and undo each run twice; undo restores the original definitions exactly.
+- **Phase 3 (except TFN):** done 11 Nov 2026. **Update 62** (undo-62).
+  - First Aid, CPR and Life saving items (off until chosen).
+  - Staged reminders at 60/30/7 days, on the day and expired (documents and visas).
+  - Bank, super and work rights in restricted tables (own record, or has_access), with format checks (BSB, account, ABN check digit, USI).
+  - Checked/verified by someone with access only; a change by the person clears the check.
+  - Access log: changes logged by the database; views, reveals, downloads and refused attempts logged by the app before showing anything. Read by the system admin only.
+  - Private store `staff-records` (no update or delete; links last 60 seconds).
+  - Expiry list (People → Onboarding → Expiry list); My account → Pay and work rights; Directory "Private records" for people with access.
+  - **TFN not built:** waiting on the accountant/ATO review.
+  - Tests: 861/861 database checks; 22/23 Phase 3 browser checks (the 23rd, opening a file, was confirmed by fetching the signed link: a PDF comes back).
+- **Website Assistant: whole internet (owner request, 11 Nov):** **update 63** (undo-63).
+  - Seven choices per group, always in the order documents → listed websites → whole internet.
+  - "Never use these websites" list for internet searches.

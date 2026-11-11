@@ -98,5 +98,11 @@ select test.refused($$select * from public.assistant_chats$$, 'the public can''t
 select test.ok((select jsonb_typeof(value) from public.app_settings where key = 'website.front_page') = 'boolean', 'the front-page switch can be read before signing in');
 reset role;
 
+-- cmeprojects: whole-internet choices and blocked websites.
+update public.assistant_settings set scope_public = 'docs_sites_web', scope_staff = 'docs_web', scope_managers = 'internet', blocked_sites = array['example.com'];
+select test.ok((select scope_public = 'docs_sites_web' and scope_managers = 'internet' from public.assistant_settings), 'the whole-internet choices can be saved');
+select test.refused($$update public.assistant_settings set scope_public = 'everything'$$, 'only the listed choices are allowed');
+update public.assistant_settings set scope_public = 'documents', scope_staff = 'documents', scope_managers = 'documents', blocked_sites = '{}';
+
 \o
 \echo All assistant tests passed.
