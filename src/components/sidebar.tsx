@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, CircleHelp, Menu, PanelLeftClose, PanelLeftOpen, Star, X } from "lucide-react";
 import type { NavCategory, NavNode } from "@/lib/nav-tree";
 import { ModuleIcon } from "@/components/module-icons";
+import { toast } from "@/components/toast";
 
 // cmeprojects: the menu, built from the module catalogue (src/lib/modules.ts).
 // Categories and modules fold open and closed (remembered on this device), the
@@ -15,6 +16,9 @@ import { ModuleIcon } from "@/components/module-icons";
 
 const STORE_CLOSED = "portal.nav.closed";
 const STORE_RAIL = "portal.nav.rail";
+// Modules whose sub-pages this person chose to show (hidden by default, at most MAX_OPEN).
+const STORE_OPEN = "portal.nav.open";
+const MAX_OPEN = 3;
 const listeners = new Set<() => void>();
 function read(key: string): string {
   try {
@@ -63,6 +67,19 @@ export function Sidebar({
   const rail = useStored(STORE_RAIL) === "1";
   const closedRaw = useStored(STORE_CLOSED);
   const closed = useMemo(() => new Set(closedRaw ? closedRaw.split(",") : []), [closedRaw]);
+  const openRaw = useStored(STORE_OPEN);
+  const shown = useMemo(() => (openRaw ? openRaw.split(",").filter(Boolean) : []), [openRaw]);
+  const toggleSubs = useCallback(
+    (id: string) => {
+      if (shown.includes(id)) return write(STORE_OPEN, shown.filter((x) => x !== id).join(","));
+      if (shown.length >= MAX_OPEN) {
+        toast(`You can show sub-pages for up to ${MAX_OPEN} menu items. Hide one first.`, "error");
+        return;
+      }
+      write(STORE_OPEN, [...shown, id].join(","));
+    },
+    [shown],
+  );
   const toggle = useCallback(
     (id: string) => {
       const next = new Set(closed);
@@ -114,38 +131,42 @@ export function Sidebar({
     }`;
 
   const Item = ({ n, sub = false }: { n: NavNode; sub?: boolean }) => {
-    const hasKids = n.children.length > 0;
-    const inside = hasKids && n.children.some((k) => k.id === current);
-    const open = hasKids && !compact && (inside || !closed.has(`m:${n.id}`)) && !(closed.has(`m:${n.id}`) && !inside);
-    if (!hasKids || compact) {
-      return (
-        <Link
-          href={n.href}
-          data-nav
-          onClick={() => setDrawer(false)}
-          aria-current={n.id === current || inside ? "page" : undefined}
-          title={compact ? n.label : undefined}
-          aria-label={compact ? n.label : undefined}
-          className={itemClass(n.id === current || (compact && inside), sub)}
-        >
-          {sub ? null : <ModuleIcon name={n.icon} className="size-[19px] shrink-0" />}
-          {compact ? null : <span className="truncate">{n.label}</span>}
-        </Link>
-      );
-    }
+    const hasKids = n.children.length > 0 && !compact;
+    const open = hasKids && shown.includes(n.id);
+    const childActive = n.children.some((k) => k.id === current);
+    // The module itself is active when one of its pages is open and its sub-pages are hidden.
+    const active = n.id === current || (childActive && !open);
+    const link = (
+      <Link
+        href={n.href}
+        data-nav
+        onClick={() => setDrawer(false)}
+        aria-current={active ? "page" : undefined}
+        title={compact ? n.label : undefined}
+        aria-label={compact ? n.label : undefined}
+        className={`${itemClass(active, sub)} ${hasKids ? "flex-1 pr-1" : ""}`}
+      >
+        {sub ? null : <ModuleIcon name={n.icon} className="size-[19px] shrink-0" />}
+        {compact ? null : <span className="truncate">{n.label}</span>}
+      </Link>
+    );
+    if (!hasKids) return link;
     return (
       <div className="flex flex-col gap-0.5">
-        <button
-          type="button"
-          data-nav
-          aria-expanded={open}
-          onClick={() => toggle(`m:${n.id}`)}
-          className={`${itemClass(false)} w-full text-left ${inside ? "text-side-fg" : ""}`}
-        >
-          <ModuleIcon name={n.icon} className="size-[19px] shrink-0" />
-          <span className="flex-1 truncate">{n.label}</span>
-          <ChevronRight aria-hidden="true" className={`size-4 shrink-0 opacity-70 transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-90" : ""}`} />
-        </button>
+        <div className="flex items-center gap-1">
+          {link}
+          <button
+            type="button"
+            data-nav
+            aria-expanded={open}
+            onClick={() => toggleSubs(n.id)}
+            aria-label={open ? `Hide ${n.label} sub-pages` : `Show ${n.label} sub-pages`}
+            title={open ? "Hide sub-pages" : "Show sub-pages"}
+            className="grid size-9 shrink-0 place-items-center rounded-lg text-side-muted hover:bg-side-hover hover:text-side-fg"
+          >
+            <ChevronRight aria-hidden="true" className={`size-4 transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-90" : ""}`} />
+          </button>
+        </div>
         {open ? (
           <div className="ml-[22px] flex flex-col gap-0.5 border-l border-side-edge pl-3">
             {n.children.map((k) => (

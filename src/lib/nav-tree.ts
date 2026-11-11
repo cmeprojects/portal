@@ -3,7 +3,7 @@ import { CATEGORIES, MODULES, type CategoryId } from "@/lib/modules";
 
 // cmeprojects: the menu, built from the module catalogue: one item per module,
 // grouped by category. A module's own sub-pages are tabs on its page, not
-// menu items. An item shows only when the person can already open one of its
+// menu items unless the person shows them. An item shows only when the person can already open one of its
 // pages (`allowed` comes from the existing menu and page rules), and opens the
 // first of those pages, so nobody gains or loses access.
 
@@ -15,6 +15,7 @@ export function buildNav(opts: {
   homeLabel: string;
   formsAsMaker: boolean;
   builtFeatures: { slug: string; label: string }[];
+  featureReports: { slug: string; label: string }[];
 }): NavCategory[] {
   const { allowed } = opts;
   const allowedList = [...allowed];
@@ -42,13 +43,24 @@ export function buildNav(opts: {
       const href = firstPage(m.href, match);
       if (!href) continue;
       const home = m.id === "workspace.dashboard";
+      // Sub-pages (shown only when the person chooses; see the sidebar).
+      const kids: NavNode[] = MODULES.filter((c) => c.parent === m.id && c.href && allowed.has(c.href)).map((c) => ({
+        id: c.id,
+        label: c.label,
+        icon: c.icon,
+        href: c.href,
+        match: c.match ?? [c.href],
+        children: [],
+      }));
+      if (m.id === "insights.reports")
+        for (const f of opts.featureReports) kids.push({ id: `insights.reports.${f.slug}`, label: f.label, icon: "BarChart3", href: `/reports/f/${f.slug}`, match: [`/reports/f/${f.slug}`], children: [] });
       out.push({
         id: m.id,
         label: home ? opts.homeLabel : m.label,
         icon: m.icon,
         href,
         match: home && opts.homeLabel !== "Dashboard" ? ["/", "/my-tasks"] : match,
-        children: [],
+        children: kids.length > 1 ? kids : [],
       });
     }
     return out;

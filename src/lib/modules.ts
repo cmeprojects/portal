@@ -7,8 +7,9 @@
 //
 // Adding a module: add it here AND as a row in a new migration. It shows in
 // the menu only where the person can already open its page; it's never given
-// to anyone automatically. The menu has one item per module; a module's own
-// sub-pages are tabs on its page (href "" = no menu item of its own).
+// to anyone automatically. The menu has one item per module. A module's
+// sub-pages are hidden until the person chooses to show them (up to 3 modules
+// at a time); href "" = never a menu item (permission-only).
 
 export type CategoryId = "workspace" | "operations" | "apps" | "people" | "hr" | "clients" | "workflows" | "insights" | "engagement" | "system";
 export type Sensitivity = "normal" | "sensitive" | "protected";
@@ -53,9 +54,9 @@ export const MODULES: ModuleDef[] = [
   { id: "ops.tasks", category: "operations", label: "Tasks", icon: "ListChecks", href: "/tasks", match: ["/tasks", "/my-tasks"], delegable: true },
   { id: "ops.registers", category: "operations", label: "Registers", icon: "FolderKanban", href: "/registers", match: ["/registers", "/records"], delegable: true },
   { id: "ops.cars", category: "apps", label: "Cars", icon: "Car", href: "/cars", match: ["/cars", "/cars/manage", "/cars/install"], delegable: true },
-  { id: "ops.cars.use", category: "apps", parent: "ops.cars", label: "Use a car", icon: "Car", href: "" },
-  { id: "ops.cars.manage", category: "apps", parent: "ops.cars", label: "Manage cars", icon: "Wrench", href: "" },
-  { id: "ops.cars.app", category: "apps", parent: "ops.cars", label: "Get the app", icon: "Smartphone", href: "" },
+  { id: "ops.cars.use", category: "apps", parent: "ops.cars", label: "Use a car", icon: "Car", href: "/cars" },
+  { id: "ops.cars.manage", category: "apps", parent: "ops.cars", label: "Manage cars", icon: "Wrench", href: "/cars/manage" },
+  { id: "ops.cars.app", category: "apps", parent: "ops.cars", label: "Get the app", icon: "Smartphone", href: "/cars/install" },
   { id: "ops.features", category: "apps", label: "Built features", icon: "Puzzle", href: "/f", delegable: true },
   { id: "ops.scoreboard", category: "operations", label: "Scoreboard", icon: "Trophy", href: "/scoreboard" },
   { id: "ops.apps", category: "apps", label: "Phone apps", icon: "Smartphone", href: "/apps" },
@@ -68,8 +69,8 @@ export const MODULES: ModuleDef[] = [
 
   // HR & workforce
   { id: "hr.onboarding", category: "hr", label: "Onboarding", icon: "GraduationCap", href: "/compliance", match: ["/compliance", "/compliance/expiry"], delegable: true },
-  { id: "hr.onboarding.overview", category: "hr", parent: "hr.onboarding", label: "Overview and checks", icon: "GraduationCap", href: "" },
-  { id: "hr.onboarding.expiry", category: "hr", parent: "hr.onboarding", label: "Expiry list", icon: "CalendarClock", href: "" },
+  { id: "hr.onboarding.overview", category: "hr", parent: "hr.onboarding", label: "Overview and checks", icon: "GraduationCap", href: "/compliance" },
+  { id: "hr.onboarding.expiry", category: "hr", parent: "hr.onboarding", label: "Expiry list", icon: "CalendarClock", href: "/compliance/expiry" },
   { id: "hr.contracts", category: "hr", label: "Contracts", icon: "FileSignature", href: "/contracts", sensitivity: "sensitive", delegable: true },
   { id: "hr.requests", category: "hr", label: "Staff requests", icon: "Inbox", href: "/people/requests", delegable: true },
 
@@ -89,9 +90,9 @@ export const MODULES: ModuleDef[] = [
 
   // Reports & insights
   { id: "insights.reports", category: "insights", label: "Reports", icon: "BarChart3", href: "/reports", match: ["/reports", "/reports/cars", "/reports/compliance", "/reports/f"], delegable: true },
-  { id: "insights.reports.tasks", category: "insights", parent: "insights.reports", label: "Tasks", icon: "BarChart3", href: "" },
-  { id: "insights.reports.cars", category: "insights", parent: "insights.reports", label: "Cars", icon: "Car", href: "" },
-  { id: "insights.reports.compliance", category: "insights", parent: "insights.reports", label: "Compliance", icon: "GraduationCap", href: "" },
+  { id: "insights.reports.tasks", category: "insights", parent: "insights.reports", label: "Tasks", icon: "BarChart3", href: "/reports" },
+  { id: "insights.reports.cars", category: "insights", parent: "insights.reports", label: "Cars", icon: "Car", href: "/reports/cars" },
+  { id: "insights.reports.compliance", category: "insights", parent: "insights.reports", label: "Compliance", icon: "GraduationCap", href: "/reports/compliance" },
 
   // Website & engagement
   { id: "engagement.assistant", category: "engagement", label: "Assistant", icon: "MessageCircle", href: "/ask" },
