@@ -108,3 +108,6 @@ Time to read a whole table through its policies, per identity:
 - Stage 8: function permissions.
 - Stage 9: load test.
 - The open question of the 880 ms connection time.
+
+## 8. Closure
+Stage 1 was **formally accepted as COMPLETE by the owner on 11 November 2026** and is **CLOSED**. The approved migration (`20270104000001_rls_once_per_statement.sql`), update 60, rollback `undo-60.sql` and all evidence in `docs/audit/evidence/stage1/` are kept unchanged. Stages 2–9 stay deferred.

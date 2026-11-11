@@ -12,7 +12,7 @@ The original instructions are kept unchanged below the status register. Only the
 | Stage | Title | Status | Evidence / where to resume |
 |---|---|---|---|
 | 0 | Baseline and Development Environment | **COMPLETED AND VERIFIED** | `docs/audit/2026-11-performance-stage1.md` §Stage 0; baseline also in `docs/audit/2026-11-performance-review.md` §F |
-| 1 | RLS Pattern A Optimisation | **COMPLETED AND VERIFIED** (closed 11 Nov 2026) | `docs/audit/2026-11-performance-stage1.md`; evidence `docs/audit/evidence/stage1/` |
+| 1 | RLS Pattern A Optimisation | **COMPLETED AND VERIFIED: formally accepted and CLOSED by the owner (11 Nov 2026)** | `docs/audit/2026-11-performance-stage1.md`; evidence `docs/audit/evidence/stage1/` |
 | 2 | Task-Family RLS Optimisation | **DEFERRED, NOT COMPLETED** (not implemented) | Proposal draft: `docs/audit/2026-11-rls-register.md` §Pattern B. Needs the separate security review first |
 | 3 | Onboarding and Staff Page Optimisation | **DEFERRED, NOT COMPLETED** (not implemented) | Findings: review §B #3, §D |
 | 4 | Settings Optimisation | **DEFERRED, NOT COMPLETED** (not implemented) | Findings: review §B #4 |
