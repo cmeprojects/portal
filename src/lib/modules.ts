@@ -56,7 +56,7 @@ export const MODULES: ModuleDef[] = [
   { id: "ops.cars.use", category: "apps", parent: "ops.cars", label: "Use a car", icon: "Car", href: "" },
   { id: "ops.cars.manage", category: "apps", parent: "ops.cars", label: "Manage cars", icon: "Wrench", href: "" },
   { id: "ops.cars.app", category: "apps", parent: "ops.cars", label: "Get the app", icon: "Smartphone", href: "" },
-  { id: "ops.features", category: "operations", label: "Built features", icon: "Puzzle", href: "/f", delegable: true },
+  { id: "ops.features", category: "apps", label: "Built features", icon: "Puzzle", href: "/f", delegable: true },
   { id: "ops.scoreboard", category: "operations", label: "Scoreboard", icon: "Trophy", href: "/scoreboard" },
   { id: "ops.apps", category: "apps", label: "Phone apps", icon: "Smartphone", href: "/apps" },
 

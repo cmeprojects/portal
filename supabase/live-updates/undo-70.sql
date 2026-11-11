@@ -1,7 +1,7 @@
 -- Staff Portal · © cmeproject. All rights reserved.
 -- Undo update 70: the catalogue groups as before. Safe to run again.
 begin;
-update public.app_modules set category = 'operations' where id in ('ops.cars', 'ops.cars.use', 'ops.cars.manage', 'ops.cars.app', 'ops.apps');
+update public.app_modules set category = 'operations' where id in ('ops.cars', 'ops.cars.use', 'ops.cars.manage', 'ops.cars.app', 'ops.apps', 'ops.features');
 update public.app_modules set label = 'Apps' where id = 'ops.apps';
 update public.app_modules set category = 'workflows' where id in ('workflows.forms', 'workflows.request_rules', 'workflows.sla');
 update public.app_modules set label = 'Staff access' where id = 'system.access';
