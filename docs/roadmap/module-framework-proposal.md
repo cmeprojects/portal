@@ -159,3 +159,17 @@ Each step is a live update with an undo, tested twice, as before.
 5. **Today's "all managers" delegations** (registers, roles): keep as grants for current managers at the move (recommended: no silent change)?
 6. **Pinned shortcuts:** browser-only first (no database)?
 7. **Approve Phase 1** (catalogue + sidebar, no permission change) to start?
+
+## 7. Owner decisions (12 Nov 2026) and progress
+1. Manager Administrator: a **designation for nominated managers only** (not all managers).
+2. Catalogue in the database, icons and routes in code, with an automatic match check: yes.
+3. Extra categories (My workspace, Website & engagement); empty categories hidden: yes.
+4. Approval queue: not now. Grants are recorded and can be removed instantly; add approval later for specific high-risk actions if wanted.
+5. Today's "all managers" settings kept as grants for current managers: yes.
+6. Pinned shortcuts saved in the database (follow the person across devices).
+7. **Step 1 done** (update 68):
+   - Catalogue: `app_modules` + `src/lib/modules.ts`, checked by `scripts/check-modules.mjs`, which runs with `npm run lint`.
+   - The sidebar is built from the catalogue. Items show only where today's rules already allowed the page, so there are **no permission changes**.
+   - Sidebar behaviour: groups fold and are remembered, modules expand to their submodules, icon mode with tooltips, pinned shortcuts, phone drawer, arrow keys.
+   - Top bar: search, pin this page, bell, account menu.
+   - Tests: 931/931 database checks; browser 60/60 (Phase 1), 22/22 (Phase 2), 20/20 (contracts), 8/8 (sidebar).

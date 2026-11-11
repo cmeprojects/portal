@@ -15,12 +15,26 @@ const EVENT = "portal:search";
 const ICON = { page: LayoutGrid, task: FileText, register: FolderKanban, person: User };
 const GROUP = { page: "Pages", task: "Tasks", register: "Registers", person: "People" };
 
-export function SearchButton({ variant }: { variant: "box" | "icon" }) {
+export function SearchButton({ variant }: { variant: "box" | "icon" | "top" }) {
   const open = () => window.dispatchEvent(new Event(EVENT));
   if (variant === "icon") {
     return (
       <button type="button" onClick={open} aria-label="Search" className="flex size-11 shrink-0 items-center justify-center rounded-md text-side-fg hover:bg-side-hover md:hidden">
         <Search aria-hidden="true" className="size-5" strokeWidth={1.8} />
+      </button>
+    );
+  }
+  // cmeprojects: the search box on the light top bar.
+  if (variant === "top") {
+    return (
+      <button
+        type="button"
+        onClick={open}
+        className="flex h-11 w-56 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm text-muted shadow-sm transition-colors hover:border-muted lg:w-72"
+      >
+        <Search aria-hidden="true" className="size-4" strokeWidth={1.8} />
+        <span className="flex-1 truncate text-left whitespace-nowrap">Search…</span>
+        <kbd className="rounded border border-line px-1.5 text-[11px] font-medium">Ctrl K</kbd>
       </button>
     );
   }

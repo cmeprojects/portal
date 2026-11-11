@@ -1,5 +1,4 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import { CommandPalette } from "@/components/command-palette";
 import { photoLinks } from "@/lib/avatars";
 import { Avatar } from "@/components/avatar";
 import Link from "next/link";
@@ -15,10 +14,12 @@ import { getBranding } from "@/lib/branding";
 import { ROLE_LABELS } from "@/lib/roles";
 import { BrandMark } from "@/components/brand-mark";
 import { Sidebar } from "@/components/sidebar";
+import { PinButton, UserMenu } from "@/components/topbar";
+import { CommandPalette, SearchButton } from "@/components/command-palette";
+import { buildNav } from "@/lib/nav-tree";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { navFor, sectionTabs } from "@/components/nav";
 import { getNavAccess } from "@/lib/nav-access";
-import { signOut } from "@/app/login/actions";
 import { LiveRefresh } from "@/components/live-refresh";
 import { DeployBar } from "@/components/deploy-bar";
 import { describeDrafts, getDrafts } from "@/lib/drafts";
@@ -63,27 +64,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   // cmeprojects: a tidy account block. Name and role stay visible; colours
   // and Sign out open from it, so the menu isn't crowded.
   const who = profile.full_name || profile.email;
-  const footer = (
-    <details className="group relative">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-side-hover [&::-webkit-details-marker]:hidden">
-        <Avatar name={who} src={myPhoto} size={36} className="bg-side-active text-side-fg" />
-        <span className="min-w-0 flex-1 text-sm">
-          <span className="block truncate font-medium text-side-fg">{who}</span>
-          <span className="block truncate text-xs text-side-muted">{ROLE_LABELS[profile.role]}</span>
-        </span>
-        <span aria-hidden="true" className="text-xs text-side-muted transition-transform group-open:rotate-180">
-          ▴
-        </span>
-        <span className="sr-only">Account menu</span>
-      </summary>
-      <div className="mt-2 flex flex-col gap-3 rounded-lg bg-side-hover p-3">
-        <ThemeSwitch />
-        <form action={signOut}>
-          <button className="min-h-9 text-sm font-semibold text-side-fg hover:underline">Sign out</button>
-        </form>
-      </div>
-    </details>
-  );
+
   // cmeprojects: always shown under the account block. The system admin also
   // sees which branch and version this copy runs, so a wrong Vercel setting
   // (for example a copy still on main) is easy to spot.
@@ -113,23 +94,51 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   const searchPages = [...groups.flatMap((g) => g.items.map((it) => ({ label: it.label, href: it.href }))), ...tabPages].filter(
     (p, i, all) => all.findIndex((x) => x.href === p.href && x.label === p.label) === i,
   );
+  // cmeprojects: the menu from the module catalogue. An item shows only where
+  // today's menu and section tabs already let this person in (no access change).
+  const allowed = new Set<string>(searchPages.map((p) => p.href));
+  for (const sec of ["account"] as const) for (const t of sectionTabs(sec, profile.role, features, navAccess)) allowed.add(t.href);
+  if (allowed.has("/compliance")) allowed.add("/compliance/expiry");
+  const tree = buildNav({
+    allowed,
+    homeLabel: groups[0]?.items[0]?.label ?? "Dashboard",
+    formsAsMaker: Boolean(navAccess.forms),
+    builtFeatures: navAccess.customFeatures ?? [],
+    featureReports: tabPages.filter((t) => t.href.startsWith("/reports/f/")).map((t) => ({ slug: t.href.slice("/reports/f/".length), label: t.label })),
+  });
+  const { data: pinRows } = await (await createClient()).from("pinned_items").select("href, label").eq("user_id", profile.id).order("position");
+  const pins = (pinRows ?? []) as { href: string; label: string }[];
+  const labels: Record<string, string> = Object.fromEntries(searchPages.map((p) => [p.href, p.label]));
+  const roleText = ROLE_LABELS[profile.role];
+  const avatar = <Avatar name={who} src={myPhoto} size={40} className="bg-brand text-brand-fg" />;
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[230px_minmax(0,1fr)] print:block">
+    <div className="min-h-screen md:flex print:block">
       <Sidebar
-        groups={groups}
+        tree={tree}
+        pins={pins}
         brandMark={<BrandMark brand={brand} />}
-        bell={<Bell items={bellItems} />}
-        footer={
+        help={brand.supportContact || undefined}
+        mobileActions={
           <>
-            {footer}
-            {credits}
+            <SearchButton variant="icon" />
+            <Bell items={bellItems} />
+            <UserMenu name={who} role={roleText} avatar={<Avatar name={who} src={myPhoto} size={34} className="bg-brand text-brand-fg" />} extra={<ThemeSwitch />} />
           </>
         }
+        footer={credits}
       />
       <CommandPalette pages={searchPages} people={["manager", "staff_admin", "system_admin"].includes(profile.role)} registers={Boolean(navAccess.seesRegisters)} />
       <IdleLogout minutes={idleMinutes} signedInAt={signedInAt} />
       {/* Menus, settings, the bell and task lists stay current; pages refresh when you come back to them. */}
       <LiveRefresh tables={["app_settings", "features", "live_signals", "notifications", "tasks", "people_change_requests", "profiles"]} onShow />
+      <div className="flex min-w-0 flex-1 flex-col">
+      {/* cmeprojects: the top bar (wide screens): search, pin this page, bell, your account. */}
+      <header className="sticky top-0 z-20 hidden items-center justify-end gap-3 border-b border-line/70 bg-page/85 px-8 py-3 backdrop-blur md:flex print:hidden">
+        <SearchButton variant="top" />
+        <PinButton pinned={pins.map((p) => p.href)} labels={labels} />
+        <Bell items={bellItems} tone="light" />
+        <UserMenu name={who} role={roleText} avatar={avatar} extra={<ThemeSwitch />} />
+      </header>
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
         {profileNeeded === true ? (
           <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-ink print:hidden">
@@ -159,6 +168,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         <DeployBar items={draftLines} />
         {children}
       </main>
+      </div>
     </div>
   );
 }

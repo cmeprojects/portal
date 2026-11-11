@@ -11,7 +11,7 @@ export type BellItem = { key: string; href: string; title: string; detail: strin
 
 // The bell beside the logo: tasks given to you, notices and answers to your
 // requests. Read ones stay in the list (cmeprojects); new ones are bold and counted.
-export function Bell({ items }: { items: BellItem[] }) {
+export function Bell({ items, tone = "dark" }: { items: BellItem[]; tone?: "dark" | "light" }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -41,7 +41,8 @@ export function Bell({ items }: { items: BellItem[] }) {
       if (!r) return;
       const width = Math.min(352, window.innerWidth - 32);
       // Wide screens: to the right of the menu. Phones: under the bell.
-      const wide = window.innerWidth >= 768;
+      // In the sidebar: beside the menu. On the top bar (and phones): under the bell, lined up on the right.
+      const wide = window.innerWidth >= 768 && tone === "dark";
       const left = wide ? r.right + 12 : Math.max(16, Math.min(r.right - width, window.innerWidth - width - 16));
       setPos({ top: wide ? Math.max(16, r.top) : r.bottom + 8, left });
     };
@@ -52,7 +53,7 @@ export function Bell({ items }: { items: BellItem[] }) {
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
     };
-  }, [open]);
+  }, [open, tone]);
 
   return (
     <div ref={box} className="relative">
@@ -62,7 +63,11 @@ export function Bell({ items }: { items: BellItem[] }) {
         title={words}
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className={`relative inline-flex size-11 items-center justify-center rounded-full hover:bg-side-hover md:size-9 ${count ? "text-side-fg" : "text-side-muted"}`}
+        className={
+          tone === "light"
+            ? "relative inline-flex size-11 items-center justify-center rounded-xl border border-line bg-surface text-ink shadow-sm hover:border-muted"
+            : `relative inline-flex size-11 items-center justify-center rounded-full hover:bg-side-hover md:size-9 ${count ? "text-side-fg" : "text-side-muted"}`
+        }
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
