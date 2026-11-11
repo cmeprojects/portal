@@ -71,6 +71,12 @@ export const MODULES: ModuleDef[] = [
   { id: "hr.contracts", category: "hr", label: "Contracts", icon: "FileSignature", href: "/contracts", sensitivity: "sensitive", delegable: true },
   { id: "hr.requests", category: "hr", label: "Staff requests", icon: "Inbox", href: "/people/requests", delegable: true },
 
+  // Permission-only modules (no page of their own; never shown in the menu).
+  { id: "hr.records", category: "hr", label: "Staff records", icon: "Users", href: "", delegable: true },
+  { id: "hr.records.details", category: "hr", parent: "hr.records", label: "Staff details", icon: "Users", href: "", delegable: true },
+  { id: "hr.records.payroll", category: "hr", parent: "hr.records", label: "Payroll and tax (bank, super, TFN)", icon: "Landmark", href: "", sensitivity: "sensitive", delegable: true },
+  { id: "hr.records.identity", category: "hr", parent: "hr.records", label: "Identity and work rights", icon: "ShieldCheck", href: "", sensitivity: "sensitive", delegable: true },
+
   // Clients & care
   { id: "clients.list", category: "clients", label: "Clients", icon: "HeartHandshake", href: "/settings/clients", delegable: true },
 
@@ -92,6 +98,15 @@ export const MODULES: ModuleDef[] = [
 
   // Administration (system & configuration)
   { id: "system.settings", category: "system", label: "System settings", icon: "Settings", href: "/system", sensitivity: "protected" },
+  { id: "system.settings.branding", category: "system", parent: "system.settings", label: "Branding", icon: "Settings", href: "", delegable: true },
+  { id: "system.settings.messages", category: "system", parent: "system.settings", label: "Messages", icon: "Settings", href: "", delegable: true },
+  { id: "system.settings.people", category: "system", parent: "system.settings", label: "People rules", icon: "Settings", href: "", delegable: true },
+  { id: "system.settings.compliance", category: "system", parent: "system.settings", label: "Compliance settings", icon: "Settings", href: "", delegable: true },
+  { id: "system.settings.tasks", category: "system", parent: "system.settings", label: "Task settings", icon: "Settings", href: "", delegable: true },
+  { id: "system.settings.reports", category: "system", parent: "system.settings", label: "Who can see reports", icon: "Settings", href: "", delegable: true },
+  { id: "system.settings.vehicles", category: "system", parent: "system.settings", label: "Car settings", icon: "Settings", href: "", delegable: true },
+  { id: "system.settings.hr", category: "system", parent: "system.settings", label: "HR Pack settings", icon: "Settings", href: "", delegable: true },
+  { id: "ops.registers.setup", category: "operations", parent: "ops.registers", label: "Set up any register", icon: "FolderKanban", href: "", delegable: true },
   { id: "system.access", category: "system", label: "Staff access", icon: "KeyRound", href: "/settings/access", sensitivity: "protected" },
   { id: "system.audit", category: "system", label: "Change log", icon: "History", href: "/system/audit", delegable: true },
   { id: "system.builder", category: "system", label: "Feature builder", icon: "Puzzle", href: "/system/builder", sensitivity: "protected" },
