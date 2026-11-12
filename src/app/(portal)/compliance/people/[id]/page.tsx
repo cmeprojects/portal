@@ -4,20 +4,21 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { canManageCompliance, getPeopleRules, seesCompliance } from "@/lib/settings";
+import { getPeopleRules } from "@/lib/settings";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { formatDate } from "@/lib/registers";
 import { FILES_BUCKET, KIND_LABELS, isDone, stateBadges, type ItemKind, type StatusRow } from "@/lib/compliance";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { ClearancePanel, ReviewForm, UploadForPersonForm } from "../../forms";
+import { managesComplianceFor, seesComplianceFor } from "@/lib/module-access";
 
 export const metadata: Metadata = { title: "Onboarding progress" };
 
 export default async function PersonCompliancePage({ params }: PageProps<"/compliance/people/[id]">) {
   const { profile: me } = await requireSession();
   const rules = await getPeopleRules();
-  if (!seesCompliance(me.role, rules)) redirect("/");
-  const manages = canManageCompliance(me.role, rules);
+  if (!(await seesComplianceFor(me.role, rules))) redirect("/");
+  const manages = await managesComplianceFor(me.role, rules);
   const { id } = await params;
   const supabase = await createClient();
   const { data: person } = await supabase.from("profiles").select("id, full_name, email, role, joined_at, onboarded_at").eq("id", id).maybeSingle();

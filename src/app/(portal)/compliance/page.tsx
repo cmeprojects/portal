@@ -5,13 +5,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { canManageCompliance, getPeopleRules, seesCompliance } from "@/lib/settings";
+import { getPeopleRules } from "@/lib/settings";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { CATEGORY_LABELS, FILES_BUCKET, KIND_TAB, isDone, stateBadges, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
 import { formatDate } from "@/lib/registers";
 import { Badge, Card, Notice, PageHeader, Tabs, buttonClass } from "@/components/ui";
 import { ItemForm, ReviewForm } from "./forms";
 import { TemplateUpload } from "../people/tax-forms";
+import { managesComplianceFor, seesComplianceFor } from "@/lib/module-access";
 
 export const metadata: Metadata = { title: "Onboarding" };
 
@@ -21,8 +22,8 @@ type Tab = (typeof TABS)[number];
 export default async function CompliancePage({ searchParams }: PageProps<"/compliance">) {
   const { profile: me, features } = await requireSession();
   const rules = await getPeopleRules();
-  if (!seesCompliance(me.role, rules)) redirect("/");
-  const manages = canManageCompliance(me.role, rules);
+  if (!(await seesComplianceFor(me.role, rules))) redirect("/");
+  const manages = await managesComplianceFor(me.role, rules);
   const params = await searchParams;
   const asked = String(params.tab ?? "progress") as Tab;
   // Each part can be switched off (cmeprojects): its tab is hidden, except for the system admin.

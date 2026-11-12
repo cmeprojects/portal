@@ -4,9 +4,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { getPeopleRules, getTimeZone, seesCompliance } from "@/lib/settings";
+import { getPeopleRules, getTimeZone } from "@/lib/settings";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
 import { todayIn } from "@/lib/tasks";
+import { seesExpiryFor } from "@/lib/module-access";
 
 export const metadata: Metadata = { title: "Expiry list" };
 
@@ -19,7 +20,7 @@ type Row = { key: string; person: string; personId: string; what: string; expire
 export default async function ExpiryPage({ searchParams }: PageProps<"/compliance/expiry">) {
   const { profile } = await requireSession();
   const rules = await getPeopleRules();
-  if (!seesCompliance(profile.role, rules)) redirect("/");
+  if (!(await seesExpiryFor(profile.role, rules))) redirect("/");
   const window = [30, 60, 90].includes(Number((await searchParams).days)) ? Number((await searchParams).days) : 60;
   const supabase = await createClient();
   const today = todayIn(await getTimeZone());

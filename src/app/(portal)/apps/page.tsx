@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
 import { OffForStaff } from "@/components/off-for-staff";
-import { canManageCars, canUseCars, getCarRules } from "@/lib/cars";
+import { canUseCars, getCarRules } from "@/lib/cars";
 import { getBranding, getCarsAppLook, getStaffAppLook, initialsOf } from "@/lib/branding";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +14,7 @@ import { Card, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { AppSquare } from "@/components/app-glyph";
 import { AutoPrint } from "@/components/auto-print";
+import { managesCarsFor } from "@/lib/module-access";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: `${initialsOf((await getBranding()).companyName) || "Our"} Apps` };
@@ -56,7 +57,7 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
       ? await supabase.from("custom_features").select("slug, name, menu_label, app_icon, app_colour").eq("status", "published").eq("enabled", true).eq("in_app", true).order("sort_order")
       : { data: [] };
   // Dashboard stickers for each car (car managers): open that car in whichever app has Cars.
-  const carManager = canUseCars(profile.role, features) && canManageCars(profile.role, rules);
+  const carManager = canUseCars(profile.role, features) && (await managesCarsFor(profile.role, rules));
   const { data: cars } = carManager ? await supabase.from("cars").select("id, name, rego").eq("active", true).order("name") : { data: [] };
   const carBase = carsOffered ? carsUrl : `${staffUrl}/cars`;
   const [carsQr, staffQr, ...rest] = await Promise.all([

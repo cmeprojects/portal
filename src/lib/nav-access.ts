@@ -3,8 +3,8 @@ import "server-only";
 import { cache } from "react";
 import type { NavAccess } from "@/components/nav";
 import type { Role } from "@/lib/roles";
-import { canInvite, canSeeComplianceReport, canSeeRegisters, canSeeReports, canSeeScoreboard, getMyAdminAreas, getPeopleRules, seesCompliance } from "@/lib/settings";
-import { canManageCars, canSeeCarReports, getCarRules } from "@/lib/cars";
+import { canInvite, canSeeComplianceReport, canSeeRegisters, canSeeReports, canSeeScoreboard, getMyAdminAreas, getPeopleRules } from "@/lib/settings";
+import { canSeeCarReports, getCarRules } from "@/lib/cars";
 import { getMenuFeatures, getReportFeatures } from "@/lib/custom-features";
 import { canMakeForms } from "@/lib/forms";
 import { requireSession } from "@/lib/session";
@@ -13,6 +13,7 @@ import { canUseCars } from "@/lib/cars";
 import { onboardingOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
+import { managesCarsFor, seesComplianceFor } from "@/lib/module-access";
 
 // What the menu and the section tabs show this person (worked out once per page).
 export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
@@ -31,12 +32,12 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     newStarterTasks: rules.newStarterTasks,
     canInvite: canInvite(role, rules),
     // Compliance is a premium add-on (on for companies that already use it).
-    seesCompliance: features.compliance !== false && seesCompliance(role, rules),
+    seesCompliance: features.compliance !== false && (await seesComplianceFor(role, rules)),
     seesScoreboard: canSeeScoreboard(role, rules),
     seesReports: canSeeReports(role, rules),
     complianceReport: features.compliance !== false && canSeeComplianceReport(role, rules),
     seesRegisters: role !== "new_starter" && canSeeRegisters(role, rules),
-    carManager: canManageCars(role, carRules),
+    carManager: await managesCarsFor(role, carRules),
     carReports: canSeeCarReports(role, carRules),
     adminAreas,
     customFeatures,

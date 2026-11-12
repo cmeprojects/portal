@@ -4,14 +4,15 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireSession } from "@/lib/session";
-import { canManageCompliance, getPeopleRules } from "@/lib/settings";
+import { getPeopleRules } from "@/lib/settings";
 import { friendlyError } from "@/lib/db-error";
 import { isRole } from "@/lib/roles";
 import { text, type FormState } from "@/lib/form";
+import { managesComplianceFor } from "@/lib/module-access";
 
 async function requireComplianceManager() {
   const session = await requireSession();
-  if (!canManageCompliance(session.profile.role, await getPeopleRules())) {
+  if (!(await managesComplianceFor(session.profile.role, await getPeopleRules()))) {
     throw new Error("Only people who manage Compliance can do this");
   }
   return session;

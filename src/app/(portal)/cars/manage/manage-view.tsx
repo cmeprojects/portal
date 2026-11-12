@@ -3,13 +3,14 @@ import Link from "next/link";
 import { SectionTabs } from "@/components/section-tabs";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
-import { canManageCars, canUseCars, getCarRules } from "@/lib/cars";
+import { canUseCars, getCarRules } from "@/lib/cars";
 import { getTimeZone } from "@/lib/settings";
 import { km } from "@/lib/car-types";
 import { Badge, Card, PageHeader, Tabs } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { AddClientForm, AddPurposeForm, CarForm, ClientFieldForm, ClientRow, CorrectTripForm, PurposeRow, ReturnForSomeoneForm, type CarRow } from "./forms";
 import { LiveRefresh } from "@/components/live-refresh";
+import { managesCarsFor } from "@/lib/module-access";
 
 const TABS = [
   { key: "out", text: "Cars out now" },
@@ -42,7 +43,7 @@ type TripRow = {
 export async function ManageCars({ base, tabParam }: { base: string; tabParam: string | string[] | undefined }) {
   const { profile, features } = await requireSession();
   const rules = await getCarRules();
-  if (!canUseCars(profile.role, features) || !canManageCars(profile.role, rules)) redirect(base);
+  if (!canUseCars(profile.role, features) || !(await managesCarsFor(profile.role, rules))) redirect(base);
   const asked = tabParam;
   const tab: Tab = TABS.some((t) => t.key === asked) ? (asked as Tab) : "out";
   const supabase = await createClient();

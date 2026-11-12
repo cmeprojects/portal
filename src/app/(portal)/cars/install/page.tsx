@@ -5,13 +5,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { requireSession } from "@/lib/session";
-import { canManageCars, canUseCars, getCarRules } from "@/lib/cars";
+import { canUseCars, getCarRules } from "@/lib/cars";
 import { getBranding } from "@/lib/branding";
 import { carsAppOffered } from "@/lib/staff-app";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
+import { managesCarsFor } from "@/lib/module-access";
 
 export const metadata: Metadata = { title: "Get the Cars app" };
 
@@ -25,7 +26,7 @@ export default async function InstallCarsAppPage({ searchParams }: PageProps<"/c
   const [brand, rules, params, offered] = await Promise.all([getBranding(), getCarRules(), searchParams, carsAppOffered(features)]);
   // Cars is inside the Staff app: that's the one app staff get (the company's Apps page).
   if (!offered) redirect("/apps");
-  const manages = canManageCars(profile.role, rules);
+  const manages = await managesCarsFor(profile.role, rules);
   const appUrl = `${env.siteUrl}/cars-app`;
   const onlyCar = typeof params.car === "string" ? params.car : "";
   const supabase = await createClient();

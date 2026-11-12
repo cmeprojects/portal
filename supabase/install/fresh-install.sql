@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270118000001_owner.sql
+-- Built from every migration up to: 20270119000001_step4_onboarding_cars.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -186,7 +186,8 @@ begin
     (88, '20270115000001_portal_settings.sql'),
     (89, '20270116000001_admin_two_items.sql'),
     (90, '20270117000001_manager_admins.sql'),
-    (91, '20270118000001_owner.sql')
+    (91, '20270118000001_owner.sql'),
+    (92, '20270119000001_step4_onboarding_cars.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -18030,5 +18031,56 @@ $function$;
 
 $m091$;
   insert into public.install_log (name) values ('20270118000001_owner.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270119000001_step4_onboarding_cars.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270119000001_step4_onboarding_cars.sql') then
+    return;
+  end if;
+  execute $m092$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects module framework step 4 (first modules): Onboarding and Cars
+-- follow the Access page too. Approving uploads and setting up onboarding is
+-- allowed by the existing role rules OR by "Onboarding: approve" given on the
+-- Access page; managing cars by the role rules OR "Manage cars: set up".
+-- Nobody loses access. People with no admin access given skip the extra check
+-- straight away (one index lookup), so pages stay as fast.
+-- No new SECURITY DEFINER function (two existing ones gain the extra rule).
+
+CREATE OR REPLACE FUNCTION public.can_manage_compliance()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.mfa_ok() and (public.my_role() = 'system_admin'
+         or public.my_role() = any (public.setting_roles('compliance.manager_roles'))
+         or (public.my_role() = 'manager'
+             and not exists (select 1 from public.profiles where role = 'staff_admin' and active))
+         -- cmeprojects step 4: or given Onboarding (approve) on the Access page.
+         or (exists (select 1 from public.access_grants g where g.user_id = auth.uid() and g.area is null and g.revoked_at is null)
+              and public.can('hr.onboarding', 'approve')))
+$function$;
+
+CREATE OR REPLACE FUNCTION public.can_manage_cars()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.cars_on()
+     and (public.my_role() = 'system_admin' or public.my_role() = any (public.setting_roles('vehicles.manager_roles'))
+          -- cmeprojects step 4: or given Manage cars (set up) on the Access page.
+          or (exists (select 1 from public.access_grants g where g.user_id = auth.uid() and g.area is null and g.revoked_at is null)
+              and public.can('ops.cars.manage', 'configure')))
+$function$;
+
+$m092$;
+  insert into public.install_log (name) values ('20270119000001_step4_onboarding_cars.sql');
 end;
 $part$;

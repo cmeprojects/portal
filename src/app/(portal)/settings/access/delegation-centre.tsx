@@ -127,6 +127,10 @@ const ACTION_WORD: Record<string, string> = {
 };
 const word = (a: string) => ACTION_WORD[a] ?? a.replace(/_/g, " ");
 
+// cmeprojects step 4: modules whose pages already follow the Access page.
+// The rest can be set now and take effect as each module is connected.
+const CONNECTED = /^(hr\.onboarding|ops\.cars)(\.|$)/;
+
 export function ModuleAccessEditor({
   admin,
   nodes,
@@ -378,6 +382,9 @@ export function ModuleAccessEditor({
                             <Choice id={n.id} value={draft[n.id]?.effect ?? "none"} onChange={set} admin={admin && !n.legacy} />
                           ) : n.legacy === "record" ? (
                             <span className="text-xs text-muted">Managers only</span>
+                          ) : null}
+                          {!n.legacy && n.sensitivity !== "protected" && !CONNECTED.test(n.id) && editable(n) ? (
+                            <span className="w-full text-xs text-muted">Can be set now; takes effect in a later update.</span>
                           ) : null}
                           {draft[n.id]?.effect === "allow" && n.actions.length > 1 ? (
                             <div className="flex w-full flex-wrap gap-1.5" role="group" aria-label={`What they can do in ${n.label}`}>
