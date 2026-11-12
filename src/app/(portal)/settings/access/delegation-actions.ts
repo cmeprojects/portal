@@ -18,7 +18,7 @@ async function log(actor: string, action: string, subject: string, details: Reco
   await createAdminClient().from("audit_log").insert({ actor_id: actor, action, entity: "profile", entity_id: subject, details });
 }
 
-export function endOfDaySydney(day: string): string {
+function endOfDaySydney(day: string): string {
   const probe = new Date(`${day}T12:00:00Z`);
   const offset =
     new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", timeZoneName: "longOffset" }).formatToParts(probe).find((p) => p.type === "timeZoneName")?.value.replace("GMT", "") || "+10:00";
@@ -104,7 +104,7 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
     admin
       ? Promise.resolve({ data: [] as Live[] })
       : supabase.from("access_grants").select("id, module_id, effect, actions, scope, scope_ids, expires_at, can_pass_on, granted_by").eq("user_id", profile.id).is("area", null).is("revoked_at", null).eq("can_pass_on", true),
-    supabase.from("app_modules").select("id, parent_id, category, label, sensitivity"),
+    supabase.from("app_modules").select("id, parent_id, category, label, sensitivity, actions"),
   ]);
   const byId = new Map((mods ?? []).map((m) => [m.id as string, m]));
   const labelOf = (id: string) => byId.get(id)?.label ?? id;
@@ -139,6 +139,19 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
     (g.expires_at ? new Date(g.expires_at).getTime() : 0) === (end.at ? new Date(end.at).getTime() : 0) &&
     g.can_pass_on === passOn;
 
+  // Passing on: "everything" means everything they hold (their actions, if limited).
+  if (!admin) {
+    for (const e of input.entries) {
+      const parent = parentFor(e.module);
+      if (!parent) return { error: `You can't pass on ${labelOf(e.module)}.` };
+      const held = ((mine ?? []) as Live[]).find((g) => g.id === parent)?.actions ?? [];
+      if (held.length) {
+        const own = (byId.get(e.module)?.actions as string[] | undefined) ?? [];
+        e.actions = (e.actions.length ? e.actions : own).filter((a) => held.includes(a));
+        if (!e.actions.length) return { error: `You can't pass on any of ${labelOf(e.module)}'s actions.` };
+      }
+    }
+  }
   const wanted = new Map(input.entries.map((e) => [e.module, e]));
   if (others.some((g) => wanted.has(g.module_id))) return { error: "Someone else already gave them part of this. Ask them or the system admin to change it." };
   const toClose = current.filter((g) => !wanted.has(g.module_id) || !same(g, wanted.get(g.module_id) as ModuleEntry));
@@ -184,7 +197,7 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
     }
   }
   const describe = (e: { module: string; effect: string; actions: string[] }) =>
-    `${labelOf(e.module)}${e.effect === "restrict" ? " (blocked)" : e.actions.length ? ` (${e.actions.join(", ").replace(/_/g, " ")})` : ""}`;
+    `${e.module.startsWith("cat_") ? `everything in ${labelOf(e.module)}` : labelOf(e.module)}${e.effect === "restrict" ? " (blocked)" : e.actions.length ? ` (${e.actions.join(", ").replace(/_/g, " ")})` : ""}`;
   await log(profile.id, "module_access_changed", input.userId, {
     given: toAdd.map(describe),
     removed: toClose.filter((g) => !wanted.has(g.module_id)).map((g) => describe({ module: g.module_id, effect: g.effect, actions: g.actions })),

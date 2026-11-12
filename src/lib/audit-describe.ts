@@ -29,6 +29,7 @@ const KIND_OF: Record<string, Kind> = {
   name_changed: "people", profile_updated: "people", photo_removed: "people", unstarted_person_deleted: "people", job_title_changed: "people", conditional_role_given: "people",
   upload_accepted: "onboarding", upload_rejected: "onboarding", upload_replacement_requested: "onboarding", uploaded_for_someone: "onboarding", agreement_signed: "onboarding",
   cleared_to_work: "onboarding", clearance_removed: "onboarding", work_override_given: "onboarding", work_override_ended: "onboarding",
+  admin_nominated: "access", admin_suspended: "access", admin_resumed: "access", admin_ended: "access", module_access_changed: "access", access_given: "access", access_removed: "access",
   delegation_changed: "access", area_shared: "access", area_unshared: "access", mfa_exempted: "access", mfa_required_again: "access",
   setting_changed: "settings", settings_deployed: "settings", feature_on: "settings", feature_off: "settings", website_settings_changed: "settings",
   registry_created: "tasks", register_added_from_template: "tasks", register_deleted: "tasks", custom_entry_fixed: "tasks", custom_entry_undone: "tasks", custom_targets_set: "tasks",
@@ -167,6 +168,20 @@ export async function describeAudit(rows: AuditRow[]): Promise<Described[]> {
       case "form_sent": text = `sent the form "${s(d.title)}"${d.count ? ` to ${s(d.count)} people` : ""}`; href = e ? `/forms?open=${e}` : undefined; break;
       case "signed_out_everywhere": text = `signed ${person} out of all devices`; break;
       case "signed_out_other_devices": text = `signed out of their other devices`; break;
+      case "admin_nominated": text = `nominated ${person} as a Manager Administrator${d.until ? ` (until ${day(d.until)})` : ""}`; href = "/settings/access"; break;
+      case "admin_suspended": text = `suspended ${person} as a Manager Administrator`; href = "/settings/access"; break;
+      case "admin_resumed": text = `resumed ${person} as a Manager Administrator`; href = "/settings/access"; break;
+      case "admin_ended": text = `ended ${poss(person)} Manager Administrator nomination (their admin access was removed)`; href = "/settings/access"; break;
+      case "module_access_changed": {
+        const given = Array.isArray(d.given) ? (d.given as string[]) : [];
+        const removed = Array.isArray(d.removed) ? (d.removed as string[]) : [];
+        text = [given.length ? `gave ${person} ${given.join("; ")}` : "", removed.length ? `${given.length ? "and removed" : `removed ${poss(person)}`} ${removed.join("; ")}` : ""].filter(Boolean).join(" ") || `changed ${poss(person)} admin access`;
+        if (d.until) text += ` (until ${day(d.until)})`;
+        href = "/settings/access";
+        break;
+      }
+      case "access_given": text = `gave ${person} ${s(d.what)} access (${s(d.scope) || "all staff"})${d.until ? ` until ${day(d.until)}` : ""}`; href = "/settings/access"; break;
+      case "access_removed": text = `removed ${poss(person)} ${s(d.what)} access`; href = "/settings/access"; break;
       case "signed_out_everyone": text = `signed everyone out of all devices`; break;
     }
     return { id: r.id, at: r.created_at, actor: r.actor_id ? who(r.actor_id) : "The system", actorId: r.actor_id, text, note, href, kind: KIND_OF[r.action] ?? "system", subjectId };

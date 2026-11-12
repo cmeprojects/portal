@@ -484,6 +484,13 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
             Who looks after each area besides you: all managers, or the managers and staff admins you choose. Security, Features,
             Notifications, Demo data and General always stay with you, and so does making system admins. Whatever you choose, you always have full access to everything.
           </p>
+          <p className="text-sm text-muted">
+            Manager Administrators and admin access to modules are on{" "}
+            <a href="/settings/access" className="font-semibold text-brand underline">
+              Access
+            </a>
+            .
+          </p>
           {rulesMissing ? null : (
             <div className="mt-2 flex flex-col divide-y divide-line">
               {AREAS.filter((a) => a !== "vehicles" || featureState("vehicles")?.on).map((a) => (

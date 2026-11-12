@@ -7,35 +7,55 @@ import { getTimeZone } from "@/lib/settings";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { ACCESS_AREAS, ACCESS_HINT, ACCESS_LABEL, nowMs, type AccessArea, type Grant } from "@/lib/access";
 import { GiveAccessForm, RemoveAccessButton } from "./forms";
+import { ModuleAccessEditor, NominateForm, NominationButtons, type Existing, type Limit, type TreeNode } from "./delegation-centre";
 import { DeleteRecordsButton } from "../../people/tax-forms";
 import { SettingForm } from "../../system/forms";
 import { withSettingDrafts } from "@/lib/drafts";
 
-export const metadata: Metadata = { title: "Staff access" };
+export const metadata: Metadata = { title: "Access" };
 
 // cmeprojects Phase 2: who can see and change staff records. The system admin
 // gives access to managers (and staff admins for Staff details); a manager
 // allowed to pass it on gives the same, never wider, to staff admins. Removing
 // access is immediate and also removes what was passed on. Nothing is deleted:
 // removed access stays in the history.
+//
+// cmeprojects step 3 (Delegation Centre): the system admin nominates Manager
+// Administrators and gives them admin access to modules with the permission
+// tree; a Manager Administrator passes on what they're allowed to, to staff
+// admins. Everything is checked again by the database and logged.
+type Designation = { id: string; user_id: string; status: "active" | "suspended" | "ended"; starts_at: string; expires_at: string | null; note: string; granted_by: string | null; created_at: string; changed_at: string | null; changed_by: string | null };
+type ModGrant = { id: string; module_id: string; effect: "allow" | "restrict"; actions: string[]; user_id: string; scope: "all" | "teams" | "people"; scope_ids: string[]; can_pass_on: boolean; expires_at: string | null; granted_by: string | null; parent_id: string | null; note: string; created_at: string; revoked_at: string | null; revoked_by: string | null };
+type ModRow = { id: string; parent_id: string | null; category: string; label: string; sensitivity: TreeNode["sensitivity"]; delegable: boolean; legacy_kind: TreeNode["legacy"]; actions: string[]; sort_order: number };
+
 export default async function AccessPage() {
   const { profile } = await requireRole(["system_admin", "manager"]);
   const admin = profile.role === "system_admin";
   const supabase = await createClient();
-  const [{ data: grantRows, error }, { data: people }, { data: teams }, timeZone] = await Promise.all([
-    supabase.from("access_grants").select("*").order("created_at", { ascending: false }).limit(500),
+  const [{ data: grantRows, error }, { data: people }, { data: teams }, timeZone, { data: desigRows }, { data: modRows }] = await Promise.all([
+    supabase.from("access_grants").select("*").order("created_at", { ascending: false }).limit(1000),
     supabase.from("profiles").select("id, full_name, email, role, active").order("full_name"),
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
     getTimeZone(),
+    supabase.from("admin_designations").select("*").order("created_at", { ascending: false }),
+    supabase.from("app_modules").select("id, parent_id, category, label, sensitivity, delegable, legacy_kind, actions, sort_order").eq("status", "active").order("sort_order"),
   ]);
   if (error) notFound(); // before the database update
-  const grants = (grantRows ?? []) as Grant[];
+  const allRows = (grantRows ?? []) as (Grant & { module_id: string | null })[];
+  const grants = allRows.filter((g) => g.area) as Grant[];
+  const modGrants = allRows.filter((g) => !g.area) as unknown as ModGrant[];
+  const designations = (desigRows ?? []) as Designation[];
   const now = nowMs();
   const live = (g: Grant) => !g.revoked_at && (!g.expires_at || new Date(g.expires_at).getTime() > now);
   // What this manager may pass on.
   const passOn = admin ? [...ACCESS_AREAS] : grants.filter((g) => g.user_id === profile.id && g.can_pass_on && live(g)).map((g) => g.area);
   const myGrants = grants.filter((g) => g.user_id === profile.id && live(g));
-  if (!admin && !passOn.length && !myGrants.length) notFound();
+  const liveMod = (g: ModGrant) => !g.revoked_at && (!g.expires_at || new Date(g.expires_at).getTime() > now);
+  const openDesig = designations.filter((d) => d.status !== "ended");
+  const iAmMA = openDesig.some((d) => d.user_id === profile.id && d.status === "active" && (!d.expires_at || new Date(d.expires_at).getTime() > now));
+  const myLimits: Limit[] = iAmMA ? modGrants.filter((g) => g.user_id === profile.id && liveMod(g) && g.can_pass_on && g.effect === "allow").map((g) => ({ module: g.module_id, actions: g.actions })) : [];
+  const myModAccess = modGrants.filter((g) => g.user_id === profile.id && liveMod(g));
+  if (!admin && !passOn.length && !myGrants.length && !iAmMA) notFound();
 
   const nameOf = new Map((people ?? []).map((p) => [p.id, p.full_name || p.email]));
   const teamOf = new Map((teams ?? []).map((t) => [t.id, t.name]));
@@ -51,15 +71,119 @@ export default async function AccessPage() {
         ? `Teams: ${g.scope_ids.map((t) => teamOf.get(t) ?? "a team").join(", ")}`
         : `People: ${g.scope_ids.map((p) => nameOf.get(p) ?? "someone").join(", ")}`;
 
+  // The permission tree: delegable categories, modules and submodules.
+  const mods = ((modRows ?? []) as ModRow[]).filter((m) => m.delegable || m.sensitivity === "protected");
+  const modById = new Map(mods.map((m) => [m.id, m]));
+  const depthOf = (m: ModRow): number => (m.id.startsWith("cat_") ? 0 : m.parent_id && modById.has(m.parent_id) ? depthOf(modById.get(m.parent_id) as ModRow) + 1 : 1);
+  const nodes: TreeNode[] = [];
+  const addTree = (m: ModRow) => {
+    nodes.push({ id: m.id, parent: m.id.startsWith("cat_") ? null : m.parent_id && modById.has(m.parent_id) ? m.parent_id : `cat_${m.category}`, category: m.category, label: m.label, sensitivity: m.sensitivity, legacy: m.legacy_kind, actions: m.actions, depth: depthOf(m) });
+    for (const c of mods.filter((x) => x.parent_id === m.id && !x.id.startsWith("cat_"))) addTree(c);
+  };
+  for (const c of mods.filter((m) => m.id.startsWith("cat_"))) {
+    addTree(c);
+    for (const m of mods.filter((x) => x.category === c.category && !x.id.startsWith("cat_") && (!x.parent_id || !modById.has(x.parent_id)))) addTree(m);
+  }
+  const labelOf = (id: string) => modById.get(id)?.label ?? id;
+  const dayInput = (iso: string | null) => (iso ? new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date(iso)) : "");
+  const existing: Record<string, Existing[]> = {};
+  for (const g of modGrants.filter((x) => !x.revoked_at && (admin || x.granted_by === profile.id))) {
+    (existing[g.user_id] ??= []).push({ module: g.module_id, effect: g.effect, actions: g.actions, scope: g.scope, teams: g.scope_ids, expires: dayInput(g.expires_at), passOn: g.can_pass_on, note: g.note });
+  }
+  const editorPeople = admin
+    ? openDesig.filter((d) => d.status === "active").map((d) => ({ id: d.user_id, name: nameOf.get(d.user_id) ?? "Someone" }))
+    : active("staff_admin");
+  const nominatable = active("manager").filter((m) => !openDesig.some((d) => d.user_id === m.id));
+  const actionText = (g: ModGrant) => (g.effect === "restrict" ? "blocked" : g.actions.length ? g.actions.join(", ").replace(/_/g, " ") : "everything");
+  const holders = [...new Set(modGrants.filter((g) => !g.revoked_at && (admin || g.granted_by === profile.id)).map((g) => g.user_id))];
+
   const current = grants.filter((g) => !g.revoked_at && g.user_id !== profile.id);
   const history = grants.filter((g) => g.revoked_at);
 
   return (
     <>
       <PageHeader
-        title="Staff access"
-        intro="Who can change staff details, and (from the next update) see payroll, tax and identity records. Access works straight away; removing it stops it straight away."
+        title="Access"
+        intro="Who can run which parts of the portal (Manager Administrators and what they pass on to staff admins) and who can see private staff records. Changes work straight away and are recorded."
       />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          ["Manager Administrators", openDesig.filter((d) => d.status === "active").length],
+          ["Suspended", openDesig.filter((d) => d.status === "suspended").length],
+          ["People with admin access", holders.length],
+          ["Staff records access", new Set(grants.filter((g) => live(g)).map((g) => g.user_id)).size],
+        ].map(([t, n]) => (
+          <Card key={t as string} className="px-4 py-3">
+            <p className="text-xs font-semibold tracking-wide text-muted uppercase">{t}</p>
+            <p className="text-2xl font-semibold tabular-nums">{n}</p>
+          </Card>
+        ))}
+      </div>
+
+      {admin ? (
+        <Card className="flex flex-col gap-4 p-5 sm:p-6">
+          <div>
+            <h2 className="heading-sm">Manager Administrators</h2>
+            <p className="text-sm text-muted">Managers you nominate to run parts of the portal. Only they can be given admin access below. Suspend to pause it; end it to remove their admin access.</p>
+          </div>
+          {openDesig.length ? (
+            <ul className="divide-y divide-line rounded-lg border border-line">
+              {openDesig.map((d) => (
+                <li key={d.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
+                  <div className="min-w-0 flex-1 basis-64">
+                    <p className="flex flex-wrap items-center gap-2 font-semibold">
+                      {nameOf.get(d.user_id) ?? "Someone"}
+                      {d.status === "suspended" ? <Badge tone="warn">Suspended</Badge> : d.expires_at && new Date(d.expires_at).getTime() <= now ? <Badge tone="warn">Ended by date</Badge> : <Badge tone="good">Active</Badge>}
+                    </p>
+                    <p className="text-muted">
+                      Since {day.format(new Date(d.starts_at))}
+                      {d.expires_at ? ` · until ${day.format(new Date(d.expires_at))}` : " · no end date"}
+                      {d.note ? ` · ${d.note}` : ""}
+                    </p>
+                    <p className="text-xs text-muted">
+                      Admin access: {modGrants.filter((g) => g.user_id === d.user_id && liveMod(g)).map((g) => `${labelOf(g.module_id)} (${actionText(g)})`).join(", ") || "none yet"}
+                    </p>
+                  </div>
+                  <NominationButtons id={d.id} name={nameOf.get(d.user_id) ?? "this person"} status={d.status === "suspended" ? "suspended" : "active"} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">Nobody yet.</p>
+          )}
+          <NominateForm managers={nominatable} />
+        </Card>
+      ) : null}
+
+      {!admin && myModAccess.length ? (
+        <Card className="flex flex-col gap-2 p-5">
+          <h2 className="heading-sm">Your admin access</h2>
+          <ul className="flex flex-col gap-1 text-sm">
+            {myModAccess.map((g) => (
+              <li key={g.id}>
+                <strong>{labelOf(g.module_id)}</strong> · {actionText(g)}
+                {g.expires_at ? ` · until ${day.format(new Date(g.expires_at))}` : ""}
+                {g.can_pass_on ? " · you may pass it on to staff admins" : ""}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      {admin || myLimits.length ? (
+        <Card className="flex flex-col gap-4 p-5 sm:p-6">
+          <div>
+            <h2 className="heading-sm">{admin ? "Admin access" : "Pass on admin access"}</h2>
+            <p className="text-sm text-muted">
+              {admin ? "Choose a Manager Administrator, turn on what they can run and check it before saving." : "Choose a staff admin and turn on parts of what you were allowed to pass on."}
+            </p>
+          </div>
+          <ModuleAccessEditor admin={admin} nodes={nodes} people={editorPeople} teams={(teams ?? []).map((t) => ({ id: t.id, name: t.name }))} existing={existing} limits={myLimits} />
+        </Card>
+      ) : null}
+
+      <h2 className="heading-sm mt-2">Staff records access</h2>
 
       {myGrants.length && !admin ? (
         <Card className="flex flex-col gap-2 p-5">
@@ -142,6 +266,22 @@ export default async function AccessPage() {
 
       {admin ? <KeepingRecords /> : null}
 
+      <AccessHistory
+        items={[
+          ...designations.flatMap((d) => [
+            { at: d.created_at, text: `${nameOf.get(d.granted_by ?? "") ?? "The system admin"} nominated ${nameOf.get(d.user_id) ?? "someone"} as a Manager Administrator` },
+            ...(d.changed_at ? [{ at: d.changed_at, text: `${nameOf.get(d.changed_by ?? "") ?? "The system admin"} ${d.status === "ended" ? "ended" : d.status === "suspended" ? "suspended" : "changed"} ${nameOf.get(d.user_id) ?? "someone"}'s nomination` }] : []),
+          ]),
+          ...modGrants
+            .filter((g) => admin || g.granted_by === profile.id || g.user_id === profile.id)
+            .flatMap((g) => [
+              { at: g.created_at, text: `${nameOf.get(g.granted_by ?? "") ?? "Someone"} gave ${nameOf.get(g.user_id) ?? "someone"} ${labelOf(g.module_id)} (${actionText(g)})${g.parent_id ? ", passed on" : ""}` },
+              ...(g.revoked_at ? [{ at: g.revoked_at, text: `${g.revoked_by ? (nameOf.get(g.revoked_by) ?? "Someone") : "The system"} removed ${nameOf.get(g.user_id) ?? "someone"}'s ${labelOf(g.module_id)} access` }] : []),
+            ]),
+        ]}
+        day={day}
+      />
+
       {history.length ? (
         <details className="rounded-xl border border-line bg-surface">
           <summary className="cursor-pointer px-5 py-3 text-sm font-semibold">History: removed access ({history.length})</summary>
@@ -157,6 +297,25 @@ export default async function AccessPage() {
         </details>
       ) : null}
     </>
+  );
+}
+
+// cmeprojects: admin access history, newest first (nominations and module access).
+function AccessHistory({ items, day }: { items: { at: string; text: string }[]; day: Intl.DateTimeFormat }) {
+  if (!items.length) return null;
+  const sorted = [...items].sort((a, b) => b.at.localeCompare(a.at));
+  return (
+    <details className="rounded-xl border border-line bg-surface">
+      <summary className="cursor-pointer px-5 py-3 text-sm font-semibold">History: admin access ({sorted.length})</summary>
+      <ul className="divide-y divide-line border-t border-line text-sm">
+        {sorted.slice(0, 300).map((i, n) => (
+          <li key={n} className="flex flex-wrap justify-between gap-2 px-5 py-2">
+            <span>{i.text}</span>
+            <span className="text-muted">{day.format(new Date(i.at))}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
