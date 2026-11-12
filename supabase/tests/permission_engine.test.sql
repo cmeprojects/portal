@@ -57,6 +57,11 @@ begin
 end $$;
 
 -- 2. New rules (modules not covered by today's rules).
+-- (Step 3: admin access only goes to nominated Manager Administrators.)
+select test.act_as('owner@example.com');
+set role authenticated;
+insert into public.admin_designations (user_id, granted_by) values (test.pid('boss@example.com'), test.pid('owner@example.com')), (test.pid('boss2@example.com'), test.pid('owner@example.com'));
+reset role;
 select test.act_as('boss@example.com');
 set role authenticated;
 select test.ok(not public.can('ops.cars.manage'), 'a manager without a grant can''t administer a module');
