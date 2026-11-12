@@ -40,11 +40,13 @@ export function buildNav(opts: {
       if (m.id === "workflows.forms" && !opts.formsAsMaker) continue;
       if (!m.href) continue;
       const match = m.match ?? [m.href];
-      const href = firstPage(m.href, match);
+      // A hub (Portal settings) opens its own page whenever one of its sub-pages is allowed.
+      const hubOk = m.hub && MODULES.some((c) => c.parent === m.id && c.href && allowed.has(c.href));
+      const href = hubOk ? m.href : m.hub ? null : firstPage(m.href, match);
       if (!href) continue;
       const home = m.id === "workspace.dashboard";
       // Sub-pages (shown only when the person chooses; see the sidebar).
-      const kids: NavNode[] = MODULES.filter((c) => c.parent === m.id && c.href && allowed.has(c.href)).map((c) => ({
+      const kids: NavNode[] = MODULES.filter((c) => !m.hub && c.parent === m.id && c.href && allowed.has(c.href)).map((c) => ({
         id: c.id,
         label: c.label,
         icon: c.icon,

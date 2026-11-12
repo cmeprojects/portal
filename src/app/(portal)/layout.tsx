@@ -17,6 +17,7 @@ import { Sidebar } from "@/components/sidebar";
 import { PinButton, UserMenu } from "@/components/topbar";
 import { CommandPalette, SearchButton } from "@/components/command-palette";
 import { buildNav } from "@/lib/nav-tree";
+import { getAllowedPages } from "@/lib/allowed-pages";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { navFor, sectionTabs } from "@/components/nav";
 import { getNavAccess } from "@/lib/nav-access";
@@ -86,19 +87,9 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
     </div>
   );
 
-  const groups = navFor(profile.role, features, navAccess);
-  // cmeprojects: search (Ctrl+K) covers the pages in this person's own menu.
-  const tabPages = (["tasks", "cars", "people", "reports", "settings"] as const).flatMap((sec) =>
-    sectionTabs(sec, profile.role, features, navAccess).map((t) => ({ label: t.text, href: t.href })),
-  );
-  const searchPages = [...groups.flatMap((g) => g.items.map((it) => ({ label: it.label, href: it.href }))), ...tabPages].filter(
-    (p, i, all) => all.findIndex((x) => x.href === p.href && x.label === p.label) === i,
-  );
-  // cmeprojects: the menu from the module catalogue. An item shows only where
-  // today's menu and section tabs already let this person in (no access change).
-  const allowed = new Set<string>(searchPages.map((p) => p.href));
-  for (const sec of ["account"] as const) for (const t of sectionTabs(sec, profile.role, features, navAccess)) allowed.add(t.href);
-  if (allowed.has("/compliance")) allowed.add("/compliance/expiry");
+  // cmeprojects: the menu from the module catalogue, showing only pages
+  // today's rules already let this person open (no access change).
+  const { groups, tabPages, searchPages, allowed } = await getAllowedPages();
   const tree = buildNav({
     allowed,
     homeLabel: groups[0]?.items[0]?.label ?? "Dashboard",

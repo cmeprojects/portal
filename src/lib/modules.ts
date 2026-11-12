@@ -26,6 +26,8 @@ export type ModuleDef = {
   sensitivity?: Sensitivity;
   delegable?: boolean;
   description?: string;
+  // A hub page that lists its sub-pages as cards (they're never menu items).
+  hub?: boolean;
 };
 
 export const CATEGORIES: { id: CategoryId; label: string }[] = [
@@ -85,8 +87,8 @@ export const MODULES: ModuleDef[] = [
 
   // Forms & workflows
   { id: "workflows.forms", category: "operations", label: "Forms", icon: "ClipboardList", href: "/forms", delegable: true },
-  { id: "workflows.request_rules", category: "system", parent: "system.settings", label: "Request approvals", icon: "ClipboardCheck", href: "/settings/requests", delegable: true },
-  { id: "workflows.sla", category: "system", parent: "system.settings", label: "SLA settings", icon: "Clock", href: "/settings/sla", delegable: true },
+  { id: "workflows.request_rules", category: "system", parent: "system.settings", label: "Request approvals", icon: "ClipboardCheck", href: "/settings/requests", delegable: true, description: "Who approves each kind of staff request, and when it escalates." },
+  { id: "workflows.sla", category: "system", parent: "system.settings", label: "SLA settings", icon: "Clock", href: "/settings/sla", delegable: true, description: "Due dates by priority, reminders and escalation." },
 
   // Reports & insights
   { id: "insights.reports", category: "insights", label: "Reports", icon: "BarChart3", href: "/reports", match: ["/reports", "/reports/cars", "/reports/compliance", "/reports/f"], delegable: true },
@@ -100,8 +102,8 @@ export const MODULES: ModuleDef[] = [
   { id: "engagement.website", category: "engagement", label: "Website settings", icon: "Globe", href: "/assistant", delegable: true },
 
   // Administration (system & configuration)
-  { id: "system.settings", category: "system", label: "Portal settings", icon: "Settings", href: "/system", match: ["/system", "/settings/sla", "/settings/requests"], sensitivity: "protected" },
-  { id: "system.settings.general", category: "system", parent: "system.settings", label: "System settings", icon: "Settings", href: "/system", sensitivity: "protected" },
+  { id: "system.settings", category: "system", label: "Portal settings", icon: "Settings", href: "/settings", match: ["/settings", "/system", "/settings/sla", "/settings/requests"], hub: true, sensitivity: "protected" },
+  { id: "system.settings.general", category: "system", parent: "system.settings", label: "System settings", icon: "Settings", href: "/system", sensitivity: "protected", description: "Features, branding, messages, people rules, notifications, security and delegation areas." },
   { id: "system.settings.branding", category: "system", parent: "system.settings", label: "Branding", icon: "Settings", href: "", delegable: true },
   { id: "system.settings.messages", category: "system", parent: "system.settings", label: "Messages", icon: "Settings", href: "", delegable: true },
   { id: "system.settings.people", category: "system", parent: "system.settings", label: "People rules", icon: "Settings", href: "", delegable: true },
@@ -111,10 +113,10 @@ export const MODULES: ModuleDef[] = [
   { id: "system.settings.vehicles", category: "system", parent: "system.settings", label: "Car settings", icon: "Settings", href: "", delegable: true },
   { id: "system.settings.hr", category: "system", parent: "system.settings", label: "HR Pack settings", icon: "Settings", href: "", delegable: true },
   { id: "ops.registers.setup", category: "operations", parent: "ops.registers", label: "Set up any register", icon: "FolderKanban", href: "", delegable: true },
-  { id: "system.access", category: "system", label: "Access & delegation", icon: "KeyRound", href: "/settings/access", sensitivity: "protected" },
-  { id: "system.audit", category: "system", label: "Change log", icon: "History", href: "/system/audit", delegable: true },
-  { id: "system.builder", category: "system", label: "Feature builder", icon: "Puzzle", href: "/system/builder", sensitivity: "protected" },
-  { id: "system.health", category: "system", label: "System health", icon: "Activity", href: "/system/health", sensitivity: "protected" },
+  { id: "system.access", category: "system", label: "Access", icon: "KeyRound", href: "/settings/access", sensitivity: "protected" },
+  { id: "system.audit", category: "system", parent: "system.settings", label: "Change log", icon: "History", href: "/system/audit", delegable: true, description: "Who changed what in the settings, and when." },
+  { id: "system.builder", category: "system", parent: "system.settings", label: "Feature builder", icon: "Puzzle", href: "/system/builder", sensitivity: "protected", description: "Build new apps: registers with their own forms and reports." },
+  { id: "system.health", category: "system", parent: "system.settings", label: "System health", icon: "Activity", href: "/system/health", sensitivity: "protected", description: "Database, storage, email and speed checks." },
 ];
 
 export const moduleById = (id: string) => MODULES.find((m) => m.id === id);

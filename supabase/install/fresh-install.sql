@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270115000001_portal_settings.sql
+-- Built from every migration up to: 20270116000001_admin_two_items.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -181,7 +181,8 @@ begin
     (85, '20270112000001_module_catalogue.sql'),
     (86, '20270113000001_permission_engine.sql'),
     (87, '20270114000001_menu_tidy.sql'),
-    (88, '20270115000001_portal_settings.sql')
+    (88, '20270115000001_portal_settings.sql'),
+    (89, '20270116000001_admin_two_items.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -17656,5 +17657,27 @@ update public.app_modules set parent_id = 'system.settings' where id in ('workfl
 
 $m088$;
   insert into public.install_log (name) values ('20270115000001_portal_settings.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270116000001_admin_two_items.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270116000001_admin_two_items.sql') then
+    return;
+  end if;
+  execute $m089$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects: Administration has two items: Portal settings (one page with
+-- every settings section: System settings, SLA, Request approvals, Change
+-- log, Feature builder, System health, and more later) and Access (the
+-- delegation page). Catalogue only; nobody's access changes.
+update public.app_modules set parent_id = 'system.settings' where id in ('system.audit', 'system.builder', 'system.health');
+update public.app_modules set label = 'Access' where id = 'system.access';
+
+$m089$;
+  insert into public.install_log (name) values ('20270116000001_admin_two_items.sql');
 end;
 $part$;

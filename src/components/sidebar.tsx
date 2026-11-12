@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Menu, Star, X } from "lucide-react";
+import { ChevronDown, ChevronRight, CircleHelp, Menu, PanelLeftClose, PanelLeftOpen, Star, X } from "lucide-react";
 import type { NavCategory, NavNode } from "@/lib/nav-tree";
 import { ModuleIcon } from "@/components/module-icons";
 import { toast } from "@/components/toast";
@@ -258,17 +258,17 @@ export function Sidebar({
         <div className="min-w-0 flex-1">{brandMark}</div>
         {mobileActions}
       </div>
-      {/* cmeprojects: a round button on the menu's edge to shrink it to icons or bring it back. */}
+      {/* cmeprojects: a tab on the menu's edge to shrink it to icons or bring it back. */}
       <button
         type="button"
         onClick={() => write(STORE_RAIL, rail ? "" : "1")}
         aria-label={rail ? "Show the full menu" : "Shrink the menu to icons"}
         title={rail ? "Show the full menu" : "Shrink the menu to icons"}
-        className={`fixed top-[86px] z-40 hidden size-7 place-items-center rounded-full border border-line bg-surface text-ink shadow-md transition-[left] duration-200 hover:bg-brand hover:text-brand-fg motion-reduce:transition-none md:grid print:hidden ${
-          rail ? "left-[62px]" : "left-[242px]"
+        className={`group fixed top-[78px] z-40 hidden h-9 w-6 items-center justify-center rounded-r-lg border border-l-0 border-line bg-surface text-muted shadow-[2px_2px_8px_rgba(15,29,46,0.12)] transition-[left,color,background-color] duration-200 hover:bg-brand hover:text-brand-fg motion-reduce:transition-none md:flex print:hidden ${
+          rail ? "left-[76px]" : "left-[256px]"
         }`}
       >
-        {rail ? <ChevronRight aria-hidden="true" className="size-4" /> : <ChevronLeft aria-hidden="true" className="size-4" />}
+        {rail ? <PanelLeftOpen aria-hidden="true" className="size-4" strokeWidth={1.75} /> : <PanelLeftClose aria-hidden="true" className="size-4" strokeWidth={1.75} />}
       </button>
       {drawer ? <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setDrawer(false)} aria-hidden="true" /> : null}
       <aside
