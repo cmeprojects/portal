@@ -244,6 +244,7 @@ export function Sidebar({
           <p className="px-3 pb-3 text-xs whitespace-pre-line text-side-muted">{help}</p>
         </details>
       ) : null}
+      {compact ? null : (
       <button
         type="button"
         onClick={() => write(STORE_RAIL, rail ? "" : "1")}
@@ -254,6 +255,7 @@ export function Sidebar({
         {rail ? <PanelLeftOpen aria-hidden="true" className="size-4" /> : <PanelLeftClose aria-hidden="true" className="size-4" />}
         {compact ? null : "Shrink menu"}
       </button>
+      )}
       {compact ? null : footer}
     </div>
   );
@@ -282,6 +284,18 @@ export function Sidebar({
             </button>
           ) : null}
         </div>
+        {/* cmeprojects: in icon mode, the button to bring the full menu back sits at the top. */}
+        {compact ? (
+          <button
+            type="button"
+            onClick={() => write(STORE_RAIL, "")}
+            aria-label="Show the full menu"
+            title="Show the full menu"
+            className="grid size-11 place-items-center rounded-xl bg-side-hover text-side-fg hover:bg-brand hover:text-brand-fg"
+          >
+            <PanelLeftOpen aria-hidden="true" className="size-5" />
+          </button>
+        ) : null}
         {menu}
         {bottom}
       </aside>
