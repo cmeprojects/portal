@@ -1,91 +1,147 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ExternalLink, History } from "lucide-react";
 import { requireSession } from "@/lib/session";
-import { getMyAdminAreas } from "@/lib/settings";
+import { getMyAdminAreas, getTimeZone } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
-import { ROLE_LABELS, isRole } from "@/lib/roles";
-import { Card, PageHeader } from "@/components/ui";
+import { Card, EmptyState, PageHeader, buttonClass, inputClass } from "@/components/ui";
+import { KIND_LABEL, describeAudit, type AuditRow, type Kind } from "@/lib/audit-describe";
 
 export const metadata: Metadata = { title: "Change log" };
 
-const WHEN = new Intl.DateTimeFormat("en-AU", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Australia/Melbourne",
-});
+const PAGE = 100;
+const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
-function describe(action: string, details: Record<string, unknown>, entityId: string | null, names: Map<string, string>): string {
-  const who = entityId ? names.get(entityId) ?? entityId : "";
-  const roleName = (v: unknown) => (isRole(v) ? ROLE_LABELS[v] : String(v));
-  switch (action) {
-    case "role_changed":
-      return `Changed ${who}'s role from ${roleName(details.from)} to ${roleName(details.to)}`;
-    case "deactivated":
-      return `Deactivated ${who}`;
-    case "reactivated":
-      return `Reactivated ${who}`;
-    case "team_changed":
-      return `Moved ${who} to another team`;
-    case "invited":
-      return `Invited ${entityId} as ${roleName(details.role)}`;
-    case "invite_resent":
-      return `Resent the invite to ${who}`;
-    case "mfa_reset":
-      return `Reset ${who}'s two-factor login`;
-    case "signed_out_everywhere":
-      return `Signed ${who} out of all devices`;
-    case "signed_out_other_devices":
-      return `Signed out of their other devices`;
-    case "signed_out_everyone":
-      return `Signed everyone out of all devices`;
-    case "feature_on":
-      return `Switched on: ${entityId}`;
-    case "feature_off":
-      return `Switched off: ${entityId}`;
-    case "setting_changed":
-      return `Changed setting ${entityId} to ${JSON.stringify(details.to)}`;
-    default:
-      return `${action} ${entityId ?? ""}`;
-  }
-}
-
-export default async function AuditPage() {
+// cmeprojects: the change log, in plain sentences that say exactly what
+// happened, to whom and to what, with a link to open it. Filter by person
+// (who did it or who it was about), kind of change, dates and words. The log
+// itself can't be edited or deleted.
+export default async function AuditPage({ searchParams }: PageProps<"/system/audit">) {
   const { profile } = await requireSession();
   if (!(await getMyAdminAreas(profile.role)).includes("audit")) redirect("/");
+  const params = await searchParams;
+  const person = one(params.person);
+  const kind = one(params.kind) as Kind | "";
+  const from = one(params.from);
+  const to = one(params.to);
+  const q = one(params.q).trim().toLowerCase();
+  const before = Number(one(params.before)) || 0;
+
   const supabase = await createClient();
-  const [{ data: rows }, { data: people }] = await Promise.all([
-    supabase.from("audit_log").select("id, actor_id, action, entity_id, details, created_at").order("created_at", { ascending: false }).limit(300),
-    supabase.from("profiles").select("id, full_name, email"),
+  let query = supabase.from("audit_log").select("id, actor_id, action, entity, entity_id, details, created_at").order("id", { ascending: false }).limit(q || kind ? 600 : PAGE);
+  if (before) query = query.lt("id", before);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(from)) query = query.gte("created_at", `${from}T00:00:00+10:00`);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(to)) query = query.lte("created_at", `${to}T23:59:59+11:00`);
+  if (/^[0-9a-f-]{36}$/.test(person)) query = query.or(`actor_id.eq.${person},entity_id.eq.${person}`);
+  const [{ data }, { data: people }, timeZone] = await Promise.all([
+    query,
+    supabase.from("profiles").select("id, full_name, email").order("full_name"),
+    getTimeZone(),
   ]);
-  const names = new Map((people ?? []).map((p) => [p.id, p.full_name || p.email]));
+  const rows = (data ?? []) as AuditRow[];
+  let items = await describeAudit(rows);
+  if (kind) items = items.filter((i) => i.kind === kind);
+  if (q) items = items.filter((i) => `${i.actor} ${i.text} ${i.note ?? ""}`.toLowerCase().includes(q));
+  items = items.slice(0, PAGE);
+  const when = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone });
+  const older = rows.length && !q && !kind ? rows[rows.length - 1].id : 0;
+  const keep = new URLSearchParams(Object.entries({ person, kind, from, to, q: one(params.q) }).filter(([, v]) => v));
 
   return (
     <>
-      <PageHeader
-        eyebrow="System"
-        title="Change log"
-        intro="Every change to people, roles and settings, newest first. This log can't be edited or deleted."
-      />
+      <PageHeader title="Change log" intro="Every change to people, onboarding, access and settings: who did what, to whom and to what. It can't be edited or deleted." />
+      <form method="get" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_9rem_9rem_auto]" role="search">
+        <label className="flex flex-col gap-1 text-sm font-semibold">
+          Search
+          <input name="q" defaultValue={one(params.q)} placeholder="For example: First Aid, Sam, role" className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-semibold">
+          Person
+          <select name="person" defaultValue={person} className={inputClass}>
+            <option value="">Anyone</option>
+            {(people ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.full_name || p.email}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-semibold">
+          Kind of change
+          <select name="kind" defaultValue={kind} className={inputClass}>
+            <option value="">All</option>
+            {(Object.keys(KIND_LABEL) as Kind[]).map((k) => (
+              <option key={k} value={k}>
+                {KIND_LABEL[k]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-semibold">
+          From
+          <input type="date" name="from" defaultValue={from} className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-semibold">
+          To
+          <input type="date" name="to" defaultValue={to} className={inputClass} />
+        </label>
+        <div className="flex items-end gap-2">
+          <button className={buttonClass("primary", "h-11")}>Filter</button>
+          {keep.toString() ? (
+            <Link href="/system/audit" className={buttonClass("outline", "h-11")}>
+              Clear
+            </Link>
+          ) : null}
+        </div>
+      </form>
       <Card className="overflow-hidden">
-        {(rows ?? []).length === 0 ? (
-          <p className="p-5 text-muted">Nothing has changed yet.</p>
+        {items.length === 0 ? (
+          <EmptyState icon={History} title="Nothing found" text={keep.toString() ? "Try a different filter." : "Nothing has changed yet."} />
         ) : (
-          <ol>
-            {(rows ?? []).map((r) => (
-              <li key={r.id} className="flex flex-wrap justify-between gap-x-6 gap-y-1 border-t border-line px-5 py-3 first:border-t-0">
-                <span className="text-sm">
-                  <span className="font-semibold">{r.actor_id ? names.get(r.actor_id) ?? "Someone" : "System"}</span>{" "}
-                  {describe(r.action, r.details ?? {}, r.entity_id, names).replace(/^./, (c) => c.toLowerCase())}
-                </span>
-                <time dateTime={r.created_at} className="text-sm text-muted">
-                  {WHEN.format(new Date(r.created_at))}
+          <ol className="divide-y divide-line">
+            {items.map((i) => (
+              <li key={i.id} className="flex flex-wrap items-start gap-x-6 gap-y-1 px-5 py-3">
+                <div className="min-w-0 flex-1 basis-80 text-sm">
+                  <p>
+                    {i.actorId ? (
+                      <Link href={`/system/audit?person=${i.actorId}`} className="font-semibold hover:underline">
+                        {i.actor}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold">{i.actor}</span>
+                    )}{" "}
+                    {i.text}
+                  </p>
+                  {i.note ? <p className="mt-0.5 text-muted">“{i.note}”</p> : null}
+                  <p className="mt-1 flex flex-wrap gap-3 text-xs text-muted">
+                    <span className="rounded-full bg-page px-2 py-0.5 ring-1 ring-line">{KIND_LABEL[i.kind]}</span>
+                    {i.href ? (
+                      <Link href={i.href} className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">
+                        Open <ExternalLink aria-hidden="true" className="size-3" />
+                      </Link>
+                    ) : null}
+                    {i.subjectId ? (
+                      <Link href={`/system/audit?person=${i.subjectId}`} className="font-semibold text-brand hover:underline">
+                        Everything about this person
+                      </Link>
+                    ) : null}
+                  </p>
+                </div>
+                <time dateTime={i.at} className="text-sm whitespace-nowrap text-muted">
+                  {when.format(new Date(i.at))}
                 </time>
               </li>
             ))}
           </ol>
         )}
       </Card>
+      {older ? (
+        <Link href={`/system/audit?${new URLSearchParams([...keep.entries(), ["before", String(older)]]).toString()}`} className={buttonClass("outline", "self-start")}>
+          Older changes
+        </Link>
+      ) : null}
     </>
   );
 }
