@@ -48,6 +48,7 @@ export async function nominateAdmin(_: FormState, form: FormData): Promise<FormS
     return { error: friendlyError(error) };
   }
   await log(profile.id, "admin_nominated", userId, { until: end.at, note });
+  await tell(userId, "You're now a Manager Administrator", `The system admin can now give you admin access to parts of the portal${end.at ? `, until ${dayText(end.at)}` : ""}. You'll be told what you can use.`);
   revalidatePath(PAGE);
   return { message: "Nominated. You can now give them admin access below." };
 }
@@ -63,6 +64,11 @@ export async function changeNomination(_: FormState, form: FormData): Promise<Fo
   if (!data?.length) return { error: "This nomination has already ended." };
   const action = status === "active" ? "admin_resumed" : status === "suspended" ? "admin_suspended" : "admin_ended";
   await log(profile.id, action, data[0].user_id, {});
+  await tell(
+    data[0].user_id,
+    status === "active" ? "Your admin access is back" : status === "suspended" ? "Your admin access is paused" : "You're no longer a Manager Administrator",
+    status === "active" ? "The system admin resumed your Manager Administrator access." : status === "suspended" ? "The system admin paused your Manager Administrator access, and what you passed on." : "Your admin access was removed. Staff records access, if you have it, is unchanged.",
+  );
   revalidatePath(PAGE);
   return {
     message:
@@ -71,12 +77,45 @@ export async function changeNomination(_: FormState, form: FormData): Promise<Fo
 }
 
 export type ModuleEntry = { module: string; effect: "allow" | "restrict"; actions: string[] };
-export type SaveModuleAccess = { userId: string; entries: ModuleEntry[]; scope: "all" | "teams"; teams: string[]; expires: string; passOn: boolean; note: string };
+export type SaveModuleAccess = {
+  userId: string;
+  entries: ModuleEntry[];
+  scope: "all" | "teams" | "people";
+  ids: string[];
+  expires: string;
+  passOn: boolean;
+  note: string;
+};
 
-type Live = { id: string; module_id: string; effect: string; actions: string[]; scope: string; scope_ids: string[]; expires_at: string | null; can_pass_on: boolean; granted_by: string | null };
+// cmeprojects: staff records access lives in the tree too; underneath it's
+// still the three record areas with their own rules (and the TFN tick).
+const RECORD_AREA: Record<string, "staff_details" | "payroll_tax" | "identity_docs"> = {
+  "hr.records.details": "staff_details",
+  "hr.records.payroll": "payroll_tax",
+  "hr.records.identity": "identity_docs",
+};
+const AREA_MODULE = Object.fromEntries(Object.entries(RECORD_AREA).map(([m, a]) => [a, m])) as Record<string, string>;
 
-// Save one person's module access: what changed is closed and given again
-// (old grants stay in the history), what was taken off is removed.
+type Live = {
+  id: string;
+  area: string | null;
+  module_id: string | null;
+  effect: string;
+  actions: string[];
+  scope: string;
+  scope_ids: string[];
+  expires_at: string | null;
+  can_pass_on: boolean;
+  can_reveal_tfn: boolean;
+  granted_by: string | null;
+  parent_id: string | null;
+};
+const COLS = "id, area, module_id, effect, actions, scope, scope_ids, expires_at, can_pass_on, can_reveal_tfn, granted_by, parent_id";
+const keyOf = (g: Live) => (g.area ? AREA_MODULE[g.area] : (g.module_id as string));
+
+// Save one person's access (modules and staff records): what changed is
+// closed and given again (old grants stay in the history), what was taken off
+// is removed. The database checks every rule again.
 export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormState> {
   const { profile } = await requireRole(["system_admin", "manager"]);
   const admin = profile.role === "system_admin";
@@ -86,35 +125,38 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
     if (!MODULE.test(e.module) || !["allow", "restrict"].includes(e.effect) || !Array.isArray(e.actions) || e.actions.some((a) => !/^[a-z_]+$/.test(a))) {
       return { error: "Something went wrong. Please refresh and try again." };
     }
-    if (!admin && e.effect === "restrict") return { error: "Only the system admin can block parts." };
+    if ((!admin || RECORD_AREA[e.module]) && e.effect === "restrict") return { error: "That can't be blocked, only turned off." };
   }
-  const scope = input.scope === "teams" ? "teams" : "all";
-  const teams = scope === "teams" ? input.teams.filter((t) => UUID.test(t)) : [];
-  if (scope === "teams" && !teams.length) return { error: "Choose at least one team." };
+  const scope = input.scope === "teams" || input.scope === "people" ? input.scope : "all";
+  const ids = scope === "all" ? [] : (input.ids ?? []).filter((t) => UUID.test(t));
+  if (scope !== "all" && !ids.length) return { error: scope === "teams" ? "Choose at least one team." : "Choose at least one person." };
   const form = new FormData();
   form.set("expires", input.expires ?? "");
   const end = endDate(form);
   if (end.error) return { error: end.error };
-  const passOn = admin && Boolean(input.passOn);
   const note = String(input.note ?? "").trim().slice(0, 300);
 
   const supabase = await createClient();
-  const [{ data: theirs }, { data: mine }, { data: mods }] = await Promise.all([
-    supabase.from("access_grants").select("id, module_id, effect, actions, scope, scope_ids, expires_at, can_pass_on, granted_by").eq("user_id", input.userId).is("area", null).is("revoked_at", null),
-    admin
-      ? Promise.resolve({ data: [] as Live[] })
-      : supabase.from("access_grants").select("id, module_id, effect, actions, scope, scope_ids, expires_at, can_pass_on, granted_by").eq("user_id", profile.id).is("area", null).is("revoked_at", null).eq("can_pass_on", true),
+  const [{ data: theirs }, { data: mine }, { data: mods }, { data: target }] = await Promise.all([
+    supabase.from("access_grants").select(COLS).eq("user_id", input.userId).is("revoked_at", null),
+    admin ? Promise.resolve({ data: [] as Live[] }) : supabase.from("access_grants").select(COLS).eq("user_id", profile.id).is("revoked_at", null).eq("can_pass_on", true),
     supabase.from("app_modules").select("id, parent_id, category, label, sensitivity, actions"),
+    supabase.from("profiles").select("role, active").eq("id", input.userId).maybeSingle(),
   ]);
+  if (!target?.active) return { error: "Choose an active person." };
+  const passOn = admin && Boolean(input.passOn) && target.role === "manager";
   const byId = new Map((mods ?? []).map((m) => [m.id as string, m]));
   const labelOf = (id: string) => byId.get(id)?.label ?? id;
-  const current = ((theirs ?? []) as Live[]).filter((g) => admin || g.granted_by === profile.id);
-  const others = ((theirs ?? []) as Live[]).filter((g) => !current.includes(g));
+  const live = (theirs ?? []) as Live[];
+  const current = live.filter((g) => admin || g.granted_by === profile.id);
+  const others = live.filter((g) => !current.includes(g));
+  const myLive = ((mine ?? []) as Live[]).filter((g) => g.effect === "allow" && (!g.expires_at || new Date(g.expires_at) > new Date()));
 
-  // Which of my pass-on grants covers a module (nearest first).
-  const parentFor = (module: string): string | null => {
+  // Which of my pass-on grants covers it (nearest first).
+  const parentFor = (module: string): Live | undefined => {
+    if (RECORD_AREA[module]) return myLive.find((g) => g.area === RECORD_AREA[module]);
     const m = byId.get(module);
-    if (!m) return null;
+    if (!m) return undefined;
     const chain: string[] = [module];
     if (m.sensitivity === "normal") {
       let p = m.parent_id as string | null;
@@ -125,60 +167,66 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
       chain.push(`cat_${m.category}`);
     }
     for (const c of chain) {
-      const g = ((mine ?? []) as Live[]).find((x) => x.module_id === c && x.effect === "allow");
-      if (g) return g.id;
+      const g = myLive.find((x) => !x.area && x.module_id === c);
+      if (g) return g;
     }
-    return null;
+    return undefined;
   };
+  // Revealing TFNs: payroll with "Reveal TFN" (or everything) ticked.
+  const tfn = (e: ModuleEntry) => e.module === "hr.records.payroll" && (!e.actions.length || e.actions.includes("reveal_tfn"));
 
-  const same = (g: Live, e: ModuleEntry) =>
-    g.effect === e.effect &&
-    [...g.actions].sort().join() === [...e.actions].sort().join() &&
-    g.scope === scope &&
-    [...g.scope_ids].sort().join() === [...teams].sort().join() &&
-    (g.expires_at ? new Date(g.expires_at).getTime() : 0) === (end.at ? new Date(end.at).getTime() : 0) &&
-    g.can_pass_on === passOn;
-
-  // Passing on: "everything" means everything they hold (their actions, if limited).
   if (!admin) {
     for (const e of input.entries) {
       const parent = parentFor(e.module);
       if (!parent) return { error: `You can't pass on ${labelOf(e.module)}.` };
-      const held = ((mine ?? []) as Live[]).find((g) => g.id === parent)?.actions ?? [];
-      if (held.length) {
+      if (RECORD_AREA[e.module]) {
+        if (tfn(e) && !parent.can_reveal_tfn) e.actions = ["view"];
+        continue;
+      }
+      // "Everything" means everything they hold (their actions, if limited).
+      if (parent.actions.length) {
         const own = (byId.get(e.module)?.actions as string[] | undefined) ?? [];
-        e.actions = (e.actions.length ? e.actions : own).filter((a) => held.includes(a));
+        e.actions = (e.actions.length ? e.actions : own).filter((a) => parent.actions.includes(a));
         if (!e.actions.length) return { error: `You can't pass on any of ${labelOf(e.module)}'s actions.` };
       }
     }
   }
+  const sameWhen = (g: Live) =>
+    g.scope === scope &&
+    [...g.scope_ids].sort().join() === [...ids].sort().join() &&
+    (g.expires_at ? new Date(g.expires_at).getTime() : 0) === (end.at ? new Date(end.at).getTime() : 0) &&
+    g.can_pass_on === (passOn && true);
+  const same = (g: Live, e: ModuleEntry) =>
+    RECORD_AREA[e.module]
+      ? sameWhen(g) && g.can_reveal_tfn === tfn(e)
+      : g.effect === e.effect && [...g.actions].sort().join() === [...e.actions].sort().join() && sameWhen(g) && (e.effect === "restrict" ? true : g.can_pass_on === passOn);
+
   const wanted = new Map(input.entries.map((e) => [e.module, e]));
-  if (others.some((g) => wanted.has(g.module_id))) return { error: "Someone else already gave them part of this. Ask them or the system admin to change it." };
-  const toClose = current.filter((g) => !wanted.has(g.module_id) || !same(g, wanted.get(g.module_id) as ModuleEntry));
+  if (others.some((g) => wanted.has(keyOf(g)))) return { error: "Someone else already gave them part of this. Ask them or the system admin to change it." };
+  const toClose = current.filter((g) => !wanted.has(keyOf(g)) || !same(g, wanted.get(keyOf(g)) as ModuleEntry));
   const toAdd = input.entries.filter((e) => {
-    const g = current.find((x) => x.module_id === e.module);
+    const g = current.find((x) => keyOf(x) === e.module);
     return !g || !same(g, e);
   });
   if (!toClose.length && !toAdd.length) return { message: "Nothing changed." };
 
-  const rows = [];
-  for (const e of toAdd) {
-    const parent = admin ? null : parentFor(e.module);
-    if (!admin && !parent) return { error: `You can't pass on ${labelOf(e.module)}.` };
-    rows.push({
-      module_id: e.module,
-      effect: e.effect,
-      actions: e.actions,
+  const rowFor = (e: ModuleEntry) => {
+    const area = RECORD_AREA[e.module];
+    const base = {
       user_id: input.userId,
       scope,
-      scope_ids: teams,
+      scope_ids: ids,
       expires_at: end.at,
-      can_pass_on: passOn && e.effect === "allow",
-      parent_id: parent,
+      parent_id: admin ? null : (parentFor(e.module)?.id ?? null),
       granted_by: profile.id,
       note,
-    });
-  }
+    };
+    // Every row has the same columns (one insert sends them together).
+    return area
+      ? { ...base, area, module_id: null, effect: "allow", actions: [] as string[], can_pass_on: passOn, can_reveal_tfn: area === "payroll_tax" && tfn(e) }
+      : { ...base, area: null, module_id: e.module, effect: e.effect, actions: e.actions, can_pass_on: passOn && e.effect === "allow", can_reveal_tfn: false };
+  };
+  const rows = toAdd.map(rowFor);
   if (toClose.length) {
     const { error } = await supabase.from("access_grants").update({ revoked_at: new Date().toISOString() }).in("id", toClose.map((g) => g.id));
     if (error) return { error: friendlyError(error) };
@@ -189,21 +237,52 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
       // Put back what was closed, so a refused save changes nothing.
       if (toClose.length) {
         await supabase.from("access_grants").insert(
-          toClose.map((g) => ({ module_id: g.module_id, effect: g.effect, actions: g.actions, user_id: input.userId, scope: g.scope, scope_ids: g.scope_ids, expires_at: g.expires_at, can_pass_on: g.can_pass_on, granted_by: profile.id, parent_id: null, note: "restored after a refused change" })),
+          toClose.map((g) => ({
+            area: g.area,
+            module_id: g.area ? null : g.module_id,
+            effect: g.effect,
+            actions: g.actions,
+            user_id: input.userId,
+            scope: g.scope,
+            scope_ids: g.scope_ids,
+            expires_at: g.expires_at,
+            can_pass_on: g.can_pass_on,
+            can_reveal_tfn: g.can_reveal_tfn,
+            granted_by: profile.id,
+            parent_id: g.parent_id,
+            note: "put back after a refused change",
+          })),
         );
       }
-      if (error.code === "42501") return { error: admin ? "That isn't allowed. Admin access only goes to a Manager Administrator, and protected parts can't be given." : "That isn't allowed: only what you may pass on, to a staff admin, never wider or longer." };
+      if (error.code === "42501") {
+        return {
+          error: admin
+            ? "That isn't allowed. Admin access to modules only goes to a Manager Administrator; payroll and identity records only to managers; protected parts never."
+            : "That isn't allowed: only what you may pass on, to a staff admin, never wider or longer.",
+        };
+      }
       return { error: friendlyError(error) };
     }
   }
-  const describe = (e: { module: string; effect: string; actions: string[] }) =>
-    `${e.module.startsWith("cat_") ? `everything in ${labelOf(e.module)}` : labelOf(e.module)}${e.effect === "restrict" ? " (blocked)" : e.actions.length ? ` (${e.actions.join(", ").replace(/_/g, " ")})` : ""}`;
-  await log(profile.id, "module_access_changed", input.userId, {
-    given: toAdd.map(describe),
-    removed: toClose.filter((g) => !wanted.has(g.module_id)).map((g) => describe({ module: g.module_id, effect: g.effect, actions: g.actions })),
-    until: end.at,
-    note,
-  });
+  const describe = (e: { module: string; effect: string; actions: string[]; tfn?: boolean }) =>
+    RECORD_AREA[e.module]
+      ? `${labelOf(e.module)}${e.module === "hr.records.payroll" ? (e.tfn ? " (can reveal TFNs)" : " (no TFNs)") : ""}`
+      : `${e.module.startsWith("cat_") ? `everything in ${labelOf(e.module)}` : labelOf(e.module)}${e.effect === "restrict" ? " (blocked)" : e.actions.length ? ` (${e.actions.join(", ").replace(/_/g, " ")})` : ""}`;
+  const given = toAdd.map((e) => describe({ ...e, tfn: tfn(e) }));
+  const removed = toClose.filter((g) => !wanted.has(keyOf(g))).map((g) => describe({ module: keyOf(g), effect: g.effect, actions: g.actions, tfn: g.can_reveal_tfn }));
+  await log(profile.id, "module_access_changed", input.userId, { given, removed, until: end.at, note });
+  // Tell them (bell and email).
+  await tell(
+    input.userId,
+    "Your access changed",
+    [given.length ? `You can now use: ${given.join("; ")}.` : "", removed.length ? `Removed: ${removed.join("; ")}.` : "", end.at ? `Until ${dayText(end.at)}.` : ""].filter(Boolean).join(" "),
+  );
   revalidatePath(PAGE);
   return { message: "Saved. It works straight away." };
 }
+
+// cmeprojects: a bell notice (and email) about their access.
+async function tell(user: string, title: string, body: string) {
+  await createAdminClient().rpc("notify", { p_user: user, p_kind: "access", p_title: title, p_body: body, p_href: "/settings/access", p_email: true });
+}
+const dayText = (iso: string) => new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" });

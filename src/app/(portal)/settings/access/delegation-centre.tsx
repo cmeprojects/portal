@@ -57,6 +57,7 @@ export function NominateForm({ managers }: { managers: Option[] }) {
 
 export function NominationButtons({ id, name, status }: { id: string; name: string; status: "active" | "suspended" }) {
   const [pending, start] = useTransition();
+
   const [error, setError] = useState("");
   const go = (next: "active" | "suspended" | "ended", text: string, action: string) => async () => {
     if (next !== "active" && !(await askConfirm(text, { action }))) return;
@@ -104,7 +105,9 @@ export type TreeNode = {
   actions: string[];
   depth: number; // 0 = category
 };
-export type Existing = { module: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "teams" | "people"; teams: string[]; expires: string; passOn: boolean; note: string };
+export type Existing = { module: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "teams" | "people"; ids: string[]; expires: string; passOn: boolean; note: string };
+// Who can be chosen: managers (Manager Administrators or not) and staff admins.
+export type Person = { id: string; name: string; role: "manager" | "staff_admin"; ma: boolean };
 // A Manager Administrator's own pass-on access: which modules, which actions ([] = all).
 export type Limit = { module: string; actions: string[] };
 
@@ -129,15 +132,20 @@ export function ModuleAccessEditor({
   nodes,
   people,
   teams,
+  scopePeople,
   existing,
   limits,
+  legacyOn,
 }: {
   admin: boolean;
   nodes: TreeNode[];
-  people: Option[];
+  people: Person[];
   teams: Option[];
+  scopePeople: Option[];
   existing: Record<string, Existing[]>;
   limits: Limit[];
+  // Settings areas each person looks after today (set under Settings areas).
+  legacyOn: Record<string, string[]>;
 }) {
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   // The chain that can decide a node: itself, then (normal ones only) its parents and category.
@@ -145,7 +153,7 @@ export function ModuleAccessEditor({
     const out = new Map<string, string[]>();
     for (const n of nodes) {
       const c = [n.id];
-      if (n.depth > 0 && n.sensitivity === "normal") {
+      if (n.depth > 0 && n.sensitivity === "normal" && !n.legacy) {
         let p = n.parent;
         while (p) {
           c.push(p);
@@ -167,14 +175,11 @@ export function ModuleAccessEditor({
     }
     return undefined;
   };
-  const editable = (n: TreeNode) => !n.legacy && n.sensitivity !== "protected" && Boolean(limitFor(n.id));
-  const shown = nodes.filter((n) => (n.depth === 0 ? true : admin ? true : editable(n) || nodes.some((d) => d.parent === n.id && editable(d))));
-  const categories = shown.filter((n) => n.depth === 0).filter((c) => shown.some((n) => n.category === c.category && n.depth > 0 && editable(n)));
 
   const [person, setPerson] = useState("");
   const [draft, setDraft] = useState<Draft>({});
-  const [scope, setScope] = useState<"all" | "teams">("all");
-  const [chosenTeams, setChosenTeams] = useState<string[]>([]);
+  const [scope, setScope] = useState<"all" | "teams" | "people">("all");
+  const [chosenIds, setChosenIds] = useState<string[]>([]);
   const [expires, setExpires] = useState("");
   const [passOn, setPassOn] = useState(false);
   const [note, setNote] = useState("");
@@ -183,14 +188,26 @@ export function ModuleAccessEditor({
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
 
+  const who = people.find((p) => p.id === person);
+  // What can be changed for the chosen person. Staff records: staff details to
+  // managers or staff admins, payroll and identity to managers. Modules: only
+  // for a Manager Administrator. Settings areas are set further down.
+  const editable = (n: TreeNode) => {
+    if (n.sensitivity === "protected" || n.legacy === "settings") return false;
+    if (n.legacy === "record") return admin ? !who || n.id === "hr.records.details" || who.role === "manager" : limits.some((l) => l.module === n.id);
+    return admin ? !who || who.ma : Boolean(limitFor(n.id));
+  };
+  const shown = nodes.filter((n) => (n.depth === 0 ? true : admin ? true : editable(n) || nodes.some((d) => d.parent === n.id && editable(d))));
+  const categories = shown.filter((n) => n.depth === 0).filter((c) => shown.some((n) => n.category === c.category && n.depth > 0 && editable(n)));
+
   const choose = (id: string) => {
     setPerson(id);
     setReviewing(false);
     setError("");
     const rows = existing[id] ?? [];
     setDraft(Object.fromEntries(rows.map((r) => [r.module, { effect: r.effect, actions: r.actions }])));
-    setScope(rows[0]?.scope === "teams" ? "teams" : "all");
-    setChosenTeams(rows[0]?.teams ?? []);
+    setScope(rows[0]?.scope ?? "all");
+    setChosenIds(rows[0]?.ids ?? []);
     setExpires(rows[0]?.expires ?? "");
     setPassOn(rows[0]?.passOn ?? false);
     setNote(rows[0]?.note ?? "");
@@ -201,7 +218,8 @@ export function ModuleAccessEditor({
     for (const c of chain.get(id) ?? []) if (draft[c]) return draft[c];
     return undefined;
   };
-  const allowed = (n: TreeNode) => !n.legacy && n.sensitivity !== "protected" && resolve(n.id)?.effect === "allow";
+  const allowed = (n: TreeNode) =>
+    n.legacy === "record" ? draft[n.id]?.effect === "allow" : n.legacy === "settings" ? (legacyOn[person] ?? []).includes(n.id) : n.sensitivity !== "protected" && resolve(n.id)?.effect === "allow";
   const inside = (n: TreeNode) => nodes.filter((d) => d.id !== n.id && !d.legacy && d.sensitivity !== "protected" && (n.depth === 0 ? d.category === n.category : (chain.get(d.id) ?? []).includes(n.id) || isUnder(d, n)));
   const isUnder = (d: TreeNode, n: TreeNode) => {
     let p = d.parent;
@@ -249,7 +267,7 @@ export function ModuleAccessEditor({
 
   const save = () =>
     start(async () => {
-      const r = await saveModuleAccess({ userId: person, entries, scope, teams: chosenTeams, expires, passOn, note });
+      const r = await saveModuleAccess({ userId: person, entries, scope, ids: chosenIds, expires, passOn: passOn && who?.role === "manager", note });
       if (r?.error) {
         setError(r.error);
         setReviewing(false);
@@ -260,30 +278,39 @@ export function ModuleAccessEditor({
     });
 
   if (!people.length) {
-    return <p className="text-sm text-muted">{admin ? "Nominate a Manager Administrator first; admin access only goes to them." : "There are no active staff admins to pass access on to."}</p>;
+    return <p className="text-sm text-muted">{admin ? "There are no active managers or staff admins." : "There are no active staff admins to pass access on to."}</p>;
   }
 
   // In plain words, for the review.
   // Top-most parts switched on (a category, or a module not already covered by its parent).
   const willDo = nodes
-    .filter((n) => (n.depth === 0 ? draft[n.id]?.effect === "allow" : allowed(n) && !(n.parent && byId.get(n.parent) && resolve(n.parent)?.effect === "allow" && n.sensitivity === "normal")))
+    .filter((n) => n.legacy !== "settings")
+    .filter((n) => (n.depth === 0 ? draft[n.id]?.effect === "allow" : allowed(n) && !(n.parent && byId.get(n.parent) && resolve(n.parent)?.effect === "allow" && n.sensitivity === "normal" && !n.legacy)))
     .map((n) => {
+      if (n.legacy === "record") return n.id === "hr.records.payroll" ? `${n.label}${draft[n.id]?.actions.length ? ", without revealing TFNs" : ", including revealing TFNs"}` : n.label;
       const r = resolve(n.id);
       const kids = inside(n);
       const blocked = kids.filter((k) => !allowed(k));
       if (n.depth === 0) return `Everything in ${n.label}${blocked.length ? `, except ${blocked.map((b) => b.label).join(", ")}` : ""}`;
       return `${n.label}${r?.actions.length ? ` (${r.actions.map(word).join(", ").toLowerCase()} only)` : ""}${kids.length && !blocked.length ? " and everything in it" : blocked.length ? `, except ${blocked.map((b) => b.label).join(", ")}` : ""}`;
     });
+  const rows0 = existing[person] ?? [];
+  const mixed = rows0.some((r) => r.scope !== rows0[0].scope || r.ids.join() !== rows0[0].ids.join() || r.expires !== rows0[0].expires);
   const sensitiveSkipped = nodes.filter((n) => n.depth > 0 && n.sensitivity === "sensitive" && !n.legacy && !allowed(n) && entries.some((e) => e.module === `cat_${n.category}` && e.effect === "allow"));
 
   return (
     <div className="flex flex-col gap-4">
-      <Field label={admin ? "Manager Administrator" : "Staff admin"} htmlFor="ma-person" hint={admin ? "Admin access only goes to a nominated Manager Administrator." : "You can pass on only what you were allowed to, never wider or longer."}>
+      <Field
+        label="Person"
+        htmlFor="ma-person"
+        hint={admin ? "Managers and staff admins. Admin access to modules only goes to a Manager Administrator." : "Staff admins. You can pass on only what you were allowed to, never wider or longer."}
+      >
         <select id="ma-person" value={person} onChange={(e) => choose(e.target.value)} className={inputClass}>
           <option value="">Choose a person</option>
           {people.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
+              {admin ? ` · ${p.ma ? "Manager Administrator" : p.role === "manager" ? "Manager" : "Staff admin"}` : ""}
               {existing[p.id]?.length ? " · has access" : ""}
             </option>
           ))}
@@ -292,6 +319,11 @@ export function ModuleAccessEditor({
 
       {person ? (
         <>
+          {admin && who && !who.ma ? (
+            <Notice tone="info">
+              {who.name} isn&apos;t a Manager Administrator, so only staff records access can be given here. Nominate them above (managers only) to give admin access to modules.
+            </Notice>
+          ) : null}
           <p className="text-sm text-muted">
             Turn a whole category or module <strong>On</strong> and everything inside it follows. {admin ? <>Use <strong>Block</strong> to keep one part out. </> : null}
             Sensitive parts are never included automatically; they need their own On.
@@ -313,7 +345,7 @@ export function ModuleAccessEditor({
                       {c.label}
                       <StatusPill s={status(c)} />
                     </button>
-                    {admin ? <Choice id={c.id} value={draft[c.id]?.effect ?? "none"} onChange={set} admin={admin} /> : null}
+                    {admin && who?.ma ? <Choice id={c.id} value={draft[c.id]?.effect ?? "none"} onChange={set} admin={admin} /> : null}
                   </div>
                   {expanded ? (
                     <ul className="divide-y divide-line border-t border-line">
@@ -332,14 +364,20 @@ export function ModuleAccessEditor({
                                 <Lock aria-hidden="true" className="mr-1 inline size-3" />
                                 System admin only
                               </Badge>
-                            ) : n.legacy ? null : (
+                            ) : n.legacy ? (
+                              <StatusPill s={allowed(n) ? "on" : "off"} />
+                            ) : (
                               <StatusPill s={status(n)} />
                             )}
                           </span>
-                          {n.legacy ? (
-                            <span className="text-xs text-muted">{n.legacy === "settings" ? "Set in System settings → Delegation" : "Set under Staff records access below"}</span>
+                          {n.legacy === "settings" ? (
+                            <a href="#settings-areas" className="text-xs font-semibold text-brand underline">
+                              Change under Settings areas
+                            </a>
                           ) : editable(n) ? (
-                            <Choice id={n.id} value={draft[n.id]?.effect ?? "none"} onChange={set} admin={admin} />
+                            <Choice id={n.id} value={draft[n.id]?.effect ?? "none"} onChange={set} admin={admin && !n.legacy} />
+                          ) : n.legacy === "record" ? (
+                            <span className="text-xs text-muted">Managers only</span>
                           ) : null}
                           {draft[n.id]?.effect === "allow" && n.actions.length > 1 ? (
                             <div className="flex w-full flex-wrap gap-1.5" role="group" aria-label={`What they can do in ${n.label}`}>
@@ -371,25 +409,27 @@ export function ModuleAccessEditor({
           <fieldset className="grid gap-3 rounded-lg border border-line p-3 sm:grid-cols-2">
             <legend className="px-1 text-sm font-semibold">Conditions</legend>
             <Field label="Covers" htmlFor="ma-scope">
-              <select id="ma-scope" value={scope} onChange={(e) => setScope(e.target.value as "all" | "teams")} className={inputClass}>
+              <select id="ma-scope" value={scope} onChange={(e) => (setScope(e.target.value as "all" | "teams" | "people"), setChosenIds([]))} className={inputClass}>
                 <option value="all">All staff</option>
                 <option value="teams">Only some teams</option>
+                <option value="people">Only some people</option>
               </select>
             </Field>
             <Field label="Ends (optional)" htmlFor="ma-end">
               <input id="ma-end" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} className={inputClass} />
             </Field>
-            {scope === "teams" ? (
-              <div className="flex flex-wrap gap-3 text-sm sm:col-span-2">
-                {teams.map((t) => (
+            {scope !== "all" ? (
+              <div className="flex max-h-56 flex-wrap gap-x-4 gap-y-2 overflow-y-auto text-sm sm:col-span-2">
+                {(scope === "teams" ? teams : scopePeople).map((t) => (
                   <label key={t.id} className="flex items-center gap-2">
-                    <input type="checkbox" checked={chosenTeams.includes(t.id)} onChange={(e) => setChosenTeams((c) => (e.target.checked ? [...c, t.id] : c.filter((x) => x !== t.id)))} />
+                    <input type="checkbox" checked={chosenIds.includes(t.id)} onChange={(e) => setChosenIds((c) => (e.target.checked ? [...c, t.id] : c.filter((x) => x !== t.id)))} />
                     {t.name}
                   </label>
                 ))}
               </div>
             ) : null}
-            {admin ? (
+            {mixed ? <p className="text-xs text-warn sm:col-span-2">Their access had different conditions; saving applies these to everything you give them.</p> : null}
+            {admin && who?.role === "manager" ? (
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input type="checkbox" checked={passOn} onChange={(e) => setPassOn(e.target.checked)} />
                 May pass this on to staff admins (never wider, never further)

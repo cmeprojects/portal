@@ -5,7 +5,7 @@ import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { getMyAdminAreas } from "@/lib/settings";
-import { AREAS, AREA_HINTS, AREA_LABELS, type Area } from "@/lib/delegation";
+import { AREA_HINTS, AREA_LABELS, type Area } from "@/lib/delegation";
 import { createClient } from "@/lib/supabase/server";
 import { getDrafts, withSettingDrafts, type Draft } from "@/lib/drafts";
 import { NOTIFICATION_GROUPS, asChannelMap, channelOn } from "@/lib/notification-catalogue";
@@ -15,7 +15,6 @@ import { IncludedSwitch } from "./builder/forms";
 import { PRESETS } from "./options";
 import {
   AppIconPicker,
-  DelegationPicker,
   DemoDataPanel,
   FeatureSwitch,
   LookedAfterBy,
@@ -221,7 +220,6 @@ const GENERAL: Section[] = [
 const ADMIN_TABS = [
   { key: "features", label: "Features" },
   { key: "notifications", label: "Notifications" },
-  { key: "delegation", label: "Delegation" },
   { key: "general", label: "General" },
   { key: "demo", label: "Demo data" },
 ];
@@ -477,30 +475,6 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
           </div>
           <p className="text-sm text-muted">Groups for features that are off aren&apos;t shown: nothing is sent for them.</p>
         </>
-      ) : tab === "delegation" ? (
-        <Card className="flex flex-col gap-1 px-5 py-4">
-          <h2 className="heading-sm">Delegation</h2>
-          <p className="text-sm text-muted">
-            Who looks after each area besides you: all managers, or the managers and staff admins you choose. Security, Features,
-            Notifications, Demo data and General always stay with you, and so does making system admins. Whatever you choose, you always have full access to everything.
-          </p>
-          <p className="text-sm text-muted">
-            Manager Administrators and admin access to modules are on{" "}
-            <a href="/settings/access" className="font-semibold text-brand underline">
-              Access
-            </a>
-            .
-          </p>
-          {rulesMissing ? null : (
-            <div className="mt-2 flex flex-col divide-y divide-line">
-              {AREAS.filter((a) => a !== "vehicles" || featureState("vehicles")?.on).map((a) => (
-                <div key={a} className="py-4">
-                  <DelegationPicker area={a} label={AREA_LABELS[a]} hint={AREA_HINTS[a]} {...delegation(a)} choices={choices} />
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
       ) : tab === "demo" ? (
         <Card className="px-5 py-4">
           <h2 className="mb-1 heading-sm">Demo data</h2>

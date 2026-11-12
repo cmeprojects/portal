@@ -6,11 +6,18 @@ import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { ACCESS_AREAS, ACCESS_HINT, ACCESS_LABEL, nowMs, type AccessArea, type Grant } from "@/lib/access";
-import { GiveAccessForm, RemoveAccessButton } from "./forms";
-import { ModuleAccessEditor, NominateForm, NominationButtons, type Existing, type Limit, type TreeNode } from "./delegation-centre";
+import { RemoveAccessButton } from "./forms";
+import { ModuleAccessEditor, NominateForm, NominationButtons, type Existing, type Limit, type Person, type TreeNode } from "./delegation-centre";
+import { DelegationPicker, type DelegationValue, type PersonChoice } from "../../system/forms";
+import { AREAS, AREA_HINTS, AREA_LABELS, type Area } from "@/lib/delegation";
+import { getDrafts } from "@/lib/drafts";
+import { ROLE_LABELS, isRole } from "@/lib/roles";
 import { DeleteRecordsButton } from "../../people/tax-forms";
 import { SettingForm } from "../../system/forms";
 import { withSettingDrafts } from "@/lib/drafts";
+
+// cmeprojects: staff records areas as modules in the tree.
+const AREA_MODULE: Record<AccessArea, string> = { staff_details: "hr.records.details", payroll_tax: "hr.records.payroll", identity_docs: "hr.records.identity" };
 
 export const metadata: Metadata = { title: "Access" };
 
@@ -26,19 +33,21 @@ export const metadata: Metadata = { title: "Access" };
 // admins. Everything is checked again by the database and logged.
 type Designation = { id: string; user_id: string; status: "active" | "suspended" | "ended"; starts_at: string; expires_at: string | null; note: string; granted_by: string | null; created_at: string; changed_at: string | null; changed_by: string | null };
 type ModGrant = { id: string; module_id: string; effect: "allow" | "restrict"; actions: string[]; user_id: string; scope: "all" | "teams" | "people"; scope_ids: string[]; can_pass_on: boolean; expires_at: string | null; granted_by: string | null; parent_id: string | null; note: string; created_at: string; revoked_at: string | null; revoked_by: string | null };
-type ModRow = { id: string; parent_id: string | null; category: string; label: string; sensitivity: TreeNode["sensitivity"]; delegable: boolean; legacy_kind: TreeNode["legacy"]; actions: string[]; sort_order: number };
+type ModRow = { id: string; parent_id: string | null; category: string; label: string; sensitivity: TreeNode["sensitivity"]; delegable: boolean; legacy_kind: TreeNode["legacy"]; legacy_area: string | null; actions: string[]; sort_order: number };
 
 export default async function AccessPage() {
-  const { profile } = await requireRole(["system_admin", "manager"]);
+  const { profile } = await requireRole(["system_admin", "manager", "staff_admin"]);
   const admin = profile.role === "system_admin";
   const supabase = await createClient();
-  const [{ data: grantRows, error }, { data: people }, { data: teams }, timeZone, { data: desigRows }, { data: modRows }] = await Promise.all([
+  const [{ data: grantRows, error }, { data: people }, { data: teams }, timeZone, { data: desigRows }, { data: modRows }, { data: rules }, { data: shares }] = await Promise.all([
     supabase.from("access_grants").select("*").order("created_at", { ascending: false }).limit(1000),
     supabase.from("profiles").select("id, full_name, email, role, active").order("full_name"),
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
     getTimeZone(),
     supabase.from("admin_designations").select("*").order("created_at", { ascending: false }),
-    supabase.from("app_modules").select("id, parent_id, category, label, sensitivity, delegable, legacy_kind, actions, sort_order").eq("status", "active").order("sort_order"),
+    supabase.from("app_modules").select("id, parent_id, category, label, sensitivity, delegable, legacy_kind, legacy_area, actions, sort_order").eq("status", "active").order("sort_order"),
+    admin ? supabase.from("delegation_rules").select("area, mode, people") : Promise.resolve({ data: [] }),
+    admin ? supabase.from("delegation_shares").select("area, user_id") : Promise.resolve({ data: [] }),
   ]);
   if (error) notFound(); // before the database update
   const allRows = (grantRows ?? []) as (Grant & { module_id: string | null })[];
@@ -53,17 +62,18 @@ export default async function AccessPage() {
   const liveMod = (g: ModGrant) => !g.revoked_at && (!g.expires_at || new Date(g.expires_at).getTime() > now);
   const openDesig = designations.filter((d) => d.status !== "ended");
   const iAmMA = openDesig.some((d) => d.user_id === profile.id && d.status === "active" && (!d.expires_at || new Date(d.expires_at).getTime() > now));
-  const myLimits: Limit[] = iAmMA ? modGrants.filter((g) => g.user_id === profile.id && liveMod(g) && g.can_pass_on && g.effect === "allow").map((g) => ({ module: g.module_id, actions: g.actions })) : [];
+  // What I may pass on: module access (Manager Administrators) and staff records access.
+  const myLimits: Limit[] = [
+    ...(iAmMA ? modGrants.filter((g) => g.user_id === profile.id && liveMod(g) && g.can_pass_on && g.effect === "allow").map((g) => ({ module: g.module_id, actions: g.actions })) : []),
+    ...(admin ? [] : grants.filter((g) => g.user_id === profile.id && g.can_pass_on && live(g)).map((g) => ({ module: AREA_MODULE[g.area], actions: g.area === "payroll_tax" && !g.can_reveal_tfn ? ["view"] : [] }))),
+  ];
   const myModAccess = modGrants.filter((g) => g.user_id === profile.id && liveMod(g));
-  if (!admin && !passOn.length && !myGrants.length && !iAmMA) notFound();
+  if (!admin && !passOn.length && !myGrants.length && !iAmMA && !myModAccess.length) notFound();
 
   const nameOf = new Map((people ?? []).map((p) => [p.id, p.full_name || p.email]));
   const teamOf = new Map((teams ?? []).map((t) => [t.id, t.name]));
   const day = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone });
   const active = (role: string) => (people ?? []).filter((p) => p.active && p.role === role).map((p) => ({ id: p.id, name: p.full_name || p.email }));
-  const myTfn = grants.some((g) => g.user_id === profile.id && g.area === "payroll_tax" && g.can_reveal_tfn && live(g));
-  // A manager's choices stay inside their own grant's scope (the database checks too).
-  const myScope = (area: AccessArea) => grants.find((g) => g.user_id === profile.id && g.area === area && live(g));
   const scopeText = (g: Grant) =>
     g.scope === "all"
       ? "All staff"
@@ -77,7 +87,9 @@ export default async function AccessPage() {
   const depthOf = (m: ModRow): number => (m.id.startsWith("cat_") ? 0 : m.parent_id && modById.has(m.parent_id) ? depthOf(modById.get(m.parent_id) as ModRow) + 1 : 1);
   const nodes: TreeNode[] = [];
   const addTree = (m: ModRow) => {
-    nodes.push({ id: m.id, parent: m.id.startsWith("cat_") ? null : m.parent_id && modById.has(m.parent_id) ? m.parent_id : `cat_${m.category}`, category: m.category, label: m.label, sensitivity: m.sensitivity, legacy: m.legacy_kind, actions: m.actions, depth: depthOf(m) });
+    // Staff records: the only choice besides On is revealing TFNs.
+    const actions = m.legacy_kind === "record" ? (m.id === "hr.records.payroll" ? ["view", "reveal_tfn"] : ["view"]) : m.actions;
+    nodes.push({ id: m.id, parent: m.id.startsWith("cat_") ? null : m.parent_id && modById.has(m.parent_id) ? m.parent_id : `cat_${m.category}`, category: m.category, label: m.label, sensitivity: m.sensitivity, legacy: m.legacy_kind, actions, depth: depthOf(m) });
     for (const c of mods.filter((x) => x.parent_id === m.id && !x.id.startsWith("cat_"))) addTree(c);
   };
   for (const c of mods.filter((m) => m.id.startsWith("cat_"))) {
@@ -88,17 +100,71 @@ export default async function AccessPage() {
   const dayInput = (iso: string | null) => (iso ? new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date(iso)) : "");
   const existing: Record<string, Existing[]> = {};
   for (const g of modGrants.filter((x) => !x.revoked_at && (admin || x.granted_by === profile.id))) {
-    (existing[g.user_id] ??= []).push({ module: g.module_id, effect: g.effect, actions: g.actions, scope: g.scope, teams: g.scope_ids, expires: dayInput(g.expires_at), passOn: g.can_pass_on, note: g.note });
+    (existing[g.user_id] ??= []).push({ module: g.module_id, effect: g.effect, actions: g.actions, scope: g.scope, ids: g.scope_ids, expires: dayInput(g.expires_at), passOn: g.can_pass_on, note: g.note });
   }
-  const editorPeople = admin
-    ? openDesig.filter((d) => d.status === "active").map((d) => ({ id: d.user_id, name: nameOf.get(d.user_id) ?? "Someone" }))
-    : active("staff_admin");
+  for (const g of grants.filter((x) => !x.revoked_at && (admin || x.granted_by === profile.id))) {
+    (existing[g.user_id] ??= []).push({
+      module: AREA_MODULE[g.area],
+      effect: "allow",
+      actions: g.area === "payroll_tax" && !g.can_reveal_tfn ? ["view"] : [],
+      scope: g.scope,
+      ids: g.scope_ids,
+      expires: dayInput(g.expires_at),
+      passOn: g.can_pass_on,
+      note: g.note,
+    });
+  }
+  const isMA = (id: string) => openDesig.some((d) => d.user_id === id && d.status === "active" && (!d.expires_at || new Date(d.expires_at).getTime() > now));
+  const editorPeople: Person[] = admin
+    ? [
+        ...active("manager").map((p) => ({ ...p, role: "manager" as const, ma: isMA(p.id) })),
+        ...active("staff_admin").map((p) => ({ ...p, role: "staff_admin" as const, ma: false })),
+      ]
+    : active("staff_admin").map((p) => ({ ...p, role: "staff_admin" as const, ma: false }));
+  const scopePeople = (people ?? []).filter((p) => p.active && p.role !== "system_admin").map((p) => ({ id: p.id, name: p.full_name || p.email }));
+  // Settings areas each person looks after today (all managers, chosen people, or shared with them).
+  const legacyOn: Record<string, string[]> = {};
+  for (const m of mods.filter((x) => x.legacy_kind === "settings" && x.legacy_area)) {
+    const r = ((rules ?? []) as { area: string; mode: string; people: string[] }[]).find((x) => x.area === m.legacy_area);
+    for (const p of editorPeople) {
+      const on =
+        (r?.mode === "managers" && p.role === "manager") ||
+        (r?.mode === "selected" && r.people.includes(p.id)) ||
+        ((shares ?? []) as { area: string; user_id: string }[]).some((x) => x.area === m.legacy_area && x.user_id === p.id);
+      if (on) (legacyOn[p.id] ??= []).push(m.id);
+    }
+  }
   const nominatable = active("manager").filter((m) => !openDesig.some((d) => d.user_id === m.id));
   const actionText = (g: ModGrant) => (g.effect === "restrict" ? "blocked" : g.actions.length ? g.actions.join(", ").replace(/_/g, " ") : "everything");
   const holders = [...new Set(modGrants.filter((g) => !g.revoked_at && (admin || g.granted_by === profile.id)).map((g) => g.user_id))];
 
   const current = grants.filter((g) => !g.revoked_at && g.user_id !== profile.id);
   const history = grants.filter((g) => g.revoked_at);
+
+  // A staff admin only sees what they were given (opened from a notice).
+  if (profile.role === "staff_admin") {
+    return (
+      <>
+        <PageHeader title="Your access" intro="What you were given, by whom, and until when. Ask the person who gave it if something should change." />
+        <Card className="flex flex-col gap-2 p-5">
+          <ul className="flex flex-col gap-1 text-sm">
+            {myModAccess.map((g) => (
+              <li key={g.id}>
+                <strong>{labelOf(g.module_id)}</strong> · {actionText(g)} · from {nameOf.get(g.granted_by ?? "") ?? "the system admin"}
+                {g.expires_at ? ` · until ${day.format(new Date(g.expires_at))}` : ""}
+              </li>
+            ))}
+            {myGrants.map((g) => (
+              <li key={g.id}>
+                <strong>{ACCESS_LABEL[g.area]}</strong> · {scopeText(g)} · from {nameOf.get(g.granted_by ?? "") ?? "the system admin"}
+                {g.expires_at ? ` · until ${day.format(new Date(g.expires_at))}` : ""}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>
@@ -174,14 +240,27 @@ export default async function AccessPage() {
       {admin || myLimits.length ? (
         <Card className="flex flex-col gap-4 p-5 sm:p-6">
           <div>
-            <h2 className="heading-sm">{admin ? "Admin access" : "Pass on admin access"}</h2>
+            <h2 className="heading-sm">{admin ? "Give or change access" : "Pass on access"}</h2>
             <p className="text-sm text-muted">
-              {admin ? "Choose a Manager Administrator, turn on what they can run and check it before saving." : "Choose a staff admin and turn on parts of what you were allowed to pass on."}
+              {admin
+                ? "Choose a person, turn on what they can use (modules, and staff records under HR & workforce) and check it before saving."
+                : "Choose a staff admin and turn on parts of what you were allowed to pass on."}
             </p>
           </div>
-          <ModuleAccessEditor admin={admin} nodes={nodes} people={editorPeople} teams={(teams ?? []).map((t) => ({ id: t.id, name: t.name }))} existing={existing} limits={myLimits} />
+          <ModuleAccessEditor
+            admin={admin}
+            nodes={nodes}
+            people={editorPeople}
+            teams={(teams ?? []).map((t) => ({ id: t.id, name: t.name }))}
+            scopePeople={scopePeople}
+            existing={existing}
+            limits={myLimits}
+            legacyOn={legacyOn}
+          />
         </Card>
       ) : null}
+
+      {admin ? <SettingsAreas people={(people ?? []).filter((p) => p.active && (p.role === "manager" || p.role === "staff_admin"))} /> : null}
 
       <h2 className="heading-sm mt-2">Staff records access</h2>
 
@@ -197,23 +276,6 @@ export default async function AccessPage() {
               </li>
             ))}
           </ul>
-        </Card>
-      ) : null}
-
-      {passOn.length ? (
-        <Card className="flex flex-col gap-4 p-5 sm:p-6">
-          <h2 className="heading-sm">Give access</h2>
-          <GiveAccessForm
-            admin={admin}
-            areas={passOn}
-            managers={active("manager")}
-            staffAdmins={active("staff_admin")}
-            teams={(teams ?? [])
-              .filter((t) => admin || passOn.some((a) => myScope(a)?.scope === "all" || myScope(a)?.scope_ids.includes(t.id)))
-              .map((t) => ({ id: t.id, name: t.name }))}
-            people={(people ?? []).filter((p) => p.active && p.role !== "system_admin").map((p) => ({ id: p.id, name: p.full_name || p.email }))}
-            tfnOk={admin || myTfn}
-          />
         </Card>
       ) : null}
 
@@ -297,6 +359,42 @@ export default async function AccessPage() {
         </details>
       ) : null}
     </>
+  );
+}
+
+// cmeprojects: who looks after each settings area (moved here from the
+// Delegation tab in System settings). Saved as drafts, live on Deploy.
+async function SettingsAreas({ people }: { people: { id: string; full_name: string | null; email: string; role: string }[] }) {
+  const supabase = await createClient();
+  const [{ data: rules, error }, drafts, { data: vehicles }] = await Promise.all([
+    supabase.from("delegation_rules").select("area, mode, people"),
+    getDrafts(),
+    supabase.from("features").select("enabled, included").eq("key", "vehicles").maybeSingle(),
+  ]);
+  if (error) return null;
+  const choices: PersonChoice[] = people.map((p) => ({ id: p.id, name: p.full_name || p.email, role: isRole(p.role) ? ROLE_LABELS[p.role] : p.role }));
+  const value = (area: Area): { value: DelegationValue; pending: boolean } => {
+    const d = drafts.find((x) => x.kind === "delegation" && x.key === area);
+    const live = (rules ?? []).find((r) => r.area === area) as { mode: DelegationValue["mode"]; people: string[] } | undefined;
+    const v = (d?.value ?? live ?? { mode: "admin", people: [] }) as DelegationValue;
+    return { value: { mode: v.mode ?? "admin", people: v.people ?? [] }, pending: Boolean(d) };
+  };
+  const carsOn = Boolean(vehicles?.enabled && vehicles.included !== false);
+  return (
+    <Card id="settings-areas" className="flex flex-col gap-1 px-5 py-4 sm:px-6">
+      <h2 className="heading-sm">Settings areas</h2>
+      <p className="text-sm text-muted">
+        Who looks after each area besides you: all managers, or the managers and staff admins you choose. Security, Features, Notifications, Demo data and General always stay with you, and so
+        does making system admins. Changes here are saved as drafts and go live when you Deploy.
+      </p>
+      <div className="mt-2 flex flex-col divide-y divide-line">
+        {AREAS.filter((a) => a !== "vehicles" || carsOn).map((a) => (
+          <div key={a} className="py-4">
+            <DelegationPicker area={a} label={AREA_LABELS[a]} hint={AREA_HINTS[a]} {...value(a)} choices={choices} />
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
