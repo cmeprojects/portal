@@ -5,23 +5,25 @@ the **Dev** portal safely, and what to ask it. Dev only, test data only.
 
 ## 1. Set up the reviewer account (you, about 10 minutes)
 
-1. Check Dev has **test data only** (no real staff, TFN forms, IDs or contracts).
-2. **Invite** a new person on Dev: name `Reviewer`, role **Manager**, using an
-   email inbox you control (a Gmail "+" address works, for example
+1. Run **live update 74** first (the owner protection). Its last line should
+   show **your** name: you're the owner. No other system admin can then turn
+   you off, change your role, name or email, reset your two-factor or
+   password, or sign you out ("Sign out everyone" leaves you signed in).
+2. Check Dev has **test data only** (no real staff, TFN forms, IDs or contracts).
+3. **Invite** a new person on Dev: name `Reviewer`, role **System admin**, using
+   an email inbox you control (a Gmail "+" address works, for example
    `yourname+reviewer@gmail.com`).
-3. Open the invite in a **private window**, set a password and finish setting
-   up. Keep this password only for the reviewer.
-4. **Staff → Reviewer → let them sign in without two-factor** (the agent can't
-   receive codes). This shows in the change log.
-5. **Access → Manager Administrators → nominate Reviewer**, with an end date
-   **two days** away and the note `Outside review`.
-6. **Access → Give or change access → Reviewer**: turn on each category
-   **except** HR & workforce → Contracts and Staff records (leave those off),
-   end date two days away. Don't tick "May pass this on".
+4. Open the invite in a **private window**, set a password, and set up
+   two-factor with **your** phone's authenticator app (name the entry
+   "Reviewer"). System admins always need two-factor; that stays on.
+5. When ChatGPT's agent reaches the six-digit code screen, use **Take over**
+   in ChatGPT and type the code from your phone yourself, then hand back.
+   Never give ChatGPT the code's setup key or QR code.
 
-Why a manager and not a system admin: a system admin can turn off or demote
-other system admins (including you). A manager can't, and can't see System
-settings, System health or the Feature builder (cmeprojects reviews those).
+The reviewer can see and use every page, including System settings, System
+health and the Feature builder. It can still change settings and data on
+Dev, so the message below tells it to look and report only, and the change
+log records everything it does.
 
 ## 2. Give ChatGPT this (copy everything in the box)
 
@@ -39,6 +41,8 @@ Rules:
 - You may type into forms to see how they behave, but don't press Delete,
   Remove, Deactivate, End, Suspend or Deploy, and don't upload files.
 - Don't change your own password or two-factor settings.
+- Don't change, turn off or sign out other people, and don't make anyone a
+  system admin.
 - Stop and sign out when finished.
 
 Report back, in plain Australian English, as a numbered list grouped by page:
@@ -53,7 +57,8 @@ expected.
 
 ## 3. Afterwards (you)
 
-1. **Access → Reviewer → End** the nomination (removes their admin access).
-2. **Staff → Reviewer → Deactivate**.
+1. **Staff → Reviewer → Deactivate** (only you, the owner, are safe from this;
+   the reviewer can't do it to you).
+2. Delete the "Reviewer" entry from your authenticator app.
 3. Change log → **Everything about this person** shows everything it did.
 4. Send the report to cmeprojects; it gets merged with our own review.

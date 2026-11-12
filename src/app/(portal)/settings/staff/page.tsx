@@ -61,6 +61,9 @@ export default async function StaffPage() {
   ]);
   // cmeprojects: photos, read on their own so a copy without photos still works.
   const { data: photoRows } = await supabase.from("profiles").select("id, avatar_ref");
+  // cmeprojects: the owner's account can only be changed by the owner (update 74).
+  const { data: ownerRow } = await supabase.from("profiles").select("id").eq("is_owner", true).maybeSingle();
+  const ownerId = ownerRow?.id as string | undefined;
   const photos = await photoLinks((photoRows ?? []) as PhotoOwner[]);
   // Who the system admin let off two-factor login (read on its own: before update 48 there's no such column).
   const exemptRows = me.role === "system_admin" ? await supabase.from("profiles").select("id, mfa_exempt") : null;
@@ -217,6 +220,7 @@ export default async function StaffPage() {
                   </span>
                   {p.job_title_id && titleName.get(p.job_title_id) ? <span className="text-sm">{titleName.get(p.job_title_id)}</span> : null}
                   <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>
+                  {p.id === ownerId ? <Badge tone="dark">Owner · protected</Badge> : null}
                   {pending.has(p.id) ? <Badge tone="warn">→ {roleText(pending.get(p.id)!.to_value as RoleValue)} waiting</Badge> : null}
                   {row.missing?.length ? (
                     <Badge tone="warn">Onboarding: {row.missing.length} to do</Badge>
