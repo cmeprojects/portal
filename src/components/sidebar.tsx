@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronRight, CircleHelp, Menu, PanelLeftClose, PanelLeftOpen, Star, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Menu, Star, X } from "lucide-react";
 import type { NavCategory, NavNode } from "@/lib/nav-tree";
 import { ModuleIcon } from "@/components/module-icons";
 import { toast } from "@/components/toast";
@@ -244,18 +244,6 @@ export function Sidebar({
           <p className="px-3 pb-3 text-xs whitespace-pre-line text-side-muted">{help}</p>
         </details>
       ) : null}
-      {compact ? null : (
-      <button
-        type="button"
-        onClick={() => write(STORE_RAIL, rail ? "" : "1")}
-        className={`hidden items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-side-muted hover:bg-side-hover hover:text-side-fg md:flex ${compact ? "justify-center" : ""}`}
-        aria-label={rail ? "Show the full menu" : "Shrink the menu to icons"}
-        title={rail ? "Show the full menu" : "Shrink the menu to icons"}
-      >
-        {rail ? <PanelLeftOpen aria-hidden="true" className="size-4" /> : <PanelLeftClose aria-hidden="true" className="size-4" />}
-        {compact ? null : "Shrink menu"}
-      </button>
-      )}
       {compact ? null : footer}
     </div>
   );
@@ -270,6 +258,18 @@ export function Sidebar({
         <div className="min-w-0 flex-1">{brandMark}</div>
         {mobileActions}
       </div>
+      {/* cmeprojects: a round button on the menu's edge to shrink it to icons or bring it back. */}
+      <button
+        type="button"
+        onClick={() => write(STORE_RAIL, rail ? "" : "1")}
+        aria-label={rail ? "Show the full menu" : "Shrink the menu to icons"}
+        title={rail ? "Show the full menu" : "Shrink the menu to icons"}
+        className={`fixed top-[86px] z-40 hidden size-7 place-items-center rounded-full border border-line bg-surface text-ink shadow-md transition-[left] duration-200 hover:bg-brand hover:text-brand-fg motion-reduce:transition-none md:grid print:hidden ${
+          rail ? "left-[62px]" : "left-[242px]"
+        }`}
+      >
+        {rail ? <ChevronRight aria-hidden="true" className="size-4" /> : <ChevronLeft aria-hidden="true" className="size-4" />}
+      </button>
       {drawer ? <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setDrawer(false)} aria-hidden="true" /> : null}
       <aside
         className={`print:hidden ${drawer ? "fixed inset-y-0 left-0 z-50 flex w-[min(300px,85vw)] shadow-2xl" : "hidden"} flex-col gap-4 overflow-y-auto overscroll-contain bg-brand-dark px-3 py-4 text-side-fg md:sticky md:top-0 md:flex md:h-screen md:py-5 ${
@@ -284,18 +284,6 @@ export function Sidebar({
             </button>
           ) : null}
         </div>
-        {/* cmeprojects: in icon mode, the button to bring the full menu back sits at the top. */}
-        {compact ? (
-          <button
-            type="button"
-            onClick={() => write(STORE_RAIL, "")}
-            aria-label="Show the full menu"
-            title="Show the full menu"
-            className="grid size-11 place-items-center rounded-xl bg-side-hover text-side-fg hover:bg-brand hover:text-brand-fg"
-          >
-            <PanelLeftOpen aria-hidden="true" className="size-5" />
-          </button>
-        ) : null}
         {menu}
         {bottom}
       </aside>

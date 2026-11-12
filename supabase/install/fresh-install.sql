@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270114000001_menu_tidy.sql
+-- Built from every migration up to: 20270115000001_portal_settings.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -180,7 +180,8 @@ begin
     (84, '20270111000001_tfn_records.sql'),
     (85, '20270112000001_module_catalogue.sql'),
     (86, '20270113000001_permission_engine.sql'),
-    (87, '20270114000001_menu_tidy.sql')
+    (87, '20270114000001_menu_tidy.sql'),
+    (88, '20270115000001_portal_settings.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -17631,5 +17632,29 @@ update public.app_modules set label = 'Access & delegation' where id = 'system.a
 
 $m087$;
   insert into public.install_log (name) values ('20270114000001_menu_tidy.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270115000001_portal_settings.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270115000001_portal_settings.sql') then
+    return;
+  end if;
+  execute $m088$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects: "Portal settings" in Administration, with its pages (System
+-- settings, SLA settings, Request approvals) as hidden sub-pages. Catalogue
+-- only; nobody's access changes.
+update public.app_modules set label = 'Portal settings' where id = 'system.settings';
+insert into public.app_modules (id, parent_id, category, label, sensitivity, delegable, sort_order)
+values ('system.settings.general', 'system.settings', 'system', 'System settings', 'protected', false, 1095)
+on conflict (id) do update set parent_id = excluded.parent_id, label = excluded.label, sensitivity = excluded.sensitivity;
+update public.app_modules set parent_id = 'system.settings' where id in ('workflows.sla', 'workflows.request_rules');
+
+$m088$;
+  insert into public.install_log (name) values ('20270115000001_portal_settings.sql');
 end;
 $part$;

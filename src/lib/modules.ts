@@ -85,8 +85,8 @@ export const MODULES: ModuleDef[] = [
 
   // Forms & workflows
   { id: "workflows.forms", category: "operations", label: "Forms", icon: "ClipboardList", href: "/forms", delegable: true },
-  { id: "workflows.request_rules", category: "system", label: "Request approvals", icon: "ClipboardCheck", href: "/settings/requests", delegable: true },
-  { id: "workflows.sla", category: "system", label: "SLA settings", icon: "Clock", href: "/settings/sla", delegable: true },
+  { id: "workflows.request_rules", category: "system", parent: "system.settings", label: "Request approvals", icon: "ClipboardCheck", href: "/settings/requests", delegable: true },
+  { id: "workflows.sla", category: "system", parent: "system.settings", label: "SLA settings", icon: "Clock", href: "/settings/sla", delegable: true },
 
   // Reports & insights
   { id: "insights.reports", category: "insights", label: "Reports", icon: "BarChart3", href: "/reports", match: ["/reports", "/reports/cars", "/reports/compliance", "/reports/f"], delegable: true },
@@ -100,7 +100,8 @@ export const MODULES: ModuleDef[] = [
   { id: "engagement.website", category: "engagement", label: "Website settings", icon: "Globe", href: "/assistant", delegable: true },
 
   // Administration (system & configuration)
-  { id: "system.settings", category: "system", label: "System settings", icon: "Settings", href: "/system", sensitivity: "protected" },
+  { id: "system.settings", category: "system", label: "Portal settings", icon: "Settings", href: "/system", match: ["/system", "/settings/sla", "/settings/requests"], sensitivity: "protected" },
+  { id: "system.settings.general", category: "system", parent: "system.settings", label: "System settings", icon: "Settings", href: "/system", sensitivity: "protected" },
   { id: "system.settings.branding", category: "system", parent: "system.settings", label: "Branding", icon: "Settings", href: "", delegable: true },
   { id: "system.settings.messages", category: "system", parent: "system.settings", label: "Messages", icon: "Settings", href: "", delegable: true },
   { id: "system.settings.people", category: "system", parent: "system.settings", label: "People rules", icon: "Settings", href: "", delegable: true },
