@@ -24,13 +24,15 @@ export function Panel({ title, children, action, className = "" }: { title: stri
 // Hover or focus to see more. Opens above everything (no panel clips it).
 
 // Hover or focus to see more. Opens above everything (no panel clips it).
+// cmeprojects: the details box is out of the layout until shown (display:
+// none), so a box near the screen edge never makes the page scroll sideways.
 export function Hover({ children, details, label }: { children: ReactNode; details: ReactNode; label: string }) {
   return (
     <div tabIndex={0} aria-label={label} className="group/hover relative rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand">
       {children}
       <div
         role="tooltip"
-        className="pointer-events-none invisible absolute bottom-full max-md:hidden left-1/2 z-50 mb-2 w-72 -translate-x-1/2 rounded-md border border-line bg-surface p-3 text-left text-xs text-ink opacity-0 shadow-xl transition-opacity group-hover/hover:visible group-hover/hover:opacity-100 group-focus/hover:visible group-focus/hover:opacity-100"
+        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden w-72 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border border-line bg-surface p-3 text-left text-xs text-ink shadow-xl md:group-hover/hover:block md:group-focus/hover:block"
       >
         {details}
       </div>

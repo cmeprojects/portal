@@ -119,19 +119,19 @@ function Meter({ title, pct, used, limit, details, href }: { title: string; pct:
   return (
     <Hover label={`${title}: ${used} of ${limit}`} details={details}>
       <Link href={href} className="flex items-center gap-3 rounded-md p-2 hover:bg-page">
-        <div className="relative">
+        <div className="relative shrink-0">
           <Gauge pct={pct} colour={colour} />
           <span className="absolute inset-x-0 bottom-0 text-center text-sm font-semibold text-ink tabular-nums">
             {pct > 0 && pct < 1 ? "<1" : Math.round(pct)}%
           </span>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-semibold text-ink">{title}</p>
           <p className="text-xs text-muted">
             {used} of {limit}
           </p>
-          <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: colour }}>
-            <span className="size-2 rounded-full" style={{ background: colour }} />
+          <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap" style={{ color: colour }}>
+            <span className="size-2 shrink-0 rounded-full" style={{ background: colour }} />
             {LEVEL_WORD[lv]}
           </p>
         </div>
@@ -190,7 +190,8 @@ function PlatformView({ name, d }: { name: string; d: Awaited<ReturnType<typeof 
       </div>
 
       <Panel title="Capacity" action={<Link href="/system/health" className="text-xs font-semibold text-brand underline">System health</Link>}>
-        <div className="grid gap-2 md:grid-cols-3">
+        {/* cmeprojects: each meter keeps at least 15rem, so they wrap 4 → 2 → 1 by the space they have (sidebar open or not), never squashed. */}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-2">
           {s ? (
             <>
               <Meter
@@ -235,7 +236,7 @@ function PlatformView({ name, d }: { name: string; d: Awaited<ReturnType<typeof 
               />
             </>
           ) : (
-            <p className="text-sm text-muted md:col-span-2">Database and file storage: run the latest database updates, then refresh.</p>
+            <p className="col-span-full text-sm text-muted">Database and file storage: run the latest database updates, then refresh.</p>
           )}
           <Meter
             title="Assistant this month"
