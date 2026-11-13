@@ -9,7 +9,12 @@ type Loaded = NonNullable<Awaited<ReturnType<typeof loadContract>>>;
 // cmeprojects Phase 4: one contract, for the employee or for people with
 // access. Shows the wording exactly as sent, the signing history, and the
 // actions this person may take.
-export function ContractView({ data, viewer, viewerName, holder }: { data: Loaded; viewer: string; viewerName: string; holder: boolean }) {
+// cmeprojects step 4: what this person may do, each its own tick on the Access
+// page (Staff details access still gives all of them).
+export type ContractAccess = { prepare: boolean; sign: boolean; download: boolean };
+const NONE: ContractAccess = { prepare: false, sign: false, download: false };
+
+export function ContractView({ data, viewer, viewerName, access = NONE }: { data: Loaded; viewer: string; viewerName: string; access?: ContractAccess }) {
   const { contract: c, signatures, nameOf } = data;
   const mine = c.user_id === viewer;
   const employee = signatures.find((s) => s.party === "employee");
@@ -24,7 +29,7 @@ export function ContractView({ data, viewer, viewerName, holder }: { data: Loade
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
       <div className="flex min-w-0 flex-col gap-5">
-        {c.status === "draft" && holder ? (
+        {c.status === "draft" && access.prepare ? (
           <Card className="p-5 sm:p-6">
             <h2 className="heading-sm mb-4">Edit draft</h2>
             <DraftForm people={[]} draft={{ id: c.id, title: c.title, body: c.body, sign_by: c.sign_by, letterhead: c.letterhead }} />
@@ -39,7 +44,7 @@ export function ContractView({ data, viewer, viewerName, holder }: { data: Loade
             <div className="max-h-[32rem] overflow-y-auto rounded-lg border border-line bg-page p-4 text-sm leading-relaxed whitespace-pre-wrap">{c.body}</div>
           </Card>
         )}
-        {(mine && c.status === "awaiting_employee") || (!mine && holder && c.status === "awaiting_employer" && !employer) ? (
+        {(mine && c.status === "awaiting_employee") || (!mine && access.sign && c.status === "awaiting_employer" && !employer) ? (
           <Card className="p-5 sm:p-6">
             <h2 className="heading-sm mb-4">{mine ? "Sign your contract" : "Countersign for the employer"}</h2>
             <SignForm id={c.id} contentHash={c.content_hash} fullName={viewerName} party={mine ? "employee" : "employer"} />
@@ -53,7 +58,7 @@ export function ContractView({ data, viewer, viewerName, holder }: { data: Loade
             <StatusChip status={c.status} />
           </div>
           {c.sign_by && ["awaiting_employee", "draft"].includes(c.status) ? <p className="text-sm text-muted">Sign by {new Date(`${c.sign_by}T12:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</p> : null}
-          <ContractActions id={c.id} status={c.status} canSend={holder && !mine} signedCopy={Boolean(c.signed_pdf_path)} />
+          <ContractActions id={c.id} status={c.status} canSend={access.prepare && !mine} canFinish={access.sign && !mine} signedCopy={Boolean(c.signed_pdf_path) && (mine || access.download || access.sign)} />
         </Card>
         <Card className="p-5">
           <h2 className="heading-sm mb-3">History</h2>

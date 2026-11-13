@@ -23,7 +23,7 @@ export default async function MyContractPage({ params }: PageProps<"/account/con
           Back to My contracts
         </Link>
       </p>
-      <ContractView data={data} viewer={profile.id} viewerName={profile.full_name} holder={false} />
+      <ContractView data={data} viewer={profile.id} viewerName={profile.full_name} />
     </>
   );
 }

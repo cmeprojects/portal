@@ -129,7 +129,7 @@ const word = (a: string) => ACTION_WORD[a] ?? a.replace(/_/g, " ");
 
 // cmeprojects step 4: modules whose pages already follow the Access page.
 // The rest can be set now and take effect as each module is connected.
-const CONNECTED = /^(hr\.onboarding|ops\.cars|insights\.reports|workflows\.forms|ops\.features|engagement\.enquiries)(\.|$)/;
+const CONNECTED = /^(hr\.onboarding|ops\.cars|insights\.reports|workflows\.forms|ops\.features|engagement\.enquiries|hr\.contracts)(\.|$)/;
 // Every manager and staff admin can already do these (the only roles that can be given access).
 const ALREADY = /^(ops\.tasks|hr\.requests|clients\.list|people\.staff|people\.teams)(\.|$)/;
 
@@ -469,6 +469,11 @@ export function ModuleAccessEditor({
                 <p>Will have no admin access{existing[person]?.length ? " (everything you gave before is removed)" : ""}.</p>
               )}
               {sensitiveSkipped.length ? <p>Won&apos;t get (sensitive, needs its own On): {sensitiveSkipped.map((s) => s.label).join(", ")}.</p> : null}
+              {draft["hr.contracts"]?.effect === "allow" && (!draft["hr.contracts"].actions.length || draft["hr.contracts"].actions.includes("sign_for_employer")) ? (
+                <Notice tone="error">
+                  {personName} will be able to <strong>sign employment contracts for the employer</strong>. Signed contracts are legally binding and can&apos;t be changed.
+                </Notice>
+              ) : null}
               <p className="text-muted">
                 {scope === "teams" ? `Only for the teams chosen` : "For all staff"}
                 {expires ? `, until ${new Date(`${expires}T12:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}` : ", no end date"}

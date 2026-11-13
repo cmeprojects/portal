@@ -93,7 +93,7 @@ export function DraftForm({
 }
 
 // The buttons on a contract, by status. Each asks first and shows the result.
-export function ContractActions({ id, status, canSend, signedCopy }: { id: string; status: string; canSend: boolean; signedCopy: boolean }) {
+export function ContractActions({ id, status, canSend, canFinish = canSend, signedCopy }: { id: string; status: string; canSend: boolean; canFinish?: boolean; signedCopy: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   // Ask first (outside the update, so the pop-up shows straight away), then act.
@@ -112,7 +112,7 @@ export function ContractActions({ id, status, canSend, signedCopy }: { id: strin
           <Send aria-hidden="true" className="size-4" /> Send to sign
         </Button>
       ) : null}
-      {status === "awaiting_employer" && canSend ? (
+      {status === "awaiting_employer" && canFinish ? (
         <Button type="button" variant="outline" disabled={pending} onClick={() => act(() => finishContract(id))}>
           <CheckCircle2 aria-hidden="true" className="size-4" /> Finish (make the signed copy)
         </Button>

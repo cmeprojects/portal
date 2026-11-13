@@ -13,7 +13,7 @@ import { canUseCars } from "@/lib/cars";
 import { onboardingOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
-import { managesCarsFor, seesCarReportFor, seesComplianceFor, seesComplianceReportFor, seesTaskReportFor } from "@/lib/module-access";
+import { anyContractAccess, managesCarsFor, seesCarReportFor, seesComplianceFor, seesComplianceReportFor, seesTaskReportFor } from "@/lib/module-access";
 
 // What the menu and the section tabs show this person (worked out once per page).
 export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
@@ -88,5 +88,6 @@ async function contractsMenu(userId: string, role: Role): Promise<Pick<NavAccess
       : Promise.resolve({ count: 0, error: null }),
     supabase.from("contracts").select("id", { count: "exact", head: true }).eq("user_id", userId),
   ]);
-  return { contracts: !grants.error && (grants.count ?? 0) > 0, myContracts: !mine.error && (mine.count ?? 0) > 0 };
+  const given = !grants.error && (grants.count ?? 0) > 0 ? true : await anyContractAccess(role);
+  return { contracts: given, myContracts: !mine.error && (mine.count ?? 0) > 0 };
 }

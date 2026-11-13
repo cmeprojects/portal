@@ -39,3 +39,10 @@ export const seesTaskReportFor = async (role: Role, rules: PeopleRules, action =
 export const seesComplianceReportFor = async (role: Role, rules: PeopleRules, action = "view") =>
   canSeeComplianceReport(role, rules) || (await given(role, "insights.reports.compliance", action));
 export const seesCarReportFor = async (role: Role, rules: CarRules, action = "view") => canSeeCarReports(role, rules) || (await given(role, "insights.reports.cars", action));
+
+// Contracts: any of its ticks (view, prepare and send, sign for the employer, download).
+export const anyContractAccess = async (role: Role) => {
+  if (!MAY_HOLD.includes(role)) return false;
+  const all = await Promise.all(["view", "create", "sign_for_employer", "download"].map((a) => canDo("hr.contracts", a)));
+  return all.some(Boolean);
+};

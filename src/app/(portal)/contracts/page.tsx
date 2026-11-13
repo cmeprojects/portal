@@ -9,6 +9,7 @@ import { Card, EmptyState, PageHeader, buttonClass } from "@/components/ui";
 import { CONTRACT_STATUS, type Contract, type ContractStatus } from "@/lib/contracts";
 import { fmtDateTime } from "@/lib/contract-data";
 import { StatusChip } from "./status-chip";
+import { anyContractAccess, canDo } from "@/lib/module-access";
 
 export const metadata: Metadata = { title: "Contracts" };
 
@@ -18,7 +19,9 @@ export default async function ContractsPage({ searchParams }: PageProps<"/contra
   const { profile } = await requireSession();
   const supabase = await createClient();
   const { count } = await supabase.from("access_grants").select("id", { count: "exact", head: true }).eq("user_id", profile.id).eq("area", "staff_details").is("revoked_at", null);
-  if (profile.role !== "system_admin" && !count) notFound();
+  if (profile.role !== "system_admin" && !count && !(await anyContractAccess(profile.role))) notFound();
+  // New contract: Staff details access, the system admin, or the "prepare and send" tick.
+  const canPrepare = profile.role === "system_admin" || Boolean(count) || (await canDo("hr.contracts", "create"));
   const show = String((await searchParams).show ?? "open");
   const { data, error } = await supabase.from("contracts").select("id, user_id, title, version, status, sign_by, sent_at, completed_at, created_at").order("created_at", { ascending: false }).limit(500);
   if (error) notFound();
@@ -39,9 +42,11 @@ export default async function ContractsPage({ searchParams }: PageProps<"/contra
         title="Contracts"
         intro="Employment contracts: prepare, send to sign, countersign, and keep the signed copy. Signed contracts never change; a revision is a new version."
         action={
-          <Link href="/contracts/new" className={buttonClass("primary")}>
-            <FilePlus2 aria-hidden="true" className="size-4" /> New contract
-          </Link>
+          canPrepare ? (
+            <Link href="/contracts/new" className={buttonClass("primary")}>
+              <FilePlus2 aria-hidden="true" className="size-4" /> New contract
+            </Link>
+          ) : undefined
         }
       />
       <nav aria-label="Filter contracts" className="flex flex-wrap gap-2">
@@ -53,7 +58,7 @@ export default async function ContractsPage({ searchParams }: PageProps<"/contra
       </nav>
       <Card className="overflow-hidden">
         {list.length === 0 ? (
-          <EmptyState icon={FileSignature} title="No contracts here" text="Start one with New contract." />
+          <EmptyState icon={FileSignature} title="No contracts here" text={canPrepare ? "Start one with New contract." : "Nothing to show yet."} />
         ) : (
           <ul className="divide-y divide-line">
             {list.map((r) => (
