@@ -22,6 +22,8 @@ export const canDo = cache(async (module: string, action = "view"): Promise<bool
 // needs the extra check (saves a database call on every page).
 const MAY_HOLD: Role[] = ["manager", "staff_admin"];
 const given = async (role: Role, module: string, action: string) => MAY_HOLD.includes(role) && (await canDo(module, action));
+// The same, for other helpers (built features).
+export const givenFor = given;
 
 // Onboarding: see progress / approve uploads and set it up.
 export const seesComplianceFor = async (role: Role, rules: PeopleRules) => seesCompliance(role, rules) || (await given(role, "hr.onboarding", "view"));

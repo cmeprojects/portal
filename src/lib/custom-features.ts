@@ -4,6 +4,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import type { Role } from "@/lib/roles";
+import { givenFor } from "@/lib/module-access";
 import { type Feature, type FeatureField, type Option } from "@/lib/feature-types";
 
 // Features built with the Feature builder (cmeprojects).
@@ -75,13 +76,17 @@ export const getMenuFeatures = cache(async (role: Role): Promise<{ slug: string;
     .eq("enabled", true)
     .order("sort_order")
     .order("menu_label");
+  // cmeprojects step 4: or given Built features on the Access page.
+  const [seeAll, fillAll, setUp] = await Promise.all([givenFor(role, "ops.features", "view"), givenFor(role, "ops.features", "create"), givenFor(role, "ops.features", "configure")]);
   return (data ?? [])
     .filter(
       (f) =>
         role === "system_admin" ||
+        seeAll ||
+        fillAll ||
         (f.fill_roles as Role[]).includes(role) ||
         (f.see_roles as Role[]).includes(role) ||
-        (role === "manager" && (f.managers_fix || f.managers_targets || f.managers_options)),
+        ((role === "manager" || setUp) && (f.managers_fix || f.managers_targets || f.managers_options)),
     )
     .map((f) => ({ slug: f.slug, label: f.menu_label }));
 });
@@ -97,5 +102,6 @@ export const getReportFeatures = cache(async (role: Role): Promise<{ slug: strin
     .eq("enabled", true)
     .order("sort_order")
     .order("menu_label");
-  return (data ?? []).filter((f) => role === "system_admin" || (f.see_roles as Role[]).includes(role)).map((f) => ({ slug: f.slug, label: f.menu_label }));
+  const seeAll = await givenFor(role, "ops.features", "view");
+  return (data ?? []).filter((f) => role === "system_admin" || seeAll || (f.see_roles as Role[]).includes(role)).map((f) => ({ slug: f.slug, label: f.menu_label }));
 });

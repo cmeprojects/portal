@@ -7,6 +7,7 @@ import { canUseCars } from "@/lib/cars";
 import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import type { Role } from "@/lib/roles";
+import { givenFor } from "@/lib/module-access";
 
 // What's in the Staff app for this person (cmeprojects): the built features the
 // system admin put in the app that they can fill in, and Cars if it's inside.
@@ -29,7 +30,9 @@ export const getStaffAppTiles = cache(async (userId: string, role: Role, feature
       .order("menu_label"),
     getTimeZone(),
   ]);
-  const mine = (data ?? []).filter((f) => role === "system_admin" || (f.fill_roles as Role[]).includes(role));
+  // cmeprojects step 4: or given Built features (create) on the Access page.
+  const fillAll = await givenFor(role, "ops.features", "create");
+  const mine = (data ?? []).filter((f) => role === "system_admin" || fillAll || (f.fill_roles as Role[]).includes(role));
   // How many they've entered today, as the line under each icon.
   const since = new Date(`${todayIn(timeZone)}T00:00:00`);
   since.setDate(since.getDate() - 1);

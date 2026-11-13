@@ -129,9 +129,9 @@ const word = (a: string) => ACTION_WORD[a] ?? a.replace(/_/g, " ");
 
 // cmeprojects step 4: modules whose pages already follow the Access page.
 // The rest can be set now and take effect as each module is connected.
-const CONNECTED = /^(hr\.onboarding|ops\.cars|insights\.reports|workflows\.forms)(\.|$)/;
+const CONNECTED = /^(hr\.onboarding|ops\.cars|insights\.reports|workflows\.forms|ops\.features|engagement\.enquiries)(\.|$)/;
 // Every manager and staff admin can already do these (the only roles that can be given access).
-const ALREADY = /^(ops\.tasks|hr\.requests|clients\.list)(\.|$)/;
+const ALREADY = /^(ops\.tasks|hr\.requests|clients\.list|people\.staff|people\.teams)(\.|$)/;
 
 export function ModuleAccessEditor({
   admin,

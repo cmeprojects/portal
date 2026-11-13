@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270120000001_step4_forms_reports.sql
+-- Built from every migration up to: 20270121000001_step4_features_enquiries.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -188,7 +188,8 @@ begin
     (90, '20270117000001_manager_admins.sql'),
     (91, '20270118000001_owner.sql'),
     (92, '20270119000001_step4_onboarding_cars.sql'),
-    (93, '20270120000001_step4_forms_reports.sql')
+    (93, '20270120000001_step4_forms_reports.sql'),
+    (94, '20270121000001_step4_features_enquiries.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -18134,5 +18135,87 @@ $function$;
 
 $m093$;
   insert into public.install_log (name) values ('20270120000001_step4_forms_reports.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270121000001_step4_features_enquiries.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270121000001_step4_features_enquiries.sql') then
+    return;
+  end if;
+  execute $m094$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects module framework step 4 (third batch): Built features and
+-- Enquiries follow the Access page as well as the role rules. Built features:
+-- view = see them all, create = fill them in, set up = the same manager tools
+-- the system admin allowed for managers in the Feature builder. Nobody loses
+-- access; people with no admin access given skip the extra check straight away.
+-- No new SECURITY DEFINER function (four existing ones gain the extra rule).
+
+CREATE OR REPLACE FUNCTION public.can_see_feature(p_feature uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.is_member() and public.custom_feature_live(p_feature)
+     and (public.my_role() = 'system_admin'
+          or exists (select 1 from public.custom_features where id = p_feature and public.my_role() = any (see_roles))
+          -- cmeprojects step 4: or given Built features (view) on the Access page.
+          or (exists (select 1 from public.access_grants g where g.user_id = auth.uid() and g.area is null and g.revoked_at is null)
+                and public.can('ops.features', 'view')))
+$function$;
+
+CREATE OR REPLACE FUNCTION public.can_fill_feature(p_feature uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.is_member() and public.custom_feature_live(p_feature)
+     and (public.my_role() = 'system_admin'
+          or exists (select 1 from public.custom_features where id = p_feature and public.my_role() = any (fill_roles))
+          -- cmeprojects step 4: or given Built features (create) on the Access page.
+          or (exists (select 1 from public.access_grants g where g.user_id = auth.uid() and g.area is null and g.revoked_at is null)
+                and public.can('ops.features', 'create')))
+$function$;
+
+CREATE OR REPLACE FUNCTION public.can_manage_feature(p_feature uuid, p_what text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.can_build_features()
+      or (public.is_member() and public.mfa_ok() and (public.my_role() = 'manager'
+               -- cmeprojects step 4: or given Built features (set up): the same manager tools.
+               or (exists (select 1 from public.access_grants g where g.user_id = auth.uid() and g.area is null and g.revoked_at is null)
+                and public.can('ops.features', 'configure')))
+          and public.custom_feature_live(p_feature)
+          and exists (select 1 from public.custom_features
+                       where id = p_feature
+                         and case p_what when 'fix' then managers_fix when 'targets' then managers_targets
+                                         when 'options' then managers_options else false end))
+$function$;
+
+CREATE OR REPLACE FUNCTION public.can_see_enquiries()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.is_member() and (public.is_system_admin()
+    or public.my_role()::text in (select jsonb_array_elements_text(coalesce(
+         (select value from public.app_settings where key = 'assistant.enquiry_roles'), '[]')))
+    -- cmeprojects step 4: or given Enquiries on the Access page.
+    or (exists (select 1 from public.access_grants g where g.user_id = auth.uid() and g.area is null and g.revoked_at is null)
+                and public.can('engagement.enquiries', 'view')))
+$function$;
+
+$m094$;
+  insert into public.install_log (name) values ('20270121000001_step4_features_enquiries.sql');
 end;
 $part$;
