@@ -52,6 +52,11 @@ Suggested order: Pages and Menu editor first (offer a clickable preview).
 - Optional: Face ID / fingerprint to unlock the apps instead of the PIN.
 - Optional: push notifications on phones (car still out, alerts).
 
+## Speed (after the build is finished)
+- **Performance stages 2 to 9** (plan: docs/audit/2026-11-performance-plan.md).
+  Stage 1 is done. The owner decided (13 Nov 2026) to do the rest once the
+  build is finished, before going live.
+
 ## Small things
 
 - Printed Tasks report: make the "Opened and completed by month" chart
