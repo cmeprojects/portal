@@ -131,6 +131,8 @@ const word = (a: string) => ACTION_WORD[a] ?? a.replace(/_/g, " ");
 // The rest can be set now and take effect as each module is connected.
 const CONNECTED = /^(hr\.onboarding|ops\.cars|insights\.reports|workflows\.forms|ops\.features|engagement\.enquiries|hr\.contracts)(\.|$)/;
 // Every manager and staff admin can already do these (the only roles that can be given access).
+// Headings only: their parts are set one by one (they don't follow the heading).
+const GROUP = new Set(["hr.records"]);
 const ALREADY = /^(ops\.tasks|hr\.requests|clients\.list|people\.staff|people\.teams)(\.|$)/;
 
 export function ModuleAccessEditor({
@@ -199,7 +201,7 @@ export function ModuleAccessEditor({
   // managers or staff admins, payroll and identity to managers. Modules: only
   // for a Manager Administrator. Settings areas are set further down.
   const editable = (n: TreeNode) => {
-    if (n.sensitivity === "protected" || n.legacy === "settings") return false;
+    if (n.sensitivity === "protected" || n.legacy === "settings" || GROUP.has(n.id)) return false;
     if (n.legacy === "record") return admin ? !who || n.id === "hr.records.details" || who.role === "manager" : limits.some((l) => l.module === n.id);
     return admin ? !who || who.ma : Boolean(limitFor(n.id));
   };
@@ -223,6 +225,12 @@ export function ModuleAccessEditor({
   const resolve = (id: string) => {
     for (const c of chain.get(id) ?? []) if (draft[c]) return draft[c];
     return undefined;
+  };
+  // The level above that decides this one, when it has no setting of its own.
+  const inheritedFrom = (n: TreeNode) => {
+    if (draft[n.id]) return undefined;
+    const from = (chain.get(n.id) ?? []).slice(1).find((c) => draft[c]);
+    return from ? { label: byId.get(from)?.label ?? "the level above", effect: draft[from].effect } : undefined;
   };
   const allowed = (n: TreeNode) =>
     n.legacy === "record" ? draft[n.id]?.effect === "allow" : n.legacy === "settings" ? (legacyOn[person] ?? []).includes(n.id) : n.sensitivity !== "protected" && resolve(n.id)?.effect === "allow";
@@ -370,7 +378,7 @@ export function ModuleAccessEditor({
                                 <Lock aria-hidden="true" className="mr-1 inline size-3" />
                                 System admin only
                               </Badge>
-                            ) : n.legacy ? (
+                            ) : GROUP.has(n.id) ? null : n.legacy ? (
                               <StatusPill s={allowed(n) ? "on" : "off"} />
                             ) : (
                               <StatusPill s={status(n)} />
@@ -381,9 +389,16 @@ export function ModuleAccessEditor({
                               Change under Settings areas
                             </a>
                           ) : editable(n) ? (
-                            <Choice id={n.id} value={draft[n.id]?.effect ?? "none"} onChange={set} admin={admin && !n.legacy} />
+                            <Choice id={n.id} value={draft[n.id]?.effect ?? "none"} onChange={set} admin={admin && !n.legacy} noneLabel={n.sensitivity === "sensitive" ? "Off" : "Inherit"} />
                           ) : n.legacy === "record" ? (
                             <span className="text-xs text-muted">Managers only</span>
+                          ) : GROUP.has(n.id) ? (
+                            <span className="text-xs text-muted">Set each one below</span>
+                          ) : null}
+                          {editable(n) && !n.legacy && inheritedFrom(n) ? (
+                            <span className="w-full text-xs text-muted">
+                              {inheritedFrom(n)?.effect === "allow" ? "On" : "Blocked"}, from {inheritedFrom(n)?.label}
+                            </span>
                           ) : null}
                           {!n.legacy && n.sensitivity !== "protected" && !CONNECTED.test(n.id) && editable(n) ? (
                             <span className="w-full text-xs text-muted">
@@ -400,7 +415,7 @@ export function ModuleAccessEditor({
                                     type="button"
                                     aria-pressed={on}
                                     onClick={() => toggleAction(n, a)}
-                                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${on ? "bg-brand text-white ring-brand" : "bg-surface text-muted ring-line"}`}
+                                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${on ? "bg-brand text-brand-fg ring-brand" : "bg-surface text-muted ring-line"}`}
                                   >
                                     {word(a)}
                                   </button>
@@ -503,8 +518,20 @@ function StatusPill({ s }: { s: "on" | "partial" | "off" }) {
   return s === "on" ? <Badge tone="good">On</Badge> : s === "partial" ? <Badge tone="warn">Partly</Badge> : <Badge tone="grey">Off</Badge>;
 }
 
-function Choice({ id, value, onChange, admin }: { id: string; value: "none" | "allow" | "restrict"; onChange: (id: string, v: "none" | "allow" | "restrict") => void; admin: boolean }) {
-  const opts: ["none" | "allow" | "restrict", string][] = admin ? [["none", "Not set"], ["allow", "On"], ["restrict", "Block"]] : [["none", "Off"], ["allow", "On"]];
+function Choice({
+  id,
+  value,
+  onChange,
+  admin,
+  noneLabel = "Not set",
+}: {
+  id: string;
+  value: "none" | "allow" | "restrict";
+  onChange: (id: string, v: "none" | "allow" | "restrict") => void;
+  admin: boolean;
+  noneLabel?: string;
+}) {
+  const opts: ["none" | "allow" | "restrict", string][] = admin ? [["none", noneLabel], ["allow", "On"], ["restrict", "Block"]] : [["none", "Off"], ["allow", "On"]];
   return (
     <div role="radiogroup" aria-label="Access" className="inline-flex shrink-0 rounded-lg bg-page p-0.5 ring-1 ring-line">
       {opts.map(([v, t]) => (
@@ -514,7 +541,7 @@ function Choice({ id, value, onChange, admin }: { id: string; value: "none" | "a
           role="radio"
           aria-checked={value === v}
           onClick={() => onChange(id, v)}
-          className={`rounded-md px-2.5 py-1 text-xs font-semibold ${value === v ? (v === "restrict" ? "bg-danger text-white" : v === "allow" ? "bg-brand text-white" : "bg-surface text-ink shadow-sm") : "text-muted"}`}
+          className={`rounded-md px-2.5 py-1 text-xs font-semibold ${value === v ? (v === "restrict" ? "bg-danger text-white" : v === "allow" ? "bg-brand text-brand-fg" : "bg-surface text-ink shadow-sm") : "text-muted"}`}
         >
           {t}
         </button>
