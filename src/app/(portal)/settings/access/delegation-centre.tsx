@@ -129,7 +129,9 @@ const word = (a: string) => ACTION_WORD[a] ?? a.replace(/_/g, " ");
 
 // cmeprojects step 4: modules whose pages already follow the Access page.
 // The rest can be set now and take effect as each module is connected.
-const CONNECTED = /^(hr\.onboarding|ops\.cars)(\.|$)/;
+const CONNECTED = /^(hr\.onboarding|ops\.cars|insights\.reports|workflows\.forms)(\.|$)/;
+// Every manager and staff admin can already do these (the only roles that can be given access).
+const ALREADY = /^(ops\.tasks|hr\.requests|clients\.list)(\.|$)/;
 
 export function ModuleAccessEditor({
   admin,
@@ -384,7 +386,9 @@ export function ModuleAccessEditor({
                             <span className="text-xs text-muted">Managers only</span>
                           ) : null}
                           {!n.legacy && n.sensitivity !== "protected" && !CONNECTED.test(n.id) && editable(n) ? (
-                            <span className="w-full text-xs text-muted">Can be set now; takes effect in a later update.</span>
+                            <span className="w-full text-xs text-muted">
+                              {ALREADY.test(n.id) ? "Managers and staff admins already have this." : "Can be set now; takes effect in a later update."}
+                            </span>
                           ) : null}
                           {draft[n.id]?.effect === "allow" && n.actions.length > 1 ? (
                             <div className="flex w-full flex-wrap gap-1.5" role="group" aria-label={`What they can do in ${n.label}`}>

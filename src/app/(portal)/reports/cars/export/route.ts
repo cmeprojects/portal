@@ -4,9 +4,10 @@ import { getSession } from "@/lib/session";
 import { getBranding } from "@/lib/branding";
 import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
-import { canSeeCarReports, canUseCars, getCarRules } from "@/lib/cars";
+import { canUseCars, getCarRules } from "@/lib/cars";
 import { KIND_LABELS, buildCarReport, parseCarFilter } from "@/lib/car-reports";
 import { pngSize, tableToXlsx, type ExcelHeader } from "@/lib/excel";
+import { seesCarReportFor } from "@/lib/module-access";
 
 async function fetchLogo(url: string, origin: string): Promise<ExcelHeader["logo"]> {
   try {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
   if (!session) return NextResponse.redirect(new URL("/login", request.url));
   // Excel downloads are part of Reports and exports (a premium add-on).
   if (session.features.reports === false) return new NextResponse("Reports and exports are switched off", { status: 403 });
-  if (!canUseCars(session.profile.role, session.features) || !canSeeCarReports(session.profile.role, await getCarRules())) {
+  if (!canUseCars(session.profile.role, session.features) || !(await seesCarReportFor(session.profile.role, await getCarRules(), "export"))) {
     return new NextResponse("Not allowed", { status: 403 });
   }
   const [timeZone, brand] = await Promise.all([getTimeZone(), getBranding()]);

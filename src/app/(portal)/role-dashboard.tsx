@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireSession } from "@/lib/session";
-import { canSeeComplianceReport, getPeopleRules, getTimeZone } from "@/lib/settings";
+import { getPeopleRules, getTimeZone } from "@/lib/settings";
 import { endOfWeek, formatDue, todayIn, type Priority, type Status } from "@/lib/tasks";
 import { refLabel } from "@/lib/registers";
 import { ManagerBoard, type BoardTask } from "./manager-board";
@@ -15,6 +15,7 @@ import { formsOn } from "@/lib/forms";
 import { Bars, Panel, Tile } from "@/components/dash";
 import { PageHeader, buttonClass } from "@/components/ui";
 import { AlertTriangle, Car, Plus, Clock, FileWarning, Inbox, ListChecks, MailQuestion, Siren, Upload, UserPlus, Users } from "lucide-react";
+import { seesComplianceReportFor } from "@/lib/module-access";
 
 // cmeprojects: each role's dashboard, in the same style as the system admin's.
 //   Manager:     the whole operation.
@@ -346,7 +347,7 @@ export async function RoleDashboard() {
   if (!hasRoleDashboard(profile.role)) return null;
   const supabase = await createClient();
   const [timeZone, rules] = await Promise.all([getTimeZone(), getPeopleRules()]);
-  const ctx: Ctx = { supabase, me: profile.id, today: todayIn(timeZone), timeZone, features, complianceReport: canSeeComplianceReport(profile.role, rules) };
+  const ctx: Ctx = { supabase, me: profile.id, today: todayIn(timeZone), timeZone, features, complianceReport: await seesComplianceReportFor(profile.role, rules) };
   const layout = LAYOUTS[profile.role];
   const parts = (await Promise.all(layout.pieces.map((p) => p(ctx).catch(() => null)))).filter(Boolean) as { board?: ReactNode; tile?: ReactNode; panel?: ReactNode }[];
   const firstName = profile.full_name?.split(" ")[0];

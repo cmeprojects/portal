@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270119000001_step4_onboarding_cars.sql
+-- Built from every migration up to: 20270120000001_step4_forms_reports.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -187,7 +187,8 @@ begin
     (89, '20270116000001_admin_two_items.sql'),
     (90, '20270117000001_manager_admins.sql'),
     (91, '20270118000001_owner.sql'),
-    (92, '20270119000001_step4_onboarding_cars.sql')
+    (92, '20270119000001_step4_onboarding_cars.sql'),
+    (93, '20270120000001_step4_forms_reports.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -18082,5 +18083,56 @@ $function$;
 
 $m092$;
   insert into public.install_log (name) values ('20270119000001_step4_onboarding_cars.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270120000001_step4_forms_reports.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270120000001_step4_forms_reports.sql') then
+    return;
+  end if;
+  execute $m093$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects module framework step 4 (second batch): Forms and the Cars
+-- report follow the Access page as well as the role rules (the Tasks and
+-- Onboarding reports are checked by the pages; their data already follows the
+-- task and onboarding rules). Nobody loses access; people with no admin access
+-- given skip the extra check straight away.
+-- No new SECURITY DEFINER function (two existing ones gain the extra rule).
+
+CREATE OR REPLACE FUNCTION public.can_make_forms()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.is_member() and public.feature_enabled('forms')
+     and (public.is_system_admin()
+          or (public.feature_enabled('form_builder')
+              and public.my_role()::text in (select jsonb_array_elements_text(coalesce(
+                    (select value from public.app_settings where key = 'forms.maker_roles'), '[]'))))
+              -- cmeprojects step 4: or given Forms (create) on the Access page.
+              or (public.feature_enabled('form_builder') and (exists (select 1 from public.access_grants g where g.user_id = auth.uid() and g.area is null and g.revoked_at is null)
+                   and public.can('workflows.forms', 'create'))))
+$function$;
+
+CREATE OR REPLACE FUNCTION public.can_see_car_reports()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.can_manage_cars()
+      or (public.cars_on() and public.my_role() = any (public.setting_roles('vehicles.report_roles')))
+      -- cmeprojects step 4: or given the Cars report on the Access page.
+      or (public.cars_on() and (exists (select 1 from public.access_grants g where g.user_id = auth.uid() and g.area is null and g.revoked_at is null)
+                   and public.can('insights.reports.cars', 'view')))
+$function$;
+
+$m093$;
+  insert into public.install_log (name) values ('20270120000001_step4_forms_reports.sql');
 end;
 $part$;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
-import { canSeeComplianceReport, getPeopleRules, getTimeZone } from "@/lib/settings";
+import { getPeopleRules, getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import { getBranding } from "@/lib/branding";
 import { ROLES, ROLE_LABELS } from "@/lib/roles";
@@ -17,13 +17,14 @@ import { PrintHeader } from "@/components/print-header";
 import { SectionTabs } from "@/components/section-tabs";
 import { PrintLandscape } from "@/components/print-landscape";
 import { clearDefaultView, saveDefaultView } from "./actions";
+import { seesComplianceReportFor } from "@/lib/module-access";
 
 export const metadata: Metadata = { title: "Compliance report" };
 
 export default async function ComplianceReportPage({ searchParams }: PageProps<"/reports/compliance">) {
   const { profile, features } = await requireSession();
   const rules = await getPeopleRules();
-  if (!canSeeComplianceReport(profile.role, rules) || features.reports === false) redirect("/");
+  if (!(await seesComplianceReportFor(profile.role, rules)) || features.reports === false) redirect("/");
   const params = await searchParams;
   // No choices in the address: open their saved view, if they have one.
   const saved = (await cookies()).get(DEFAULT_COOKIE)?.value;

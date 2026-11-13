@@ -3,8 +3,8 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/roles";
-import { canManageCompliance, seesCompliance, type PeopleRules } from "@/lib/settings";
-import { canManageCars } from "@/lib/cars";
+import { canManageCompliance, canSeeComplianceReport, canSeeReports, seesCompliance, type PeopleRules } from "@/lib/settings";
+import { canManageCars, canSeeCarReports } from "@/lib/cars";
 import type { CarRules } from "@/lib/car-types";
 
 // cmeprojects module framework step 4: pages follow the access given on the
@@ -31,3 +31,9 @@ export const seesExpiryFor = async (role: Role, rules: PeopleRules) => seesCompl
 
 // Cars: manage the cars (add, change, set up).
 export const managesCarsFor = async (role: Role, rules: CarRules) => canManageCars(role, rules) || (await given(role, "ops.cars.manage", "configure"));
+
+// Reports (each report on its own; "export" = the Excel download).
+export const seesTaskReportFor = async (role: Role, rules: PeopleRules, action = "view") => canSeeReports(role, rules) || (await given(role, "insights.reports.tasks", action));
+export const seesComplianceReportFor = async (role: Role, rules: PeopleRules, action = "view") =>
+  canSeeComplianceReport(role, rules) || (await given(role, "insights.reports.compliance", action));
+export const seesCarReportFor = async (role: Role, rules: CarRules, action = "view") => canSeeCarReports(role, rules) || (await given(role, "insights.reports.cars", action));

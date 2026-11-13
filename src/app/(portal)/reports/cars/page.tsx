@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
-import { canSeeCarReports, canUseCars, getCarRules } from "@/lib/cars";
+import { canUseCars, getCarRules } from "@/lib/cars";
 import { CAR_REPORT_COOKIE, KIND_HINTS, KIND_LABELS, PERIODS, buildCarReport, carFilterQuery, parseCarFilter, type CarReportKind } from "@/lib/car-reports";
 import { getTimeZone } from "@/lib/settings";
 import { getBranding } from "@/lib/branding";
@@ -17,6 +17,7 @@ import { PrintHeader } from "@/components/print-header";
 import { SectionTabs } from "@/components/section-tabs";
 import { PrintLandscape } from "@/components/print-landscape";
 import { clearCarReportView, saveCarReportView } from "./actions";
+import { seesCarReportFor } from "@/lib/module-access";
 
 export const metadata: Metadata = { title: "Car reports" };
 
@@ -25,7 +26,7 @@ const KINDS = Object.keys(KIND_LABELS) as CarReportKind[];
 export default async function CarReportsPage({ searchParams }: PageProps<"/reports/cars">) {
   const { profile, features } = await requireSession();
   if (features.reports === false) redirect("/");
-  if (!canUseCars(profile.role, features) || !canSeeCarReports(profile.role, await getCarRules())) redirect("/cars");
+  if (!canUseCars(profile.role, features) || !(await seesCarReportFor(profile.role, await getCarRules()))) redirect("/cars");
   const params = await searchParams;
   // No choices in the address: open their saved report, if they have one.
   const saved = (await cookies()).get(CAR_REPORT_COOKIE)?.value;
