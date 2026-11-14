@@ -72,15 +72,17 @@ export function Sidebar({
   const [openSub, setOpenSub] = useState<string | null>(null);
   const shown = useMemo(() => (openSub ? [openSub] : []), [openSub]);
   const toggleSubs = useCallback((id: string) => setOpenSub((o) => (o === id ? null : id)), []);
-  const [openCats, setOpenCats] = useState<Set<string>>(() => new Set());
+  // cmeprojects: one section open at a time. It starts as the section of this
+  // page; opening another closes it. (A choice is kept until the page changes.)
+  const [picked, setPicked] = useState<{ page: string | null; cat: string | null } | null>(null);
+  const pageCat = useRef<string | null>(null);
   const toggle = useCallback(
     (id: string) => {
       if (collapseSections) {
-        setOpenCats((o) => {
-          const next = new Set(o);
-          if (next.has(id)) next.delete(id);
-          else next.add(id);
-          return next;
+        setPicked((p) => {
+          const page = pageCat.current;
+          const open = p && p.page === page ? p.cat : page;
+          return { page, cat: open === id ? null : id };
         });
         return;
       }
@@ -105,6 +107,16 @@ export function Sidebar({
     const best = all.filter((x) => isActive(path, x.m)).sort((a, b) => b.m.length - a.m.length)[0];
     return best?.id ?? "";
   }, [tree, pins, path]);
+
+  // The section holding this page (always "c:<id>"), and the one that's open.
+  const hereCat = useMemo(() => {
+    const c = tree.find((cat) => cat.items.some((n) => n.id === current || n.children.some((k) => k.id === current)));
+    return c ? `c:${c.id}` : null;
+  }, [tree, current]);
+  useEffect(() => {
+    pageCat.current = hereCat;
+  }, [hereCat]);
+  const openCat = picked && picked.page === hereCat ? picked.cat : hereCat;
 
   useEffect(() => {
     if (!drawer) return;
@@ -208,7 +220,8 @@ export function Sidebar({
       ) : null}
       {tree.map((cat, i) => {
         const here = cat.items.some((n) => n.id === current || n.children.some((k) => k.id === current));
-        const shut = collapseSections ? !openCats.has(`c:${cat.id}`) && !here : closed.has(`c:${cat.id}`) && !here;
+        // The top group (Dashboard, My onboarding…) has no heading, so it never closes.
+        const shut = collapseSections ? cat.id !== "workspace" && openCat !== `c:${cat.id}` : closed.has(`c:${cat.id}`) && !here;
         return (
           <div key={cat.id} className="flex flex-col gap-0.5">
             {compact ? (
