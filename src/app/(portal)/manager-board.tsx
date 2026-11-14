@@ -99,7 +99,14 @@ export function ManagerBoard({
           <Tile label="Open tasks" value={tasks.length} note={`${week.length} due this week`} icon={ListChecks} />
         </TileButton>
         <TileButton onClick={() => open({ title: "Past their due date", tasks: late, viewAll: "/tasks?show=late#all" })}>
-          <Tile label="Overdue" value={late.length} note="Past their due date" icon={AlertTriangle} tone="danger" />
+          <Tile
+            label="Overdue"
+            value={late.length}
+            // cmeprojects: the chart counts escalated ones separately, so say when they're included here.
+            note={late.some((t) => t.status === "escalated") ? `Past their due date (including ${late.filter((t) => t.status === "escalated").length} escalated)` : "Past their due date"}
+            icon={AlertTriangle}
+            tone="danger"
+          />
         </TileButton>
         <TileButton onClick={() => open({ title: "Waiting for approval", tasks: by("awaiting"), viewAll: "/tasks?show=awaiting#all" })}>
           <Tile label="Waiting for approval" value={by("awaiting").length} note="Finished, needs a manager" icon={BadgeCheck} tone="warn" />

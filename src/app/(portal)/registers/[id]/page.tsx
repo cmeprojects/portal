@@ -78,13 +78,23 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
                 Set up
               </Link>
             ) : null}
-            <ExportPanel registerId={id} today={todayIn(timeZone)} records={records} status={filter.status} q={filter.q} />
+            {/* cmeprojects: with Reports and exports switched off, a greyed button says why (no dead end). */}
+            {features.reports === false ? (
+              <span className={buttonClass("outline", "cursor-not-allowed opacity-50")} title="Reports and exports are switched off (System settings → Features)" aria-disabled="true">
+                Excel (switched off)
+              </span>
+            ) : (
+              <ExportPanel registerId={id} today={todayIn(timeZone)} records={records} status={filter.status} q={filter.q} />
+            )}
             {records ? (
               manages ? (
                 <Link href={`/registers/${id}/new`} className={buttonClass("primary")}>
                   <Plus aria-hidden="true" className="size-4" />Add item
                 </Link>
-              ) : null
+              ) : (
+                // cmeprojects: say who adds items, instead of no button at all.
+                <span className="max-w-xs self-center text-xs text-muted">Items are added by this register&apos;s managers. Ask the system admin to add you in Set up.</span>
+              )
             ) : features.tasks !== false && registry.active ? (
               <Link href={`/tasks/new?register=${id}`} className={buttonClass("primary")}>
                 <Plus aria-hidden="true" className="size-4" />New task

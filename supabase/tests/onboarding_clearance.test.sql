@@ -91,7 +91,10 @@ select test.ok(public.before_work_missing(test.pid('new@example.com')) = '{}', '
 select test.act_as('boss@example.com');
 set role authenticated;
 select public.grant_clearance(test.pid('new@example.com'), 'All checks done');
+-- cmeprojects (update 80): a second clearance is refused (no second notice).
+select test.refused($$select public.grant_clearance(test.pid('new@example.com'), 'again')$$, 'clearing someone already cleared is refused');
 reset role;
+select test.ok((select count(*) = 1 from public.notifications where user_id = test.pid('new@example.com') and kind = 'cleared_to_work'), 'only one "cleared to work" notice');
 select test.ok(public.can_work(test.pid('new@example.com')), 'cleared to work');
 select test.ok((select count(*) = 0 from public.tasks where assigned_to = test.pid('new@example.com')), 'a new starter isn''t given the task yet');
 select test.act_as('boss@example.com');

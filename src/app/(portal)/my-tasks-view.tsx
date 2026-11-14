@@ -39,7 +39,7 @@ type Row = {
 const TABS = [
   { key: "assigned", label: "Assigned to me" },
   { key: "helping", label: "Asked to help" },
-  { key: "created", label: "My requests and questions" },
+  { key: "created", label: "Raised by me" },
   { key: "completed", label: "Completed" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];

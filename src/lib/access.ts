@@ -14,8 +14,8 @@ export const ACCESS_LABEL: Record<AccessArea, string> = {
 
 export const ACCESS_HINT: Record<AccessArea, string> = {
   staff_details: "Change staff names, contact and employment details, and business cards.",
-  payroll_tax: "Bank, super and tax file number records (coming in the next phase). Revealing a TFN needs its own tick.",
-  identity_docs: "Citizenship, residency, visa details and documents, and VEVO checks (coming in the next phase).",
+  payroll_tax: "Bank, super and tax file number records. Revealing a TFN needs its own tick.",
+  identity_docs: "Citizenship, residency, visa details and documents, and VEVO checks.",
 };
 
 export const isAccessArea = (v: unknown): v is AccessArea => typeof v === "string" && (ACCESS_AREAS as readonly string[]).includes(v);

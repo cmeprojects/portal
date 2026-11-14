@@ -51,6 +51,23 @@ export function SearchButton({ variant }: { variant: "box" | "icon" | "top" }) {
   );
 }
 
+// cmeprojects: everyday words that find a page whose name doesn't contain them
+// (for example "leave" finds My requests). Only pages this person can open are
+// searched, so this never shows anything new.
+const PAGE_WORDS: Record<string, string[]> = {
+  "/requests": ["leave", "holiday", "annual", "sick", "shift", "swap", "availability", "timesheet", "roster", "hr"],
+  "/onboarding": ["induction", "documents", "certificate", "police", "check", "training", "policy", "agreement"],
+  "/account": ["password", "profile", "photo", "birthday", "two-factor", "sign out", "address", "emergency"],
+  "/account/records": ["bank", "super", "superannuation", "tfn", "tax", "pay", "visa", "work rights"],
+  "/people": ["phone", "contact", "colleague", "staff list"],
+  "/compliance": ["clear to work", "clearance", "documents", "expiry", "check"],
+  "/compliance/expiry": ["expired", "expiring", "renew"],
+  "/settings/staff": ["invite", "role", "deactivate", "new starter"],
+  "/settings/access": ["delegate", "permission", "admin"],
+  "/system/audit": ["history", "log", "who changed"],
+  "/settings": ["settings", "branding", "logo", "company name", "features", "notifications"],
+};
+
 export function CommandPalette({ pages, people, registers }: { pages: { label: string; href: string }[]; people: boolean; registers: boolean }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -121,7 +138,10 @@ export function CommandPalette({ pages, people, registers }: { pages: { label: s
 
   const term = q.trim().toLowerCase();
   const hits: Hit[] = useMemo(() => {
-    const pageHits = pages.filter((p) => !term || p.label.toLowerCase().includes(term)).slice(0, term ? 5 : 8).map((p) => ({ kind: "page" as const, label: p.label, href: p.href }));
+    const pageHits = pages
+      .filter((p) => !term || p.label.toLowerCase().includes(term) || (PAGE_WORDS[p.href] ?? []).some((w) => w.startsWith(term)))
+      .slice(0, term ? 5 : 8)
+      .map((p) => ({ kind: "page" as const, label: p.label, href: p.href }));
     return [...pageHits, ...(term.length >= 2 ? found : [])];
   }, [pages, term, found]);
 

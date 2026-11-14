@@ -40,7 +40,7 @@ function RaiseQuestionDialog({ answerers, onClose }: { answerers: Person[]; onCl
         <h2 id="rq-title" className="heading-sm mb-1">
           Raise a question
         </h2>
-        <p className="mb-4 text-sm text-muted">It becomes a Staff question task. You&apos;ll see the answer in My tasks → My requests and questions.</p>
+        <p className="mb-4 text-sm text-muted">It becomes a Staff question task. You&apos;ll see the answer in My tasks → Raised by me.</p>
         {state?.message ? (
           <div className="flex flex-col gap-3">
             <Notice tone="success">{state.message}</Notice>

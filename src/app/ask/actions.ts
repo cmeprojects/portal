@@ -145,5 +145,5 @@ export async function raiseQuestion(_: { error?: string; message?: string } | nu
     p_description: details,
   });
   if (error) return { error: "That didn't send. Please try again, or raise it in the portal." };
-  return { message: "Sent. Follow it in the portal: My tasks → My requests and questions." };
+  return { message: "Sent. Follow it in the portal: My tasks → Raised by me." };
 }

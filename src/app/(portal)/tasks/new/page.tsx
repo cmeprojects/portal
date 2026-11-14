@@ -59,7 +59,7 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/tasks/ne
         title={limited ? "New task or question" : "New task"}
         intro={
           limited
-            ? "Raise a general task or ask a question, and pick who should look at it. You'll see how it's going in My tasks → My requests and questions."
+            ? "Raise a general task or ask a question, and pick who should look at it. You'll see how it's going in My tasks → Raised by me."
             : "Choose a register, fill in the details and pick who will look after it."
         }
       />
