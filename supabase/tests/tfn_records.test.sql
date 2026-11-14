@@ -7,6 +7,8 @@
 \set QUIET 1
 \o /dev/null
 
+-- This test makes its own pay and work-rights records, so test people start without them.
+drop trigger if exists test_fill_pay on public.profiles;
 insert into auth.users (email) values ('owner@example.com');
 insert into public.invitations (email, full_name, role) values
   ('boss@example.com', 'Morgan', 'manager'), ('office@example.com', 'Olive', 'staff_admin'), ('sam@example.com', 'Sam', 'support_worker'), ('kim@example.com', 'Kim', 'support_worker');
