@@ -1,5 +1,5 @@
 -- Staff Portal · © cmeproject. All rights reserved.
--- Update 83: managers can act on tasks in registers with no named managers
+-- PROPOSAL (not applied, awaiting the owner): managers can act on tasks in registers with no named managers
 -- (they're the ones told about escalations). Safe to run again.
 -- Undo: undo-83.sql. Run update 82 first.
 begin;
