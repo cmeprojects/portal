@@ -107,6 +107,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
       <Sidebar
         tree={tree}
         pins={pins}
+        collapseSections={profile.role === "system_admin"}
         brandMark={<BrandMark brand={brand} />}
         help={brand.supportContact || undefined}
         mobileActions={

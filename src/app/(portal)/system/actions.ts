@@ -273,5 +273,6 @@ export async function saveShares(_: FormState, form: FormData): Promise<FormStat
     if (error) return { error: friendlyError(error) };
   }
   revalidatePath("/system");
+  revalidatePath("/settings"); // cmeprojects: also shown inside Portal settings
   return { message: "Saved. This takes effect straight away." };
 }

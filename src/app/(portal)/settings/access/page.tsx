@@ -138,6 +138,17 @@ export default async function AccessPage() {
   const actionText = (g: ModGrant) => (g.effect === "restrict" ? "blocked" : g.actions.length ? g.actions.join(", ").replace(/_/g, " ") : "everything");
   const holders = [...new Set(modGrants.filter((g) => !g.revoked_at && (admin || g.granted_by === profile.id)).map((g) => g.user_id))];
 
+  // What this manager passed on (modules and staff records), per person.
+  const passedOn = admin
+    ? []
+    : [...new Set([...modGrants, ...grants].filter((g) => g.granted_by === profile.id && !g.revoked_at).map((g) => g.user_id))].map((id) => ({
+        id,
+        name: nameOf.get(id) ?? "Someone",
+        what: [
+          ...modGrants.filter((g) => g.user_id === id && g.granted_by === profile.id && !g.revoked_at).map((g) => `${labelOf(g.module_id)} (${actionText(g)})`),
+          ...grants.filter((g) => g.user_id === id && g.granted_by === profile.id && !g.revoked_at).map((g) => ACCESS_LABEL[g.area]),
+        ],
+      }));
   const current = grants.filter((g) => !g.revoked_at && g.user_id !== profile.id);
   const history = grants.filter((g) => g.revoked_at);
 
@@ -169,10 +180,15 @@ export default async function AccessPage() {
   return (
     <>
       <PageHeader
-        title="Access"
-        intro="Who can run which parts of the portal (Manager Administrators and what they pass on to staff admins) and who can see private staff records. Changes work straight away and are recorded."
+        title={admin ? "Access" : "Delegate"}
+        intro={
+          admin
+            ? "Who can run which parts of the portal (Manager Administrators and what they pass on to staff admins) and who can see private staff records. Changes work straight away and are recorded."
+            : "Share the admin work you've been allowed to pass on with your staff admins. They get only what you choose, never more than you have, and it stops if your own access stops. Everything is recorded."
+        }
       />
 
+      {admin ? (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           ["Manager Administrators", openDesig.filter((d) => d.status === "active").length],
@@ -186,6 +202,7 @@ export default async function AccessPage() {
           </Card>
         ))}
       </div>
+      ) : null}
 
       {admin ? (
         <Card className="flex flex-col gap-4 p-5 sm:p-6">
@@ -222,18 +239,11 @@ export default async function AccessPage() {
         </Card>
       ) : null}
 
-      {!admin && myModAccess.length ? (
-        <Card className="flex flex-col gap-2 p-5">
-          <h2 className="heading-sm">Your admin access</h2>
-          <ul className="flex flex-col gap-1 text-sm">
-            {myModAccess.map((g) => (
-              <li key={g.id}>
-                <strong>{labelOf(g.module_id)}</strong> · {actionText(g)}
-                {g.expires_at ? ` · until ${day.format(new Date(g.expires_at))}` : ""}
-                {g.can_pass_on ? " · you may pass it on to staff admins" : ""}
-              </li>
-            ))}
-          </ul>
+
+      {!admin && !myLimits.length ? (
+        <Card className="p-5 sm:p-6">
+          <h2 className="heading-sm">Nothing to pass on yet</h2>
+          <p className="text-sm text-muted">The system admin hasn&apos;t allowed you to pass on any admin work. When they do, you&apos;ll choose a staff admin here and turn on what they can do.</p>
         </Card>
       ) : null}
 
@@ -260,8 +270,26 @@ export default async function AccessPage() {
         </Card>
       ) : null}
 
+      {!admin && passedOn.length ? (
+        <Card className="flex flex-col gap-3 p-5 sm:p-6">
+          <div>
+            <h2 className="heading-sm">What you&apos;ve passed on</h2>
+            <p className="text-sm text-muted">To change or remove it, choose the person above.</p>
+          </div>
+          <ul className="divide-y divide-line rounded-lg border border-line text-sm">
+            {passedOn.map((p) => (
+              <li key={p.id} className="px-4 py-2">
+                <strong>{p.name}</strong> · {p.what.join(", ")}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
       {admin ? <SettingsAreas people={(people ?? []).filter((p) => p.active && (p.role === "manager" || p.role === "staff_admin"))} /> : null}
 
+      {admin ? (
+      <>
       <h2 className="heading-sm mt-2">Staff records access</h2>
 
       {myGrants.length && !admin ? (
@@ -325,6 +353,9 @@ export default async function AccessPage() {
           </Card>
         );
       })}
+
+      </>
+      ) : null}
 
       {admin ? <KeepingRecords /> : null}
 

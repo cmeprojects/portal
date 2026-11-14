@@ -227,6 +227,13 @@ const ADMIN_TABS = [
 type FeatureRowData = { key: string; label: string; description: string | null; enabled: boolean; included?: boolean; premium?: boolean };
 
 export default async function SystemPage({ searchParams }: PageProps<"/system">) {
+  return <SystemSettings searchParams={searchParams} />;
+}
+
+// cmeprojects: also shown inside Portal settings (base = that page's address),
+// so its tabs stay there.
+export async function SystemSettings({ searchParams, base = "/system" }: { searchParams: PageProps<"/system">["searchParams"]; base?: string }) {
+  const link = (qs: string) => `${base}${base.includes("?") ? "&" : "?"}${qs}`;
   const { profile } = await requireSession();
   const isAdmin = profile.role === "system_admin";
   const areas = await getMyAdminAreas(profile.role);
@@ -302,7 +309,7 @@ export default async function SystemPage({ searchParams }: PageProps<"/system">)
   const staffAdmins = choices.filter((c) => c.role === ROLE_LABELS.staff_admin);
 
   const two = featureState("two_factor");
-  const tabs = ADMIN_TABS.map((t) => ({ href: `/system?tab=${t.key}`, text: t.label, current: t.key === tab }));
+  const tabs = ADMIN_TABS.map((t) => ({ href: link(`tab=${t.key}`), text: t.label, current: t.key === tab }));
 
   return (
     <>

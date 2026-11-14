@@ -19,6 +19,13 @@ const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "
 // (who did it or who it was about), kind of change, dates and words. The log
 // itself can't be edited or deleted.
 export default async function AuditPage({ searchParams }: PageProps<"/system/audit">) {
+  return <ChangeLog searchParams={searchParams} />;
+}
+
+// cmeprojects: also shown inside Portal settings (base = that page's address).
+export async function ChangeLog({ searchParams, base = "/system/audit" }: { searchParams: PageProps<"/system/audit">["searchParams"]; base?: string }) {
+  const link = (qs: string) => (qs ? `${base}${base.includes("?") ? "&" : "?"}${qs}` : base);
+  const [basePath, baseQuery] = base.split("?");
   const { profile } = await requireSession();
   if (!(await getMyAdminAreas(profile.role)).includes("audit")) redirect("/");
   const params = await searchParams;
@@ -52,7 +59,10 @@ export default async function AuditPage({ searchParams }: PageProps<"/system/aud
   return (
     <>
       <PageHeader title="Change log" intro="Every change to people, onboarding, access and settings: who did what, to whom and to what. It can't be edited or deleted." />
-      <form method="get" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_9rem_9rem_auto]" role="search">
+      <form method="get" action={basePath} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_9rem_9rem_auto]" role="search">
+        {[...new URLSearchParams(baseQuery ?? "").entries()].map(([k, v]) => (
+          <input key={k} type="hidden" name={k} value={v} />
+        ))}
         <label className="flex flex-col gap-1 text-sm font-semibold">
           Search
           <input name="q" defaultValue={one(params.q)} placeholder="For example: First Aid, Sam, role" className={inputClass} />
@@ -90,7 +100,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/system/aud
         <div className="flex items-end gap-2">
           <button className={buttonClass("primary", "h-11")}>Filter</button>
           {keep.toString() ? (
-            <Link href="/system/audit" className={buttonClass("outline", "h-11")}>
+            <Link href={link("")} className={buttonClass("outline", "h-11")}>
               Clear
             </Link>
           ) : null}
@@ -106,7 +116,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/system/aud
                 <div className="min-w-0 flex-1 basis-80 text-sm">
                   <p>
                     {i.actorId ? (
-                      <Link href={`/system/audit?person=${i.actorId}`} className="font-semibold hover:underline">
+                      <Link href={link(`person=${i.actorId}`)} className="font-semibold hover:underline">
                         {i.actor}
                       </Link>
                     ) : (
@@ -123,7 +133,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/system/aud
                       </Link>
                     ) : null}
                     {i.subjectId ? (
-                      <Link href={`/system/audit?person=${i.subjectId}`} className="font-semibold text-brand hover:underline">
+                      <Link href={link(`person=${i.subjectId}`)} className="font-semibold text-brand hover:underline">
                         Everything about this person
                       </Link>
                     ) : null}
@@ -138,7 +148,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/system/aud
         )}
       </Card>
       {older ? (
-        <Link href={`/system/audit?${new URLSearchParams([...keep.entries(), ["before", String(older)]]).toString()}`} className={buttonClass("outline", "self-start")}>
+        <Link href={link(new URLSearchParams([...keep.entries(), ["before", String(older)]]).toString())} className={buttonClass("outline", "self-start")}>
           Older changes
         </Link>
       ) : null}

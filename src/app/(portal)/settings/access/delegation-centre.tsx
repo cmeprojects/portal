@@ -226,12 +226,6 @@ export function ModuleAccessEditor({
     for (const c of chain.get(id) ?? []) if (draft[c]) return draft[c];
     return undefined;
   };
-  // The level above that decides this one, when it has no setting of its own.
-  const inheritedFrom = (n: TreeNode) => {
-    if (draft[n.id]) return undefined;
-    const from = (chain.get(n.id) ?? []).slice(1).find((c) => draft[c]);
-    return from ? { label: byId.get(from)?.label ?? "the level above", effect: draft[from].effect } : undefined;
-  };
   const allowed = (n: TreeNode) =>
     n.legacy === "record" ? draft[n.id]?.effect === "allow" : n.legacy === "settings" ? (legacyOn[person] ?? []).includes(n.id) : n.sensitivity !== "protected" && resolve(n.id)?.effect === "allow";
   const inside = (n: TreeNode) => nodes.filter((d) => d.id !== n.id && !d.legacy && d.sensitivity !== "protected" && (n.depth === 0 ? d.category === n.category : (chain.get(d.id) ?? []).includes(n.id) || isUnder(d, n)));
@@ -257,17 +251,33 @@ export function ModuleAccessEditor({
     return kids.some(allowed) ? "partial" : "off";
   };
 
-  const set = (id: string, v: "none" | "allow" | "restrict") =>
+  // cmeprojects: each switch shows what's in effect (On or Off). Turning a
+  // module on turns everything under it on (its parts show On); turning a part
+  // off under a module that's on blocks just that part; turning a module off
+  // turns its parts off. Sensitive parts are always set on their own.
+  const parentOn = (n: TreeNode) => {
+    const from = (chain.get(n.id) ?? []).slice(1).find((c) => draft[c]);
+    return from ? draft[from].effect === "allow" : false;
+  };
+  const effectiveOn = (n: TreeNode) => (n.depth === 0 ? draft[n.id]?.effect === "allow" : allowed(n));
+  const setOn = (n: TreeNode, on: boolean) =>
     setDraft((d) => {
       const next = { ...d };
-      if (v === "none") delete next[id];
-      else next[id] = { effect: v, actions: v === "allow" ? (d[id]?.actions ?? []) : [] };
+      // Parts under it start again from this choice (sensitive ones are separate).
+      for (const k of inside(n)) if (k.sensitivity === "normal" && !k.legacy) delete next[k.id];
+      const above = n.depth > 0 && n.sensitivity === "normal" && !n.legacy && (chain.get(n.id) ?? []).slice(1).some((c) => next[c]?.effect === "allow");
+      if (on) {
+        if (above) delete next[n.id];
+        else next[n.id] = { effect: "allow", actions: d[n.id]?.effect === "allow" ? d[n.id].actions : [] };
+      } else if (above) next[n.id] = { effect: "restrict", actions: [] };
+      else delete next[n.id];
       return next;
     });
   const toggleAction = (n: TreeNode, a: string) =>
     setDraft((d) => {
-      const cur = d[n.id];
-      if (!cur) return d;
+      // A part that's on because the module above is on gets its own setting here.
+      const cur = d[n.id] ?? (parentOn(n) ? { effect: "allow" as const, actions: [] } : undefined);
+      if (!cur || cur.effect !== "allow") return d;
       const all = limitFor(n.id)?.actions.length ? (limitFor(n.id)?.actions as string[]) : n.actions;
       const has = cur.actions.length ? cur.actions : all;
       let next = has.includes(a) ? has.filter((x) => x !== a) : [...has, a];
@@ -359,7 +369,7 @@ export function ModuleAccessEditor({
                       {c.label}
                       <StatusPill s={status(c)} />
                     </button>
-                    {admin && who?.ma ? <Choice id={c.id} value={draft[c.id]?.effect ?? "none"} onChange={set} admin={admin} /> : null}
+                    {admin && who?.ma ? <OnOff on={effectiveOn(c)} onChange={(on) => setOn(c, on)} label={c.label} /> : null}
                   </div>
                   {expanded ? (
                     <ul className="divide-y divide-line border-t border-line">
@@ -389,26 +399,28 @@ export function ModuleAccessEditor({
                               Change under Settings areas
                             </a>
                           ) : editable(n) ? (
-                            <Choice id={n.id} value={draft[n.id]?.effect ?? "none"} onChange={set} admin={admin && !n.legacy} noneLabel={n.sensitivity === "sensitive" ? "Off" : "Inherit"} />
+                            <OnOff
+                              on={effectiveOn(n)}
+                              onChange={(on) => setOn(n, on)}
+                              label={n.label}
+                              // A staff admin can't be given a blocked part, so passing on can't switch off a part of something that's on.
+                              lockOff={!admin && parentOn(n)}
+                            />
                           ) : n.legacy === "record" ? (
                             <span className="text-xs text-muted">Managers only</span>
                           ) : GROUP.has(n.id) ? (
                             <span className="text-xs text-muted">Set each one below</span>
-                          ) : null}
-                          {editable(n) && !n.legacy && inheritedFrom(n) ? (
-                            <span className="w-full text-xs text-muted">
-                              {inheritedFrom(n)?.effect === "allow" ? "On" : "Blocked"}, from {inheritedFrom(n)?.label}
-                            </span>
                           ) : null}
                           {!n.legacy && n.sensitivity !== "protected" && !CONNECTED.test(n.id) && editable(n) ? (
                             <span className="w-full text-xs text-muted">
                               {ALREADY.test(n.id) ? "Managers and staff admins already have this." : "Can be set now; takes effect in a later update."}
                             </span>
                           ) : null}
-                          {draft[n.id]?.effect === "allow" && n.actions.length > 1 ? (
+                          {editable(n) && effectiveOn(n) && n.actions.length > 1 ? (
                             <div className="flex w-full flex-wrap gap-1.5" role="group" aria-label={`What they can do in ${n.label}`}>
                               {(limitFor(n.id)?.actions.length ? (limitFor(n.id)?.actions as string[]) : n.actions).map((a) => {
-                                const on = !draft[n.id].actions.length || draft[n.id].actions.includes(a);
+                                const own = draft[n.id]?.effect === "allow" ? draft[n.id].actions : [];
+                                const on = !own.length || own.includes(a);
                                 return (
                                   <button
                                     key={a}
@@ -518,32 +530,21 @@ function StatusPill({ s }: { s: "on" | "partial" | "off" }) {
   return s === "on" ? <Badge tone="good">On</Badge> : s === "partial" ? <Badge tone="warn">Partly</Badge> : <Badge tone="grey">Off</Badge>;
 }
 
-function Choice({
-  id,
-  value,
-  onChange,
-  admin,
-  noneLabel = "Not set",
-}: {
-  id: string;
-  value: "none" | "allow" | "restrict";
-  onChange: (id: string, v: "none" | "allow" | "restrict") => void;
-  admin: boolean;
-  noneLabel?: string;
-}) {
-  const opts: ["none" | "allow" | "restrict", string][] = admin ? [["none", noneLabel], ["allow", "On"], ["restrict", "Block"]] : [["none", "Off"], ["allow", "On"]];
+function OnOff({ on, onChange, label, lockOff = false }: { on: boolean; onChange: (on: boolean) => void; label: string; lockOff?: boolean }) {
   return (
-    <div role="radiogroup" aria-label="Access" className="inline-flex shrink-0 rounded-lg bg-page p-0.5 ring-1 ring-line">
-      {opts.map(([v, t]) => (
+    <div role="radiogroup" aria-label={`Access to ${label}`} className="inline-flex shrink-0 rounded-lg bg-page p-0.5 ring-1 ring-line">
+      {([false, true] as const).map((v) => (
         <button
-          key={v}
+          key={String(v)}
           type="button"
           role="radio"
-          aria-checked={value === v}
-          onClick={() => onChange(id, v)}
-          className={`rounded-md px-2.5 py-1 text-xs font-semibold ${value === v ? (v === "restrict" ? "bg-danger text-white" : v === "allow" ? "bg-brand text-brand-fg" : "bg-surface text-ink shadow-sm") : "text-muted"}`}
+          aria-checked={on === v}
+          disabled={!v && lockOff && on}
+          title={!v && lockOff && on ? "Turn off the module above to choose its parts" : undefined}
+          onClick={() => onChange(v)}
+          className={`rounded-md px-3 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${on === v ? (v ? "bg-brand text-brand-fg" : "bg-surface text-ink shadow-sm") : "text-muted"}`}
         >
-          {t}
+          {v ? "On" : "Off"}
         </button>
       ))}
     </div>

@@ -118,5 +118,6 @@ export async function saveRequestType(_: FormState, form: FormData): Promise<For
     .eq("key", key);
   if (error) return { error: friendlyError(error) };
   revalidatePath("/settings/requests");
+  revalidatePath("/settings"); // cmeprojects: also shown inside Portal settings
   return { message: "Saved." };
 }

@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, CircleHelp, Menu, PanelLeftClose, PanelLeftOpen, Star, X } from "lucide-react";
 import type { NavCategory, NavNode } from "@/lib/nav-tree";
 import { ModuleIcon } from "@/components/module-icons";
-import { toast } from "@/components/toast";
 
 // cmeprojects: the menu, built from the module catalogue (src/lib/modules.ts).
 // Categories and modules fold open and closed (remembered on this device), the
@@ -16,9 +15,6 @@ import { toast } from "@/components/toast";
 
 const STORE_CLOSED = "portal.nav.closed";
 const STORE_RAIL = "portal.nav.rail";
-// Modules whose sub-pages this person chose to show (hidden by default, at most MAX_OPEN).
-const STORE_OPEN = "portal.nav.open";
-const MAX_OPEN = 3;
 const listeners = new Set<() => void>();
 function read(key: string): string {
   try {
@@ -54,6 +50,7 @@ export function Sidebar({
   mobileActions,
   help,
   footer,
+  collapseSections = false,
 }: {
   tree: NavCategory[];
   pins: Pin[];
@@ -61,33 +58,38 @@ export function Sidebar({
   mobileActions: ReactNode;
   help?: string;
   footer?: ReactNode;
+  // cmeprojects: the system admin's long menu starts with its sections closed
+  // (except the one with this page) every time a page loads.
+  collapseSections?: boolean;
 }) {
   const path = usePathname();
   const [drawer, setDrawer] = useState(false);
   const rail = useStored(STORE_RAIL) === "1";
   const closedRaw = useStored(STORE_CLOSED);
   const closed = useMemo(() => new Set(closedRaw ? closedRaw.split(",") : []), [closedRaw]);
-  const openRaw = useStored(STORE_OPEN);
-  const shown = useMemo(() => (openRaw ? openRaw.split(",").filter(Boolean) : []), [openRaw]);
-  const toggleSubs = useCallback(
-    (id: string) => {
-      if (shown.includes(id)) return write(STORE_OPEN, shown.filter((x) => x !== id).join(","));
-      if (shown.length >= MAX_OPEN) {
-        toast(`You can show sub-pages for up to ${MAX_OPEN} menu items. Hide one first.`, "error");
-        return;
-      }
-      write(STORE_OPEN, [...shown, id].join(","));
-    },
-    [shown],
-  );
+  // cmeprojects: sub-pages are all closed when a page loads, and only one
+  // module's sub-pages show at a time (opening another closes the last one).
+  const [openSub, setOpenSub] = useState<string | null>(null);
+  const shown = useMemo(() => (openSub ? [openSub] : []), [openSub]);
+  const toggleSubs = useCallback((id: string) => setOpenSub((o) => (o === id ? null : id)), []);
+  const [openCats, setOpenCats] = useState<Set<string>>(() => new Set());
   const toggle = useCallback(
     (id: string) => {
+      if (collapseSections) {
+        setOpenCats((o) => {
+          const next = new Set(o);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        });
+        return;
+      }
       const next = new Set(closed);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       write(STORE_CLOSED, [...next].join(","));
     },
-    [closed],
+    [closed, collapseSections],
   );
 
   // The longest matching address wins (so a page lights up only one item).
@@ -205,7 +207,8 @@ export function Sidebar({
         </div>
       ) : null}
       {tree.map((cat, i) => {
-        const shut = closed.has(`c:${cat.id}`) && !cat.items.some((n) => n.id === current || n.children.some((k) => k.id === current));
+        const here = cat.items.some((n) => n.id === current || n.children.some((k) => k.id === current));
+        const shut = collapseSections ? !openCats.has(`c:${cat.id}`) && !here : closed.has(`c:${cat.id}`) && !here;
         return (
           <div key={cat.id} className="flex flex-col gap-0.5">
             {compact ? (
