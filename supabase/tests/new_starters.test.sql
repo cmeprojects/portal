@@ -40,8 +40,16 @@ select test.refused($$select public.create_task('x', (select id from public.regi
   'a new starter cannot be given a task');
 reset role;
 
--- First role: with the rule off, a staff admin sets it straight away.
+-- cmeprojects (update 79): not before they're cleared to work.
 update public.app_settings set value = 'false' where key = 'people.first_role_approval';
+select test.act_as('boss@example.com');
+set role authenticated;
+select test.refused($$update public.profiles set role = 'support_worker' where email = 'new@example.com'$$,
+  'a new starter can''t be given a role before they''re cleared to work (a conditional role is the way)');
+reset role;
+update public.profiles set cleared_at = now() where email = 'new@example.com';
+
+-- First role, once cleared: with the rule off, a staff admin sets it straight away.
 select test.act_as('office@example.com');
 set role authenticated;
 update public.profiles set role = 'support_worker' where email = 'new@example.com';

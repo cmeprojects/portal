@@ -2,6 +2,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { lockApp, signOutApp } from "./actions";
+import { FormPending } from "@/components/form-pending";
 
 // The links at the bottom of the Cars app and the Staff app.
 export function AppNav({ base, children }: { base: string; children?: ReactNode }) {
@@ -13,11 +14,11 @@ export function AppNav({ base, children }: { base: string; children?: ReactNode 
       </Link>
       <form action={lockApp}>
         <input type="hidden" name="base" value={base} />
-        <button className="min-h-11 text-brand underline">Lock</button>
+        <button className="min-h-11 text-brand underline">Lock<FormPending /></button>
       </form>
       <form action={signOutApp}>
         <input type="hidden" name="base" value={base} />
-        <button className="min-h-11 text-muted underline">Sign out</button>
+        <button className="min-h-11 text-muted underline">Sign out<FormPending /></button>
       </form>
     </nav>
   );

@@ -36,6 +36,7 @@ import {
 import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
 import { ErrorMessage, ToastOnMount } from "@/components/toast";
+import { FormPending } from "@/components/form-pending";
 
 // Buttons: crisp corners, white with a thin border; the main action filled.
 // 44px tall on phones (easy to tap during a shift), compact on bigger screens.
@@ -115,6 +116,7 @@ export function Button({
     <button className={buttonClass(variant, className, size)} aria-busy={busy || undefined} {...props}>
       {Icon ? <Icon aria-hidden="true" className={busy ? "animate-spin" : undefined} /> : null}
       {children}
+      {props.type === "button" || props.type === "reset" ? null : <FormPending />}
     </button>
   );
 }

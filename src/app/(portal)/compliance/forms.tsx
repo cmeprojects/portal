@@ -295,21 +295,23 @@ export function ClearancePanel({
   const [state, action, pending] = useActionState(changeClearance, null);
   const [mode, setMode] = useState<"" | "grant" | "revoke" | "override">("");
   const { ref: modeRef, valid } = useValid();
+  // cmeprojects: after it's saved, close the form so the new state shows.
+  useAfterSuccess(state, () => setMode(""));
   return (
     <div className="flex flex-col gap-3">
       <Result state={state} />
       <div className="flex flex-wrap gap-2">
         {!cleared ? (
-          <Button type="button" onClick={() => setMode("grant")} disabled={pending || missing.length > 0}>
+          <Button type="button" onClick={() => setMode("grant")} disabled={pending || missing.length > 0 || mode === "grant"} aria-pressed={mode === "grant"}>
             Clear to work
           </Button>
         ) : (
-          <Button type="button" variant="outline" onClick={() => setMode("revoke")} disabled={pending}>
+          <Button type="button" variant="outline" onClick={() => setMode("revoke")} disabled={pending || mode === "revoke"} aria-pressed={mode === "revoke"}>
             Remove clearance
           </Button>
         )}
         {!cleared ? (
-          <Button type="button" variant="outline" onClick={() => setMode("override")} disabled={pending}>
+          <Button type="button" variant="outline" onClick={() => setMode("override")} disabled={pending || mode === "override"} aria-pressed={mode === "override"}>
             {override ? "Change override" : "Let them work for now (override)"}
           </Button>
         ) : null}
@@ -340,7 +342,7 @@ export function ClearancePanel({
           ) : null}
           <div className="flex gap-2">
             <Button disabled={pending || !valid}>{pending ? "Saving…" : mode === "grant" ? "Clear to work" : mode === "revoke" ? "Remove clearance" : "Give override"}</Button>
-            <Button type="button" variant="outline" onClick={() => setMode("")}>
+            <Button type="button" variant="outline" onClick={() => setMode("")} disabled={pending}>
               Cancel
             </Button>
           </div>

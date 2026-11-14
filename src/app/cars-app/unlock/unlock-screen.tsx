@@ -5,6 +5,7 @@ import { hasPin } from "@/lib/car-pin";
 import { UNLOCK_COOKIE, isUnlocked } from "@/lib/app-lock";
 import { PinPad, SetPinForm } from "./pin-forms";
 import { forgotPin, signOutApp } from "../actions";
+import { FormPending } from "@/components/form-pending";
 
 // Choose, change or enter the PIN. The Cars app and the Staff app share one
 // PIN; base says which app to open afterwards.
@@ -36,11 +37,11 @@ export async function UnlockScreen({ base, change }: { base: string; change: boo
       <div className="flex flex-wrap justify-center gap-x-5 text-sm">
         <form action={forgotPin}>
           <input type="hidden" name="base" value={base} />
-          <button className="min-h-11 text-brand underline">Forgot your PIN?</button>
+          <button className="min-h-11 text-brand underline">Forgot your PIN?<FormPending /></button>
         </form>
         <form action={signOutApp}>
           <input type="hidden" name="base" value={base} />
-          <button className="min-h-11 text-muted underline">Not {first || "you"}? Sign out</button>
+          <button className="min-h-11 text-muted underline">Not {first || "you"}? Sign out<FormPending /></button>
         </form>
       </div>
     </section>

@@ -34,6 +34,7 @@ export function SlaInputs({ value, prefix = "sla_", placeholder }: { value?: Rec
   );
 }
 import { addAppIcon, applyPreset, chooseAppIcon, deleteAppIcon, saveDelegationRule, saveNotifications, saveSetting, saveShares, setFeature, type WhichApp, runDemoAction, signOutEveryone } from "./actions";
+import { FormPending } from "@/components/form-pending";
 
 // cmeprojects: one feature switch. Pressing it saves a draft; it goes live on Deploy.
 export function FeatureSwitch({
@@ -87,7 +88,7 @@ export function FeatureSwitch({
       >
         <span aria-hidden="true" className={`h-3 w-3 rounded-full ${feature.on ? "bg-brand-fg" : "bg-muted"}`} />
         {feature.on ? "On" : "Off"}
-      </button>
+      <FormPending /></button>
     </form>
   );
 }
@@ -232,7 +233,7 @@ export function PresetButtons({ presets }: { presets: { key: string; label: stri
             >
               <span className="font-semibold">{p.label}</span>
               <span className="text-xs text-muted">{p.hint}</span>
-            </button>
+            <FormPending /></button>
           </form>
         ))}
       </div>

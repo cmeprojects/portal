@@ -20,6 +20,7 @@ import {
 } from "@/lib/tasks";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { AttentionList, OngoingTable, TaskPeek, type OngoingRow } from "./ongoing-table";
+import { FormPending } from "@/components/form-pending";
 
 type Row = {
   id: string;
@@ -323,7 +324,7 @@ export async function DashboardView({ params }: { params: Record<string, string 
             <label className="sr-only" htmlFor="d-q">Search by title</label>
             <input id="d-q" name="q" type="search" defaultValue={one(params.q)} placeholder="Search by title" className={inputClass} />
             {show ? <input type="hidden" name="show" value={show} /> : null}
-            <button className={buttonClass("outline")}>Show</button>
+            <button className={buttonClass("outline")}>Show<FormPending /></button>
             {register || person || q ? (
               <Link href="/tasks#all" className="min-h-11 content-center px-2 text-sm text-muted underline">
                 Clear

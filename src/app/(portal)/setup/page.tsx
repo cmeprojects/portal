@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { SetupWizard } from "./wizard";
 import { skipSetup } from "./actions";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Set up" };
 
@@ -32,7 +33,7 @@ export default async function SetupPage() {
         intro="A few quick steps for a new copy. Everything here can be changed later in Settings."
         action={
           <form action={skipSetup}>
-            <button className="text-sm font-semibold text-muted underline">Skip for now</button>
+            <button className="text-sm font-semibold text-muted underline">Skip for now<FormPending /></button>
           </form>
         }
       />

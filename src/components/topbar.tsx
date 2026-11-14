@@ -8,6 +8,7 @@ import { ChevronDown, CircleUser, Landmark, LogOut, Star } from "lucide-react";
 import { toast } from "@/components/toast";
 import { togglePin } from "@/app/(portal)/pin-actions";
 import { signOut } from "@/app/login/actions";
+import { FormPending } from "@/components/form-pending";
 
 // cmeprojects: the top bar on wide screens (search, pin this page, bell, and
 // your account menu). On phones these sit in the menu bar instead.
@@ -75,7 +76,7 @@ export function UserMenu({ name, role, avatar, extra }: { name: string; role: st
           <form action={signOut} className="border-t border-line pt-1">
             <button role="menuitem" className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left font-semibold text-danger hover:bg-danger-soft">
               <LogOut aria-hidden="true" className="size-4" /> Sign out
-            </button>
+            <FormPending /></button>
           </form>
         </div>
       ) : null}

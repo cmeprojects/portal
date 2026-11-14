@@ -6,6 +6,7 @@ import { PIN_OFF_COOKIE } from "@/lib/app-lock";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { Button, Notice, buttonClass } from "@/components/ui";
 import { lockApp, setPinOnOpen, signOutApp } from "./actions";
+import { FormPending } from "@/components/form-pending";
 
 // cmeprojects: each phone app's own settings (this phone only): the PIN, the
 // colours, and signing out. Shared by the Cars app and the Staff app.
@@ -40,7 +41,7 @@ export async function AppSettingsScreen({ base, saved }: { base: string; saved: 
           >
             <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${pinOn ? "bg-brand-fg" : "bg-muted"}`} />
             {pinOn ? "On" : "Off"}
-          </button>
+          <FormPending /></button>
         </form>
         <Link href={`${base}/unlock?change=1`} className={buttonClass("outline", "self-start", "sm")}>
           Change my PIN

@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { buttonClass, inputClass } from "@/components/ui";
+import { FormPending } from "@/components/form-pending";
 
 type Range = { from: string; to: string };
 
@@ -130,7 +131,7 @@ export function ExportPanel({
           </p>
           <button className={buttonClass("primary")} disabled={badRange}>
             Download
-          </button>
+          <FormPending /></button>
         </form>
       ) : null}
     </div>

@@ -11,6 +11,7 @@ import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { InviteForm, PersonEditor, type PersonRow } from "./forms";
 import { canHelpSignIn, canInvite, getPeopleRules } from "@/lib/settings";
 import { decideChangeRequest } from "./actions";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Staff & roles" };
 
@@ -150,12 +151,12 @@ export default async function StaffPage() {
                     <form action={decideChangeRequest}>
                       <input type="hidden" name="request_id" value={q.id} />
                       <input type="hidden" name="decision" value="approve" />
-                      <button className={buttonClass("primary")}>Approve</button>
+                      <button className={buttonClass("primary")}>Approve<FormPending /></button>
                     </form>
                     <form action={decideChangeRequest}>
                       <input type="hidden" name="request_id" value={q.id} />
                       <input type="hidden" name="decision" value="decline" />
-                      <button className={buttonClass("outline")}>Decline</button>
+                      <button className={buttonClass("outline")}>Decline<FormPending /></button>
                     </form>
                   </div>
                 ) : (

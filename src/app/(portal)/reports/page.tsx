@@ -9,6 +9,7 @@ import { buildReports, parsePeriod, parseTaskFilter, taskFilterQuery } from "@/l
 import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
 import { DataTable } from "@/components/data-table";
 import { seesTaskReportFor } from "@/lib/module-access";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Reports" };
 
@@ -69,7 +70,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
               </select>
             </label>
           ))}
-          <button className={buttonClass("outline", "h-11")}>Apply</button>
+          <button className={buttonClass("outline", "h-11")}>Apply<FormPending /></button>
           {fq ? (
             <a href={`/reports?${periodQs}`} className="h-12 px-2 py-3 text-sm text-brand underline">
               Clear
@@ -85,7 +86,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
             <span className="font-semibold">To</span>
             <input type="date" name="to" defaultValue={period.key === "custom" ? period.to : ""} required className={inputClass} />
           </label>
-          <button className={buttonClass("outline", "h-11")}>Show these dates</button>
+          <button className={buttonClass("outline", "h-11")}>Show these dates<FormPending /></button>
         </form>
       </div>
 

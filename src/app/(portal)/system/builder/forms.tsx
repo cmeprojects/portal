@@ -5,6 +5,7 @@ import { confirmSubmit } from "@/components/confirm";
 import { useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { createFeature, setFeatureIncluded, deleteDraft } from "./actions";
+import { FormPending } from "@/components/form-pending";
 
 export function NewFeatureForm() {
   const [state, action, pending] = useActionState(createFeature, null);
@@ -44,7 +45,7 @@ export function IncludedSwitch({ id, enabled }: { id: string; enabled: boolean }
       >
         <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${enabled ? "bg-brand-fg" : "bg-muted"}`} />
         {enabled ? "In package" : "Off"}
-      </button>
+      <FormPending /></button>
     </form>
   );
 }
@@ -57,7 +58,7 @@ export function DeleteFeatureButton({ id, name }: { id: string; name: string }) 
       onSubmit={confirmSubmit(`Delete "${name}"? This can't be undone.`, { action: "Delete" })}
     >
       <input type="hidden" name="id" value={id} />
-      <button className="text-sm font-semibold text-danger underline">Delete</button>
+      <button className="text-sm font-semibold text-danger underline">Delete<FormPending /></button>
     </form>
   );
 }

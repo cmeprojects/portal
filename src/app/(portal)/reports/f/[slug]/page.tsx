@@ -17,6 +17,7 @@ import { PrintHeader } from "@/components/print-header";
 import { PrintLandscape } from "@/components/print-landscape";
 import { SectionTabs } from "@/components/section-tabs";
 import { LiveRefresh } from "@/components/live-refresh";
+import { FormPending } from "@/components/form-pending";
 
 export async function generateMetadata({ params }: PageProps<"/reports/f/[slug]">): Promise<Metadata> {
   const def = await loadFeature({ slug: (await params).slug });
@@ -128,7 +129,7 @@ export default async function FeatureReportPage({ params, searchParams }: PagePr
               </select>
             </label>
             <div className="flex items-end">
-              <button className={buttonClass("primary", "h-11 w-full")}>Show report</button>
+              <button className={buttonClass("primary", "h-11 w-full")}>Show report<FormPending /></button>
             </div>
             <label className={field}>
               <span className="font-semibold">From (your own dates)</span>

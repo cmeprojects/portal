@@ -18,6 +18,7 @@ import { SectionTabs } from "@/components/section-tabs";
 import { PrintLandscape } from "@/components/print-landscape";
 import { clearCarReportView, saveCarReportView } from "./actions";
 import { seesCarReportFor } from "@/lib/module-access";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Car reports" };
 
@@ -154,7 +155,7 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
               <input type="date" name="to" defaultValue={f.period.key === "custom" ? f.period.to : ""} className={inputClass} />
             </label>
             <div className="flex items-end">
-              <button className={buttonClass("primary", "h-11 w-full")}>Show report</button>
+              <button className={buttonClass("primary", "h-11 w-full")}>Show report<FormPending /></button>
             </div>
           </div>
           <p className="text-xs text-muted">Fill in both dates to use your own dates instead of the period.</p>
@@ -162,11 +163,11 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3 text-sm">
           <form action={saveCarReportView}>
             <input type="hidden" name="query" value={qs} />
-            <button className="font-semibold text-brand underline">Save as my default</button>
+            <button className="font-semibold text-brand underline">Save as my default<FormPending /></button>
           </form>
           {saved ? (
             <form action={clearCarReportView}>
-              <button className="text-muted underline">Forget my default</button>
+              <button className="text-muted underline">Forget my default<FormPending /></button>
             </form>
           ) : null}
         </div>

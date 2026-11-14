@@ -8,6 +8,7 @@ import { getMyAdminAreas, getTimeZone } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { KIND_LABEL, describeAudit, type AuditRow, type Kind } from "@/lib/audit-describe";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Change log" };
 
@@ -98,7 +99,7 @@ export async function ChangeLog({ searchParams, base = "/system/audit" }: { sear
           <input type="date" name="to" defaultValue={to} className={inputClass} />
         </label>
         <div className="flex items-end gap-2">
-          <button className={buttonClass("primary", "h-11")}>Filter</button>
+          <button className={buttonClass("primary", "h-11")}>Filter<FormPending /></button>
           {keep.toString() ? (
             <Link href={link("")} className={buttonClass("outline", "h-11")}>
               Clear

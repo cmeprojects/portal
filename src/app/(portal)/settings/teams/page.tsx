@@ -11,6 +11,7 @@ import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { decideChangeRequest } from "../staff/actions";
 import { NewTeamForm, TeamForm } from "./forms";
 import { getPeopleRules } from "@/lib/settings";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Teams" };
 
@@ -84,12 +85,12 @@ export default async function TeamsPage() {
                     <form action={decideChangeRequest}>
                       <input type="hidden" name="request_id" value={q.id} />
                       <input type="hidden" name="decision" value="approve" />
-                      <button className={buttonClass("primary")}>Approve</button>
+                      <button className={buttonClass("primary")}>Approve<FormPending /></button>
                     </form>
                     <form action={decideChangeRequest}>
                       <input type="hidden" name="request_id" value={q.id} />
                       <input type="hidden" name="decision" value="decline" />
-                      <button className={buttonClass("outline")}>Decline</button>
+                      <button className={buttonClass("outline")}>Decline<FormPending /></button>
                     </form>
                   </div>
                 ) : (

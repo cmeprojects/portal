@@ -11,6 +11,7 @@ import { getRegistries } from "@/lib/register-data";
 import { DONE } from "@/lib/tasks";
 import { Badge, Card, Notice, PageHeader, buttonClass } from "@/components/ui";
 import { setRegistryApproval } from "./setup-actions";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Registers" };
 
@@ -90,7 +91,7 @@ export default async function RegistersPage({ searchParams }: PageProps<"/regist
                 >
                   <span aria-hidden="true" className={`h-2 w-2 rounded-full ${r.requires_approval ? "bg-brand-fg" : "bg-muted"}`} />
                   {r.requires_approval ? "On" : "Off"}
-                </button>
+                <FormPending /></button>
               </form>
             ) : null}
           </Card>

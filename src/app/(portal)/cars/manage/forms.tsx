@@ -7,6 +7,7 @@ import { FileUpload } from "@/components/file-upload";
 import { correctTrip, movePurpose, returnForSomeone, saveCar, saveClient, saveClientField, savePurpose, setClientShown, setPurposeShown } from "../actions";
 import { CAR_FILES } from "@/lib/car-types";
 import type { FormState } from "@/lib/form";
+import { FormPending } from "@/components/form-pending";
 
 function Result({ state }: { state: FormState }) {
   if (state?.error) return <Notice tone="error">{state.error}</Notice>;
@@ -139,7 +140,7 @@ function ShownSwitch({ id, active, action, label }: { id: string; active: boolea
       >
         <span aria-hidden="true" className={`size-2 rounded-full ${active ? "bg-good" : "bg-muted"}`} />
         {active ? "Shown" : "Hidden"}
-      </button>
+      <FormPending /></button>
     </form>
   );
 }
@@ -226,7 +227,7 @@ function MoveButton({ id, dir, disabled }: { id: string; dir: "up" | "down"; dis
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
           <path d={dir === "up" ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} />
         </svg>
-      </button>
+      <FormPending /></button>
     </form>
   );
 }

@@ -12,6 +12,7 @@ import { env } from "@/lib/env";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { AppSquare } from "@/components/app-glyph";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "QR sticker for a client" };
 
@@ -64,7 +65,7 @@ export default async function ClientStickerPage({ params, searchParams }: PagePr
               ))}
             </select>
           </label>
-          <button className={buttonClass("primary", "", "sm")}>Make the sticker</button>
+          <button className={buttonClass("primary", "", "sm")}>Make the sticker<FormPending /></button>
         </form>
       )}
       {chosen ? (

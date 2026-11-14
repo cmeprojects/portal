@@ -18,6 +18,7 @@ import { SectionTabs } from "@/components/section-tabs";
 import { PrintLandscape } from "@/components/print-landscape";
 import { clearDefaultView, saveDefaultView } from "./actions";
 import { seesComplianceReportFor } from "@/lib/module-access";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Compliance report" };
 
@@ -176,17 +177,17 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
             <p className="mt-1 text-xs text-muted">Tick none to include every item.</p>
           </details>
           <div className="flex flex-wrap items-center gap-2">
-            <button className={buttonClass("outline")}>Show</button>
+            <button className={buttonClass("outline")}>Show<FormPending /></button>
           </div>
         </form>
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-line pt-3 text-sm">
           <form action={saveDefaultView}>
             <input type="hidden" name="query" value={qs} />
-            <button className="font-semibold text-brand underline">Save as my default view</button>
+            <button className="font-semibold text-brand underline">Save as my default view<FormPending /></button>
           </form>
           {saved ? (
             <form action={clearDefaultView}>
-              <button className="text-muted underline">Forget my default</button>
+              <button className="text-muted underline">Forget my default<FormPending /></button>
             </form>
           ) : null}
         </div>

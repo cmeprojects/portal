@@ -10,6 +10,7 @@ import { AlertTriangle, BadgeCheck, CalendarClock, ListChecks, Siren, Timer, X }
 import { Panel, Tile } from "@/components/dash";
 import { STATUS_CLASS, STATUS_LABELS, PRIORITY_CLASS, PRIORITY_LABELS, type Priority, type Status } from "@/lib/tasks";
 import { TaskPeek } from "./ongoing-table";
+import { FormPending } from "@/components/form-pending";
 
 // cmeprojects: the manager's dashboard, made to act on. Every tile, bar and
 // chart slice opens a side panel with those tasks (hover a title for a quick
@@ -434,7 +435,7 @@ function QuickActions({ task, people, onDone }: { task: BoardTask; people: [stri
           <span className="flex gap-2">
             <button className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending || !text.trim() || (op === "reassign" && !to)}>
               {pending ? "Saving…" : { back: "Send back", remind: "Send reminder", reassign: "Reassign", takeover: "Take it over" }[op as "back"]}
-            </button>
+            <FormPending /></button>
             <button type="button" onClick={() => setOp(null)} className={`${btn} border-line`}>
               Cancel
             </button>
@@ -446,7 +447,7 @@ function QuickActions({ task, people, onDone }: { task: BoardTask; people: [stri
             <>
               <button name="op" value="approve" className={`${btn} border-good bg-good text-white`} disabled={pending}>
                 {pending ? "Saving…" : "Approve"}
-              </button>
+              <FormPending /></button>
               <button type="button" onClick={() => start("back")} className={`${btn} border-line`} disabled={pending}>
                 Send back
               </button>
@@ -456,7 +457,7 @@ function QuickActions({ task, people, onDone }: { task: BoardTask; people: [stri
               {task.status === "escalated" ? (
                 <button name="op" value="dealt" className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending}>
                   {pending ? "Saving…" : "Escalation dealt with"}
-                </button>
+                <FormPending /></button>
               ) : null}
               {task.assignedTo ? (
                 <button type="button" onClick={() => start("remind")} className={`${btn} border-line`} disabled={pending}>

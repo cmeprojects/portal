@@ -13,6 +13,7 @@ import { AddFieldForm, CreateRolesForm, DeleteRegisterForm, EditFieldForm, Manag
 import { requireSession } from "@/lib/session";
 import { getMyAdminAreas } from "@/lib/settings";
 import { moveField } from "../../setup-actions";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Set up register" };
 
@@ -98,7 +99,7 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
                     <input type="hidden" name="dir" value="up" />
                     <button className="min-h-11 px-2 text-sm font-semibold text-muted hover:text-brand" aria-label={`Move ${f.label} up`}>
                       ↑ Up
-                    </button>
+                    <FormPending /></button>
                   </form>
                 ) : null}
                 {i < fields.length - 1 ? (
@@ -108,7 +109,7 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
                     <input type="hidden" name="dir" value="down" />
                     <button className="min-h-11 px-2 text-sm font-semibold text-muted hover:text-brand" aria-label={`Move ${f.label} down`}>
                       ↓ Down
-                    </button>
+                    <FormPending /></button>
                   </form>
                 ) : null}
               </div>

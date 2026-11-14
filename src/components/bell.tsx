@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { markAllSeen } from "./bell-actions";
+import { FormPending } from "@/components/form-pending";
 
 // A task given to you, or the answer to a change you asked for.
 export type BellItem = { key: string; href: string; title: string; detail: string; tone?: "good" | "danger"; read?: boolean };
@@ -92,7 +93,7 @@ export function Bell({ items, tone = "dark" }: { items: BellItem[]; tone?: "dark
             <p className="heading-sm">Notifications{count ? ` · ${count} new` : ""}</p>
             {count ? (
               <form action={markAllSeen}>
-                <button className="min-h-9 text-xs font-medium text-brand underline">Mark all as seen</button>
+                <button className="min-h-9 text-xs font-medium text-brand underline">Mark all as seen<FormPending /></button>
               </form>
             ) : null}
           </div>

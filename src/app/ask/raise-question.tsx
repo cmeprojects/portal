@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { raiseQuestion, signOutWebsite } from "./actions";
+import { FormPending } from "@/components/form-pending";
 
 type Person = { id: string; name: string; detail: string };
 
@@ -24,7 +25,7 @@ export function StaffFooter({ name, position, answerers }: { name: string; posit
         Raise a question
       </button>
       <form action={signOutWebsite} className="px-2 pt-1">
-        <button className="inline-flex min-h-9 items-center rounded-md border border-line px-4 text-sm font-semibold hover:bg-page">Sign out</button>
+        <button className="inline-flex min-h-9 items-center rounded-md border border-line px-4 text-sm font-semibold hover:bg-page">Sign out<FormPending /></button>
       </form>
       {open ? <RaiseQuestionDialog answerers={answerers} onClose={() => setOpen(false)} /> : null}
     </div>

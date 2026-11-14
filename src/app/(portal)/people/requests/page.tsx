@@ -8,6 +8,7 @@ import { REQUEST_STATUS, REQUEST_TYPES, type RequestStatus } from "@/lib/request
 import { PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
 import { Tile } from "@/components/dash";
 import { RequestList, loadRequests, waitingFor } from "../../requests/list";
+import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Staff requests" };
 
@@ -90,7 +91,7 @@ export default async function StaffRequestsPage({ searchParams }: PageProps<"/pe
             ))}
           </select>
         </label>
-        <button className={buttonClass("primary")}>Filter</button>
+        <button className={buttonClass("primary")}>Filter<FormPending /></button>
         {filtered ? (
           <Link href={`/people/requests${keepTab ? "?tab=all" : ""}`} className={buttonClass("outline")}>
             Clear
