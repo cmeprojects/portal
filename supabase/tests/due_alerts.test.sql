@@ -73,6 +73,7 @@ select set_config('request.jwt.claims', '{}', false), public.run_due_alerts(time
 select test.ok((select count(*) from public.email_outbox)
                = (select count(*) from public.task_alerts where step in ('overdue', 'escalated')) + 1, 'running again sends nothing twice');
 
+
 -- The bell.
 select test.act_as('lead@example.com');
 set role authenticated;
@@ -99,6 +100,21 @@ select test.act_as('boss@example.com');
 set role authenticated;
 select test.refused($$select set_config('request.jwt.claims', '{}', false), public.run_due_alerts()$$, 'staff cannot run the timer job');
 reset role;
+
+-- cmeprojects (update 82): a manager deals with the escalation; it stays dealt
+-- with for that due date, and a new due date that's missed escalates again.
+select test.act_as('boss@example.com');
+set role authenticated;
+select public.set_task_status(test.tid('Very late'), 'in_progress', 'Talked to Sam, finishing today');
+reset role;
+select set_config('request.jwt.claims', '{}', false), public.run_due_alerts(timestamptz '2026-11-04 11:00 Australia/Melbourne');
+select test.ok((select status = 'in_progress' from public.tasks where title = 'Very late'), 'a dealt-with escalation isn''t escalated again for the same due date');
+-- (The new due date is after the earlier escalation, as in real use.)
+update public.tasks set due_date = current_date + 1 where title = 'Very late';
+select set_config('request.jwt.claims', '{}', false), public.run_due_alerts(now() + interval '14 days');
+select test.ok((select status = 'escalated' from public.tasks where title = 'Very late'), 'a new due date that''s missed escalates again');
+-- Back as it was for the checks below.
+update public.tasks set due_date = date '2026-10-30' where title = 'Very late';
 
 -- The summary time and the Auto-escalation switch.
 delete from public.daily_runs;

@@ -72,6 +72,7 @@ export async function saveDraft(_: FormState, form: FormData): Promise<FormState
 }
 
 async function setStatus(id: string, status: string) {
+  await requireSession(); // cmeprojects: signed in first (the database checks the rest)
   if (!UUID.test(id)) return { error: "Something went wrong." };
   const { data, error } = await (await createClient()).from("contracts").update({ status }).eq("id", id).select("id, user_id, title, sent_by");
   if (error) return { error: friendlyError(error) };
@@ -93,6 +94,7 @@ export async function cancelContract(id: string): Promise<FormState> {
 }
 
 export async function deleteDraft(id: string): Promise<FormState> {
+  await requireSession();
   if (!UUID.test(id)) return { error: "Something went wrong." };
   const { data, error } = await (await createClient()).from("contracts").delete().eq("id", id).eq("status", "draft").select("id");
   if (error) return { error: friendlyError(error) };

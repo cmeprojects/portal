@@ -14,6 +14,7 @@ import { AUDIENCE_LABELS, AUDIENCES, DEFAULT_SETTINGS, type AssistantSettings } 
 import { Badge, Button, Card, Notice, PageHeader, inputClass } from "@/components/ui";
 import { AddDocumentForm, AnswersForm, LandingForm, LimitsForm, TestAiButton } from "./forms";
 import { deleteDocument, setDocumentAudience } from "./actions";
+import { ConfirmForm } from "@/components/confirm-form";
 
 export const metadata: Metadata = { title: "Website settings" };
 
@@ -135,12 +136,12 @@ export default async function AssistantPage() {
                     Change
                   </Button>
                 </form>
-                <form action={deleteDocument}>
+                <ConfirmForm action={deleteDocument} text={`Delete "${d.title ?? "this document"}"? The Assistant stops using it straight away. This can't be undone.`} confirmLabel="Delete document">
                   <input type="hidden" name="id" value={d.id} />
                   <Button size="sm" variant="outline">
                     Delete
                   </Button>
-                </form>
+                </ConfirmForm>
               </li>
             ))}
           </ul>
