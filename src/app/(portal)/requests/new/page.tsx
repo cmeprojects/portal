@@ -19,6 +19,14 @@ export default async function NewRequestPage({ searchParams }: PageProps<"/reque
   const supabase = await createClient();
   const { data: people } = await supabase.from("profiles").select("id, full_name, email, role").eq("active", true).neq("id", profile.id).not("role", "in", "(system_admin,new_starter,external)").order("full_name");
   const type = (await searchParams).type;
+  // cmeprojects: who approves each type and when it escalates, as set in Portal settings → Request approvals.
+  const { data: routeRows } = await supabase.from("request_types").select("key, first_approvers, second_approvers, escalate_days, escalate_to");
+  const routes = Object.fromEntries(
+    ((routeRows ?? []) as { key: string; first_approvers: string[]; second_approvers: string[]; escalate_days: number; escalate_to: string[] }[]).map((r) => [
+      r.key,
+      { first: r.first_approvers, second: r.second_approvers, escalateDays: r.escalate_days, escalateTo: r.escalate_to },
+    ]),
+  );
   return (
     <>
       <p className="text-sm">
@@ -34,6 +42,7 @@ export default async function NewRequestPage({ searchParams }: PageProps<"/reque
             colleagues={(people ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email }))}
             today={todayIn(await getTimeZone())}
             initial={typeof type === "string" ? type : undefined}
+            routes={routes}
           />
         ) : (
           <p className="text-sm text-muted">No request types are switched on at the moment.</p>

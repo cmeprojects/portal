@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import { RECORDS_BUCKET } from "@/lib/staff-records";
+import { recheckOnboarding } from "@/lib/onboarding-check";
 
 const UUID = /^[0-9a-f-]{36}$/;
 type Area = "payroll_tax" | "identity_docs";
@@ -58,5 +59,7 @@ export async function verifyRecord(subject: string, table: "staff_bank" | "staff
   if (error) return { error: friendlyError(error) };
   if (!data?.length) return { error: "You don't have access to check this." };
   revalidatePath("/people");
+  // cmeprojects: a checked right to work (or bank/super) may finish their onboarding.
+  await recheckOnboarding(subject);
   return { message: "Marked as checked." };
 }

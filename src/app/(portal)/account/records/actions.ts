@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { cleanAbn, cleanAccount, cleanBsb, cleanUsi } from "@/lib/staff-records";
+import { recheckOnboarding } from "@/lib/onboarding-check";
 
 const str = (form: FormData, k: string, max = 200) => String(form.get(k) ?? "").trim().slice(0, max);
 const UUID = /^[0-9a-f-]{36}$/;
@@ -36,6 +37,7 @@ export async function saveBank(_: FormState, form: FormData): Promise<FormState>
   if (error) return { error: friendlyError(error) };
   revalidatePath("/account/records");
   revalidatePath("/people");
+  await recheckOnboarding(userId);
   return { message: "Bank details saved. Payroll will check them." };
 }
 
@@ -62,6 +64,7 @@ export async function saveSuper(_: FormState, form: FormData): Promise<FormState
   if (error) return { error: friendlyError(error) };
   revalidatePath("/account/records");
   revalidatePath("/people");
+  await recheckOnboarding(userId);
   return { message: "Super details saved. Payroll will check them." };
 }
 
@@ -92,5 +95,6 @@ export async function saveWorkRights(_: FormState, form: FormData): Promise<Form
   if (error) return { error: friendlyError(error) };
   revalidatePath("/account/records");
   revalidatePath("/people");
+  await recheckOnboarding(userId);
   return { message: "Work rights saved. They'll be checked." };
 }

@@ -8,7 +8,28 @@ import { LEAVE_TYPES, REQUEST_TYPES } from "@/lib/requests-shared";
 import { DAYS, SHIFTS } from "@/lib/profiles-shared";
 
 // cmeprojects: pick a request type, then fill in its short form.
-export function NewRequestForm({ types, colleagues, today, initial }: { types: string[]; colleagues: { id: string; name: string }[]; today: string; initial?: string }) {
+export type Route = { first: string[]; second: string[]; escalateDays: number; escalateTo: string[] };
+
+// Approver keys in Request approvals are roles ("team_leader") or a person's own team leader.
+const WHO: Record<string, string> = { team_leader: "your team leader", manager: "a manager", staff_admin: "a staff admin", system_admin: "the system admin" };
+const who = (keys: string[]) => {
+  const names = keys.map((k) => WHO[k] ?? k.replace(/_/g, " "));
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}` : (names[0] ?? "");
+};
+
+export function NewRequestForm({
+  types,
+  colleagues,
+  today,
+  initial,
+  routes = {},
+}: {
+  types: string[];
+  colleagues: { id: string; name: string }[];
+  today: string;
+  initial?: string;
+  routes?: Record<string, Route>;
+}) {
   const [state, action, pending] = useActionState(submitRequest, null);
   const offered = REQUEST_TYPES.filter((t) => types.includes(t.key));
   const [type, setType] = useState(initial && types.includes(initial) ? initial : (offered[0]?.key ?? ""));
@@ -34,6 +55,18 @@ export function NewRequestForm({ types, colleagues, today, initial }: { types: s
           ))}
         </div>
       </fieldset>
+
+      {/* cmeprojects: who decides, from Request approvals (no made-up times: only the configured escalation). */}
+      {routes[type] ? (
+        <p className="rounded-lg border border-line bg-page p-3 text-sm" aria-live="polite">
+          <span className="font-semibold">Who approves it: </span>
+          {routes[type].first.length ? who(routes[type].first) : "the office"}
+          {routes[type].second.length ? `, then ${who(routes[type].second)}` : ""}.
+          {routes[type].escalateDays > 0 && routes[type].escalateTo.length
+            ? ` If nobody acts within ${routes[type].escalateDays} day${routes[type].escalateDays === 1 ? "" : "s"}, it goes to ${who(routes[type].escalateTo)}.`
+            : ""}
+        </p>
+      ) : null}
 
       {type === "leave" ? (
         <div className="grid gap-4 sm:grid-cols-2">

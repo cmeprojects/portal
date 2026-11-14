@@ -44,6 +44,10 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
     cleared_by: string | null;
     before_work_missing: string[];
     override: { id: number; until: string; reason: string; by: string } | null;
+    // cmeprojects (update 81)
+    still_to_finish?: string[];
+    finish_by?: string | null;
+    cleared_note?: string | null;
   } | null;
   const signed = new Map<number, { name: string; at: string; version: number; signature: string | null }>();
   await Promise.all(
@@ -104,13 +108,46 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
       />
       {ws ? (
         <Card className="flex flex-col gap-4 p-5">
-          <div className="flex flex-wrap gap-2">
-            <Badge tone={ws.onboarding_complete ? "good" : "grey"}>{ws.onboarding_complete ? "✓ " : ""}Onboarding complete</Badge>
-            <Badge tone={ws.compliance_verified ? "good" : "grey"}>{ws.compliance_verified ? "✓ " : ""}Compliance verified</Badge>
-            <Badge tone={ws.cleared ? "good" : ws.override ? "warn" : "grey"}>
-              {ws.cleared ? `✓ Cleared to work${ws.cleared_at ? ` ${formatDate(ws.cleared_at.slice(0, 10))}` : ""}${ws.cleared_by ? ` by ${ws.cleared_by}` : ""}` : ws.override ? `Override until ${formatDate(ws.override.until)}` : "Not cleared to work"}
-            </Badge>
-          </div>
+          {/* cmeprojects: overall onboarding, the minimum to work (and on what basis), and what's still to finish. */}
+          <dl className="grid gap-3 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-xs font-semibold tracking-wide text-muted uppercase">Overall onboarding</dt>
+              <dd className="mt-1">
+                <Badge tone={ws.onboarding_complete ? "good" : "grey"}>{ws.onboarding_complete ? "✓ Complete (all requirements)" : "Not complete"}</Badge>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold tracking-wide text-muted uppercase">Minimum to work</dt>
+              <dd className="mt-1 flex flex-col gap-1">
+                <Badge tone={ws.cleared ? "good" : ws.override ? "warn" : "grey"}>
+                  {ws.cleared ? "✓ Cleared to work (standard clearance)" : ws.override ? `Override until ${formatDate(ws.override.until)}` : "Not cleared to work"}
+                </Badge>
+                {ws.cleared ? (
+                  <span className="text-xs text-muted">
+                    {ws.cleared_by ? `By ${ws.cleared_by}` : "Cleared"}
+                    {ws.cleared_at ? `, ${formatDate(ws.cleared_at.slice(0, 10))}` : ""}
+                    {ws.cleared_note ? ` · “${ws.cleared_note}”` : ""}
+                  </span>
+                ) : null}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold tracking-wide text-muted uppercase">Still to finish</dt>
+              <dd className="mt-1 flex flex-col gap-1">
+                {ws.still_to_finish?.length ? (
+                  <>
+                    {ws.finish_by ? <Badge tone="warn">By {formatDate(ws.finish_by)}</Badge> : null}
+                    <span className="text-xs text-muted">{ws.still_to_finish.join(", ")}</span>
+                  </>
+                ) : (
+                  <span className="text-xs text-muted">Nothing</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+          <p className="text-xs text-muted">
+            Documents checked: {ws.compliance_verified ? "yes" : "not yet"}. Clearance isn&apos;t removed because something non-blocking is still to finish.
+          </p>
           {ws.override ? (
             <p className="text-sm text-muted">
               Override by {ws.override.by}: {ws.override.reason}

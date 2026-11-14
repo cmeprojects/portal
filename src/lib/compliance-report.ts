@@ -88,7 +88,7 @@ const COLOUR: Record<ItemState, ChoiceColour> = {
   expired: "red",
 };
 
-type Person = { id: string; name: string; role: Role; onboarded_at: string | null; teams: string[]; status: StatusRow[] };
+type Person = { id: string; name: string; role: Role; onboarded_at: string | null; cleared_at: string | null; teams: string[]; status: StatusRow[] };
 
 export type ComplianceReport = {
   table: Table;
@@ -103,7 +103,7 @@ const date = (d: string | null) =>
 export async function buildComplianceReport(f: ComplianceFilter, today: string): Promise<ComplianceReport> {
   const supabase = await createClient();
   const [{ data: profiles }, { data: members }, { data: teamRows }, { data: itemRows }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email, role, onboarded_at").eq("active", true).neq("role", "system_admin").order("full_name"),
+    supabase.from("profiles").select("id, full_name, email, role, onboarded_at, cleared_at").eq("active", true).neq("role", "system_admin").order("full_name"),
     supabase.from("team_members").select("team_id, user_id"),
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
     supabase.from("compliance_items").select("id, title, kind, sort_order").eq("active", true).order("kind").order("sort_order").order("title"),
@@ -121,6 +121,7 @@ export async function buildComplianceReport(f: ComplianceFilter, today: string):
       name: p.full_name || p.email,
       role: p.role as Role,
       onboarded_at: p.onboarded_at as string | null,
+      cleared_at: (p.cleared_at as string | null) ?? null,
       teams: (members ?? []).filter((m) => m.user_id === p.id).map((m) => m.team_id),
     }))
     .filter((p) => !f.team || p.teams.includes(f.team));
@@ -245,6 +246,8 @@ export async function buildComplianceReport(f: ComplianceFilter, today: string):
         { key: "expired", label: "Expired" },
         { key: "expiring", label: "Expiring" },
         { key: "onboarded", label: "Onboarding finished" },
+        // cmeprojects: clearance shown with onboarding (they're separate things).
+        { key: "cleared", label: "Cleared to work" },
       ],
       rows: shown.map((p) => {
         const done = p.status.filter((s) => isDone(s.state)).length;
@@ -261,6 +264,7 @@ export async function buildComplianceReport(f: ComplianceFilter, today: string):
             expired: count(p.status.filter((s) => s.state === "expired").length, "danger"),
             expiring: count(p.status.filter((s) => s.state === "expiring").length),
             onboarded: { text: p.onboarded_at ? date(p.onboarded_at.slice(0, 10)) : "Not yet", tone: p.onboarded_at ? undefined : "muted" },
+            cleared: { text: p.cleared_at ? date(p.cleared_at.slice(0, 10)) : "Not yet", tone: p.cleared_at ? undefined : "muted" },
           },
         };
       }),

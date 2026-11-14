@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { flushOutbox } from "@/lib/email/outbox";
 import { remindAccessEnding } from "@/lib/access-reminders";
+import { remindOnboardingDeadline } from "@/lib/onboarding-reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -46,13 +47,15 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
   if (reqError && reqError.code !== "PGRST202") return { status: 500, body: { ok: false, error: reqError.message } };
   // cmeprojects: a week before access or a Manager Administrator nomination ends.
   const accessEnding = await remindAccessEnding(admin);
+  // cmeprojects: 7 days after clearance, if bank, super, TFN or right to work are still to finish.
+  const onboardingLate = await remindOnboardingDeadline(admin);
   // Up to 50 emails a round; keep going while there are more.
   for (let i = 0; i < 10; i++) {
     const { count } = await admin.from("email_outbox").select("id", { count: "exact", head: true }).is("sent_at", null).lt("attempts", 5);
     if (!count) break;
     await flushOutbox();
   }
-  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), requests_escalated: escalatedRequests ?? 0, access_ending: accessEnding } };
+  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), requests_escalated: escalatedRequests ?? 0, access_ending: accessEnding, onboarding_late: onboardingLate } };
 }
 
 export const GET = run;

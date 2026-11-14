@@ -26,6 +26,11 @@ type WorkStatus = {
   can_work: boolean;
   before_work_missing: string[];
   override: { until: string; reason: string } | null;
+  // cmeprojects (update 81): what's left after clearance, and by when.
+  still_to_finish?: string[];
+  finish_by?: string | null;
+  cleared_at?: string | null;
+  cleared_by?: string | null;
 } | null;
 
 type Rec = {
@@ -136,6 +141,8 @@ export default async function MyOnboardingPage() {
   };
   const visible = SECTIONS.filter((s) => s.key === "employment" || s.key === "final" || counts(s.key).total > 0);
   const beforeWork = ws?.before_work_missing ?? [];
+  // Today in Sydney (YYYY-MM-DD), for the 7-day finish-by date.
+  const todayISO = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
   const historyFor = (itemId: string): HistoryRow[] =>
     records
       .filter((r) => r.item_id === itemId && r.file_name !== null)
@@ -263,11 +270,45 @@ export default async function MyOnboardingPage() {
             {total - done > 0 ? `${total - done} still to do.` : "Nothing waiting on you."} Only what applies to you is counted.
           </p>
           {ws ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <StatusChip on={ws.onboarding_complete} label="Onboarding complete" />
-              <StatusChip on={ws.compliance_verified} label="Compliance verified" />
-              <StatusChip on={ws.cleared} label={ws.cleared ? "Cleared to work" : ws.override ? `Can work until ${formatDate(ws.override.until)}` : "Cleared to work"} warn={!ws.cleared && Boolean(ws.override)} />
-            </div>
+            // cmeprojects: three separate things: overall onboarding, the minimum to start work, and what's still to finish.
+            <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+              <div className="rounded-lg border border-line p-3">
+                <dt className="text-xs font-semibold tracking-wide text-muted uppercase">Overall onboarding</dt>
+                <dd className="mt-1 flex items-center gap-2">
+                  <StatusChip on={total > 0 && done === total} label={total > 0 && done === total ? "Complete" : `${done} of ${total} done`} />
+                </dd>
+              </div>
+              <div className="rounded-lg border border-line p-3">
+                <dt className="text-xs font-semibold tracking-wide text-muted uppercase">Minimum to start work</dt>
+                <dd className="mt-1 flex flex-col gap-1">
+                  <StatusChip
+                    on={ws.cleared}
+                    warn={!ws.cleared && Boolean(ws.override)}
+                    label={ws.cleared ? "Cleared to work" : ws.override ? `Can work until ${formatDate(ws.override.until)}` : `Not cleared yet${beforeWork.length ? ` · ${beforeWork.length} needed` : ""}`}
+                  />
+                  {ws.cleared && ws.cleared_at ? (
+                    <span className="text-xs text-muted">
+                      {ws.cleared_by ? `By ${ws.cleared_by}, ` : ""}
+                      {formatDate(ws.cleared_at.slice(0, 10))}
+                    </span>
+                  ) : null}
+                </dd>
+              </div>
+              <div className="rounded-lg border border-line p-3">
+                <dt className="text-xs font-semibold tracking-wide text-muted uppercase">Still to finish</dt>
+                <dd className="mt-1 flex flex-col gap-1">
+                  {ws.cleared && ws.still_to_finish?.length ? (
+                    <>
+                      <StatusChip on={false} warn label={ws.finish_by ? `By ${formatDate(ws.finish_by)}` : `${ws.still_to_finish.length} to do`} />
+                      <span className="text-xs text-muted">{ws.still_to_finish.join(", ")}</span>
+                      {ws.finish_by && ws.finish_by < todayISO ? <span className="text-xs font-semibold text-danger">Past the 7 days. Please finish these now.</span> : null}
+                    </>
+                  ) : (
+                    <span className="text-sm text-muted">{ws.cleared ? "Nothing. All done." : "Shown once you're cleared."}</span>
+                  )}
+                </dd>
+              </div>
+            </dl>
           ) : null}
         </div>
       </Card>
@@ -391,7 +432,7 @@ export default async function MyOnboardingPage() {
                   <Card className="flex flex-col gap-4 p-5">
                     {ws ? (
                       <ol className="flex flex-col gap-3 text-sm">
-                        <FinalStep on={ws.onboarding_complete} title="Onboarding complete" text="Everything above is done or sent." />
+                        <FinalStep on={total > 0 && done === total} title="Onboarding complete" text="Everything above is done or sent, including pay, super, right to work and your TFN form." />
                         <FinalStep on={ws.compliance_verified} title="Compliance verified" text="A staff admin has checked your documents and certificates." />
                         <FinalStep
                           on={ws.cleared}

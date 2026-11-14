@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { RECORDS_BUCKET } from "@/lib/staff-records";
+import { recheckOnboarding } from "@/lib/onboarding-check";
 
 const UUID = /^[0-9a-f-]{36}$/;
 const refresh = () => {
@@ -29,6 +30,7 @@ export async function saveTaxForm(_: FormState, form: FormData): Promise<FormSta
   const { error } = await (await createClient()).from("staff_tax").upsert({ user_id: profile.id, form_path: path, form_name: name }, { onConflict: "user_id" });
   if (error) return { error: friendlyError(error) };
   refresh();
+  await recheckOnboarding(profile.id);
   return { message: "Your TFN declaration is uploaded. The office will check it and send it to the ATO." };
 }
 
