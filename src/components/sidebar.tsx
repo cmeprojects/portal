@@ -58,8 +58,8 @@ export function Sidebar({
   mobileActions: ReactNode;
   help?: string;
   footer?: ReactNode;
-  // cmeprojects: the system admin's long menu starts with its sections closed
-  // (except the one with this page) every time a page loads.
+  // cmeprojects: the menu starts with its sections closed (except the one
+  // with this page) every time a page loads.
   collapseSections?: boolean;
 }) {
   const path = usePathname();

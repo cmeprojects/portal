@@ -361,18 +361,20 @@ export default async function AccessPage() {
 
       <AccessHistory
         items={[
-          ...designations.flatMap((d) => [
+          // cmeprojects: a Manager Administrator sees only what they passed on.
+          ...designations.filter(() => admin).flatMap((d) => [
             { at: d.created_at, text: `${nameOf.get(d.granted_by ?? "") ?? "The system admin"} nominated ${nameOf.get(d.user_id) ?? "someone"} as a Manager Administrator` },
             ...(d.changed_at ? [{ at: d.changed_at, text: `${nameOf.get(d.changed_by ?? "") ?? "The system admin"} ${d.status === "ended" ? "ended" : d.status === "suspended" ? "suspended" : "changed"} ${nameOf.get(d.user_id) ?? "someone"}'s nomination` }] : []),
           ]),
           ...modGrants
-            .filter((g) => admin || g.granted_by === profile.id || g.user_id === profile.id)
+            .filter((g) => admin || g.granted_by === profile.id)
             .flatMap((g) => [
-              { at: g.created_at, text: `${nameOf.get(g.granted_by ?? "") ?? "Someone"} gave ${nameOf.get(g.user_id) ?? "someone"} ${labelOf(g.module_id)} (${actionText(g)})${g.parent_id ? ", passed on" : ""}` },
+              { at: g.created_at, text: `${nameOf.get(g.granted_by ?? "") ?? (g.parent_id ? "Someone" : "The system admin")} gave ${nameOf.get(g.user_id) ?? "someone"} ${labelOf(g.module_id)} (${actionText(g)})${g.parent_id ? ", passed on" : ""}` },
               ...(g.revoked_at ? [{ at: g.revoked_at, text: `${g.revoked_by ? (nameOf.get(g.revoked_by) ?? "Someone") : "The system"} removed ${nameOf.get(g.user_id) ?? "someone"}'s ${labelOf(g.module_id)} access` }] : []),
             ]),
         ]}
         day={day}
+        title={admin ? "History: admin access" : "History: what you passed on"}
       />
 
       {history.length ? (
@@ -430,12 +432,12 @@ async function SettingsAreas({ people }: { people: { id: string; full_name: stri
 }
 
 // cmeprojects: admin access history, newest first (nominations and module access).
-function AccessHistory({ items, day }: { items: { at: string; text: string }[]; day: Intl.DateTimeFormat }) {
+function AccessHistory({ items, day, title = "History: admin access" }: { items: { at: string; text: string }[]; day: Intl.DateTimeFormat; title?: string }) {
   if (!items.length) return null;
   const sorted = [...items].sort((a, b) => b.at.localeCompare(a.at));
   return (
     <details className="rounded-xl border border-line bg-surface">
-      <summary className="cursor-pointer px-5 py-3 text-sm font-semibold">History: admin access ({sorted.length})</summary>
+      <summary className="cursor-pointer px-5 py-3 text-sm font-semibold">{title} ({sorted.length})</summary>
       <ul className="divide-y divide-line border-t border-line text-sm">
         {sorted.slice(0, 300).map((i, n) => (
           <li key={n} className="flex flex-wrap justify-between gap-2 px-5 py-2">
