@@ -68,7 +68,7 @@ Noted, not changed:
 ## Outstanding (in order)
 
 1. Owner: quick Dev checks for 81 and 84 (lists in the two review docs).
-2. Owner: run update 83.
+2. ~~Owner: run update 83.~~ Done 15 Nov 2026.
 3. Owner: review and authorise the timer instructions; set-up and reminder test.
 4. Client design step 1 (client record, reference, programs) for approval.
 5. Later, separately: B4 termination record, then B5 bank and super history.
