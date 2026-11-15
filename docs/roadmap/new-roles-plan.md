@@ -43,7 +43,7 @@ ticked separately.
 
 ## Build steps (each its own update, tests, round trip, approval)
 
-1. **Roles exist** (one small update that only adds the three access levels,
+1. **Roles exist** (one small update that only adds the four access levels,
    run on its own because the database needs it committed before use), plus
    labels, help text, role pickers, job titles and onboarding targeting.
    Nobody has them yet, and they grant nothing extra yet.
