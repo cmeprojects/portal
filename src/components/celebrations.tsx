@@ -3,6 +3,7 @@ import { Cake, PartyPopper } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
+import { loadTeamPrivate } from "@/lib/profiles";
 
 type Event = { key: string; name: string; kind: "birthday" | "anniversary"; years?: number; inDays: number; label: string };
 
@@ -22,6 +23,12 @@ export async function Celebrations({ me }: { me: string }) {
     supabase.from("profiles").select("id, full_name, email, active, role").eq("active", true),
   ]);
   if (error) return null; // before the database update
+  // cmeprojects (update 84): team leaders get their team's start dates this way.
+  const startRows: { user_id: string; start_date: string }[] = [...((starts ?? []) as { user_id: string; start_date: string }[])];
+  const mine = new Set(startRows.map((s) => s.user_id));
+  for (const [id, p] of await loadTeamPrivate(supabase)) {
+    if (p.start_date && !mine.has(id)) startRows.push({ user_id: id, start_date: p.start_date });
+  }
   const today = todayIn(timeZone);
   const [ty, tm, td] = today.split("-").map(Number);
   const base = Date.UTC(ty, tm - 1, td);
@@ -41,7 +48,7 @@ export async function Celebrations({ me }: { me: string }) {
     const { diff } = until(b.month, b.day);
     if (diff <= 7) events.push({ key: `b${b.user_id}`, name: b.user_id === me ? "You" : who.get(b.user_id)!, kind: "birthday", inDays: diff, label: `${b.day} ${MONTHS[b.month - 1]}` });
   }
-  for (const s of starts ?? []) {
+  for (const s of startRows) {
     if (!who.has(s.user_id)) continue;
     const [sy, sm, sd] = (s.start_date as string).split("-").map(Number);
     const { diff, year } = until(sm, sd);

@@ -98,3 +98,5 @@ Staff Portal · © cmeproject. Each row lists the calls that are now evaluated o
 | 92 | `website_enquiries` | website_enquiries_read | SELECT | `can_see_enquiries()` | none |
 | 93 | `website_enquiries` | website_enquiries_update | UPDATE | `can_see_enquiries()` | none |
 | 94 | `work_overrides` | the person and people who manage staff see overrides | SELECT | `auth.uid()`, `can_manage_compliance()`, `can_manage_people()` | `has_role(ARRAY['manager'::app_role])`, `leads_user(user_id)` |
+
+**Later change (update 84, 15 Nov 2026, cmeprojects):** row 85 (`staff_private`) keeps the same Stage 1 form and the same once-per-statement calls. Only the team leader branch (a row-dependent `EXISTS` on `team_leaders` and `team_members`) was removed; team leaders now get availability and start dates through `team_private()`. No other Stage 1 policy changed. Rollback: `supabase/live-updates/undo-84.sql`.

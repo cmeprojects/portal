@@ -122,6 +122,7 @@ const ROWS: Row[] = [
     switches: [
       "hr",
       "hr_profiles",
+      "hr_leader_emergency",
       "hr_requests",
       "hr_req_leave",
       "hr_req_swap",
@@ -388,7 +389,7 @@ export async function SystemSettings({ searchParams, base = "/system" }: { searc
                       {parts.length ? (
                         <div className="divide-y divide-line rounded-md border border-line px-3">
                           {parts.map((p) => (
-                            <FeatureSwitch key={p.key} feature={p} part={Boolean(main)} depth={/^(hr_req_|compliance_)/.test(p.key) ? 2 : 1} offBecause={offBecause(p.key)} />
+                            <FeatureSwitch key={p.key} feature={p} part={Boolean(main)} depth={/^(hr_req_|hr_leader_|compliance_)/.test(p.key) ? 2 : 1} offBecause={offBecause(p.key)} />
                           ))}
                         </div>
                       ) : null}

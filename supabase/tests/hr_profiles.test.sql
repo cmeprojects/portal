@@ -47,7 +47,9 @@ reset role;
 
 select test.act_as('lead@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.staff_private where user_id = test.pid('sam@example.com')) = 1, 'a team leader sees their team member''s availability');
+-- cmeprojects (update 84): team leaders get availability through team_private(), not the whole row.
+select test.ok((select count(*) from public.staff_private where user_id = test.pid('sam@example.com')) = 0, 'a team leader can''t read the whole private row');
+select test.ok((select availability ->> 'mon' from public.team_private() where user_id = test.pid('sam@example.com')) = '["am"]', 'a team leader sees their team member''s availability');
 reset role;
 
 -- cmeprojects Phase 2: employment details need Staff details access (given by the system admin).

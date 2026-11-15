@@ -17,7 +17,34 @@ export type Private = {
   employment_type: string;
   employee_id: string;
   availability: Record<string, string[]>;
+  // cmeprojects (update 84): what a team leader gets for their team: availability,
+  // start date, and the emergency contact only when the system admin allows it.
+  limited?: { emergency: boolean };
 };
+
+type TeamPrivateRow = { user_id: string; availability: Record<string, string[]> | null; start_date: string | null; emergency_name: string | null; emergency_phone: string | null };
+
+// A team leader's view of their team's private details (update 84). Empty for
+// everyone else, and before the update.
+export async function loadTeamPrivate(supabase: Awaited<ReturnType<typeof createClient>>): Promise<Map<string, Private>> {
+  const { data, error } = await supabase.rpc("team_private");
+  if (error || !data) return new Map();
+  return new Map(
+    (data as TeamPrivateRow[]).map((r) => [
+      r.user_id,
+      {
+        address: "",
+        emergency_name: r.emergency_name ?? "",
+        emergency_phone: r.emergency_phone ?? "",
+        start_date: r.start_date,
+        employment_type: "",
+        employee_id: "",
+        availability: r.availability ?? {},
+        limited: { emergency: r.emergency_name !== null },
+      },
+    ]),
+  );
+}
 export type PersonCard = {
   id: string;
   name: string;
@@ -43,12 +70,13 @@ export async function loadPeople(ids?: string[]): Promise<PersonCard[]> {
   const rows = (error ? (await (ids ? supabase.from("profiles").select("id, full_name, email, role, active").in("id", ids) : supabase.from("profiles").select("id, full_name, email, role, active").order("full_name"))).data : people) ?? [];
   const list = rows as { id: string; full_name: string; email: string; role: Role; active: boolean; avatar_ref?: string | null; job_titles?: { name?: string } | null }[];
   const idsAll = list.map((p) => p.id);
-  const [{ data: dir }, { data: priv }, { data: members }, { data: teams }, photos] = await Promise.all([
+  const [{ data: dir }, { data: priv }, { data: members }, { data: teams }, photos, teamPriv] = await Promise.all([
     supabase.from("staff_directory").select("*").in("user_id", idsAll),
     supabase.from("staff_private").select("*").in("user_id", idsAll),
     supabase.from("team_members").select("team_id, user_id").in("user_id", idsAll),
     supabase.from("teams").select("id, name"),
     photoLinks(list),
+    loadTeamPrivate(supabase),
   ]);
   const dirOf = new Map((dir ?? []).map((d) => [d.user_id as string, d as Directory]));
   const privOf = new Map((priv ?? []).map((d) => [d.user_id as string, d as Private]));
@@ -64,7 +92,7 @@ export async function loadPeople(ids?: string[]): Promise<PersonCard[]> {
     photo: photos[p.id],
     teams: (members ?? []).filter((m) => m.user_id === p.id).map((m) => teamName.get(m.team_id) ?? "").filter(Boolean),
     directory: { ...EMPTY_DIRECTORY, ...(dirOf.get(p.id) ?? {}) },
-    private: privOf.get(p.id) ?? null,
+    private: privOf.get(p.id) ?? teamPriv.get(p.id) ?? null,
   }));
 }
 

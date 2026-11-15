@@ -47,7 +47,7 @@ export function ProfileCard({ person }: { person: PersonCard }) {
             {person.roleLabel}
             {person.teams.length ? ` · ${person.teams.join(", ")}` : ""}
           </Item>
-          {p ? (
+          {p && !p.limited ? (
             <Item icon={CalendarDays} label="Employment">
               {[EMPLOYMENT[p.employment_type] && p.employment_type ? EMPLOYMENT[p.employment_type] : "", p.start_date ? `since ${new Date(p.start_date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}` : "", p.employee_id ? `ID ${p.employee_id}` : ""]
                 .filter(Boolean)
@@ -73,12 +73,19 @@ export function ProfileCard({ person }: { person: PersonCard }) {
           <div className="grid gap-5 border-t border-line pt-4 @2xl:grid-cols-2">
             <dl className="flex flex-col gap-3 text-sm">
               <p className="text-xs font-semibold tracking-wide text-muted uppercase">Private details</p>
-              <Item icon={MapPin} label="Address">
-                {p.address || <span className="text-muted">Not added</span>}
-              </Item>
-              <Item icon={HeartPulse} label="Emergency contact">
-                {p.emergency_name || p.emergency_phone ? `${p.emergency_name}${p.emergency_phone ? ` · ${p.emergency_phone}` : ""}` : <span className="text-muted">Not added</span>}
-              </Item>
+              {/* cmeprojects (update 84): team leaders see only what they're allowed. */}
+              {!p.limited ? (
+                <Item icon={MapPin} label="Address">
+                  {p.address || <span className="text-muted">Not added</span>}
+                </Item>
+              ) : null}
+              {!p.limited || p.limited.emergency ? (
+                <Item icon={HeartPulse} label="Emergency contact">
+                  {p.emergency_name || p.emergency_phone ? `${p.emergency_name}${p.emergency_phone ? ` · ${p.emergency_phone}` : ""}` : <span className="text-muted">Not added</span>}
+                </Item>
+              ) : (
+                <p className="text-sm text-muted">Only the person and people managers see private details.</p>
+              )}
             </dl>
             <div>
               <p className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">Usual availability</p>
