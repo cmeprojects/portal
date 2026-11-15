@@ -22,7 +22,20 @@ import { NOTIFICATION_GROUPS, asChannelMap, type Channel } from "@/lib/notificat
 // also includes it in the plan when deployed).
 export async function setFeature(_: FormState, form: FormData): Promise<FormState> {
   await requireRole(["system_admin"]);
-  const result = await saveDraft("feature", text(form, "key"), { enabled: text(form, "enabled") === "true" });
+  const key = text(form, "key");
+  const enabled = text(form, "enabled") === "true";
+  const result = await saveDraft("feature", key, { enabled });
+  // cmeprojects: a premium pack inside another pack (Compliance inside HR Pack)
+  // has its own switch. Turning the outer pack off turns it off too, so turning
+  // the outer pack back on doesn't turn the premium pack on by itself.
+  if (!enabled && !result?.error) {
+    const { data: all } = await (await createClient()).from("features").select("key, parent, premium");
+    const list = (all ?? []) as { key: string; parent: string | null; premium: boolean }[];
+    const under = (k: string): string[] => list.filter((f) => f.parent === k).flatMap((f) => [f.key, ...under(f.key)]);
+    for (const child of under(key)) {
+      if (list.find((f) => f.key === child)?.premium) await saveDraft("feature", child, { enabled: false });
+    }
+  }
   revalidatePath("/", "layout");
   return result;
 }

@@ -27,6 +27,13 @@ export function DeployBar({ items }: { items: DraftLine[] }) {
   const [pending, start] = useTransition();
   const count = items.length;
 
+  // cmeprojects: the "Deployed" note goes after a few seconds (errors stay).
+  useEffect(() => {
+    if (!result?.message) return;
+    const t = setTimeout(() => setResult(null), 5000);
+    return () => clearTimeout(t);
+  }, [result]);
+
   // Once per sign-in (per browser session), and when leaving Settings.
   useEffect(() => {
     let show = false;

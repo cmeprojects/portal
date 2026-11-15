@@ -224,7 +224,7 @@ const ADMIN_TABS = [
   { key: "demo", label: "Demo data" },
 ];
 
-type FeatureRowData = { key: string; label: string; description: string | null; enabled: boolean; included?: boolean; premium?: boolean };
+type FeatureRowData = { key: string; label: string; description: string | null; enabled: boolean; included?: boolean; premium?: boolean; parent?: string | null };
 
 export default async function SystemPage({ searchParams }: PageProps<"/system">) {
   return <SystemSettings searchParams={searchParams} />;
@@ -265,7 +265,19 @@ export async function SystemSettings({ searchParams, base = "/system" }: { searc
     if (!f) return null;
     const d = draftOf("feature", key);
     const on = d ? (d.value as { enabled?: boolean }).enabled === true : f.enabled && f.included !== false;
-    return { key, label: f.label, description: f.description, on, pending: Boolean(d), premium: f.premium === true };
+    return { key, label: f.label, description: f.description, on, pending: Boolean(d), premium: f.premium === true, parent: f.parent ?? null };
+  };
+  // cmeprojects: the switch above it that is off (once deployed), if any. A part
+  // is off while its pack is off; its own setting is kept for when the pack is back.
+  const offBecause = (key: string): string | undefined => {
+    let up = featureState(key)?.parent;
+    for (let i = 0; up && i < 6; i++) {
+      const f = featureState(up);
+      if (!f) return undefined;
+      if (!f.on) return f.label;
+      up = f.parent;
+    }
+    return undefined;
   };
 
   const choices: PersonChoice[] = (people ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email, role: isRole(p.role) ? ROLE_LABELS[p.role] : p.role }));
@@ -376,7 +388,7 @@ export async function SystemSettings({ searchParams, base = "/system" }: { searc
                       {parts.length ? (
                         <div className="divide-y divide-line rounded-md border border-line px-3">
                           {parts.map((p) => (
-                            <FeatureSwitch key={p.key} feature={p} part={Boolean(main)} depth={/^(hr_req_|compliance_)/.test(p.key) ? 2 : 1} />
+                            <FeatureSwitch key={p.key} feature={p} part={Boolean(main)} depth={/^(hr_req_|compliance_)/.test(p.key) ? 2 : 1} offBecause={offBecause(p.key)} />
                           ))}
                         </div>
                       ) : null}

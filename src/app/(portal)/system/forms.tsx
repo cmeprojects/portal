@@ -41,13 +41,17 @@ export function FeatureSwitch({
   feature,
   part = false,
   depth = 1,
+  offBecause,
 }: {
   feature: { key: string; label: string; description: string | null; on: boolean; pending?: boolean; premium?: boolean };
   // A part of a feature (indented, smaller); depth 2 is a part of a part (cmeprojects).
   part?: boolean;
   depth?: number;
+  // The switch above this one that is off: this part is then off too (cmeprojects).
+  offBecause?: string;
 }) {
   const [state, action, pending] = useActionState(setFeature, null);
+  const shownOn = feature.on && !offBecause;
   const [, start] = useTransition();
   return (
     <form
@@ -75,19 +79,27 @@ export function FeatureSwitch({
         </p>
         {feature.description ? <p className="text-sm text-muted">{feature.description}</p> : null}
         {state?.error ? <p className="text-sm font-semibold text-danger">{state.error}</p> : null}
-        {state?.message && !pending ? <p role="status" className="text-sm font-semibold text-good">✓ {state.message}</p> : null}
+        {offBecause ? (
+          <p className="text-sm text-muted">
+            {feature.premium
+              ? `Off while ${offBecause} is off. A premium pack: turn it on separately once ${offBecause} is on.`
+              : `Off while ${offBecause} is off. Its own setting (${feature.on ? "on" : "off"}) is kept for when ${offBecause} is turned back on.`}
+          </p>
+        ) : null}
+        {/* cmeprojects: the "saved, not live" note only while it's waiting for Deploy. */}
+        {state?.message && !pending && (feature.pending || !state.message.includes("Not live yet")) ? <p role="status" className="text-sm font-semibold text-good">✓ {state.message}</p> : null}
       </div>
       <button
         role="switch"
-        aria-checked={feature.on}
-        aria-label={`${feature.label}: ${feature.on ? "on" : "off"}`}
-        disabled={pending}
-        className={`flex h-10 min-w-24 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold ${
-          feature.on ? "bg-brand text-brand-fg" : "border border-field bg-surface text-muted"
-        }`}
+        aria-checked={shownOn}
+        aria-label={`${feature.label}: ${shownOn ? "on" : "off"}${offBecause ? ` (${offBecause} is off)` : ""}`}
+        disabled={pending || Boolean(offBecause)}
+        className={`flex h-10 min-w-24 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed ${
+          shownOn ? "bg-brand text-brand-fg" : "border border-field bg-surface text-muted"
+        } ${offBecause ? "opacity-60" : ""}`}
       >
-        <span aria-hidden="true" className={`h-3 w-3 rounded-full ${feature.on ? "bg-brand-fg" : "bg-muted"}`} />
-        {feature.on ? "On" : "Off"}
+        <span aria-hidden="true" className={`h-3 w-3 rounded-full ${shownOn ? "bg-brand-fg" : "bg-muted"}`} />
+        {shownOn ? "On" : "Off"}
       <FormPending /></button>
     </form>
   );
