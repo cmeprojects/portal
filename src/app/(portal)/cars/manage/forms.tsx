@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
 import { correctTrip, movePurpose, returnForSomeone, saveCar, saveClient, saveClientField, savePurpose, setClientShown, setPurposeShown } from "../actions";
@@ -156,7 +156,7 @@ export function AddClientForm() {
           <input name="name" required maxLength={80} className={inputClass} />
         </label>
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-xs font-medium">
-          Reference (optional, staff don&apos;t see it)
+          Your own reference (optional, staff don&apos;t see it)
           <input name="reference" maxLength={60} placeholder="For example their NDIS number" className={inputClass} />
         </label>
         <Button disabled={pending}>{pending ? "Adding…" : "Add client"}</Button>
@@ -166,16 +166,26 @@ export function AddClientForm() {
 }
 
 // One client: name, reference, shown switch, and Edit tucked away.
-export function ClientRow({ client }: { client: { id: string; name: string; reference: string; active: boolean } }) {
+// cmeprojects (Clients step 1): the Clients page adds the CL- reference, status
+// and care details (children); Cars' own list doesn't pass them.
+export function ClientRow({
+  client,
+  children,
+}: {
+  client: { id: string; name: string; reference: string; active: boolean; client_ref?: string; status?: string };
+  children?: ReactNode;
+}) {
   const [state, action, pending] = useActionState(saveClient, null);
   return (
     <li className="px-4 py-2">
       <details name="client" className="group">
         <summary className="flex cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
           <span className={`min-w-0 flex-1 truncate ${client.active ? "" : "text-muted line-through"}`}>
+            {client.client_ref ? <span className="mr-2 font-mono text-xs text-muted">{client.client_ref}</span> : null}
             <span className="font-semibold">{client.name}</span>
             {client.reference ? <span className="ml-2 text-xs text-muted">{client.reference}</span> : null}
           </span>
+          {client.status ? <ClientStatusChip status={client.status} /> : null}
           <span className="text-xs font-semibold text-brand group-open:hidden">Edit</span>
           <span className="hidden text-xs font-semibold text-brand group-open:inline">Close</span>
         </summary>
@@ -195,9 +205,17 @@ export function ClientRow({ client }: { client: { id: string; name: string; refe
         <div className="mt-2 flex items-center gap-2 text-xs text-muted">
           Shown to staff <ShownSwitch id={client.id} active={client.active} action={setClientShown} label={client.name} />
         </div>
+        {children}
       </details>
     </li>
   );
+}
+
+export const CLIENT_STATUS: Record<string, string> = { pending: "To check", active: "Active", suspended: "Suspended", discharged: "Discharged" };
+
+export function ClientStatusChip({ status }: { status: string }) {
+  const tone = status === "active" ? "bg-good-soft text-ink" : status === "pending" ? "bg-warn-soft text-ink" : "bg-page text-muted ring-1 ring-line";
+  return <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${tone}`}>{CLIENT_STATUS[status] ?? status}</span>;
 }
 
 export function AddPurposeForm() {

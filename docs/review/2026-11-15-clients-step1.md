@@ -98,3 +98,16 @@ CL-00001, so roll back only before the references are in use.
 Screens for step 1 (reference, status with a confirm, preferred name, the
 "to check" list of pending clients, programs for the system admin), then
 **step 2: service locations** for approval.
+
+## After running (15 Nov 2026)
+
+- Update 85 run on Dev by the owner.
+- **Gap found while building the screens:** the staff read rule exposed the
+  free-text reference to team staff through the database (no screen showed
+  it). Fixed by update 86 (for approval): docs/review/2026-11-15-clients-step1-fix.md
+- **Screens built** (Clients page, people managers): CL- reference on each
+  client; status chip; preferred name and status in each client's panel
+  (status change asks first and is logged); a "to check" notice listing
+  pending clients; Programs list (system admin adds, renames, marks "needs
+  date of birth", untick In use; others read only). The free-text field is
+  now labelled "Your own reference". Browser-tested: 8 of 8.

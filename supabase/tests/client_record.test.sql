@@ -57,27 +57,33 @@ set role authenticated;
 select test.refused($$update public.car_clients set status = 'archived' where name = 'Zara North'$$, 'only pending, active, suspended or discharged');
 reset role;
 
--- Teams: staff and team leaders see their own teams' clients only.
+-- Teams: staff and team leaders get the basic record of their own teams' clients (update 86).
 insert into public.client_teams (client_id, team_id) select test.cid('Zara North'), id from public.teams where name = 'North';
 insert into public.client_teams (client_id, team_id) select test.cid('Alex South'), id from public.teams where name = 'South';
+update public.car_clients set reference = 'NDIS 4300 000 000' where name = 'Zara North';
 select test.act_as('sam@example.com');
 set role authenticated;
-select test.ok((select array_agg(name order by name) from public.car_clients) = array['Zara North'], 'a support worker sees only their team''s client');
-select test.ok((select client_ref like 'CL-%' and status = 'active' from public.car_clients), 'with the reference and status');
+select test.ok((select count(*) from public.car_clients) = 0, 'a support worker can''t read client rows directly (no free-text reference)');
+select test.ok((select array_agg(name order by name) from public.team_clients()) = array['Zara North'], 'a support worker gets only their team''s client');
+select test.ok((select client_ref like 'CL-%' and status = 'active' from public.team_clients()), 'with the reference (CL-) and status');
+select test.ok(not exists (select 1 from information_schema.routines r join information_schema.parameters p on p.specific_name = r.specific_name where r.routine_name = 'team_clients' and p.parameter_name in ('reference', 'active', 'created_by')), 'never the free-text reference, shown flag or who added it');
 update public.car_clients set status = 'discharged' where name = 'Zara North';
 reset role;
 select test.ok((select status = 'active' from public.car_clients where name = 'Zara North'), 'a support worker''s update changes nothing');
 select test.act_as('lead@example.com');
 set role authenticated;
-select test.ok((select array_agg(name) from public.car_clients) = array['Zara North'], 'a team leader sees their team''s clients');
+select test.ok((select array_agg(name) from public.team_clients()) = array['Zara North'], 'a team leader gets their team''s clients');
 reset role;
 select test.act_as('kim@example.com');
 set role authenticated;
-select test.ok((select array_agg(name) from public.car_clients) = array['Alex South'], 'staff in another team see only theirs');
+select test.ok((select array_agg(name) from public.team_clients()) = array['Alex South'], 'staff in another team get only theirs');
+reset role;
+set role anon;
+select test.refused($$select * from public.team_clients()$$, 'signed-out users can''t run team_clients');
 reset role;
 select test.act_as('office@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.car_clients) = 4, 'people managers still see every client (unchanged)');
+select test.ok((select count(*) = 4 and bool_or(reference <> '') from public.car_clients), 'people managers still see every client and its reference (unchanged)');
 reset role;
 
 -- Programs

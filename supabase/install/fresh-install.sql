@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270129000001_client_record.sql
+-- Built from every migration up to: 20270130000001_team_clients.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -198,7 +198,8 @@ begin
     (99, '20270126000001_escalation_once.sql'),
     (100, '20270127000001_leader_private_view.sql'),
     (101, '20270128000001_managers_unmanaged_registers.sql'),
-    (102, '20270129000001_client_record.sql')
+    (102, '20270129000001_client_record.sql'),
+    (103, '20270130000001_team_clients.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -19176,5 +19177,57 @@ create policy "staff see their teams' clients" on public.car_clients
 
 $m102$;
   insert into public.install_log (name) values ('20270129000001_client_record.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270130000001_team_clients.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270130000001_team_clients.sql') then
+    return;
+  end if;
+  execute $m103$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 86): staff see only the basic record of their teams'
+-- clients. Update 85's read rule gave team members and team leaders the
+-- whole client row, including the free-text reference (where some
+-- organisations keep an NDIS number). No screen showed it, but it could be
+-- read from the database. Now:
+--   * that read rule is removed (people managers, car managers and the system
+--     admin are unchanged);
+--   * team_clients() gives staff and team leaders, for clients linked to their
+--     own teams only: id, reference (CL-), name, preferred name and status.
+--     Never the free-text reference, the shown/hidden flag or who added it.
+-- team_clients() is SECURITY DEFINER (owner approval needed), like
+-- team_private() in update 84: fixed columns, own teams only.
+
+drop policy if exists "staff see their teams' clients" on public.car_clients;
+
+create or replace function public.team_clients()
+returns table (id uuid, client_ref text, name text, preferred_name text, status text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select c.id, c.client_ref, c.name, c.preferred_name, c.status
+    from public.car_clients c
+   where auth.uid() is not null
+     and public.is_member()
+     and exists (
+       select 1 from public.client_teams ct
+        where ct.client_id = c.id
+          and (exists (select 1 from public.team_members tm where tm.team_id = ct.team_id and tm.user_id = auth.uid())
+               or exists (select 1 from public.team_leaders tl where tl.team_id = ct.team_id and tl.user_id = auth.uid())))
+   order by c.name
+$$;
+
+revoke execute on function public.team_clients() from public, anon;
+grant execute on function public.team_clients() to authenticated;
+
+$m103$;
+  insert into public.install_log (name) values ('20270130000001_team_clients.sql');
 end;
 $part$;
