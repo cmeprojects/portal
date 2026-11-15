@@ -5,7 +5,7 @@ done. The client step 1 to 5 packs stay as permanent records:
 `2026-11-15-clients-step1.md`, `2026-11-15-clients-step1-fix.md`,
 `2026-11-15-clients-steps2-5.md`.
 
-## 1. SQL to run on Dev (in this order)
+## 1. SQL to run on Dev: done (87 to 90 run 15 Nov 2026)
 
 | Update | What | Undo |
 |---|---|---|
@@ -27,7 +27,7 @@ triggers (can't be called directly, nobody can execute them).
   details, people, alerts, risk notes and services (records which item
   changed, never the values).
 
-Running 87 and 88 counts as approving them.
+Approved by running 87 and 88 (15 Nov 2026).
 
 ## 3. Quick checks on Dev (owner)
 
@@ -62,7 +62,7 @@ Guide: `docs/setup/dev-hourly-timer.md` → "How to verify both".
 | Managers act on General tasks escalations | Done (83) |
 | Pack switches: parts off while the pack is off; premium Compliance stays off; notes clear | Done |
 | Clients step 1: CL- references, status, preferred name, programs, screens | Done (85, 86) |
-| Clients steps 2 to 5: database, tests and profile screens | Written; SQL to run (87 to 90) |
+| Clients steps 2 to 5: database, tests and profile screens | Done (87 to 90 run on Dev) |
 
 ## 6. Next, each for approval
 
