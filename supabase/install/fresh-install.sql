@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270130000001_team_clients.sql
+-- Built from every migration up to: 20270203000001_client_services.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,10 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and to_regclass('public.client_services') is not null then v_upto := 107; end if;
+  if v_upto = 0 and to_regclass('public.client_alerts') is not null and to_regclass('public.client_alert_notes') is not null then v_upto := 106; end if;
+  if v_upto = 0 and to_regclass('public.client_details') is not null and to_regclass('public.client_people') is not null then v_upto := 105; end if;
+  if v_upto = 0 and to_regclass('public.client_locations') is not null then v_upto := 104; end if;
   if v_upto = 0 and to_regclass('public.client_programs') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'car_clients' and column_name = 'client_ref') then v_upto := 102; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'is_owner') then v_upto := 91; end if;
   if v_upto = 0 and to_regclass('public.admin_designations') is not null then v_upto := 90; end if;
@@ -199,7 +203,11 @@ begin
     (100, '20270127000001_leader_private_view.sql'),
     (101, '20270128000001_managers_unmanaged_registers.sql'),
     (102, '20270129000001_client_record.sql'),
-    (103, '20270130000001_team_clients.sql')
+    (103, '20270130000001_team_clients.sql'),
+    (104, '20270131000001_client_locations.sql'),
+    (105, '20270201000001_client_people_details.sql'),
+    (106, '20270202000001_client_safety.sql'),
+    (107, '20270203000001_client_services.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -19229,5 +19237,534 @@ grant execute on function public.team_clients() to authenticated;
 
 $m103$;
   insert into public.install_log (name) values ('20270130000001_team_clients.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270131000001_client_locations.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270131000001_client_locations.sql') then
+    return;
+  end if;
+  execute $m104$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 87): Clients & Care step 2: service locations. A client
+-- can have several places where support happens (home, day program, a
+-- relative's house). Each has an address, access instructions for workers,
+-- optional from and to dates, and must be approved by a people manager
+-- before it counts (rostering will only use approved, current locations).
+--
+--   * People managers and the system admin add, change and approve them.
+--   * Locations are never deleted: give an end date instead (history kept).
+--   * Changing the address of an approved location makes it unapproved again
+--     (a manager approves the new address).
+--   * Every change is in the change log.
+--   * Staff and team leaders see the approved, current locations of their own
+--     teams' clients (address and access instructions), and nothing else.
+-- Nothing existing changes.
+
+create table if not exists public.client_locations (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  client_id uuid not null references public.car_clients (id) on delete restrict,
+  label text not null default 'Home' check (length(trim(label)) between 1 and 60),
+  address text not null check (length(trim(address)) between 3 and 200),
+  suburb text not null default '' check (length(suburb) <= 60),
+  state text not null default '' check (state in ('', 'NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT')),
+  postcode text not null default '' check (postcode = '' or postcode ~ '^[0-9]{4}$'),
+  access_notes text not null default '' check (length(access_notes) <= 1000),
+  from_date date,
+  to_date date,
+  approved boolean not null default false,
+  approved_at timestamptz,
+  approved_by uuid references public.profiles (id) on delete set null,
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_by uuid,
+  updated_at timestamptz not null default now(),
+  constraint client_locations_dates check (to_date is null or from_date is null or to_date >= from_date)
+);
+create index if not exists client_locations_client on public.client_locations (client_id);
+alter table public.client_locations enable row level security;
+
+drop policy if exists "people managers see client locations" on public.client_locations;
+create policy "people managers see client locations" on public.client_locations
+  for select to authenticated using ((select public.can_manage_people()));
+drop policy if exists "people managers add client locations" on public.client_locations;
+create policy "people managers add client locations" on public.client_locations
+  for insert to authenticated with check ((select public.can_manage_people()));
+drop policy if exists "people managers change client locations" on public.client_locations;
+create policy "people managers change client locations" on public.client_locations
+  for update to authenticated using ((select public.can_manage_people())) with check ((select public.can_manage_people()));
+-- No delete rule: end a location with a "to" date instead.
+
+-- Staff and team leaders: approved, current locations of their teams' clients.
+drop policy if exists "staff see their teams' approved client locations" on public.client_locations;
+create policy "staff see their teams' approved client locations" on public.client_locations
+  for select to authenticated
+  using (approved
+     and (from_date is null or from_date <= (select public.local_today()))
+     and (to_date is null or to_date >= (select public.local_today()))
+     and (select public.is_member())
+     and exists (
+       select 1 from public.client_teams ct
+        where ct.client_id = client_locations.client_id
+          and (exists (select 1 from public.team_members tm where tm.team_id = ct.team_id and tm.user_id = (select auth.uid()))
+               or exists (select 1 from public.team_leaders tl where tl.team_id = ct.team_id and tl.user_id = (select auth.uid())))));
+
+grant select, insert, update on public.client_locations to authenticated;
+
+-- SECURITY DEFINER so it can write the change log (owner approval needed; a
+-- trigger function can't be called directly, and nobody can execute it).
+create or replace function public.guard_client_location()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_ref text := (select client_ref from public.car_clients where id = new.client_id);
+  v_moved boolean;
+begin
+  if tg_op = 'UPDATE' and new.client_id is distinct from old.client_id then
+    raise exception 'A location stays with its client. Add a new one for another client.';
+  end if;
+  new.updated_at := now();
+  new.updated_by := auth.uid();
+  v_moved := tg_op = 'UPDATE' and (new.address, new.suburb, new.state, new.postcode)
+                                is distinct from (old.address, old.suburb, old.state, old.postcode);
+  if v_moved and old.approved then
+    new.approved := false; -- a new address always needs approving again
+  end if;
+  if new.approved and tg_op = 'UPDATE' and old.approved then
+    new.approved_at := old.approved_at; -- who approved it can't be rewritten
+    new.approved_by := old.approved_by;
+  elsif new.approved then
+    new.approved_at := now();
+    new.approved_by := auth.uid();
+  else
+    new.approved_at := null;
+    new.approved_by := null;
+  end if;
+  perform public.write_audit(
+    case when tg_op = 'INSERT' then 'client_location_added'
+         when new.approved and not old.approved then 'client_location_approved'
+         when v_moved and old.approved then 'client_location_needs_approval'
+         else 'client_location_changed' end,
+    'client', new.client_id::text,
+    jsonb_build_object('client', v_ref, 'location', new.label, 'approved', new.approved,
+                       'from', new.from_date, 'to', new.to_date));
+  return new;
+end;
+$$;
+revoke execute on function public.guard_client_location() from public, anon, authenticated;
+
+drop trigger if exists guard_client_location on public.client_locations;
+create trigger guard_client_location before insert or update on public.client_locations
+  for each row execute function public.guard_client_location();
+
+$m104$;
+  insert into public.install_log (name) values ('20270131000001_client_locations.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270201000001_client_people_details.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270201000001_client_people_details.sql') then
+    return;
+  end if;
+  execute $m105$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 88): Clients & Care step 3: contact details, date of
+-- birth and identifiers (one row per client), and the client's people:
+-- emergency contacts, next of kin, nominees, guardians and authorised
+-- representatives. All of it is sensitive: only people managers and the
+-- system admin read or change it (support workers and team leaders don't).
+-- Changes are in the change log (which item changed, never the values).
+-- Nothing is deleted: people are ended (active off) instead.
+
+create table if not exists public.client_details (
+  client_id uuid primary key references public.car_clients (id) on delete restrict,
+  org_id uuid not null default public.default_org_id(),
+  date_of_birth date check (date_of_birth is null or date_of_birth between date '1900-01-01' and current_date),
+  phone text not null default '' check (length(phone) <= 30),
+  email text not null default '' check (length(email) <= 120),
+  home_address text not null default '' check (length(home_address) <= 300),
+  preferred_contact text not null default '' check (preferred_contact in ('', 'phone', 'sms', 'email', 'post', 'through_representative')),
+  communication_needs text not null default '' check (length(communication_needs) <= 1000),
+  ndis_number text not null default '' check (ndis_number = '' or ndis_number ~ '^[0-9]{9}$'),
+  aged_care_id text not null default '' check (length(aged_care_id) <= 30),
+  updated_by uuid,
+  updated_at timestamptz not null default now()
+);
+alter table public.client_details enable row level security;
+
+create table if not exists public.client_people (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  client_id uuid not null references public.car_clients (id) on delete restrict,
+  kind text not null check (kind in ('emergency', 'next_of_kin', 'nominee', 'guardian', 'representative')),
+  name text not null check (length(trim(name)) between 1 and 100),
+  relationship text not null default '' check (length(relationship) <= 60),
+  phone text not null default '' check (length(phone) <= 30),
+  email text not null default '' check (length(email) <= 120),
+  authority text not null default '' check (length(authority) <= 500),
+  primary_contact boolean not null default false,
+  active boolean not null default true,
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_by uuid,
+  updated_at timestamptz not null default now(),
+  constraint client_people_reachable check (phone <> '' or email <> '')
+);
+create index if not exists client_people_client on public.client_people (client_id);
+alter table public.client_people enable row level security;
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['client_details', 'client_people'] loop
+    execute format('drop policy if exists "people managers see %1$s" on public.%1$I', t);
+    execute format('create policy "people managers see %1$s" on public.%1$I for select to authenticated using ((select public.can_manage_people()))', t);
+    execute format('drop policy if exists "people managers add %1$s" on public.%1$I', t);
+    execute format('create policy "people managers add %1$s" on public.%1$I for insert to authenticated with check ((select public.can_manage_people()))', t);
+    execute format('drop policy if exists "people managers change %1$s" on public.%1$I', t);
+    execute format('create policy "people managers change %1$s" on public.%1$I for update to authenticated using ((select public.can_manage_people())) with check ((select public.can_manage_people()))', t);
+    execute format('grant select, insert, update on public.%I to authenticated', t);
+  end loop;
+end;
+$$;
+
+-- One change-log writer for every client table from here on.
+-- SECURITY DEFINER so it can write the change log (owner approval needed; a
+-- trigger function can't be called directly, and nobody can execute it).
+-- It records which item changed, never the values (they're sensitive).
+create or replace function public.log_client_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_ref text := (select client_ref from public.car_clients where id = new.client_id);
+  v_what text := coalesce(to_jsonb(new) ->> 'kind', to_jsonb(new) ->> 'label', '');
+begin
+  if tg_op = 'UPDATE' and new.client_id is distinct from old.client_id then
+    raise exception 'This stays with its client. Add a new one for another client.';
+  end if;
+  new.updated_at := now();
+  new.updated_by := auth.uid();
+  perform public.write_audit(tg_table_name || case when tg_op = 'INSERT' then '_added' else '_changed' end,
+    'client', new.client_id::text, jsonb_build_object('client', v_ref, 'item', v_what));
+  return new;
+end;
+$$;
+revoke execute on function public.log_client_change() from public, anon, authenticated;
+
+drop trigger if exists log_client_change on public.client_details;
+create trigger log_client_change before insert or update on public.client_details
+  for each row execute function public.log_client_change();
+drop trigger if exists log_client_change on public.client_people;
+create trigger log_client_change before insert or update on public.client_people
+  for each row execute function public.log_client_change();
+
+$m105$;
+  insert into public.install_log (name) values ('20270201000001_client_people_details.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270202000001_client_safety.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270202000001_client_safety.sql') then
+    return;
+  end if;
+  execute $m106$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 89): Clients & Care step 4: safety. Alerts, risks and
+-- precautions, with severity, what workers must do, who to call, and a review
+-- date. "No known safety alerts" is recorded the same way, so the safety step
+-- is always answered before a service starts (step 5 checks it).
+--
+--   * client_alerts: what workers need (title, severity, worker instructions,
+--     escalation). Staff and team leaders see the active alerts of their own
+--     teams' clients.
+--   * client_alert_notes: the detailed risk notes for an alert. Sensitive:
+--     people managers and the system admin only.
+--   * Alerts are never deleted: they're made inactive. Every change is in the
+--     change log (no values).
+
+create table if not exists public.client_alerts (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  client_id uuid not null references public.car_clients (id) on delete restrict,
+  kind text not null check (kind in ('safety', 'medical', 'behaviour', 'environment', 'mobility', 'other', 'no_known_alerts')),
+  severity text not null default 'medium' check (severity in ('low', 'medium', 'high')),
+  title text not null check (length(trim(title)) between 1 and 120),
+  worker_instructions text not null default '' check (length(worker_instructions) <= 2000),
+  escalation text not null default '' check (length(escalation) <= 500),
+  active boolean not null default true,
+  review_date date,
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_by uuid,
+  updated_at timestamptz not null default now()
+);
+create index if not exists client_alerts_client on public.client_alerts (client_id);
+alter table public.client_alerts enable row level security;
+
+create table if not exists public.client_alert_notes (
+  alert_id uuid primary key references public.client_alerts (id) on delete restrict,
+  client_id uuid not null references public.car_clients (id) on delete restrict,
+  org_id uuid not null default public.default_org_id(),
+  details text not null default '' check (length(details) <= 5000),
+  updated_by uuid,
+  updated_at timestamptz not null default now()
+);
+alter table public.client_alert_notes enable row level security;
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['client_alerts', 'client_alert_notes'] loop
+    execute format('drop policy if exists "people managers see %1$s" on public.%1$I', t);
+    execute format('create policy "people managers see %1$s" on public.%1$I for select to authenticated using ((select public.can_manage_people()))', t);
+    execute format('drop policy if exists "people managers add %1$s" on public.%1$I', t);
+    execute format('create policy "people managers add %1$s" on public.%1$I for insert to authenticated with check ((select public.can_manage_people()))', t);
+    execute format('drop policy if exists "people managers change %1$s" on public.%1$I', t);
+    execute format('create policy "people managers change %1$s" on public.%1$I for update to authenticated using ((select public.can_manage_people())) with check ((select public.can_manage_people()))', t);
+    execute format('grant select, insert, update on public.%I to authenticated', t);
+  end loop;
+end;
+$$;
+
+-- Staff and team leaders: active alerts of their own teams' clients (not the notes).
+drop policy if exists "staff see their teams' client alerts" on public.client_alerts;
+create policy "staff see their teams' client alerts" on public.client_alerts
+  for select to authenticated
+  using (active
+     and (select public.is_member())
+     and exists (
+       select 1 from public.client_teams ct
+        where ct.client_id = client_alerts.client_id
+          and (exists (select 1 from public.team_members tm where tm.team_id = ct.team_id and tm.user_id = (select auth.uid()))
+               or exists (select 1 from public.team_leaders tl where tl.team_id = ct.team_id and tl.user_id = (select auth.uid())))));
+
+-- A note always belongs to its alert's client.
+create or replace function public.fill_alert_note_client()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  new.client_id := (select client_id from public.client_alerts where id = new.alert_id);
+  if new.client_id is null then
+    raise exception 'Choose an alert.';
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.fill_alert_note_client() from public, anon, authenticated;
+
+drop trigger if exists a_fill_alert_note_client on public.client_alert_notes;
+create trigger a_fill_alert_note_client before insert or update on public.client_alert_notes
+  for each row execute function public.fill_alert_note_client();
+drop trigger if exists log_client_change on public.client_alert_notes;
+create trigger log_client_change before insert or update on public.client_alert_notes
+  for each row execute function public.log_client_change();
+drop trigger if exists log_client_change on public.client_alerts;
+create trigger log_client_change before insert or update on public.client_alerts
+  for each row execute function public.log_client_change();
+
+$m106$;
+  insert into public.install_log (name) values ('20270202000001_client_safety.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270203000001_client_services.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270203000001_client_services.sql') then
+    return;
+  end if;
+  execute $m107$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 90): Clients & Care step 5: service arrangements and
+-- the readiness check future rostering uses.
+--
+--   * client_services: program (from the programs list), type of service,
+--     start and end, status (planned, active, on hold, ended), the approved
+--     location it happens at, scheduling restrictions, and consent (needed,
+--     given on). A client can have several. Never deleted: they're ended.
+--   * A service can only be made active when the client is ready for it:
+--     client active; the location approved and current; an emergency
+--     contact; safety answered (an alert or "No known safety alerts"); date
+--     of birth when the program needs it; consent when it's needed.
+--   * client_service_gaps(service) lists what's missing for one service, and
+--     client_readiness(client) for the whole client (no active service is a
+--     gap too). Read-only; they use the caller's own access. A profile alone
+--     is never "ready".
+--   * People managers and the system admin only. Every change is in the
+--     change log (no values).
+
+create table if not exists public.client_services (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  client_id uuid not null references public.car_clients (id) on delete restrict,
+  program_id uuid not null references public.client_programs (id) on delete restrict,
+  label text not null check (length(trim(label)) between 1 and 80),
+  status text not null default 'planned' check (status in ('planned', 'active', 'on_hold', 'ended')),
+  start_date date not null,
+  end_date date,
+  location_id uuid not null references public.client_locations (id) on delete restrict,
+  scheduling_notes text not null default '' check (length(scheduling_notes) <= 1000),
+  consent_required boolean not null default false,
+  consent_given_on date,
+  consent_note text not null default '' check (length(consent_note) <= 500),
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_by uuid,
+  updated_at timestamptz not null default now(),
+  constraint client_services_dates check (end_date is null or end_date >= start_date)
+);
+create index if not exists client_services_client on public.client_services (client_id);
+alter table public.client_services enable row level security;
+
+drop policy if exists "people managers see client_services" on public.client_services;
+create policy "people managers see client_services" on public.client_services
+  for select to authenticated using ((select public.can_manage_people()));
+drop policy if exists "people managers add client_services" on public.client_services;
+create policy "people managers add client_services" on public.client_services
+  for insert to authenticated with check ((select public.can_manage_people()));
+drop policy if exists "people managers change client_services" on public.client_services;
+create policy "people managers change client_services" on public.client_services
+  for update to authenticated using ((select public.can_manage_people())) with check ((select public.can_manage_people()));
+grant select, insert, update on public.client_services to authenticated;
+
+-- What's missing before a service can run (plain words; empty = ready).
+create or replace function public.client_gaps(p_client uuid, p_program uuid, p_location uuid, p_consent_required boolean, p_consent_given date)
+returns text[]
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select array_remove(array[
+    case when (select status from public.car_clients where id = p_client) is distinct from 'active'
+         then 'The client isn''t active yet.' end,
+    case when not exists (select 1 from public.client_locations l
+                           where l.id = p_location and l.client_id = p_client and l.approved
+                             and (l.from_date is null or l.from_date <= public.local_today())
+                             and (l.to_date is null or l.to_date >= public.local_today()))
+         then 'The service location isn''t approved and current.' end,
+    case when not exists (select 1 from public.client_people where client_id = p_client and kind = 'emergency' and active)
+         then 'No emergency contact.' end,
+    case when not exists (select 1 from public.client_alerts where client_id = p_client and active)
+         then 'Safety isn''t answered (add an alert, or record "No known safety alerts").' end,
+    case when coalesce((select needs_dob from public.client_programs where id = p_program), false)
+              and (select date_of_birth from public.client_details where client_id = p_client) is null
+         then 'Date of birth is needed for this program.' end,
+    case when p_consent_required and p_consent_given is null
+         then 'Consent is needed and hasn''t been recorded.' end
+  ], null)
+$$;
+
+create or replace function public.client_service_gaps(p_service uuid)
+returns text[]
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select public.client_gaps(s.client_id, s.program_id, s.location_id, s.consent_required, s.consent_given_on)
+         || case when s.status <> 'active' then array['The service isn''t active.']
+                 when s.start_date > public.local_today() then array['The service hasn''t started yet.']
+                 when s.end_date < public.local_today() then array['The service has ended.']
+                 else array[]::text[] end
+    from public.client_services s
+   where s.id = p_service
+$$;
+
+create or replace function public.client_readiness(p_client uuid)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  with svc as (
+    select s.id, s.label, public.client_service_gaps(s.id) as gaps
+      from public.client_services s
+     where s.client_id = p_client and s.status = 'active'
+  )
+  select jsonb_build_object(
+    'ready', exists (select 1 from svc where cardinality(gaps) = 0),
+    'services', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'label', label, 'gaps', to_jsonb(gaps))) from svc), '[]'::jsonb),
+    'gaps', case when exists (select 1 from svc) then '[]'::jsonb
+                 else to_jsonb(public.client_gaps(p_client, null, null, false, null) || array['No active service.']) end)
+$$;
+
+do $$
+declare
+  f text;
+begin
+  foreach f in array array['client_gaps(uuid, uuid, uuid, boolean, date)', 'client_service_gaps(uuid)', 'client_readiness(uuid)'] loop
+    execute format('revoke execute on function public.%s from public, anon', f);
+    execute format('grant execute on function public.%s to authenticated', f);
+  end loop;
+end;
+$$;
+
+-- Save rules for a service.
+create or replace function public.guard_client_service()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_gaps text[];
+begin
+  if not exists (select 1 from public.client_locations where id = new.location_id and client_id = new.client_id) then
+    raise exception 'Choose one of this client''s locations.';
+  end if;
+  if (tg_op = 'INSERT' or new.program_id is distinct from old.program_id)
+     and not exists (select 1 from public.client_programs where id = new.program_id and active) then
+    raise exception 'That program isn''t in use any more. Choose another.';
+  end if;
+  if new.status = 'active' and (tg_op = 'INSERT' or old.status <> 'active'
+                                or new.location_id is distinct from old.location_id
+                                or new.program_id is distinct from old.program_id) then
+    v_gaps := public.client_gaps(new.client_id, new.program_id, new.location_id, new.consent_required, new.consent_given_on);
+    if cardinality(v_gaps) > 0 then
+      raise exception 'This service can''t be made active yet. %', array_to_string(v_gaps, ' ');
+    end if;
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.guard_client_service() from public, anon, authenticated;
+
+drop trigger if exists a_guard_client_service on public.client_services;
+create trigger a_guard_client_service before insert or update on public.client_services
+  for each row execute function public.guard_client_service();
+drop trigger if exists log_client_change on public.client_services;
+create trigger log_client_change before insert or update on public.client_services
+  for each row execute function public.log_client_change();
+
+$m107$;
+  insert into public.install_log (name) values ('20270203000001_client_services.sql');
 end;
 $part$;

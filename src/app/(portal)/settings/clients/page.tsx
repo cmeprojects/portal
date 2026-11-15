@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
 import { ClientCareForm, ProgramRow, AddProgramForm } from "./care-forms";
 import { createClient } from "@/lib/supabase/server";
@@ -48,7 +49,14 @@ export default async function ClientsPage() {
           <ul className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 [&>li]:border-line sm:[&>li]:border-b">
             {clients.map((c) => (
               <ClientRow key={c.id} client={c}>
-                {c.client_ref && c.status ? <ClientCareForm client={{ id: c.id, name: c.name, client_ref: c.client_ref, status: c.status, preferred_name: c.preferred_name ?? "" }} /> : null}
+                {c.client_ref && c.status ? (
+                  <>
+                    <ClientCareForm client={{ id: c.id, name: c.name, client_ref: c.client_ref, status: c.status, preferred_name: c.preferred_name ?? "" }} />
+                    <Link href={`/settings/clients/${c.id}`} className="mt-2 inline-block text-sm font-semibold text-brand hover:underline">
+                      Open full profile (locations, contacts, safety, services)
+                    </Link>
+                  </>
+                ) : null}
               </ClientRow>
             ))}
           </ul>

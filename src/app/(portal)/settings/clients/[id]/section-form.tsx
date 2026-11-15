@@ -1,0 +1,107 @@
+// Staff Portal · © cmeproject. All rights reserved.
+"use client";
+
+import { useActionState, useState } from "react";
+import { Button, Notice, inputClass } from "@/components/ui";
+import { useAfterSuccess } from "@/components/use-after-success";
+import { useDirty } from "@/components/use-dirty";
+import type { FieldSpec, SectionTable } from "@/lib/client-sections";
+import { recordNoAlerts, saveClientSection } from "./actions";
+
+// cmeprojects (Clients & Care): one form for any client section item. With an
+// item it edits it; without, it adds a new one (and clears after adding).
+export function SectionForm({
+  table,
+  clientId,
+  fields,
+  item,
+  choices = {},
+  submit,
+}: {
+  table: SectionTable;
+  clientId: string;
+  fields: FieldSpec[];
+  item?: Record<string, unknown> & { id?: string };
+  choices?: Record<string, [string, string][]>;
+  submit: string;
+}) {
+  const [state, action, pending] = useActionState(saveClientSection, null);
+  const [round, setRound] = useState(0);
+  const { ref, dirty, markClean } = useDirty();
+  useAfterSuccess(state, () => {
+    markClean();
+    if (!item?.id && table !== "client_details") setRound((r) => r + 1);
+  });
+  const value = (f: FieldSpec) => {
+    const v = item?.[f.name];
+    if (!item?.id && v === undefined) return f.def ?? "";
+    return v === null || v === undefined ? "" : String(v);
+  };
+  return (
+    <form key={round} ref={ref} action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="table" value={table} />
+      <input type="hidden" name="client_id" value={clientId} />
+      {item?.id ? <input type="hidden" name="id" value={item.id} /> : null}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {fields.map((f) => {
+          const id = `${table}-${item?.id ?? "new"}-${f.name}`;
+          if (f.type === "checkbox") {
+            return (
+              <label key={f.name} className="flex min-h-9 items-center gap-2 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  name={f.name}
+                  defaultChecked={item ? Boolean(item[f.name]) : Boolean(f.defaultOn)}
+                  className="h-4 w-4 accent-[var(--brand-primary)]"
+                />
+                {f.label}
+              </label>
+            );
+          }
+          const opts = f.options ?? choices[f.name] ?? [];
+          return (
+            <label key={f.name} htmlFor={id} className={`flex flex-col gap-1 text-xs font-medium ${f.type === "textarea" ? "sm:col-span-2" : ""}`}>
+              {f.label}
+              {f.required ? <span className="sr-only">(required)</span> : null}
+              {f.type === "textarea" ? (
+                <textarea id={id} name={f.name} maxLength={f.max} defaultValue={value(f)} rows={2} className={inputClass} />
+              ) : f.type === "select" ? (
+                <select id={id} name={f.name} defaultValue={value(f) || opts[0]?.[0]} required={f.required} className={inputClass}>
+                  {opts.map(([k, label]) => (
+                    <option key={k} value={k}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input id={id} name={f.name} type={f.type === "date" ? "date" : "text"} required={f.required} maxLength={f.max} defaultValue={value(f)} className={inputClass} />
+              )}
+              {f.hint ? <span className="font-normal text-muted">{f.hint}</span> : null}
+            </label>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button size="sm" variant={item?.id ? "outline" : undefined} disabled={pending || (Boolean(item?.id) && !dirty)}>
+          {pending ? "Saving…" : submit}
+        </Button>
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+        {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+      </div>
+    </form>
+  );
+}
+
+export function NoAlertsButton({ clientId }: { clientId: string }) {
+  const [state, action, pending] = useActionState(recordNoAlerts, null);
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-3">
+      <input type="hidden" name="client_id" value={clientId} />
+      <Button size="sm" variant="outline" disabled={pending}>
+        {pending ? "Saving…" : "Record: no known safety alerts"}
+      </Button>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+    </form>
+  );
+}
