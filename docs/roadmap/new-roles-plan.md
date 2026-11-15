@@ -1,4 +1,4 @@
-# New roles: case manager, payroll, rostering (cmeprojects)
+# New roles: case manager, intake and assessment, payroll, rostering (cmeprojects)
 
 Plan for approval, 15 Nov 2026. Nothing built.
 
@@ -9,7 +9,7 @@ Plan for approval, 15 Nov 2026. Nothing built.
 - **Job titles** sit on top (for example "Coordinator" on the team leader
   level), so most new titles need no code.
 - A new **access level** is needed only when the permissions differ from every
-  existing one. That's the case for all three: none of them is a centre
+  existing one. That's the case for all four: none of them is a centre
   manager, and none is a support worker.
 
 ## Safe by default
@@ -25,6 +25,7 @@ what's agreed below, and nothing else.
 | Role (label) | Is | Isn't | Default access |
 |---|---|---|---|
 | **Case manager** | Responsible for a set of clients: sets them up and keeps their record right | A centre manager: no staff management, roles, approvals of staff, all-tasks view, reports | Clients: add clients; edit details, locations, people, safety and services **for their clients**; sees those clients' tasks. See questions 2 to 4. |
+| **Intake and assessment officer** | First contact for new clients: takes referrals, sets up the new client record and does assessments | A case manager or manager: doesn't run ongoing clients | Clients: add new clients; fill in details, people, safety, locations (not approved) while the client is **to check (pending)**; read only once active. Assessments when that section is built. Can't make clients active or approve locations. |
 | **Payroll officer** | Pays staff | HR or a manager | Payroll records (bank, super, tax) of all staff, read and check; TFN reveal **only if ticked** on the Access page. No client data. |
 | **Rostering officer** | Plans shifts (ready for the rostering module) | A manager | Staff availability, leave and cleared-to-work status (read only); clients' approved locations, current alerts and readiness (read only). No contact details, identifiers, pay or risk notes. |
 
@@ -46,16 +47,18 @@ ticked separately.
    run on its own because the database needs it committed before use), plus
    labels, help text, role pickers, job titles and onboarding targeting.
    Nobody has them yet, and they grant nothing extra yet.
-2. **Case manager access** to clients (with the scope you choose), and the
+2. **Intake and assessment officer access** (new and pending clients).
+3. **Case manager access** to clients (with the scope you choose), and the
    "case manager" field on a client if needed (question 2).
-3. **Payroll officer access** to payroll records (reusing the payroll access
+4. **Payroll officer access** to payroll records (reusing the payroll access
    rules; TFN stays its own tick).
-4. **Rostering officer access** (read only, as above).
-5. **Delegation** of client setup by Manager Administrators to other staff.
+5. **Rostering officer access** (read only, as above).
+6. **Delegation** of client setup by Manager Administrators to other staff.
 
 ## Questions for the owner
 
-1. **Names:** "Case manager", "Payroll officer", "Rostering officer"? (Job
+1. **Names:** "Case manager", "Intake and assessment officer", "Payroll
+   officer", "Rostering officer"? (Job
    titles can still be anything, for example "Roster coordinator".)
 2. **Case manager scope:** (a) only clients they're named case manager on
    (a field on each client; recommended), (b) clients of their teams, or
@@ -69,3 +72,7 @@ ticked separately.
    the Access page? (Recommended: only when ticked.)
 6. **Rostering officer before rostering exists:** give the read-only access
    now, or create the role now and give access with the rostering module?
+7. **Intake and assessment officer:** edit clients only while they're to
+   check (pending), then read only (recommended), or keep editing after the
+   client is active? And when the client becomes active, hand over to a named
+   case manager?
