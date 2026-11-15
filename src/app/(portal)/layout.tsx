@@ -19,7 +19,6 @@ import { CommandPalette, SearchButton } from "@/components/command-palette";
 import { buildNav } from "@/lib/nav-tree";
 import { getAllowedPages } from "@/lib/allowed-pages";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { navFor, sectionTabs } from "@/components/nav";
 import { getNavAccess } from "@/lib/nav-access";
 import { LiveRefresh } from "@/components/live-refresh";
 import { DeployBar } from "@/components/deploy-bar";

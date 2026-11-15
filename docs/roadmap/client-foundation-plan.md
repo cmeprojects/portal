@@ -1,6 +1,6 @@
 # Client Management foundation: plan for approval (cmeprojects)
 
-Planning only (15 Nov 2026). Nothing built. Based on the owner's brief
+Planning only (15 Nov 2026). Nothing built. Decisions recorded below. Based on the owner's brief
 "Mandatory client foundation for future rostering" and on what exists today.
 
 ## What exists today
@@ -85,18 +85,40 @@ instructions. They don't see contacts, representatives or sensitive details.
 3. **Rostering (separately approved):** service requirements and shifts,
    using the readiness check.
 
-## Questions for the owner
+## Owner decisions (15 Nov 2026)
 
-1. **Reference format:** automatic `CL-00001`? (External numbers such as an
-   NDIS number would be separate, sensitive fields.)
-2. **Date of birth:** always required, or only for NDIS and Support at Home
-   arrangements?
-3. **Programs:** fixed list (NDIS, Support at Home, private, other) or one
-   the system admin can edit?
-4. **Support workers:** see their teams' clients (basic details, locations,
-   alerts and instructions only), or nothing until rostering?
-5. **Existing clients on Dev:** convert them all as **active**, with
-   references given in name order?
+1. **References:** `CL-00001`, sequential, made by the database (a sequence),
+   unique, permanent and never reused (also not after a client is
+   discharged or a row removed).
+2. **Date of birth:** required for NDIS and Support at Home arrangements; for
+   other programs only where eligibility, legislation or the service needs it
+   (a "needs date of birth" flag on each program). Kept in the sensitive part.
+3. **Programs:** a table the system admin edits. It starts with NDIS, Support
+   at Home, Private and Other. Programs can be added or deactivated, never
+   deleted once used by any record.
+4. **Support workers:** for clients of their own teams only: basic details,
+   approved service locations and essential safety alerts and worker
+   instructions. No funding, financial details, sensitive documents,
+   assessments or unrestricted care records. Enforced by RLS and server
+   checks, not only the screens.
+5. **Existing Dev clients:** references given in alphabetical order of name.
+   Statuses aren't all set to active. Today's list only has shown or
+   hidden (`active`), which isn't a care status, so every existing client
+   starts as **pending** with a "to check" list; the owner (or a manager)
+   confirms each one before it becomes active. Hidden clients stay hidden.
+
+**Scope:** all six optional sections stay in development scope (assessments
+and care plans, service agreements, funding and budgets, reviews, client
+documents, communication preferences). "Optional" means each organisation
+chooses whether to switch it on. Identity, service locations, emergency
+contacts, safety and rostering-dependent information are core and can't be
+switched off. The wider Clients & Care list (support delivery, progress
+notes, allied health, behaviour support) builds on the same client record
+later.
+
+**Build in small steps, each approved first:** (1) client record, reference
+and programs; (2) locations; (3) people and emergency contacts; (4) safety;
+(5) service arrangements and the readiness check; (6) the optional sections.
 
 ## Before starting
 
