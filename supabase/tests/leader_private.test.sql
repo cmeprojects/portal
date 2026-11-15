@@ -12,10 +12,10 @@ update public.features set enabled = true where key in ('hr', 'hr_profiles');
 
 insert into auth.users (email) values ('owner@example.com');
 insert into public.invitations (email, full_name, role) values
-  ('boss@example.com', 'Morgan', 'manager'), ('lead@example.com', 'Taylor', 'team_leader'),
+  ('boss@example.com', 'Morgan', 'manager'), ('office@example.com', 'Olive', 'staff_admin'), ('lead@example.com', 'Taylor', 'team_leader'),
   ('lead2@example.com', 'Jo', 'team_leader'), ('sam@example.com', 'Sam', 'support_worker'),
   ('kim@example.com', 'Kim', 'support_worker');
-insert into auth.users (email) values ('boss@example.com'), ('lead@example.com'), ('lead2@example.com'), ('sam@example.com'), ('kim@example.com');
+insert into auth.users (email) values ('office@example.com'), ('boss@example.com'), ('lead@example.com'), ('lead2@example.com'), ('sam@example.com'), ('kim@example.com');
 create function test.pid(p_email text) returns uuid language sql security definer as $$ select id from public.profiles where email = p_email $$;
 grant execute on all functions in schema test to authenticated;
 insert into public.teams (name) values ('North'), ('South');
@@ -72,6 +72,10 @@ reset role;
 select test.act_as('boss@example.com');
 set role authenticated;
 select test.ok((select employee_id from public.staff_private where user_id = test.pid('sam@example.com')) = 'E-7', 'a manager still reads private details');
+reset role;
+select test.act_as('office@example.com');
+set role authenticated;
+select test.ok((select count(*) from public.staff_private where user_id = test.pid('sam@example.com')) = (case when public.can_manage_people() then 1 else 0 end), 'a staff admin reads private details exactly when they manage people (unchanged)');
 reset role;
 select test.act_as('owner@example.com');
 set role authenticated;

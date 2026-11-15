@@ -1,6 +1,6 @@
 # Team leaders and private details: change for approval (cmeprojects)
 
-HR Pack Stage A, item 2. Dev only. Written and tested locally; **not run on Dev**.
+HR Pack Stage A, item 2. Dev only. Approved and **run on Dev by the owner, 15 Nov 2026**.
 
 - Update: `supabase/live-updates/update-84.sql` (safe to run again)
 - Undo: `supabase/live-updates/undo-84.sql`
@@ -66,3 +66,19 @@ register has a note added (docs/audit/evidence/stage1/policy-summary-94.md).
 Run `undo-84.sql`. It puts the read rule back exactly as before, removes
 `team_private()` and removes the switch. The app copes either way: before
 the update, or after an undo, team leaders simply see what the old rule gives.
+
+## Results after running on Dev (15 Nov 2026)
+
+- Run on Dev by the owner; reported done, no errors.
+- Checks (same SQL on the local copy, 15 checks, all pass): team leaders read
+  availability and start date for their own team only; address, employee ID,
+  employment type and emergency contact refused; emergency contact only with
+  the switch on; manager, staff admin (exactly when they manage people),
+  system admin and the person unchanged; support workers, other teams'
+  leaders and signed-out users get nothing.
+- Differences from expected: none found.
+- Not checked by me on Dev itself: I can't sign in to Dev. A two-minute check
+  for the owner: sign in as a test team leader → Directory → a team member:
+  availability shows, address and employee ID don't, and "Only the person and
+  people managers see private details" shows. Then as a manager: the address
+  shows as before.

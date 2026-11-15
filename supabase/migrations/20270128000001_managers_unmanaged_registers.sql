@@ -1,8 +1,4 @@
 -- Staff Portal · © cmeproject. All rights reserved.
--- PROPOSAL (not applied, awaiting the owner): managers can act on tasks in registers with no named managers
--- (they're the ones told about escalations). Safe to run again.
--- Undo: undo-83.sql. Run update 82 first.
-begin;
 -- cmeprojects: managers can act on tasks in registers that have no named
 -- managers (for example General tasks), matching who is told about their
 -- escalations. Before, every manager was told but none could press
@@ -34,4 +30,3 @@ AS $function$
        )
   )
 $function$;
-commit;

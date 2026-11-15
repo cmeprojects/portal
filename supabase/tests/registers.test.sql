@@ -214,8 +214,11 @@ select test.ok(exists (select 1 from public.email_outbox o join public.tasks t o
 select test.act_as('other@example.com');
 set role authenticated;
 select test.refused($$select public.create_task('x', null, test.pid('sam@example.com'),
-  p_parent_task_id => test.tid('Order gloves'))$$,
-  'you cannot add actions to a task you cannot change');
+  p_parent_task_id => (select id from public.tasks where title = 'Wet floor in kitchen'))$$,
+  'you cannot add actions to a task you cannot change (a register with named managers)');
+-- cmeprojects (update 83): General tasks has no named managers, so every
+-- manager looks after it and can act on its tasks (they get its escalations).
+select test.ok(public.can_edit_task(test.tid('Order gloves')), 'a manager can act on tasks in a register with no named managers');
 reset role;
 
 \o

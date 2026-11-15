@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270127000001_leader_private_view.sql
+-- Built from every migration up to: 20270128000001_managers_unmanaged_registers.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -195,7 +195,8 @@ begin
     (97, '20270124000001_audit_stage_a.sql'),
     (98, '20270125000001_onboarding_stage_b.sql'),
     (99, '20270126000001_escalation_once.sql'),
-    (100, '20270127000001_leader_private_view.sql')
+    (100, '20270127000001_leader_private_view.sql'),
+    (101, '20270128000001_managers_unmanaged_registers.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -18961,5 +18962,52 @@ grant execute on function public.team_private() to authenticated;
 
 $m100$;
   insert into public.install_log (name) values ('20270127000001_leader_private_view.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270128000001_managers_unmanaged_registers.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270128000001_managers_unmanaged_registers.sql') then
+    return;
+  end if;
+  execute $m101$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects: managers can act on tasks in registers that have no named
+-- managers (for example General tasks), matching who is told about their
+-- escalations. Before, every manager was told but none could press
+-- "Escalation dealt with". Registers with named managers are unchanged.
+-- Only can_edit_task changes. No tables, policies or other permissions.
+
+CREATE OR REPLACE FUNCTION public.can_edit_task(p_task_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.is_member() and exists (
+    select 1 from public.tasks t
+     where t.id = p_task_id
+       and (
+         t.assigned_to = auth.uid()
+         or t.created_by = auth.uid()
+         or public.leads_user(t.assigned_to)
+         or (public.has_role(array['manager', 'system_admin']::public.app_role[])
+             and exists (select 1 from public.registry_managers rm
+                          where rm.registry_id = t.registry_id and rm.user_id = auth.uid()))
+         -- cmeprojects (update 83): a register with no named managers is
+         -- looked after by every manager (they're the ones told about its
+         -- escalations, see task_managers), so they can act on its tasks.
+         or (public.has_role(array['manager']::public.app_role[])
+             and not exists (select 1 from public.registry_managers rm where rm.registry_id = t.registry_id))
+         or public.is_system_admin()
+       )
+  )
+$function$;
+
+$m101$;
+  insert into public.install_log (name) values ('20270128000001_managers_unmanaged_registers.sql');
 end;
 $part$;
