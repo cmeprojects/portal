@@ -142,3 +142,12 @@ on that copy); B `undo-91.sql`, which restores the original policy exactly.
   (read only) and `supabase/setup/verify-91-after.sql` (picks test accounts
   itself; each test upload undone inside the check; 7 results). Dry-run on
   the local copy: all as expected, local state unchanged.
+- **Applied on Dev by the owner (16 Nov 2026).** Before: setting off, 0 car
+  files, other storage policies `23 / 39a2a73246b5adde9ffaf2401aabe84f`.
+  After: setting off; 0 car files; same fingerprint (identical to the local
+  copy); new rule includes the setting (yes); system admin car photo
+  allowed. Rows 4 and 5 (driver checks) showed "no suitable account": Dev has
+  no active support worker. The check was changed to use any active staff
+  member except system admin, new starter or external (tested locally with
+  no support workers: refused, refused, allowed). **Waiting for the owner to
+  re-run `verify-91-after.sql`** to complete the driver checks.

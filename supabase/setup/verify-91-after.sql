@@ -16,7 +16,8 @@ begin
   end;
 end $$;
 
-with driver as (select id from public.profiles where active and role = 'support_worker' order by created_at limit 1),
+-- The "driver" is any active staff member who can use Cars (support worker first, otherwise any role but system admin or new starter).
+with driver as (select id from public.profiles where active and role not in ('system_admin', 'new_starter', 'external') order by (role = 'support_worker') desc, created_at limit 1),
      other as (select id from public.profiles where active and role not in ('system_admin', 'new_starter') and id <> (select id from driver) order by created_at limit 1),
      admin as (select id from public.profiles where active and role = 'system_admin' order by created_at limit 1)
 select 1 as n, 'Setting (expect off)' as check_name, (select value #>> '{}' from public.app_settings where key = 'vehicles.odo_photo') as result

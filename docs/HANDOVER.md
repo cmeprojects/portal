@@ -13,12 +13,11 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 16 Nov 2026.
 
-- **Waiting on the owner:** run update 91 on Dev (QA-008 B):
-  1. `supabase/setup/verify-91-before.sql` (read only; keep the result)
-  2. `supabase/live-updates/update-91.sql`
-  3. `supabase/setup/verify-91-after.sql` (expect: off; same file count and
-     other-policies value as before; refused, refused, allowed; yes)
-  Then the developer completes the QA-008 report.
+- **Waiting on the owner:** update 91 is applied on Dev (16 Nov 2026); re-run
+  `supabase/setup/verify-91-after.sql` (changed so the driver checks find an
+  account); expect refused, refused, allowed. Then QA-008 is closed.
+- **Being investigated:** "Escalation dealt with" and the other buttons in the
+  dashboard "Past their due date" panel (owner report, 16 Nov 2026).
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2
   (fresh installs Off); Vercel no longer builds restore branches (D-043);
