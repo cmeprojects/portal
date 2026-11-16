@@ -324,3 +324,24 @@ The access level therefore stays the outer limit; grants work only inside it.
 - **Delivery:** live update 92 with undo, round trip, database tests (members
   read; staff can't write; Roles-area holders can; key can't change; nothing
   deleted; six seeded), browser check, completion report.
+
+## Stage 1 implementation record (16 Nov 2026)
+
+Approved by the owner (D-046). **Built and tested; live update 92 waiting for
+the owner to review and run on Dev.**
+
+- Files: `supabase/migrations/20270206000001_function_groups.sql`,
+  `supabase/live-updates/update-92.sql`, `undo-92.sql`,
+  `supabase/tests/function_groups.test.sql`, `src/app/(portal)/settings/roles/`
+  (`page.tsx`, `actions.ts` `saveFunctionGroup`, `function-group-forms.tsx`).
+  Fresh install rebuilt.
+- As approved: one table; members read; Roles-area holders add and change;
+  no delete; key can't change; invoker guard; change log written by the
+  server action (no new SECURITY DEFINER); six groups seeded. No link to
+  titles, grants, `can()` or any role check: nobody's access changes.
+- Tests: 12 new database checks; full suite 1,146 pass; lint, typecheck,
+  unit pass; build passes; round trip on the local copy (undo matches,
+  re-apply matches); browser 7 of 7 (six groups shown, add, logged, rename
+  and deactivate, phone width, no errors, a support worker can't open Roles)
+  plus the Roles page working before the update (section hidden).
+- Rollback: `undo-92.sql` (removes the list; nothing else uses it).

@@ -17,10 +17,10 @@ Last updated: 16 Nov 2026.
   (16 Nov 2026), all 7 checks as expected. No SQL waiting for Dev.
 - **QA-009 done (16 Nov 2026):** dashboard panel shows each button only to people
   allowed to use it; clear refusal messages; same button style.
-- **Waiting on the owner:** approve the AUD-016 final clarification and Stage 1
-  approach (section "Final clarification before Stage 1" in AUD-016); agree or
-  change the suggested ratings in RSK-001 §3; decide the Next.js upgrade (RSK-17).
-  Then Stage 1 (Function Groups, update 92) is built.
+- **Waiting on the owner:** review and run live update 92 (Stage 1, Function Groups)
+  on Dev: `supabase/live-updates/update-92.sql` (undo-92.sql). Then check the Roles page
+  shows Function groups. Next.js upgrade (RSK-17, approved D-046) is a separate change.
+- **Approved (D-046):** AUD-016 clarification and Stage 1; six risk ratings (RSK-001 §3).
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2
   (fresh installs Off); Vercel no longer builds restore branches (D-043);

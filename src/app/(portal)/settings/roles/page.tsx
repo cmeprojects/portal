@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { JOB_TITLE_COLUMNS, ROLE_HELP, ROLE_LABELS, type JobTitle } from "@/lib/roles";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { JobTitleForm, NewJobTitleForm } from "./forms";
+import { FunctionGroupForm } from "./function-group-forms";
 
 export const metadata: Metadata = { title: "Roles" };
 
@@ -16,10 +17,13 @@ export default async function RolesPage() {
   const { profile, features } = await requireSession();
   if (profile.role !== "system_admin" && !(rolesOn(features) && (await getMyAdminAreas(profile.role)).includes("roles"))) redirect("/");
   const supabase = await createClient();
-  const [{ data: rows }, { data: people }] = await Promise.all([
+  const [{ data: rows }, { data: people }, groupsRes] = await Promise.all([
     supabase.from("job_titles").select(JOB_TITLE_COLUMNS).order("sort_order").order("name"),
     supabase.from("profiles").select("job_title_id").not("job_title_id", "is", null),
+    // cmeprojects (Stage 1, update 92): hidden before the update.
+    supabase.from("function_groups").select("id, key, name, description, active").order("sort_order").order("name"),
   ]);
+  const groups = groupsRes.error ? null : ((groupsRes.data ?? []) as { id: string; key: string; name: string; description: string; active: boolean }[]);
   const titles = (rows ?? []) as JobTitle[];
   const count = (id: string) => (people ?? []).filter((p) => p.job_title_id === id).length;
 
@@ -59,6 +63,37 @@ export default async function RolesPage() {
           ))}
         </div>
       )}
+
+      {groups ? (
+        <Card className="p-5">
+          <h2 className="heading-sm">Function groups</h2>
+          <p className="mb-3 text-sm text-muted">
+            The business functions roles belong to, for example Care &amp; Coordination. Groups don&apos;t give anyone access yet; roles are linked to them in a later step. A group is never deleted: untick In use instead.
+          </p>
+          <ul className="divide-y divide-line rounded-md border border-line">
+            {groups.map((g) => (
+              <li key={g.id} className="px-3 py-3">
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 [&::-webkit-details-marker]:hidden">
+                    <span className={`min-w-40 flex-1 font-semibold ${g.active ? "" : "text-muted"}`}>{g.name}</span>
+                    {g.active ? <Badge tone="good">In use</Badge> : <Badge tone="grey">Not in use</Badge>}
+                    <span className="text-sm font-semibold text-brand group-open:hidden">Edit</span>
+                    <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
+                  </summary>
+                  {g.description ? <p className="mt-1 text-sm text-muted group-open:hidden">{g.description}</p> : null}
+                  <div className="mt-3">
+                    <FunctionGroupForm group={g} />
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 border-t border-line pt-4">
+            <h3 className="mb-2 text-sm font-semibold">Add a group</h3>
+            <FunctionGroupForm />
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="p-5">
         <h2 className="mb-3 heading-sm">Access levels</h2>
