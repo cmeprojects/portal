@@ -5,6 +5,26 @@ to. When asked for a summary, include everything here.
 
 Which live updates each copy has: see supabase/live-updates/README.md. Start with docs/HANDOVER.md.
 
+## ON HOLD: Clients & Care and new roles (owner, 16 Nov 2026)
+
+Paused by the owner; pick up from here when asked. Done and on Dev:
+client steps 1 to 5 (updates 85 to 90: CL- references, status, programs,
+locations, details and people, safety, services and readiness, profile page).
+
+Waiting:
+1. **New roles plan** (docs/roadmap/new-roles-plan.md): case manager, intake
+   and assessment officer, payroll officer, rostering officer. Seven
+   questions for the owner in the plan; nothing built.
+2. **Then:** staff view of their clients; the six optional client sections
+   (assessments and care plans, service agreements, funding and budgets,
+   reviews, client documents, communication preferences) with switches;
+   per-person access ticks for sensitive client parts; delegation of client
+   setup by Manager Administrators.
+3. **HR:** termination record (B4), then bank and super history (B5).
+4. **Later:** rostering, using `client_readiness()` and `client_service_gaps()`.
+
+Owner's open checks: docs/review/TEMP-to-review.md.
+
 ## Customise the portal (aim: as much control as WordPress)
 
 All system admin only (or delegated), recorded in the change log, each with

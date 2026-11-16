@@ -7,6 +7,10 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 ---
 
+## On hold (16 Nov 2026)
+
+Clients & Care and the new roles plan are paused by the owner: see docs/TODO.md (top section) and docs/roadmap/new-roles-plan.md.
+
 ## 1. The product
 
 - **Engaged Care Staff Portal**: a portal for a small NDIS provider in
