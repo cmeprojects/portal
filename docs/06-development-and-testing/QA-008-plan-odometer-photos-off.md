@@ -128,3 +128,11 @@ on that copy); B `undo-91.sql`, which restores the original policy exactly.
   (migration, `update-91.sql`, `undo-91.sql`, `check-update-91.sql`, README).
   Local check 9 of 9 inside a rolled-back transaction; local state confirmed
   unchanged. Awaiting the owner's approval of the migration and undo files.
+- **B approved and moved into place (16 Nov 2026):** `supabase/live-updates/update-91.sql`
+  (sha256 7919674b…), `undo-91.sql` (b3ac1be3…), `supabase/migrations/20270205000001_odometer_uploads_follow_setting.sql`
+  (e64aa5e0…), identical to the reviewed files. Fresh install rebuilt. Full
+  database suite 1,134 checks pass; round trip on the local copy: undo
+  matches the original, re-apply matches. Dev verification script:
+  `supabase/setup/verify-update-91.sql` (dry-run locally: 3 of 3, rolled
+  back, local state unchanged). **Waiting for the owner to run update 91 on
+  Dev.**

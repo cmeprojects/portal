@@ -1,8 +1,7 @@
 # Update 91 (proposal for review): odometer uploads follow the setting
 
-QA-008 action B. **Not applied anywhere. Not in `supabase/migrations/` or
-`supabase/live-updates/` until the owner approves.** On approval these move
-into place unchanged:
+QA-008 action B. **Approved by the owner (16 Nov 2026) and moved into place unchanged**
+(SHA-256 identical before and after the move):
 
 | File here | Goes to |
 |---|---|

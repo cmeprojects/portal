@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270204000001_odometer_default_off.sql
+-- Built from every migration up to: 20270205000001_odometer_uploads_follow_setting.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -208,7 +208,8 @@ begin
     (105, '20270201000001_client_people_details.sql'),
     (106, '20270202000001_client_safety.sql'),
     (107, '20270203000001_client_services.sql'),
-    (108, '20270204000001_odometer_default_off.sql')
+    (108, '20270204000001_odometer_default_off.sql'),
+    (109, '20270205000001_odometer_uploads_follow_setting.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -19789,5 +19790,38 @@ update public.app_settings set value = '"off"'::jsonb
 
 $m108$;
   insert into public.install_log (name) values ('20270204000001_odometer_default_off.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270205000001_odometer_uploads_follow_setting.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270205000001_odometer_uploads_follow_setting.sql') then
+    return;
+  end if;
+  execute $m109$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (QA-008 B, update 91; decisions D-009, D-042): drivers can upload
+-- an odometer photo only while "Odometer photo when returning" isn't Off.
+--   Off: refused by the database. Optional, Required: allowed (own folder).
+-- Only the one storage policy changes. Reading existing photos and car
+-- managers' uploads (cars/ folder) are unchanged. No files are touched.
+do $storage$
+begin
+  if to_regclass('storage.objects') is null then
+    return; -- databases without file storage (the test database)
+  end if;
+  drop policy if exists "drivers upload odometer photos" on storage.objects;
+  create policy "drivers upload odometer photos" on storage.objects
+    for insert to authenticated
+    with check (bucket_id = 'car-files' and public.cars_on() and (storage.foldername(name))[1] = auth.uid()::text
+                and public.car_setting('vehicles.odo_photo', 'optional') <> 'off');
+end;
+$storage$;
+
+$m109$;
+  insert into public.install_log (name) values ('20270205000001_odometer_uploads_follow_setting.sql');
 end;
 $part$;
