@@ -6,7 +6,7 @@
 | Title | Change plan: unsupported delegation controls (Tasks, Staff, Teams, Clients) |
 | Category | 06 Development and testing |
 | Version | 0.1 |
-| Status | **Draft: plan for approval.** Nothing implemented |
+| Status | **Approved by the Product Owner (D-040, D-042) and implemented on 16 Nov 2026** (code only; Dev deploy on push). Document itself Draft |
 | Owner / Reviewer / Approver | Technical Lead (the owner) / Technical Lead / Product Owner (the owner) |
 | Created | 16 Nov 2026 |
 | Related | DEC-001 D-036, MOD-001 §4 and §6, RSK-04, SEC-002 C8, AUD-016 |
@@ -87,3 +87,28 @@ Revert the one commit (code only). No database or data to restore.
 ## 5. Release
 
 Its own commit and deploy to Dev; not combined with QA-008.
+
+## 6. Implementation record (16 Nov 2026)
+
+- Scope extended by the owner to all seven modules (D-042).
+- **Labels (verified against each page's guard):** "Set by role": Tasks,
+  Staff, Teams, Clients, Staff requests. "Not available": Due dates and
+  escalation, Request approvals (role plus settings area). The last two sit
+  under the protected System settings module, so the Access tree never showed
+  them; no control existed to remove, and the server now refuses grants.
+- Files: `src/lib/access-by-role.ts` (new), `src/app/(portal)/settings/access/delegation-centre.tsx`,
+  `src/app/(portal)/settings/access/delegation-actions.ts`. No database,
+  migration, RLS, `can()` or catalogue change.
+- Headings: People & organisation and Clients & care show no switch and say
+  "Nothing in this group can be given here"; Operations keeps its switch
+  because Forms (in that group) follows the Access page.
+- Tests: lint, typecheck, unit (54 modules match); database suite 1,132
+  checks pass (unchanged); production build passes; browser 17 of 17 (each
+  row's label and no switch, headings, old Tasks grant noted and untouched
+  after saving another change, a connected module still saves, no new grants
+  on the seven, phone width, no errors). Local test rows used for the browser
+  test (a Manager Administrator and an old Tasks grant) were ended afterwards.
+- **Not tested end to end:** a hand-crafted save request for a new grant on
+  one of the seven (the screen can't produce one). The refusal was checked by
+  reading the code path only.
+- Rollback: revert the commit.

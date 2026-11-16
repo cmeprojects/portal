@@ -8,6 +8,7 @@ import { askConfirm } from "@/components/confirm";
 import { toast } from "@/components/toast";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { changeNomination, nominateAdmin, saveModuleAccess, type ModuleEntry } from "./delegation-actions";
+import { unsupportedDelegation } from "@/lib/access-by-role";
 
 type Option = { id: string; name: string };
 
@@ -133,7 +134,6 @@ const CONNECTED = /^(hr\.onboarding|ops\.cars|insights\.reports|workflows\.forms
 // Every manager and staff admin can already do these (the only roles that can be given access).
 // Headings only: their parts are set one by one (they don't follow the heading).
 const GROUP = new Set(["hr.records"]);
-const ALREADY = /^(ops\.tasks|hr\.requests|clients\.list|people\.staff|people\.teams)(\.|$)/;
 
 export function ModuleAccessEditor({
   admin,
@@ -200,13 +200,19 @@ export function ModuleAccessEditor({
   // What can be changed for the chosen person. Staff records: staff details to
   // managers or staff admins, payroll and identity to managers. Modules: only
   // for a Manager Administrator. Settings areas are set further down.
+  // cmeprojects (QA-007): a module whose access isn't read from here, and a
+  // heading with nothing under it that can be given, have no switch.
+  const grantable = (d: TreeNode) => d.depth > 0 && !d.legacy && d.sensitivity === "normal" && !GROUP.has(d.id) && !unsupportedDelegation(d.id);
+  const groupGrantable = (c: TreeNode) => nodes.some((d) => d.category === c.category && grantable(d));
   const editable = (n: TreeNode) => {
-    if (n.sensitivity === "protected" || n.legacy === "settings" || GROUP.has(n.id)) return false;
+    if (n.sensitivity === "protected" || n.legacy === "settings" || GROUP.has(n.id) || unsupportedDelegation(n.id)) return false;
+    if (n.depth === 0 && !groupGrantable(n)) return false;
     if (n.legacy === "record") return admin ? !who || n.id === "hr.records.details" || who.role === "manager" : limits.some((l) => l.module === n.id);
     return admin ? !who || who.ma : Boolean(limitFor(n.id));
   };
   const shown = nodes.filter((n) => (n.depth === 0 ? true : admin ? true : editable(n) || nodes.some((d) => d.parent === n.id && editable(d))));
-  const categories = shown.filter((n) => n.depth === 0).filter((c) => shown.some((n) => n.category === c.category && n.depth > 0 && editable(n)));
+  // The system admin also sees groups whose parts can't be given here, with the reason (QA-007).
+  const categories = shown.filter((n) => n.depth === 0).filter((c) => shown.some((n) => n.category === c.category && n.depth > 0 && (editable(n) || (admin && unsupportedDelegation(n.id)))));
 
   const choose = (id: string) => {
     setPerson(id);
@@ -228,7 +234,7 @@ export function ModuleAccessEditor({
   };
   const allowed = (n: TreeNode) =>
     n.legacy === "record" ? draft[n.id]?.effect === "allow" : n.legacy === "settings" ? (legacyOn[person] ?? []).includes(n.id) : n.sensitivity !== "protected" && resolve(n.id)?.effect === "allow";
-  const inside = (n: TreeNode) => nodes.filter((d) => d.id !== n.id && !d.legacy && d.sensitivity !== "protected" && (n.depth === 0 ? d.category === n.category : (chain.get(d.id) ?? []).includes(n.id) || isUnder(d, n)));
+  const inside = (n: TreeNode) => nodes.filter((d) => d.id !== n.id && !d.legacy && d.sensitivity !== "protected" && !unsupportedDelegation(d.id) && (n.depth === 0 ? d.category === n.category : (chain.get(d.id) ?? []).includes(n.id) || isUnder(d, n)));
   const isUnder = (d: TreeNode, n: TreeNode) => {
     let p = d.parent;
     while (p) {
@@ -367,9 +373,10 @@ export function ModuleAccessEditor({
                     >
                       <ChevronRight aria-hidden="true" className={`size-4 shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`} />
                       {c.label}
-                      <StatusPill s={status(c)} />
+                      {groupGrantable(c) ? <StatusPill s={status(c)} /> : null}
                     </button>
-                    {admin && who?.ma ? <OnOff on={effectiveOn(c)} onChange={(on) => setOn(c, on)} label={c.label} /> : null}
+                    {admin && who?.ma && editable(c) ? <OnOff on={effectiveOn(c)} onChange={(on) => setOn(c, on)} label={c.label} /> : null}
+                    {admin && !groupGrantable(c) ? <span className="w-full text-xs text-muted">Nothing in this group can be given here; open it to see why.</span> : null}
                   </div>
                   {expanded ? (
                     <ul className="divide-y divide-line border-t border-line">
@@ -388,7 +395,9 @@ export function ModuleAccessEditor({
                                 <Lock aria-hidden="true" className="mr-1 inline size-3" />
                                 System admin only
                               </Badge>
-                            ) : GROUP.has(n.id) ? null : n.legacy ? (
+                            ) : unsupportedDelegation(n.id) ? (
+                              <Badge tone="grey">{unsupportedDelegation(n.id)?.badge}</Badge>
+                            ) : (n.depth === 0 && !nodes.some((d) => d.category === n.category && grantable(d))) || GROUP.has(n.id) ? null : n.legacy ? (
                               <StatusPill s={allowed(n) ? "on" : "off"} />
                             ) : (
                               <StatusPill s={status(n)} />
@@ -411,9 +420,15 @@ export function ModuleAccessEditor({
                           ) : GROUP.has(n.id) ? (
                             <span className="text-xs text-muted">Set each one below</span>
                           ) : null}
+                          {unsupportedDelegation(n.id) ? (
+                            <span className="w-full text-xs text-muted">
+                              {unsupportedDelegation(n.id)?.note}
+                              {person && draft[n.id] ? " This person has an earlier setting here; it has no effect and is kept as it is." : ""}
+                            </span>
+                          ) : null}
                           {!n.legacy && n.sensitivity !== "protected" && !CONNECTED.test(n.id) && editable(n) ? (
                             <span className="w-full text-xs text-muted">
-                              {ALREADY.test(n.id) ? "Managers and staff admins already have this." : "Can be set now; takes effect in a later update."}
+                              Can be set now; takes effect in a later update.
                             </span>
                           ) : null}
                           {editable(n) && effectiveOn(n) && n.actions.length > 1 ? (

@@ -79,7 +79,7 @@ to verify).
 | C5 | Records registers readable by all members (§4) | Appendix A | To review |
 | C6 | 11 storage policies use `auth.uid()` unwrapped (performance only, Stage 1 form) | Appendix A | Deferred (performance stages) |
 | C7 | Storage policy "drivers upload odometer photos" exists, while decision D-009 says no odometer photos | AUD-018 | Investigated: the photo is a built setting (default Optional) and the policy ignores the setting. Recommendation in AUD-018; owner decision needed (D-037) |
-| C8 | Module grants for ops.tasks, people.staff, people.teams, clients.list aren't read by any policy | MOD-001 §4 | Known limitation (D-036); delegation controls to be disabled or marked after implementation approval |
+| C8 | Module grants for ops.tasks, people.staff, people.teams, clients.list, hr.requests, workflows.sla, workflows.request_rules aren't read by any policy | MOD-001 §4 | Known limitation (D-036, D-040); Access page controls removed and server refuses new or changed grants (QA-007, 16 Nov 2026); policies unchanged |
 | C9 | No `org_id` in any policy | §2 | By decision D-038: separate databases retained; `org_id` is not a security boundary |
 | C10 | Policies are permissive; combined effect per table not documented | Appendix A | To document in the review |
 

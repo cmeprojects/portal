@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
+import { unsupportedDelegation } from "@/lib/access-by-role";
 
 const PAGE = "/settings/access";
 const UUID = /^[0-9a-f-]{36}$/;
@@ -140,7 +141,7 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
   const [{ data: theirs }, { data: mine }, { data: mods }, { data: target }] = await Promise.all([
     supabase.from("access_grants").select(COLS).eq("user_id", input.userId).is("revoked_at", null),
     admin ? Promise.resolve({ data: [] as Live[] }) : supabase.from("access_grants").select(COLS).eq("user_id", profile.id).is("revoked_at", null).eq("can_pass_on", true),
-    supabase.from("app_modules").select("id, parent_id, category, label, sensitivity, actions"),
+    supabase.from("app_modules").select("id, parent_id, category, label, sensitivity, actions, delegable, legacy_kind"),
     supabase.from("profiles").select("role, active").eq("id", input.userId).maybeSingle(),
   ]);
   if (!target?.active) return { error: "Choose an active person." };
@@ -173,6 +174,24 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
     return undefined;
   };
   // Revealing TFNs: payroll with "Reveal TFN" (or everything) ticked.
+  // cmeprojects (QA-007): modules whose access isn't read from here (and
+  // headings with nothing grantable under them) can't be given or changed.
+  // Existing grants on them are kept exactly as they are: never closed here.
+  const keptAsIs = (module: string): boolean => {
+    if (unsupportedDelegation(module)) return true;
+    if (!module.startsWith("cat_")) return false;
+    const cat = module.slice(4);
+    return ![...byId.values()].some(
+      (m) => m.category === cat && !String(m.id).startsWith("cat_") && m.delegable && !m.legacy_kind && m.sensitivity === "normal" && m.id !== "hr.records" && !unsupportedDelegation(m.id as string),
+    );
+  };
+  for (const e of input.entries.filter((x) => keptAsIs(x.module))) {
+    const g = current.find((x) => keyOf(x) === e.module);
+    if (!g || g.effect !== e.effect || [...g.actions].sort().join() !== [...e.actions].sort().join()) {
+      return { error: `${labelOf(e.module)} can't be given or changed here: ${unsupportedDelegation(e.module)?.badge === "Set by role" ? "it's set by role" : "it isn't available on the Access page"}.` };
+    }
+  }
+  input.entries = input.entries.filter((x) => !keptAsIs(x.module));
   const tfn = (e: ModuleEntry) => e.module === "hr.records.payroll" && (!e.actions.length || e.actions.includes("reveal_tfn"));
 
   if (!admin) {
@@ -203,7 +222,7 @@ export async function saveModuleAccess(input: SaveModuleAccess): Promise<FormSta
 
   const wanted = new Map(input.entries.map((e) => [e.module, e]));
   if (others.some((g) => wanted.has(keyOf(g)))) return { error: "Someone else already gave them part of this. Ask them or the system admin to change it." };
-  const toClose = current.filter((g) => !wanted.has(keyOf(g)) || !same(g, wanted.get(keyOf(g)) as ModuleEntry));
+  const toClose = current.filter((g) => !keptAsIs(keyOf(g)) && (!wanted.has(keyOf(g)) || !same(g, wanted.get(keyOf(g)) as ModuleEntry)));
   const toAdd = input.entries.filter((e) => {
     const g = current.find((x) => keyOf(x) === e.module);
     return !g || !same(g, e);

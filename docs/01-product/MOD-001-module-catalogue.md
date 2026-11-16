@@ -5,7 +5,7 @@
 | Document ID | MOD-001 (replaces the planned PRD-005 in GOV-002) |
 | Title | Module Catalogue |
 | Category | 01 Product |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Technical Lead / Product Owner / Product Owner, role holders not yet assigned |
 | Created | 16 Nov 2026 |
@@ -73,8 +73,9 @@ access. A module is usable only when its switch is on.
 | workflows.forms, ops.features, engagement.enquiries | Role rules or grant + `can()` (updates 76, 77) | **Yes** (managers and staff admins only) |
 | hr.contracts | `contract_access()` per ability (update 78) | **Yes** |
 | system.settings, system.settings.general, system.access, system.builder, system.health | Protected: system admin only | No (by design) |
-| **ops.tasks, people.staff, people.teams, clients.list** | **Role rules only** (`can_see_task`, `can_edit_task`, `can_manage_people`, `requireRole`) | **No: marked delegable in the catalogue, but no access check reads a grant for them** |
-| ops.scoreboard, people.invite, hr.requests, workflows.sla, workflows.request_rules, workspace.* , ops.apps, engagement.assistant | Role rules, settings or own-data RLS | No (not delegable, or settings) |
+| **ops.tasks, people.staff, people.teams, clients.list, hr.requests** | **Role rules** (`can_see_task`, `can_edit_task`, `requireRole(PEOPLE_MANAGERS)`; Staff requests: people managers and team leaders) | **No.** Delegable in the catalogue, but no check reads a grant. Since QA-007 (16 Nov 2026) the Access page shows them as **"Set by role"** with no switch, and the server refuses new or changed grants; existing grants kept unchanged |
+| **workflows.sla, workflows.request_rules** | Role **and** settings area (SLA: managers and system admin, staff admins with the Tasks area; Request approvals: system admin, managers and staff admins with the HR area) | **No.** Delegable in the catalogue but under the protected System settings module, so never shown in the Access tree; since QA-007 the server refuses grants for them ("Not available") |
+| ops.scoreboard, people.invite, workspace.* , ops.apps, engagement.assistant | Role rules, settings or own-data RLS | No (not delegable) |
 
 ## 5. Implementation status
 
@@ -90,12 +91,13 @@ access. A module is usable only when its switch is on.
 
 ## 6. Known access-control limitations
 
-1. Four delegable modules (§4) can show grants with no effect: a Manager
-   Administrator could give "Clients" or "Tasks" access that the portal
-   ignores. **Known limitation (D-036):** modules and current permission
-   behaviour stay; their delegation controls are to be temporarily disabled
-   or clearly marked (a code change awaiting separate implementation
-   approval); fixed properly in the function-based access model (RSK-04).
+1. Seven delegable modules (§4) don't follow the Access page. **Known
+   limitation (D-036, D-040):** modules and current permission behaviour
+   unchanged; since QA-007 their delegation controls are removed ("Set by
+   role" or not shown) and the server refuses new or changed grants
+   (`src/lib/access-by-role.ts`); fixed properly in the function-based access
+   model (RSK-04). Headings with nothing grantable (People & organisation,
+   Clients & care) have no switch.
 2. Module grants apply only to managers and staff admins (`can()` and
    `module_grant_allowed()`); other roles can't receive module access.
 3. Most modules still rely on hard-coded role checks (~180).
@@ -108,3 +110,4 @@ access. A module is usable only when its switch is on.
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First draft, verified against the database, `src/lib/modules.ts`, routes and checks | Not approved |
 | 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Decision D-036 recorded | Not approved |
+| 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Verified delegation status of seven modules (hr.requests was wrongly listed as not delegable); QA-007 implemented | Not approved |
