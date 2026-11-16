@@ -54,15 +54,31 @@ const Empty = ({ children }: { children: ReactNode }) => <p className="text-sm t
 // Manager: the interactive board (tiles, status, people, registers, ageing, trend)
 // ---------------------------------------------------------------------------
 
-const managerBoard: Piece = async ({ supabase, today, timeZone }) => {
+const managerBoard: Piece = async ({ supabase, me, today, timeZone }) => {
   const since = plus(today, -55);
-  const [{ data: open }, { data: regs }, { data: made }, { data: closed }, { data: finished }] = await Promise.all([
-    supabase.from("tasks").select("id, ref_number, title, status, priority, due_date, assigned_to, registry_id").not("status", "in", `(${DONE.join(",")})`).order("due_date", { ascending: true, nullsFirst: false }).limit(3000),
+  const [{ data: open }, { data: regs }, { data: made }, { data: closed }, { data: finished }, { data: mine }, { data: regManagers }] = await Promise.all([
+    supabase.from("tasks").select("id, ref_number, title, status, priority, due_date, assigned_to, registry_id, created_by").not("status", "in", `(${DONE.join(",")})`).order("due_date", { ascending: true, nullsFirst: false }).limit(3000),
     supabase.from("registries").select("id, name, prefix"),
     supabase.from("tasks").select("created_at").gte("created_at", since).limit(10000),
     supabase.from("tasks").select("completed_at, closed_at").or(`completed_at.gte.${since},closed_at.gte.${since}`).limit(10000),
     supabase.from("tasks").select("due_date, completed_at").gte("completed_at", plus(today, -29)).not("due_date", "is", null).limit(10000),
+    supabase.from("profiles").select("role").eq("id", me).maybeSingle(),
+    supabase.from("registry_managers").select("registry_id, user_id"),
   ]);
+  // cmeprojects (QA-009): which panel buttons this person may use, mirroring
+  // the database rules (can_edit_task, set_task_status) so the panel doesn't
+  // offer what will be refused. The database still checks every click.
+  const myRole = (mine?.role as string | undefined) ?? "";
+  const named = new Map<string, Set<string>>();
+  for (const r of (regManagers ?? []) as { registry_id: string; user_id: string }[]) {
+    if (!named.has(r.registry_id)) named.set(r.registry_id, new Set());
+    named.get(r.registry_id)!.add(r.user_id);
+  }
+  const canChange = (t: { assigned_to: string | null; created_by: string | null; registry_id: string }) => {
+    if (myRole === "system_admin" || t.assigned_to === me || t.created_by === me) return true;
+    const list = named.get(t.registry_id);
+    return myRole === "manager" && (!list || list.size === 0 || list.has(me));
+  };
   const regOf = new Map((regs ?? []).map((r) => [r.id as string, r as { id: string; name: string; prefix: string }]));
   const names = await nameMap(supabase, [...new Set((open ?? []).map((t) => t.assigned_to as string))]);
   const tasks: BoardTask[] = (open ?? []).map((t) => ({
@@ -77,6 +93,8 @@ const managerBoard: Piece = async ({ supabase, today, timeZone }) => {
     assignee: names.get(t.assigned_to) ?? "Not assigned",
     registryId: t.registry_id,
     register: regOf.get(t.registry_id)?.name ?? "",
+    mine: t.assigned_to === me,
+    canChange: canChange(t),
   }));
   const start = Date.parse(`${since}T00:00:00Z`);
   const weeks = Array.from({ length: 8 }, (_, i) => ({

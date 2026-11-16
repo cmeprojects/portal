@@ -4,6 +4,7 @@
 import { useActionState, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { addComment, changeStatus, reassignTask } from "./tasks/actions";
+import { Notice } from "@/components/ui";
 import { toast } from "@/components/toast";
 import Link from "next/link";
 import { AlertTriangle, BadgeCheck, CalendarClock, ListChecks, Siren, Timer, X } from "lucide-react";
@@ -28,6 +29,9 @@ export type BoardTask = {
   assignee: string;
   registryId: string;
   register: string;
+  // cmeprojects (QA-009): what the person looking may do.
+  mine: boolean;
+  canChange: boolean;
 };
 type Week = { label: string; opened: number; closed: number };
 type Drawer = { title: string; tasks: BoardTask[]; viewAll: string; extra?: ReactNode; note?: string };
@@ -461,8 +465,8 @@ function QuickActions({ task, people, onDone }: { task: BoardTask; people: [stri
             </>
           ) : (
             <>
-              {task.status === "escalated" ? (
-                <button name="op" value="dealt" className={`${btn} border-brand bg-brand text-brand-fg`} disabled={pending}>
+              {task.status === "escalated" && task.canChange && !task.mine ? (
+                <button name="op" value="dealt" className={`${btn} border-line`} disabled={pending}>
                   {pending ? "Saving…" : "Escalation dealt with"}
                 <FormPending /></button>
               ) : null}
@@ -471,12 +475,16 @@ function QuickActions({ task, people, onDone }: { task: BoardTask; people: [stri
                   Remind
                 </button>
               ) : null}
-              <button type="button" onClick={() => start("reassign")} className={`${btn} border-line`} disabled={pending}>
-                Reassign
-              </button>
-              <button type="button" onClick={() => start("takeover")} className={`${btn} border-line`} disabled={pending}>
-                Take over
-              </button>
+              {task.canChange ? (
+                <>
+                  <button type="button" onClick={() => start("reassign")} className={`${btn} border-line`} disabled={pending}>
+                    Reassign
+                  </button>
+                  <button type="button" onClick={() => start("takeover")} className={`${btn} border-line`} disabled={pending}>
+                    Take over
+                  </button>
+                </>
+              ) : null}
             </>
           )}
           <Link href={`/tasks/${task.id}`} className={`${btn} border-line`}>
@@ -484,7 +492,11 @@ function QuickActions({ task, people, onDone }: { task: BoardTask; people: [stri
           </Link>
         </span>
       )}
-      {state?.error ? <p role="alert" className="text-xs text-danger">{state.error}</p> : null}
+      {task.status === "escalated" && task.mine && !op ? (
+        <p className="text-xs text-muted">Escalated about you: your manager deals with the escalation. Update or finish the task to move it on.</p>
+      ) : null}
+      {!task.canChange && !op ? <p className="text-xs text-muted">Only this register&apos;s managers can change it; open the task to see who.</p> : null}
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
     </form>
   );
 }

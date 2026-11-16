@@ -6,7 +6,7 @@
 | Title | Change plan: dashboard task panel buttons follow the rules |
 | Category | 06 Development and testing |
 | Version | 0.1 |
-| Status | **Draft: plan for approval.** Nothing implemented |
+| Status | **Approved by the owner ("start qa-009") and implemented on 16 Nov 2026** (code only). Document Draft |
 | Owner / Reviewer / Approver | Technical Lead (the owner) / Technical Lead / Product Owner (the owner) |
 | Created | 16 Nov 2026 |
 | Related | Owner report and screenshot (16 Nov 2026); updates 82, 83; DEC-001 D-015, D-016 |
@@ -72,3 +72,20 @@ Files: `src/app/(portal)/manager-board.tsx`, `src/app/(portal)/role-dashboard.ts
 ## 4. Rollback
 
 Revert the one commit. No data to restore.
+
+## 5. Implementation record (16 Nov 2026)
+
+- Files: `src/app/(portal)/role-dashboard.tsx` (reads the viewer's role,
+  register managers and each task's creator; adds `mine` and `canChange` to
+  each task), `src/app/(portal)/manager-board.tsx` (buttons and messages).
+  No database, RLS or rule change.
+- Tests: lint, typecheck, unit (54 modules match); build passes (Next.js
+  printed a security-vulnerability notice for version 16.4.3: recorded as
+  RSK-17, not acted on). Browser on the local copy, 12 of 12: own escalated
+  task has no "Escalation dealt with" and shows the explanation (Reassign
+  still offered: assignees may); a register with other named managers has
+  no Reassign / Take over / Dealt and shows the explanation, Remind stays;
+  someone else's General task offers the button in the same outline style,
+  it works (task to In progress, card leaves the list); no page errors;
+  system admin page loads. Local test changes restored afterwards.
+- Rollback: revert the commit.

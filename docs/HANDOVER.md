@@ -15,11 +15,10 @@ Last updated: 16 Nov 2026.
 
 - **QA-008 (odometer photos off) closed:** update 91 applied and verified on Dev
   (16 Nov 2026), all 7 checks as expected. No SQL waiting for Dev.
-- **Waiting on the owner's decision:** dashboard "Past their due date" panel shows
-  "Escalation dealt with" to the task's own assignee, who isn't allowed to use it
-  ("You can't make this change"; rule in `set_task_status`). Recommended option 1:
-  keep the rule, show each button only to people allowed to use it, clear messages,
-  consistent button style (code only). **Plan written: QA-009, awaiting approval.**
+- **QA-009 done (16 Nov 2026):** dashboard panel shows each button only to people
+  allowed to use it; clear refusal messages; same button style.
+- **Next:** AUD-016 final clarification (review only), then Stage 1 on approval;
+  suggested ratings for five risks in RSK-001. Next.js upgrade (RSK-17) awaits a decision.
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2
   (fresh installs Off); Vercel no longer builds restore branches (D-043);
