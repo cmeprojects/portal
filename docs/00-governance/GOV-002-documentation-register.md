@@ -5,7 +5,7 @@
 | Document ID | GOV-002 |
 | Title | Documentation Register (master) |
 | Category | 00 Governance |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | **Draft** |
 | Owner | Product Owner (not yet assigned) |
 | Reviewer / Approver | Technical Lead / Product Owner |
@@ -40,7 +40,8 @@
 | GOV-003 | Existing Documentation Assessment | What exists, what to update, retain, archive; what's missing | TL / PO / PO | Yes | Now | Draft 0.1 | docs/00-governance/GOV-003-existing-documentation-assessment.md | GOV-002 |
 | GOV-004 | Handover (working notes) | Running summary of everything built, for anyone picking up the work | TL / PO / — | Yes | Now | Draft (living) | docs/HANDOVER.md | DEC-001, QA-005 |
 | GOV-005 | Open items list (temporary) | Items waiting on the owner; delete when done | TL / PO / — | Yes | Now | Temporary | docs/review/TEMP-to-review.md | — |
-| GOV-006 | Agent instructions | Repository rules for coding agents (commit style, checks, Next.js notice) | TL / TL / PO | Yes | Now | Draft | AGENTS.md, CLAUDE.md | QA-001 |
+| GOV-007 | Documentation generator | Read-only tool that writes the generated appendices of DB-001, MOD-001 and SEC-002 from the database definitions | TL / TL / PO | Yes | Now | Tool | docs/tools/generate-from-database.py | DB-001, MOD-001, SEC-002 |
+| GOV-006 | Agent instructions | Repository rules for coding agents (Next.js version notice) | TL / TL / PO | Yes | Now | Draft | AGENTS.md (no CLAUDE.md in this repository) | QA-001 |
 
 ## 01 Product
 
@@ -49,20 +50,20 @@
 | PRD-001 ★ | Product Overview and Scope | What the platform is, for whom, what's in and out of scope | PO / SME / PO | Partial: README.md, BUSINESS-NOTES.md, PLAN.md | Now | — | To write | PRD-002, ARC-001 |
 | PRD-002 | Product Roadmap | What's next and what's paused | PO / SME / PO | Partial: docs/TODO.md (living), PLAN.md milestones (outdated) | Now | Draft | docs/TODO.md | DEC-001 |
 | PRD-003 | Requirements Register | Agreed requirements with status (proposed / built / verified) | PO / SME / PO | No (requirements are in owner briefs and plans) | Before live | — | To write | PRD-010 to PRD-014 |
-| PRD-004 ★ | Function Groups, Roles and Permissions Matrix | Who can do what, by function group, role and access level | PO / SR / PO | Partial: src/lib/roles.ts (role help), AUD-016 | Now | — | To write | IAM-001, PRD-005 |
-| PRD-005 ★ | Module Catalogue and Dependencies | Every module, its parent, actions, sensitivity, switches, dependencies | TL / PO / PO | Partial: src/lib/modules.ts and `app_modules` (source of truth, tested), PRD-013 | Now | — | To write (generated from the catalogue) | PRD-004, IAM-001 |
+| PRD-004 ★ | Function Groups, Roles and Permissions Matrix | Who can do what, by function group, role and access level | PO / SR / PO | Partial: src/lib/roles.ts (role help), AUD-016 | Now | — | To write | IAM-001, MOD-001 |
+| MOD-001 ★ | Module Catalogue (was PRD-005) | Every module: parent, category, actions, sensitivity, delegable, switches, how access is decided, limitations | TL / PO / PO | Yes (+ generated appendix A) | Now | Draft 0.1 | docs/01-product/MOD-001-module-catalogue.md | PRD-004, IAM-001, SEC-002 |
 | PRD-006 | Premium Features | Which features are premium | PO / TL / PO | Yes | Now | Draft | docs/PREMIUM-FEATURES.md | COM-007 |
 | PRD-010 | Client Management foundation plan | Clients & Care design and owner decisions | PO / SME / PO | Yes | Now | Draft (decisions recorded; steps 1 to 5 built) | docs/roadmap/client-foundation-plan.md | AUD-013 to AUD-015, CARE-001 |
 | PRD-011 | HR and Workforce roadmap | HR Pack direction | PO / SME / PO | Yes | Now | Draft | docs/roadmap/hr-and-workforce.md | AUD-010 |
 | PRD-012 | Improvement requests (Nov 2026) | Review and plan of the improvement request | PO / TL / PO | Yes | Now | Draft (largely delivered) | docs/roadmap/improvements-nov-2026.md | QA-006 |
-| PRD-013 | Module framework proposal | Module organisation, Manager Administrators, sidebar | TL / PO / PO | Yes | Now | Draft (steps 1 to 4 built) | docs/roadmap/module-framework-proposal.md | PRD-005, IAM-001 |
+| PRD-013 | Module framework proposal | Module organisation, Manager Administrators, sidebar | TL / PO / PO | Yes | Now | Draft (steps 1 to 4 built) | docs/roadmap/module-framework-proposal.md | MOD-001, IAM-001 |
 | PRD-014 | New roles plan | Case manager, intake, payroll, rostering as access levels | PO / SR / PO | Yes | Now | Draft, **likely superseded** by AUD-016 model | docs/roadmap/new-roles-plan.md | AUD-016 |
 
 ## 02 Architecture
 
 | ID | Name | Purpose | Owner / Reviewer / Approver | Exists | Priority | Status | Path | Related |
 |---|---|---|---|---|---|---|---|---|
-| ARC-001 ★ | System Architecture | Components (Next.js on Vercel, Supabase Postgres, auth, storage, cron), how they fit | TL / TL / PO | Partial: README.md, HANDOVER.md, SETUP.md | Now | — | To write | ARC-002, DB-001 |
+| ARC-001 ★ | System Architecture | Components, auth, hosting, integrations, environments, customer database arrangement, gaps | TL / TL / PO | Yes | Now | Draft 0.1 | docs/02-architecture/ARC-001-system-architecture.md | ARC-002, DB-001, RSK-001 |
 | ARC-002 | Tenancy and Environments | One codebase, one database per customer; copies, branches, naming. **Shared-database multi-tenancy not implemented** (org_id unused in rules) | TL / SR / PO | Yes (current model) | Now | Draft | docs/ENVIRONMENTS.md | SEC-002, COM-005 |
 | ARC-003 | Data Flow Diagrams | Where personal and client data goes (browser, Vercel, Supabase, email, AI assistant) | TL / PL / PO | No | Before live | — | To write | SEC-003, ARC-004 |
 | ARC-004 | Integration Register | External services and what each receives (Supabase, Vercel, Anthropic API for the Assistant, email provider when set up) | TL / PL / PO | No (dependencies in package.json; services in ENVIRONMENTS.md) | Before live | — | To write | ARC-003, IP-004 |
@@ -72,7 +73,7 @@
 
 | ID | Name | Purpose | Owner / Reviewer / Approver | Exists | Priority | Status | Path | Related |
 |---|---|---|---|---|---|---|---|---|
-| DB-001 ★ | Database and Data Model | Main tables, relationships, who owns which data | TL / SR / PO | Partial: supabase/migrations (source of truth), supabase/install/fresh-install.sql | Now | — | To write | ARC-001, SEC-002 |
+| DB-001 ★ | Database and Data Model | Business-critical tables, relationships, keys, triggers, functions, integrity rules, update history | TL / SR / PO | Yes (+ generated appendix A: every table) | Now | Draft 0.1 | docs/03-database-and-data/DB-001-database-and-data-model.md | ARC-001, SEC-002 |
 | DB-002 | Company set-up files | Per-company seed (name, branding) | TL / TL / PO | Yes | Now | Code | supabase/companies/*.sql | COM-005 |
 | DB-003 | Database proposals | SQL written but awaiting decisions | TL / SR / PO | Yes (none waiting) | Now | Draft | supabase/proposals/README.md | QA-005 |
 
@@ -81,11 +82,11 @@
 | ID | Name | Purpose | Owner / Reviewer / Approver | Exists | Priority | Status | Path | Related |
 |---|---|---|---|---|---|---|---|---|
 | SEC-001 | Security Policy | Security principles and rules for the platform | TL / SR / PO | No | Before live | — | To write | SEC-002, IAM-001 |
-| SEC-002 ★ | Security and RLS Policy Register | Every RLS policy and security function, current state, owner | TL / SR / PO | Partial: docs/audit/2026-11-rls-register.md (Stage 1 changes, 94 policies), evidence summary; later updates in AUD-011, AUD-013 to AUD-015 | Now | Draft | To write as a current register; keep the Stage 1 register as evidence | DB-001, AUD-007 |
+| SEC-002 ★ | Current RLS Policy Register | Every current policy (175 table, 24 storage), tables without policies, SECURITY DEFINER functions, concerns | TL / SR / PO | Yes (+ generated appendix A); Stage 1 register kept as evidence (AUD-007a) | Now | Draft 0.1 (needs independent review) | docs/04-security-and-privacy/SEC-002-rls-policy-register.md | DB-001, MOD-001, RSK-001 |
 | SEC-003 ★ | Privacy and Data Handling | What personal and client data is held, why, who sees it, where it's stored | TL (facts) / PL / PO | Partial: CUS-ENG-07 (customer-facing overview), HR and client review documents | Now (facts) / Before live (approved) | — | To write (facts first, adviser review needed) | ARC-003, SEC-004 |
 | SEC-004 | Data Retention and Disposal | How long data is kept and how it's removed (a retention setting exists) | PO / PL / PO | No | Before live | — | To write | SEC-003 |
 | SEC-005 | Data Breach Response Plan | What to do if data is exposed | PO / PL / PO | No | Before live | — | To write (adviser input needed) | OPS-002 |
-| SEC-006 | Security Risk Register | Known risks and their treatment | TL / SR / PO | No (risks noted across audits) | Now | — | To write (combined with DEC-002) | DEC-002, AUD-001 to AUD-012 |
+| SEC-006 | Security Risk Register | Merged into RSK-001 | — | — | — | Not used (see RSK-001) | — | RSK-001 |
 
 ## 05 Access control
 
@@ -97,7 +98,7 @@
 
 | ID | Name | Purpose | Owner / Reviewer / Approver | Exists | Priority | Status | Path | Related |
 |---|---|---|---|---|---|---|---|---|
-| QA-001 ★ | Development and Testing Standards | How changes are made: minimal change, live updates with undo, round trips, checks before push, credit conservation | TL / TL / PO | Partial: docs/DEVELOPMENT-PROTOCOL.md, CLAUDE.md, live-updates README | Now | Draft | Extend docs/DEVELOPMENT-PROTOCOL.md | QA-002, GOV-006 |
+| QA-001 ★ | Development and Testing Standards | How changes are made: minimal change, live updates with undo, round trips, checks before push, credit conservation | TL / TL / PO | Partial: docs/DEVELOPMENT-PROTOCOL.md, AGENTS.md, live-updates README | Now | Draft | Extend docs/DEVELOPMENT-PROTOCOL.md | QA-002, GOV-006 |
 | QA-002 | Testing Strategy | Database tests, unit tests, browser checks, round trips, UAT | TL / TL / PO | Partial: supabase/tests, CUS-ENG-10 | Now | — | Section of QA-001 | QA-003 |
 | QA-003 | Test Evidence Register | Which tests prove which change | TL / TL / PO | Partial: in each AUD report and commit | Before live | — | To write | QA-005 |
 | QA-004 | Defect Register | Known defects and their status | TL / PO / PO | Partial: AUD-001, AUD-002, AUD-009 | Before live | — | To write | SEC-006 |
@@ -152,7 +153,7 @@
 | ID | Name | Purpose | Owner / Reviewer / Approver | Exists | Priority | Status | Path | Related |
 |---|---|---|---|---|---|---|---|---|
 | DEC-001 ★ | Decision Register | Owner decisions and approvals with date and source | PO / TL / PO | Yes (seeded from recorded decisions) | Now | Draft 0.1 | docs/11-decisions-and-change-history/DEC-001-decision-register.md | all |
-| DEC-002 ★ | Risk Register | Product, technical and security risks (with SEC-006) | PO / SR / PO | No | Now | — | To write | SEC-006 |
+| RSK-001 ★ | Risk Register (was DEC-002 / SEC-006) | Evidenced product, technical, security and privacy risks | PO / SR / PO | Yes | Now | Draft 0.1 | docs/11-decisions-and-change-history/RSK-001-risk-register.md | SEC-002, ARC-001 |
 | DEC-003 | Early plan and decisions | First milestones and decisions (Oct 2026) | PO / — / — | Yes | — | Superseded by DEC-001 and PRD-002 (kept) | docs/PLAN.md | DEC-001 |
 
 ## 12 Audits and evidence (kept unchanged; status Evidence)
@@ -211,3 +212,4 @@ PowerPoint files; owner PO; status Draft unless the customer has signed.
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First register: every existing document given an ID; required inventory and priorities | Not approved |
+| 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | ARC-001, DB-001, MOD-001 (was PRD-005), SEC-002, RSK-001 (was DEC-002/SEC-006) written; GOV-007 generator; GOV-006 corrected (no CLAUDE.md in this repository) | Not approved |

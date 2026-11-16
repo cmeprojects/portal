@@ -5,7 +5,7 @@
 | Document ID | GOV-001 |
 | Title | Documentation Governance Framework |
 | Category | 00 Governance |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | **Draft** (not approved) |
 | Owner | Product Owner (role holder not yet assigned) |
 | Reviewer | Technical Lead / Developer (role holder not yet assigned) |
@@ -65,7 +65,8 @@ version and a change history line.
 | Prefix | Category (folder for new documents) |
 |---|---|
 | GOV | 00 Governance |
-| PRD | 01 Product (overview, roadmap, requirements, roles matrix, module catalogue) |
+| PRD | 01 Product (overview, roadmap, requirements, roles matrix) |
+| MOD | 01 Product: module catalogue (MOD-001) |
 | ARC | 02 Architecture (system, tenancy, data flows, integrations, performance) |
 | DB | 03 Database and data |
 | SEC | 04 Security and privacy (security policy, RLS register, privacy, retention, breach response, security risks) |
@@ -76,6 +77,7 @@ version and a change history line.
 | CARE | 09 Care-sector requirements and workflows |
 | IP | 10 IP and suppliers |
 | DEC | 11 Decisions and change history |
+| RSK | 11 Decisions and change history: risk register (RSK-001; security risks also feed 04) |
 | AUD | 12 Audits and evidence (reviews, audits, completion reports, evidence) |
 | CUS-<CODE> | Customer-level documents for one provider (for example CUS-ENG for Engaged Care); kept separate from platform documents |
 
@@ -180,3 +182,4 @@ Earlier reviews whenever circumstances need them.
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First draft | Not approved |
+| 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Added MOD and RSK prefixes (owner's document IDs, D-032) | Not approved |

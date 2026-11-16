@@ -31,7 +31,7 @@ end with the next number.
 | D-005 | Nov 2026 | Credit-conservation and minimal-change rules; reuse what works; don't touch unrelated modules, permissions, RLS or database structures. | docs/DEVELOPMENT-PROTOCOL.md; owner (session) |
 | D-006 | Nov 2026 | Performance stages 2 to 9 deferred until the build is finished; the completed Stage 1 RLS work is preserved. | Owner (session); docs/TODO.md |
 | D-007 | 15 Nov 2026 | Email delivery and two-factor (MFA) are intentionally not configured on Dev; not defects. Email queue discrepancies deferred; MFA enforcement is a future production-readiness item. | Owner (session); AUD-009 |
-| D-008 | Nov 2026 | Plain Australian English; AUD; Australia/Sydney time. | CLAUDE.md |
+| D-008 | Nov 2026 | Plain Australian English; AUD; Australia/Sydney time; commit messages start "cmeprojects:". | Owner (session) |
 | D-009 | Oct 2026 | Vehicles: no odometer photos; readings typed only. | docs/PLAN.md |
 
 ## Product and access decisions
@@ -60,6 +60,7 @@ end with the next number.
 | D-029 | 16 Nov 2026 | Clients & Care paused; the plan is kept (docs/TODO.md "ON HOLD"). | Owner (session) |
 | D-030 | 16 Nov 2026 | Function-based access model requested (Organisation → Function Groups → Roles → Individual access); Stage 1 assessment only, **awaiting approval**. | Owner (session); AUD-016 |
 | D-031 | 16 Nov 2026 | Documentation governance framework requested (this register, GOV-001 to GOV-003); documentation only. | Owner (session); GOV-001 |
+| D-032 | 16 Nov 2026 | Five code-verifiable foundational documents requested with the IDs ARC-001, DB-001, MOD-001, SEC-002, RSK-001 (MOD and RSK prefixes added to GOV-001). Documentation only. | Owner (session); GOV-002 v0.2 |
 
 ## Change history
 

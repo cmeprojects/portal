@@ -14,7 +14,7 @@
 
 ## 1. What was inspected (16 Nov 2026)
 
-76 files under `docs/`, plus `README.md`, `AGENTS.md`, `CLAUDE.md`,
+76 files under `docs/`, plus `README.md`, `AGENTS.md`,
 `supabase/live-updates/README.md`, `supabase/proposals/README.md`,
 `supabase/setup/`, `supabase/companies/`, `package.json` and the module and
 role definitions in code. Nothing in the application code links to
@@ -106,23 +106,23 @@ shared link updated. New documents go into numbered folders from now on.
 | **Independent Security Reviewer** | SEC-001 approval, SEC-002 review, OPS-005 review, tenant isolation sign-off (ARC-002) |
 | **Qualified Clinical / Allied Health Reviewer** | CARE-004 |
 | **Provider Subject Matter Reviewers** | CARE-001, CARE-002, CARE-003, PRD-003 |
-| **Product Owner decisions** | PRD-001 scope, role holders for every responsibility, DEC-002 risk appetite, COM-005 per customer |
-| **Technical (can be drafted from the code now)** | ARC-001, DB-001, PRD-005, SEC-002 current register, QA-001/QA-002, QA-003, ARC-004, IP-002 |
+| **Product Owner decisions** | PRD-001 scope, role holders for every responsibility, RSK-001 risk scoring method and appetite, COM-005 per customer |
+| **Technical (can be drafted from the code now)** | (ARC-001, DB-001, MOD-001, SEC-002 drafted 16 Nov 2026); QA-001/QA-002, QA-003, ARC-004, IP-002 |
 
 ## 6. The ten foundational documents
 
 | # | Document | ID | State |
 |---|---|---|---|
 | 1 | Product Overview and Scope | PRD-001 | Partial sources; to write (owner input on scope) |
-| 2 | System Architecture | ARC-001 | Partial; can be drafted from code |
-| 3 | Database and Data Model | DB-001 | Partial; can be drafted from migrations |
+| 2 | System Architecture | ARC-001 | **Draft written 16 Nov 2026** |
+| 3 | Database and Data Model | DB-001 | **Draft written 16 Nov 2026** |
 | 4 | Function Groups, Roles and Permissions Matrix | PRD-004 | Partial; waits on the AUD-016 decision |
-| 5 | Module Catalogue and Dependencies | PRD-005 | Source of truth in code; document can be generated |
-| 6 | Security and RLS Policy Register | SEC-002 | Stage 1 register exists; current register to write |
+| 5 | Module Catalogue and Dependencies | MOD-001 | **Draft written 16 Nov 2026** |
+| 6 | Security and RLS Policy Register | SEC-002 | **Draft written 16 Nov 2026** (needs independent review) |
 | 7 | Privacy and Data Handling | SEC-003 | Facts can be drafted; adviser review needed |
 | 8 | Development and Testing Standards | QA-001 | Exists in part; extend |
 | 9 | Change, Migration and Release Register | QA-005 | Exists in three parts; linked |
-| 10 | Risk and Decision Register | DEC-001 / DEC-002 | Decision register seeded; risk register to write |
+| 10 | Risk and Decision Register | DEC-001 / RSK-001 | Both drafted |
 
 ## Change history
 
