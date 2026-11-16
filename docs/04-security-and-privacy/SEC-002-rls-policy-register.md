@@ -5,7 +5,7 @@
 | Document ID | SEC-002 |
 | Title | Current RLS Policy Register |
 | Category | 04 Security and privacy |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | **Draft**. Not a security approval: prepared by the developer, needs an **independent** Security Reviewer (GOV-001 §5) |
 | Owner / Reviewer / Approver | Technical Lead / Security Reviewer (independent) / Product Owner, role holders not yet assigned |
 | Created | 16 Nov 2026 |
@@ -78,9 +78,9 @@ to verify).
 | C4 | Bank details readable directly by people with payroll access; "reveal" is logged by the app, a direct read isn't | AUD-010 risk 2 | Open |
 | C5 | Records registers readable by all members (§4) | Appendix A | To review |
 | C6 | 11 storage policies use `auth.uid()` unwrapped (performance only, Stage 1 form) | Appendix A | Deferred (performance stages) |
-| C7 | Storage policy "drivers upload odometer photos" exists, while decision D-009 says no odometer photos | Appendix A; DEC-001 | Discrepancy: policy kept, feature not offered? To verify |
-| C8 | Module grants for ops.tasks, people.staff, people.teams, clients.list aren't read by any policy | MOD-001 §4 | Discrepancy |
-| C9 | No `org_id` in any policy | §2 | By design today (one database per customer); a gap for shared-database SaaS |
+| C7 | Storage policy "drivers upload odometer photos" exists, while decision D-009 says no odometer photos | AUD-018 | Investigated: the photo is a built setting (default Optional) and the policy ignores the setting. Recommendation in AUD-018; owner decision needed (D-037) |
+| C8 | Module grants for ops.tasks, people.staff, people.teams, clients.list aren't read by any policy | MOD-001 §4 | Known limitation (D-036); delegation controls to be disabled or marked after implementation approval |
+| C9 | No `org_id` in any policy | §2 | By decision D-038: separate databases retained; `org_id` is not a security boundary |
 | C10 | Policies are permissive; combined effect per table not documented | Appendix A | To document in the review |
 
 ## 6. Coverage by area (verified; detail in appendix A)
@@ -113,3 +113,4 @@ test run: 1,132 checks passed (15 Nov 2026).
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First current register, generated from the catalogue, with findings | Not approved |
+| 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | C7 investigated (AUD-018); C8 and C9 decisions recorded | Not approved |

@@ -5,13 +5,13 @@
 | Document ID | GOV-001 |
 | Title | Documentation Governance Framework |
 | Category | 00 Governance |
-| Version | 0.2 |
-| Status | **Draft** (not approved) |
-| Owner | Product Owner (role holder not yet assigned) |
-| Reviewer | Technical Lead / Developer (role holder not yet assigned) |
+| Version | 1.0 |
+| Status | **Approved** by the Product Owner, 16 Nov 2026, as the initial framework, with provisional role assignments and outstanding reviews recorded below (D-034). Not an independent, legal or clinical review |
+| Owner | Product Owner: the owner |
+| Reviewer | Technical Lead: the owner |
 | Approver | Product Owner |
 | Created | 16 Nov 2026 |
-| Last reviewed | TBC |
+| Last reviewed | 16 Nov 2026 (Product Owner) |
 | Next review | On approval, then annually |
 | Related | GOV-002 (Register), GOV-003 (Assessment), DEC-001 (Decision Register) |
 
@@ -26,8 +26,22 @@ data, permissions or production resources.
 
 ## 2. Responsibilities
 
-One person may hold several roles. Role holders are **not yet assigned**;
-they're recorded in GOV-002 when the Product Owner assigns them.
+One person may hold several roles.
+
+**Role holders (provisional, D-033, 16 Nov 2026):**
+
+| Role | Holder |
+|---|---|
+| Product Owner | The owner |
+| Technical Lead / Developer | The owner (development work prepared by Claude) |
+| Security Reviewer (independent) | **Unassigned**: to be appointed externally |
+| Privacy / Legal Adviser (qualified) | **Unassigned**: to be appointed externally |
+| Provider Subject Matter Reviewer | The relevant provider representative or qualified professional, chosen per document |
+
+The owner may do initial development and documentation reviews. **These are
+never presented as independent security, legal or clinical approval.**
+Documents that need those reviews stay Draft (or Under Review) until the
+external reviewer has reviewed them.
 
 | Role | Responsible for |
 |---|---|
@@ -183,3 +197,4 @@ Earlier reviews whenever circumstances need them.
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First draft | Not approved |
 | 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Added MOD and RSK prefixes (owner's document IDs, D-032) | Not approved |
+| 1.0 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Role holders recorded (provisional); approved as the initial framework | **Product Owner, 16 Nov 2026** (owner's written decision in session; D-034) |

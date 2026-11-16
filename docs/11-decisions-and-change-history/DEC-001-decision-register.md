@@ -5,7 +5,7 @@
 | Document ID | DEC-001 |
 | Title | Decision Register |
 | Category | 11 Decisions and change history |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Product Owner / Technical Lead / Product Owner |
 | Created | 16 Nov 2026 |
@@ -32,7 +32,7 @@ end with the next number.
 | D-006 | Nov 2026 | Performance stages 2 to 9 deferred until the build is finished; the completed Stage 1 RLS work is preserved. | Owner (session); docs/TODO.md |
 | D-007 | 15 Nov 2026 | Email delivery and two-factor (MFA) are intentionally not configured on Dev; not defects. Email queue discrepancies deferred; MFA enforcement is a future production-readiness item. | Owner (session); AUD-009 |
 | D-008 | Nov 2026 | Plain Australian English; AUD; Australia/Sydney time; commit messages start "cmeprojects:". | Owner (session) |
-| D-009 | Oct 2026 | Vehicles: no odometer photos; readings typed only. | docs/PLAN.md |
+| D-009 | 27 Oct 2026 | Vehicles: no odometer photos; readings typed only. **Still the intended decision (D-037); the build conflicts with it (AUD-018).** | docs/PLAN.md (commit 698c31e) |
 
 ## Product and access decisions
 
@@ -62,8 +62,21 @@ end with the next number.
 | D-031 | 16 Nov 2026 | Documentation governance framework requested (this register, GOV-001 to GOV-003); documentation only. | Owner (session); GOV-001 |
 | D-032 | 16 Nov 2026 | Five code-verifiable foundational documents requested with the IDs ARC-001, DB-001, MOD-001, SEC-002, RSK-001 (MOD and RSK prefixes added to GOV-001). Documentation only. | Owner (session); GOV-002 v0.2 |
 
+
+## Decisions of 16 Nov 2026 (after the foundational documents)
+
+| ID | Date | Decision | Source |
+|---|---|---|---|
+| D-033 | 16 Nov 2026 | Responsibility roles: Product Owner = the owner; Technical Lead = the owner; independent Security Reviewer = to be appointed externally (unassigned); Privacy / Legal Adviser = to be appointed externally (unassigned); Provider Subject Matter Reviewer = relevant provider representative or qualified professional per document. The owner's reviews aren't independent security, legal or clinical approval. | Owner (session) |
+| D-034 | 16 Nov 2026 | GOV-001 approved as the initial documentation governance framework (version 1.0), with provisional assignments and outstanding reviews recorded. All other documents stay Draft until their required reviews. | Owner (session) |
+| D-035 | 16 Nov 2026 | Risk scoring: 5 × 5 likelihood and impact matrix with inherent and residual ratings, existing controls, risk owner, treatment, target date and review date. No scores without evidence or an agreed rationale; TBC otherwise. | Owner (session); RSK-001 v0.2 |
+| D-036 | 16 Nov 2026 | The four modules with ineffective grants (Tasks, Staff, Teams, Clients): keep the modules and current permission behaviour; temporarily disable or clearly mark their unsupported delegation controls so administrators aren't misled; known limitation; part of the function-based access model. The control change itself needs a separate implementation approval. | Owner (session); MOD-001; RSK-04 |
+| D-037 | 16 Nov 2026 | Odometer photos: D-009 remains the intended decision unless evidence shows a change. Investigate (done: AUD-018); recommend disabling uploads if not approved; no file deletion or change without separate approval. | Owner (session); AUD-018 |
+| D-038 | 16 Nov 2026 | SaaS tenancy: keep one separate database per customer. Don't implement shared-database tenancy or redesign. Shared-database tenancy is a possible future option needing a separate architecture and security assessment. `org_id` is **not** an enforced security boundary. | Owner (session); ARC-001; RSK-01 |
+
 ## Change history
 
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Seeded from recorded decisions | Not approved |
+| 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-033 to D-038 added; D-009 note | Not approved |

@@ -5,7 +5,7 @@
 | Document ID | ARC-001 |
 | Title | System Architecture |
 | Category | 02 Architecture |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Technical Lead / Technical Lead (peer if available) / Product Owner, role holders not yet assigned |
 | Created | 16 Nov 2026 |
@@ -135,13 +135,19 @@ copies (`NEXT_PUBLIC_ENV_LABEL`). Company branding from
 (default `default_org_id()`, one organisation row per database), but **no
 RLS policy uses `org_id`** (checked: no policy condition mentions it).
 Isolation between customers therefore depends entirely on separate projects
-and keys. **Shared-database multi-tenancy is not implemented** (RSK-001).
+and keys. **Shared-database multi-tenancy is not implemented** (RSK-01).
+
+**Owner decision D-038 (16 Nov 2026):** the separate-database-per-customer
+model is retained for the current product direction. **`org_id` is not an
+enforced security boundary** and must not be relied on to separate
+customers. Shared-database tenancy is a possible future option only, needing
+a separate architecture and security assessment before any work.
 
 ## 9. Known limitations and gaps
 
 | # | Gap | Evidence | Planned? |
 |---|---|---|---|
-| 1 | No shared-database tenant isolation; `org_id` unused in rules | §8 | Planned only if the SaaS model needs it (decision needed) |
+| 1 | No shared-database tenant isolation; `org_id` unused in rules | §8 | Not planned: separate databases retained (D-038); future option needs its own assessment |
 | 2 | Database backup and restore not documented or tested | docs/RESTORE.md | Needed before live (OPS-001) |
 | 3 | Hard-coded role checks (~180) alongside the permission engine | AUD-016 | Function-based model proposed (AUD-016), not approved |
 | 4 | Fixed access levels; job titles carry no permissions | AUD-016 | Same |
@@ -165,3 +171,4 @@ database catalogue (counts above), built from `supabase/migrations`
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First draft from code and database definitions | Not approved |
+| 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Tenancy decision D-038 recorded | Not approved |

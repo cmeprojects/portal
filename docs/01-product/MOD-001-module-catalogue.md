@@ -5,7 +5,7 @@
 | Document ID | MOD-001 (replaces the planned PRD-005 in GOV-002) |
 | Title | Module Catalogue |
 | Category | 01 Product |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Technical Lead / Product Owner / Product Owner, role holders not yet assigned |
 | Created | 16 Nov 2026 |
@@ -92,8 +92,10 @@ access. A module is usable only when its switch is on.
 
 1. Four delegable modules (§4) can show grants with no effect: a Manager
    Administrator could give "Clients" or "Tasks" access that the portal
-   ignores. **Discrepancy**; to confirm on the Access page and decide
-   (RSK-004).
+   ignores. **Known limitation (D-036):** modules and current permission
+   behaviour stay; their delegation controls are to be temporarily disabled
+   or clearly marked (a code change awaiting separate implementation
+   approval); fixed properly in the function-based access model (RSK-04).
 2. Module grants apply only to managers and staff admins (`can()` and
    `module_grant_allowed()`); other roles can't receive module access.
 3. Most modules still rely on hard-coded role checks (~180).
@@ -105,3 +107,4 @@ access. A module is usable only when its switch is on.
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First draft, verified against the database, `src/lib/modules.ts`, routes and checks | Not approved |
+| 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Decision D-036 recorded | Not approved |

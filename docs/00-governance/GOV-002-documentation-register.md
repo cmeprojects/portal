@@ -5,7 +5,7 @@
 | Document ID | GOV-002 |
 | Title | Documentation Register (master) |
 | Category | 00 Governance |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | **Draft** |
 | Owner | Product Owner (not yet assigned) |
 | Reviewer / Approver | Technical Lead / Product Owner |
@@ -20,8 +20,11 @@
 - **Priority:** **Now** (needed for current development), **Before live**
   (before live customer onboarding), **Future** (optional or later).
   ★ = one of the ten foundational documents (GOV-003 section 6).
-- **Owner / Reviewer / Approver:** roles, from GOV-001 section 5. Named
-  people: **Not yet assigned** for every document.
+- **Owner / Reviewer / Approver:** roles, from GOV-001 section 5. Holders
+  (D-033): Product Owner and Technical Lead = **the owner**; independent
+  Security Reviewer and Privacy / Legal Adviser = **unassigned (external)**;
+  Provider Subject Matter Reviewer = chosen per document. A document needing
+  an unassigned reviewer stays Draft.
 - **Version / Status:** existing documents are "unversioned (git)" and
   **Draft**: none has a recorded approval, so none is Approved. Audit and
   review reports are **Evidence** (kept unchanged).
@@ -35,7 +38,7 @@
 
 | ID | Name | Purpose | Owner / Reviewer / Approver | Exists | Priority | Status | Path | Related |
 |---|---|---|---|---|---|---|---|---|
-| GOV-001 | Documentation Governance Framework | How documents are owned, reviewed, approved, versioned | PO / TL / PO | Yes | Now | Draft 0.1 | docs/00-governance/GOV-001-documentation-governance-framework.md | GOV-002, GOV-003 |
+| GOV-001 | Documentation Governance Framework | How documents are owned, reviewed, approved, versioned | PO / TL / PO | Yes | Now | **Approved 1.0** (16 Nov 2026, Product Owner; D-034) | docs/00-governance/GOV-001-documentation-governance-framework.md | GOV-002, GOV-003 |
 | GOV-002 | Documentation Register | This register | PO / TL / PO | Yes | Now | Draft 0.1 | docs/00-governance/GOV-002-documentation-register.md | all |
 | GOV-003 | Existing Documentation Assessment | What exists, what to update, retain, archive; what's missing | TL / PO / PO | Yes | Now | Draft 0.1 | docs/00-governance/GOV-003-existing-documentation-assessment.md | GOV-002 |
 | GOV-004 | Handover (working notes) | Running summary of everything built, for anyone picking up the work | TL / PO / — | Yes | Now | Draft (living) | docs/HANDOVER.md | DEC-001, QA-005 |
@@ -153,7 +156,7 @@
 | ID | Name | Purpose | Owner / Reviewer / Approver | Exists | Priority | Status | Path | Related |
 |---|---|---|---|---|---|---|---|---|
 | DEC-001 ★ | Decision Register | Owner decisions and approvals with date and source | PO / TL / PO | Yes (seeded from recorded decisions) | Now | Draft 0.1 | docs/11-decisions-and-change-history/DEC-001-decision-register.md | all |
-| RSK-001 ★ | Risk Register (was DEC-002 / SEC-006) | Evidenced product, technical, security and privacy risks | PO / SR / PO | Yes | Now | Draft 0.1 | docs/11-decisions-and-change-history/RSK-001-risk-register.md | SEC-002, ARC-001 |
+| RSK-001 ★ | Risk Register (was DEC-002 / SEC-006) | Evidenced risks; 5 × 5 method, inherent and residual ratings (TBC) | PO / SR / PO | Yes | Now | Draft 0.2 | docs/11-decisions-and-change-history/RSK-001-risk-register.md | SEC-002, ARC-001 |
 | DEC-003 | Early plan and decisions | First milestones and decisions (Oct 2026) | PO / — / — | Yes | — | Superseded by DEC-001 and PRD-002 (kept) | docs/PLAN.md | DEC-001 |
 
 ## 12 Audits and evidence (kept unchanged; status Evidence)
@@ -178,6 +181,7 @@
 | AUD-015 | Clients steps 2 to 5 (updates 87 to 90) | docs/review/2026-11-15-clients-steps2-5.md |
 | AUD-016 | Function-based access model: Stage 1 assessment | docs/review/2026-11-16-function-access-assessment.md |
 | AUD-017 | Reviewer brief (external review access) | docs/review/reviewer-brief.md |
+| AUD-018 | Odometer photo storage policy: investigation | docs/12-audits-and-evidence/AUD-018-odometer-photo-investigation.md |
 
 All AUD documents are reports of work done or reviews by the developer
 (Claude). **None is an independent, legal or clinical review.**
@@ -212,4 +216,5 @@ PowerPoint files; owner PO; status Draft unless the customer has signed.
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First register: every existing document given an ID; required inventory and priorities | Not approved |
+| 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Role holders (D-033); GOV-001 approved 1.0 (D-034); RSK-001 v0.2; AUD-018 added | Not approved |
 | 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | ARC-001, DB-001, MOD-001 (was PRD-005), SEC-002, RSK-001 (was DEC-002/SEC-006) written; GOV-007 generator; GOV-006 corrected (no CLAUDE.md in this repository) | Not approved |
