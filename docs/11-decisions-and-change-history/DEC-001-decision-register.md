@@ -82,6 +82,8 @@ end with the next number.
 
 | D-043 | 16 Nov 2026 | Vercel Function Storage reached the free limit (10 GB). Stop Vercel building the restore branches (`version-*`, `restore-*`; they stay in Git for restoring) via `vercel.json`, and push fewer, larger commits. Vercel Pro to be decided in go-live planning. | Owner (session) |
 
+| D-044 | 16 Nov 2026 | Standing rule: every piece of work updates the documents as it goes (decision register, the relevant plan or record, the register, and the "Where we are now" section in docs/HANDOVER.md), so nothing is lost if the conversation context is refreshed. | Owner (session) |
+
 ## Change history
 
 | Version | Date | Author | Change | Approved by |

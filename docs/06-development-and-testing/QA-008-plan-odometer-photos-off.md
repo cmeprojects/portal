@@ -136,3 +136,9 @@ on that copy); B `undo-91.sql`, which restores the original policy exactly.
   `supabase/setup/verify-update-91.sql` (dry-run locally: 3 of 3, rolled
   back, local state unchanged). **Waiting for the owner to run update 91 on
   Dev.**
+- **Simpler Dev checks (16 Nov 2026):** the owner found `verify-update-91.sql`
+  confusing (step 4 stopped with "Change the test emails in step 4 first";
+  nothing changed). Replaced by `supabase/setup/verify-91-before.sql`
+  (read only) and `supabase/setup/verify-91-after.sql` (picks test accounts
+  itself; each test upload undone inside the check; 7 results). Dry-run on
+  the local copy: all as expected, local state unchanged.

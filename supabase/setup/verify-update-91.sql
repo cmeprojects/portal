@@ -1,4 +1,5 @@
 -- Staff Portal · © cmeproject. All rights reserved.
+-- SUPERSEDED (16 Nov 2026) by verify-91-before.sql and verify-91-after.sql (simpler, no emails to edit). Kept for history.
 -- cmeprojects: verify update 91 on Dev (QA-008 B). Run in the Supabase SQL
 -- Editor, ONE STEP AT A TIME. Nothing here changes anything: steps 1 and 3 only
 -- read; step 4 runs its upload tests inside a transaction that always ends in

@@ -9,6 +9,27 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 **Documentation register (start here):** docs/00-governance/GOV-002-documentation-register.md lists every document with its ID, owner role, status and path; decisions are in docs/11-decisions-and-change-history/DEC-001-decision-register.md.
 
+## Where we are now (keep this updated every step: decision D-044)
+
+Last updated: 16 Nov 2026.
+
+- **Waiting on the owner:** run update 91 on Dev (QA-008 B):
+  1. `supabase/setup/verify-91-before.sql` (read only; keep the result)
+  2. `supabase/live-updates/update-91.sql`
+  3. `supabase/setup/verify-91-after.sql` (expect: off; same file count and
+     other-policies value as before; refused, refused, allowed; yes)
+  Then the developer completes the QA-008 report.
+- **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
+  available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2
+  (fresh installs Off); Vercel no longer builds restore branches (D-043);
+  governance framework GOV-001 approved; foundational documents drafted.
+- **Open, owner to decide:** AUD-016 function-based access model; risk
+  assessment session (RSK-001 ratings TBC); external reviewers unassigned;
+  Clients & Care paused; Vercel Pro at go-live.
+- **Where to look:** register `docs/00-governance/GOV-002-documentation-register.md`;
+  decisions `docs/11-decisions-and-change-history/DEC-001-decision-register.md`;
+  risks `RSK-001`; to-do `docs/TODO.md`.
+
 ## On hold (16 Nov 2026)
 
 Clients & Care and the new roles plan are paused by the owner: see docs/TODO.md (top section) and docs/roadmap/new-roles-plan.md.
