@@ -11,6 +11,8 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Clients & Care and the new roles plan are paused by the owner: see docs/TODO.md (top section) and docs/roadmap/new-roles-plan.md.
 
+Access model Stage 1 assessment (awaiting approval): docs/review/2026-11-16-function-access-assessment.md.
+
 ## 1. The product
 
 - **Engaged Care Staff Portal**: a portal for a small NDIS provider in

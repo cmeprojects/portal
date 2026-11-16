@@ -25,6 +25,12 @@ Waiting:
 
 Owner's open checks: docs/review/TEMP-to-review.md.
 
+**Access model (16 Nov 2026): Stage 1 assessment done, awaiting approval**:
+docs/review/2026-11-16-function-access-assessment.md (Function Groups → job
+titles → individual grants, one engine). If approved it replaces the
+new-roles plan (roles become job titles in Function Groups, not new access
+levels). Nothing built.
+
 ## Customise the portal (aim: as much control as WordPress)
 
 All system admin only (or delegated), recorded in the change log, each with

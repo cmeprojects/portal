@@ -1,6 +1,8 @@
 # New roles: case manager, intake and assessment, payroll, rostering (cmeprojects)
 
-Plan for approval, 15 Nov 2026. Nothing built.
+Plan for approval, 15 Nov 2026. Nothing built. **Likely replaced** by the
+function-based access model (docs/review/2026-11-16-function-access-assessment.md):
+these roles would become job titles in Function Groups.
 
 ## How roles work today
 
