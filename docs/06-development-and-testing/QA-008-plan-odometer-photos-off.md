@@ -6,7 +6,7 @@
 | Title | Change plan: odometer photo setting and storage policy |
 | Category | 06 Development and testing |
 | Version | 0.1 |
-| Status | **Draft: plan for approval.** Nothing implemented on any copy |
+| Status | **Approved by the Product Owner (D-042)**: storage policy follows the setting. Nothing implemented on any copy yet |
 | Owner / Reviewer / Approver | Technical Lead (the owner) / Technical Lead / Product Owner (the owner) |
 | Created | 16 Nov 2026 |
 | Related | DEC-001 D-009 and D-037, AUD-018, SEC-002 C7, RSK-15 |
@@ -92,3 +92,25 @@ check and immediately restored with the undo; no other copy affected.)
 3. Demo: A1, then B.
 4. A2 merged as its own migration (separate commit).
 Never combined with QA-007.
+
+## 6. Approved behaviour and exact files (16 Nov 2026, before implementation)
+
+| Setting | Driver upload (database) | Screen |
+|---|---|---|
+| Off | **Refused** | No photo field |
+| Optional | Allowed | Photo field, optional |
+| Required | Allowed | Photo field, needed to return the car |
+
+Unchanged: reading existing photos (driver and car report holders), car
+managers' uploads to `cars/`. No file is deleted.
+
+Files (to be created only when each step is reached, in this order):
+
+| Step | Files | Runs where |
+|---|---|---|
+| A1 | none (System settings, owner) | Dev, Demo |
+| A2 | `supabase/migrations/20270204000001_odometer_default_off.sql` (from `supabase/proposals/odometer-default-off.sql`); `supabase/install/fresh-install.sql` rebuilt | Fresh installs only (not a live update) |
+| B | `supabase/migrations/20270205000001_odometer_uploads_follow_setting.sql`; **`supabase/live-updates/update-91.sql`** and **`undo-91.sql`** (from the two proposal files); `supabase/tests/odometer_uploads.test.sql` | Owner runs update 91 on Dev, tests, then Demo |
+
+Rollback: A1 set back to Optional; A2 a follow-up migration (or the setting
+on that copy); B `undo-91.sql`, which restores the original policy exactly.

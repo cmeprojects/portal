@@ -5,7 +5,7 @@
 | Document ID | DEC-001 |
 | Title | Decision Register |
 | Category | 11 Decisions and change history |
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Product Owner / Technical Lead / Product Owner |
 | Created | 16 Nov 2026 |
@@ -78,6 +78,8 @@ end with the next number.
 | D-040 | 16 Nov 2026 | Approved a limited Access page code change so Tasks, Staff, Teams and Clients don't present unsupported delegation as working; modules, functionality and the permission engine unchanged; plan first (QA-007). | Owner (session) |
 | D-041 | 16 Nov 2026 | Risk ratings, owners and dates stay TBC until a separate assessment session; external reviewers stay unassigned; independent security and professional reviews required before live customer data; AUD-016 and Clients & Care stay open and paused. | Owner (session) |
 
+| D-042 | 16 Nov 2026 | QA-007 approved and extended to seven modules (Tasks, Staff, Teams, Clients, Staff requests, Due dates and escalation, Request approvals): remove unsupported controls, refuse new or changed grants on the server, "Set by role" only where confirmed role-based, otherwise "Not available"; keep existing grants; no engine, database or RLS change; correct the module catalogue. QA-008 approved with the storage policy following the setting (Off: refused; Optional and Required: allowed); A1, A2 and B separate, each with tests and rollback. Order: QA-007; owner sets the setting Off on Dev and Demo; A2; B on Dev, then Demo. Local incident recorded (AUD-019), no further action. | Owner (session) |
+
 ## Change history
 
 | Version | Date | Author | Change | Approved by |
@@ -85,3 +87,4 @@ end with the next number.
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Seeded from recorded decisions | Not approved |
 | 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-033 to D-038 added; D-009 note | Not approved |
 | 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-039 to D-041 | Not approved |
+| 0.4 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-042 | Not approved |
