@@ -114,3 +114,13 @@ Files (to be created only when each step is reached, in this order):
 
 Rollback: A1 set back to Optional; A2 a follow-up migration (or the setting
 on that copy); B `undo-91.sql`, which restores the original policy exactly.
+
+## 7. Implementation record
+
+- **A1 (16 Nov 2026):** Dev set to Off, saved and deployed by the owner.
+  **Demo: not applicable** (no Demo copy exists at present; owner, 16 Nov 2026).
+- **A2 (16 Nov 2026):** migration `supabase/migrations/20270204000001_odometer_default_off.sql`;
+  fresh install rebuilt; new test `supabase/tests/odometer_default.test.sql`
+  (2 checks); full database suite 1,134 checks pass. Not a live update:
+  nothing to run on Dev. Rollback: revert the commit (fresh installs then
+  start Optional again) or change the setting on a copy.

@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270203000001_client_services.sql
+-- Built from every migration up to: 20270204000001_odometer_default_off.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -207,7 +207,8 @@ begin
     (104, '20270131000001_client_locations.sql'),
     (105, '20270201000001_client_people_details.sql'),
     (106, '20270202000001_client_safety.sql'),
-    (107, '20270203000001_client_services.sql')
+    (107, '20270203000001_client_services.sql'),
+    (108, '20270204000001_odometer_default_off.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -19766,5 +19767,27 @@ create trigger log_client_change before insert or update on public.client_servic
 
 $m107$;
   insert into public.install_log (name) values ('20270203000001_client_services.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270204000001_odometer_default_off.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270204000001_odometer_default_off.sql') then
+    return;
+  end if;
+  execute $m108$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (QA-008 A2, decision D-009 / D-042): fresh installs start with
+-- "Odometer photo when returning" Off. Fresh installs only: existing copies
+-- are set in System settings (Dev done by the owner, 16 Nov 2026). Changes the
+-- value only where it's still the install default (Optional).
+update public.app_settings set value = '"off"'::jsonb
+ where key = 'vehicles.odo_photo' and value = '"optional"'::jsonb;
+
+$m108$;
+  insert into public.install_log (name) values ('20270204000001_odometer_default_off.sql');
 end;
 $part$;
