@@ -53,3 +53,8 @@ Staff Portal · © cmeproject · Set by the owner on 11 November 2026. Applies t
 - **Security:** whether RLS, permissions or functions were affected.
 - **Outstanding:** known issues and future improvements.
 - **Credit efficiency:** unnecessary work avoided. No invented figures.
+
+## Pushes and Vercel (16 Nov 2026, D-043)
+
+- Group related changes into fewer, larger commits; each push builds a Vercel deployment and the free plan's Function Storage is limited.
+- The restore branches (`version-*`, `restore-*`) are still updated in Git but not built by Vercel (`vercel.json`).

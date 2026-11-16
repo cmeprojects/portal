@@ -5,7 +5,7 @@
 | Document ID | RSK-001 (replaces the planned DEC-002 and SEC-006 in GOV-002) |
 | Title | Risk Register |
 | Category | 11 Decisions and change history (security risks also feed 04) |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | **Draft** (needs the independent Security Reviewer, not yet appointed) |
 | Owner | Product Owner: the owner |
 | Reviewer | Security Reviewer (independent): **unassigned, to be appointed externally** |
@@ -61,10 +61,12 @@ rating below is **TBC**.
 | RSK-13 | **Release and environment records behind** (0.1.1 covers updates 71 to 90; timer verified on Dev only). | Change control | TBC | Live-updates README records each copy's updates | TBC | Technical Lead | Decide versioning; record timer status per copy | TBC | TBC | Open |
 | RSK-14 | **No independent, legal or clinical review yet.** Reviews so far are by the developer and the owner; the external Security Reviewer and Privacy / Legal Adviser are unassigned. | Assurance | TBC | Tests, round trips, evidence kept; GOV-001 forbids presenting these as independent approval | TBC | Product Owner | Appoint the external reviewers (D-033) | TBC | TBC | Open |
 | RSK-15 | **Odometer photo uploads conflict with decision D-009.** Implemented as a setting (default Optional); the storage policy allows uploads to the driver's own folder whatever the setting. | Cars; data minimisation | TBC | Uploads limited to the driver's own folder; reading limited to the driver and car report holders; setting can be Off | TBC | Product Owner | AUD-018: if D-009 stands, set the setting to Off on each copy, then (separate approval) remove or narrow the upload policy; keep existing files | TBC | TBC | Open (owner decision needed, D-037) |
+| RSK-16 | **Hosting plan limits.** Vercel free plan Function Storage reached 10 GB (16 Nov 2026); older deployments are deleted automatically. The free plan may not suit commercial use (Vercel's terms to be checked). | Hosting, go-live | TBC | Restore points are Git branches, not Vercel deployments; data is in Supabase; restore branches no longer built (D-043) | TBC | Product Owner | Decide Vercel Pro in go-live planning; keep pushes fewer and larger | TBC | TBC | Open |
 
 ## Change history
 
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First register, evidenced risks only | Not approved |
+| 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | RSK-16 hosting plan limits; RSK-04 interim control | Not approved |
 | 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | 5 × 5 method (D-035); inherent and residual ratings, risk owner, treatment, target and review dates (all TBC); owner decisions D-036 to D-038 recorded; RSK-15 added | Not approved |
