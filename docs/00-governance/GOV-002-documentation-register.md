@@ -108,6 +108,7 @@
 | QA-005 ★ | Change, Migration and Release Register | Every live update (what, when run where, undo) and every release | TL / TL / PO | Yes, in parts: supabase/live-updates/README.md (updates and which copy has them), docs/VERSIONS.md (releases), docs/RESTORE.md (restore points) | Now | Draft | Keep the three; link them here | QA-006, OPS-001 |
 | QA-007 | Change plan: unsupported delegation controls | Access page: Tasks, Staff, Teams, Clients (and three more found) shown as set by role | TL / TL / PO | Yes | Now | Approved and implemented 16 Nov 2026 (D-040, D-042); document Draft | docs/06-development-and-testing/QA-007-plan-unsupported-delegation-controls.md | D-036, MOD-001 |
 | QA-008 | Change plan: odometer photos off | Setting Off on each copy; storage policy follows the setting; fresh installs start Off | TL / TL / PO | Yes | Now | Approved (D-042), implemented and verified on Dev 16 Nov 2026 (closed) | docs/06-development-and-testing/QA-008-plan-odometer-photos-off.md | D-037, AUD-018 |
+| QA-009 | Change plan: dashboard panel buttons | Buttons shown only to people allowed to use them; clear refusals | TL / TL / PO | Yes | Now | Draft 0.1 (awaiting approval) | docs/06-development-and-testing/QA-009-plan-overdue-panel-buttons.md | D-015, D-016 |
 | QA-006 | Release Register | Versions and their branches | TL / TL / PO | Yes | Now | Draft | docs/VERSIONS.md | QA-005 |
 
 ## 07 Operations and maintenance

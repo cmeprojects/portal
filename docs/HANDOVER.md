@@ -19,7 +19,7 @@ Last updated: 16 Nov 2026.
   "Escalation dealt with" to the task's own assignee, who isn't allowed to use it
   ("You can't make this change"; rule in `set_task_status`). Recommended option 1:
   keep the rule, show each button only to people allowed to use it, clear messages,
-  consistent button style (code only). Plan to be prepared on approval.
+  consistent button style (code only). **Plan written: QA-009, awaiting approval.**
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2
   (fresh installs Off); Vercel no longer builds restore branches (D-043);
