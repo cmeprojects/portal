@@ -5,7 +5,7 @@
 | Document ID | DEC-001 |
 | Title | Decision Register |
 | Category | 11 Decisions and change history |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Product Owner / Technical Lead / Product Owner |
 | Created | 16 Nov 2026 |
@@ -74,9 +74,14 @@ end with the next number.
 | D-037 | 16 Nov 2026 | Odometer photos: D-009 remains the intended decision unless evidence shows a change. Investigate (done: AUD-018); recommend disabling uploads if not approved; no file deletion or change without separate approval. | Owner (session); AUD-018 |
 | D-038 | 16 Nov 2026 | SaaS tenancy: keep one separate database per customer. Don't implement shared-database tenancy or redesign. Shared-database tenancy is a possible future option needing a separate architecture and security assessment. `org_id` is **not** an enforced security boundary. | Owner (session); ARC-001; RSK-01 |
 
+| D-039 | 16 Nov 2026 | D-009 confirmed (no replacing decision). Approved as two separate actions: set "Odometer photo when returning" to Off on each applicable copy; prepare a separate storage-policy update preventing uploads when not approved. Plans first; no file deletion or customer data change (QA-008). | Owner (session) |
+| D-040 | 16 Nov 2026 | Approved a limited Access page code change so Tasks, Staff, Teams and Clients don't present unsupported delegation as working; modules, functionality and the permission engine unchanged; plan first (QA-007). | Owner (session) |
+| D-041 | 16 Nov 2026 | Risk ratings, owners and dates stay TBC until a separate assessment session; external reviewers stay unassigned; independent security and professional reviews required before live customer data; AUD-016 and Clients & Care stay open and paused. | Owner (session) |
+
 ## Change history
 
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Seeded from recorded decisions | Not approved |
 | 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-033 to D-038 added; D-009 note | Not approved |
+| 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-039 to D-041 | Not approved |

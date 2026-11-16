@@ -5,7 +5,7 @@
 | Document ID | GOV-002 |
 | Title | Documentation Register (master) |
 | Category | 00 Governance |
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | **Draft** |
 | Owner | Product Owner (not yet assigned) |
 | Reviewer / Approver | Technical Lead / Product Owner |
@@ -106,6 +106,8 @@
 | QA-003 | Test Evidence Register | Which tests prove which change | TL / TL / PO | Partial: in each AUD report and commit | Before live | — | To write | QA-005 |
 | QA-004 | Defect Register | Known defects and their status | TL / PO / PO | Partial: AUD-001, AUD-002, AUD-009 | Before live | — | To write | SEC-006 |
 | QA-005 ★ | Change, Migration and Release Register | Every live update (what, when run where, undo) and every release | TL / TL / PO | Yes, in parts: supabase/live-updates/README.md (updates and which copy has them), docs/VERSIONS.md (releases), docs/RESTORE.md (restore points) | Now | Draft | Keep the three; link them here | QA-006, OPS-001 |
+| QA-007 | Change plan: unsupported delegation controls | Access page: Tasks, Staff, Teams, Clients (and three more found) shown as set by role | TL / TL / PO | Yes | Now | Draft 0.1 (awaiting approval) | docs/06-development-and-testing/QA-007-plan-unsupported-delegation-controls.md | D-036, MOD-001 |
+| QA-008 | Change plan: odometer photos off | Setting Off on each copy; storage policy follows the setting; fresh installs start Off | TL / TL / PO | Yes | Now | Draft 0.1 (awaiting approval) | docs/06-development-and-testing/QA-008-plan-odometer-photos-off.md | D-037, AUD-018 |
 | QA-006 | Release Register | Versions and their branches | TL / TL / PO | Yes | Now | Draft | docs/VERSIONS.md | QA-005 |
 
 ## 07 Operations and maintenance
@@ -216,5 +218,6 @@ PowerPoint files; owner PO; status Draft unless the customer has signed.
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First register: every existing document given an ID; required inventory and priorities | Not approved |
+| 0.4 | 16 Nov 2026 | Technical Lead (prepared by Claude) | QA-007 and QA-008 change plans; odometer proposals in supabase/proposals | Not approved |
 | 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Role holders (D-033); GOV-001 approved 1.0 (D-034); RSK-001 v0.2; AUD-018 added | Not approved |
 | 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | ARC-001, DB-001, MOD-001 (was PRD-005), SEC-002, RSK-001 (was DEC-002/SEC-006) written; GOV-007 generator; GOV-006 corrected (no CLAUDE.md in this repository) | Not approved |
