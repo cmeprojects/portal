@@ -13,11 +13,13 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 16 Nov 2026.
 
-- **Waiting on the owner:** update 91 is applied on Dev (16 Nov 2026); re-run
-  `supabase/setup/verify-91-after.sql` (changed so the driver checks find an
-  account); expect refused, refused, allowed. Then QA-008 is closed.
-- **Being investigated:** "Escalation dealt with" and the other buttons in the
-  dashboard "Past their due date" panel (owner report, 16 Nov 2026).
+- **QA-008 (odometer photos off) closed:** update 91 applied and verified on Dev
+  (16 Nov 2026), all 7 checks as expected. No SQL waiting for Dev.
+- **Waiting on the owner's decision:** dashboard "Past their due date" panel shows
+  "Escalation dealt with" to the task's own assignee, who isn't allowed to use it
+  ("You can't make this change"; rule in `set_task_status`). Recommended option 1:
+  keep the rule, show each button only to people allowed to use it, clear messages,
+  consistent button style (code only). Plan to be prepared on approval.
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2
   (fresh installs Off); Vercel no longer builds restore branches (D-043);

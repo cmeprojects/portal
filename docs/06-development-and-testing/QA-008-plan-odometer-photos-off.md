@@ -6,7 +6,7 @@
 | Title | Change plan: odometer photo setting and storage policy |
 | Category | 06 Development and testing |
 | Version | 0.1 |
-| Status | **Approved by the Product Owner (D-042)**: storage policy follows the setting. Nothing implemented on any copy yet |
+| Status | **Approved (D-042), implemented and verified on Dev, 16 Nov 2026 (closed).** Document Draft |
 | Owner / Reviewer / Approver | Technical Lead (the owner) / Technical Lead / Product Owner (the owner) |
 | Created | 16 Nov 2026 |
 | Related | DEC-001 D-009 and D-037, AUD-018, SEC-002 C7, RSK-15 |
@@ -151,3 +151,10 @@ on that copy); B `undo-91.sql`, which restores the original policy exactly.
   member except system admin, new starter or external (tested locally with
   no support workers: refused, refused, allowed). **Waiting for the owner to
   re-run `verify-91-after.sql`** to complete the driver checks.
+- **Verified on Dev and closed (16 Nov 2026).** Owner re-ran
+  `verify-91-after.sql`: setting off; 0 car files (same as before); other
+  storage policies `23 / 39a2a73246b5adde9ffaf2401aabe84f` (same as before);
+  driver upload to own folder **refused**; driver upload to another person's
+  folder **refused**; system admin car photo to `cars/` **allowed**; new rule
+  includes the setting **yes**. Demo not applicable. No files deleted; no
+  other environment changed. Rollback remains `supabase/live-updates/undo-91.sql`.
