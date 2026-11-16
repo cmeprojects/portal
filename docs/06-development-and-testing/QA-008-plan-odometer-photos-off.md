@@ -124,3 +124,7 @@ on that copy); B `undo-91.sql`, which restores the original policy exactly.
   (2 checks); full database suite 1,134 checks pass. Not a live update:
   nothing to run on Dev. Rollback: revert the commit (fresh installs then
   start Optional again) or change the setting on a copy.
+- **B prepared for review (16 Nov 2026), not applied:** `supabase/proposals/update-91/`
+  (migration, `update-91.sql`, `undo-91.sql`, `check-update-91.sql`, README).
+  Local check 9 of 9 inside a rolled-back transaction; local state confirmed
+  unchanged. Awaiting the owner's approval of the migration and undo files.
