@@ -5,7 +5,7 @@
 | Document ID | RSK-001 (replaces the planned DEC-002 and SEC-006 in GOV-002) |
 | Title | Risk Register |
 | Category | 11 Decisions and change history (security risks also feed 04) |
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | **Draft** (needs the independent Security Reviewer, not yet appointed) |
 | Owner | Product Owner: the owner |
 | Reviewer | Security Reviewer (independent): **unassigned, to be appointed externally** |
@@ -64,10 +64,28 @@ rating below is **TBC**.
 | RSK-16 | **Hosting plan limits.** Vercel free plan Function Storage reached 10 GB (16 Nov 2026); older deployments are deleted automatically. The free plan may not suit commercial use (Vercel's terms to be checked). | Hosting, go-live | TBC | Restore points are Git branches, not Vercel deployments; data is in Supabase; restore branches no longer built (D-043) | TBC | Product Owner | Decide Vercel Pro in go-live planning; keep pushes fewer and larger | TBC | TBC | Open |
 | RSK-17 | **Next.js version with a known security vulnerability.** The build of 16 Nov 2026 warned that Next.js 16.4.3 is affected and recommended upgrading (details not shown in the warning). | Application security | TBC | Build still completes; RLS and server checks unchanged | TBC | Technical Lead | Upgrade Next.js as its own approved change (dependency update, full tests, Dev first) | TBC | TBC | Open (owner decision needed) |
 
+## 3. Suggested ratings for the five priority risks (16 Nov 2026)
+
+**SUGGESTED by the developer, NOT owner-approved.** They become approved
+only when the owner agrees each one (recorded in DEC-001). All other risks
+stay TBC. Scale: L = likelihood, I = impact (1 to 5); rating = L × I.
+
+| Risk | Suggested inherent L×I | Suggested residual L×I | Rationale and evidence | Blocks Stage 1? |
+|---|---|---|---|---|
+| RSK-02 Backup and restore | 3 × 5 = **15 High** | 3 × 5 = **15 High** | Data loss would be severe (all customer data). No documented or tested database backup or restore (docs/RESTORE.md covers code and undo files only); Supabase backup settings not verified, so controls don't lower the rating yet. | No (Stage 1 adds a small table with an undo) |
+| RSK-03 RLS not independently reviewed | 3 × 5 = **15 High** | 2 × 5 = **10 High** | RLS on all 93 tables, 1,134 database checks, Stage 1 evidence and round trips lower likelihood; impact of a wrong policy stays severe; no independent review yet. | No (Stage 1 policies are simple and tested) |
+| RSK-05 Elevated (SECURITY DEFINER) functions | 3 × 5 = **15 High** | 2 × 5 = **10 High** | 227 definer functions bypass RLS; 50 callable by signed-out users (mostly yes/no helpers and triggers that return false or can't be called directly); fixed search_path; new definers need approval (D-004). Not reviewed one by one. | No (Stage 1 adds none) |
+| RSK-07 Sensitive client data | 3 × 5 = **15 High** | 2 × 5 = **10 High** on Dev (test data only) | Client details, contacts and risk notes limited to people managers; staff limited by RLS (tests client_record, client_locations, client_care). No privacy document, retention rule or external review: residual would be higher with real data. | No |
+| RSK-08 Service-role key usage | 3 × 5 = **15 High** | 2 × 5 = **10 High** | Key bypasses RLS; used in 22 server files for named tasks, server environment only; each use not yet reviewed against its own permission check. | No (Stage 1 doesn't use it) |
+| RSK-14 No independent security review | 4 × 4 = **16 High** | 4 × 4 = **16 High** | All reviews so far are by the developer and the owner (GOV-001 forbids presenting them as independent); no control yet lowers it. Required before live customer data. | No |
+
+No finding above shows a direct security or data-integrity risk to Stage 1.
+
 ## Change history
 
 | Version | Date | Author | Change | Approved by |
 |---|---|---|---|---|
 | 0.1 | 16 Nov 2026 | Technical Lead (prepared by Claude) | First register, evidenced risks only | Not approved |
+| 0.4 | 16 Nov 2026 | Technical Lead (prepared by Claude) | Suggested (not approved) ratings for RSK-02, 03, 05, 07, 08, 14; RSK-17 | Not approved |
 | 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | RSK-16 hosting plan limits; RSK-04 interim control | Not approved |
 | 0.2 | 16 Nov 2026 | Technical Lead (prepared by Claude) | 5 × 5 method (D-035); inherent and residual ratings, risk owner, treatment, target and review dates (all TBC); owner decisions D-036 to D-038 recorded; RSK-15 added | Not approved |

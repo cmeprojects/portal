@@ -17,8 +17,10 @@ Last updated: 16 Nov 2026.
   (16 Nov 2026), all 7 checks as expected. No SQL waiting for Dev.
 - **QA-009 done (16 Nov 2026):** dashboard panel shows each button only to people
   allowed to use it; clear refusal messages; same button style.
-- **Next:** AUD-016 final clarification (review only), then Stage 1 on approval;
-  suggested ratings for five risks in RSK-001. Next.js upgrade (RSK-17) awaits a decision.
+- **Waiting on the owner:** approve the AUD-016 final clarification and Stage 1
+  approach (section "Final clarification before Stage 1" in AUD-016); agree or
+  change the suggested ratings in RSK-001 §3; decide the Next.js upgrade (RSK-17).
+  Then Stage 1 (Function Groups, update 92) is built.
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2
   (fresh installs Off); Vercel no longer builds restore branches (D-043);

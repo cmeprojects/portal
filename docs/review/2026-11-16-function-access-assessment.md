@@ -201,3 +201,126 @@ this model, Case manager, Intake and assessment officer, Payroll and
 Rostering become **job titles** in Function Groups, with permissions as
 grants: no enum change and no code per role. If this assessment is
 approved, that plan is replaced by stages 1 to 5 above.
+
+---
+
+## Final clarification before Stage 1 (16 Nov 2026, review only)
+
+Owner approved the model **in principle** (D-045) and asked for this focused
+clarification. It reuses the findings above; nothing was changed. One
+correction to §11 (change C): grants for job titles and function groups go
+in a **new table**, not new columns on `access_grants` (reason in §C2).
+
+### C1. Permission precedence and explicit restrictions
+
+For a module and action, `can()` decides in this order; the **first tier
+that has any applicable grant decides**:
+
+1. **Person** (existing `access_grants` rows): restriction → no; allow → yes.
+2. **Job title** (the person's title): restriction → no; allow → yes.
+3. **Function group** (any group of the person's title): restriction → no; allow → yes.
+4. Nothing → no.
+
+Within a tier the existing rules stay: the nearest level (module, then its
+parents, then its category) decides, and at that level a restriction beats
+an allow. Across several groups, a restriction in any group beats an allow.
+**A person's restriction is never overridden by a title or group grant.**
+A person's allow can add what their title or group doesn't give.
+
+### C2. Grant-holder design and foreign-key integrity
+
+- **Person grants stay exactly as they are** in `access_grants` (holder =
+  `user_id`, NOT NULL; triggers `check_module_grant`, `access_grant_cascade`,
+  `access_grant_revoke_only`; pass-on; scope; dates). No column or constraint
+  of that table changes.
+- **Title and group grants** go in one new table (Stage 3), with the same
+  shape of grant: `holder_kind` ('job_title' or 'function_group'),
+  `job_title_id` → `job_titles` and `function_group_id` → `function_groups`
+  (exactly one set, checked), `module_id` → `app_modules`, `actions`,
+  `effect` (allow / restrict), a **relative** scope ('all' or 'own teams',
+  because a role can't name fixed people), `granted_by`, dates, `note`,
+  `revoked_at` / `revoked_by` (revoke only, never deleted).
+- Foreign keys use **ON DELETE RESTRICT**; groups and titles are deactivated,
+  never deleted. A group can't be deactivated while active titles use it
+  (Stage 2).
+- It's still **one permission engine**: one resolver (`can()`), one Access
+  page, one change log. Only the storage of the new holder types is separate,
+  so the tested behaviour of person grants can't be disturbed.
+
+### C3. The seven access levels as a safety ceiling
+
+Title and group grants can only **add access inside modules that already
+ask `can()`**. They never:
+- open **protected** modules (system admin only, unchanged);
+- apply to **new starters** or **external** accounts;
+- override any of the ~180 hard-coded role checks or any RLS rule that
+  doesn't call `can()` (those keep deciding exactly as today);
+- give a **sensitive** module through a function group (see C6).
+
+The access level therefore stays the outer limit; grants work only inside it.
+
+### C4. Existing individual grants keep their behaviour
+
+- Rows, triggers, pass-on rules, giver's authority, scope and dates unchanged.
+- Today person grants count only for managers and staff admins; that stays.
+- **Equivalence check** (in each stage's tests): with no title or group
+  grants, `can()` gives the same answer as today for every existing test
+  case (full suite, 1,134 checks at the last run, plus a before/after
+  comparison of `can()` answers on the local data).
+
+### C5. Module-to-function mapping is separate from granting
+
+- **Mapping** (Stage 4, `function_group_modules`: group ↔ module) only
+  says which modules a function's configuration screen offers. **It grants
+  nothing.**
+- **Granting** is always an explicit grant row (C2). A module mapped to a
+  group gives nobody access until a grant is added and approved.
+
+### C6. Sensitive modules and assigned-client access
+
+- Sensitive modules (payroll, identity, contracts, client details and
+  people, clinical records) are **never inherited from a parent module**
+  (existing rule) and **never granted at function-group level**: only to a
+  job title or a person, explicitly.
+- **Assigned clients** (Stage 5): client and clinical tables check both the
+  module permission **and** a client–staff assignment (client, staff member,
+  role on the client, from and to dates) in RLS. A module grant alone never
+  opens every client's record.
+
+### C7. RLS and who can see grants
+
+- New tables: RLS on. Read: the system admin; Manager Administrators (to
+  configure); each member reads only the rows for **their own** title and
+  groups (needed because `can()` runs as the caller). Write: the system
+  admin (Manager Administrators later, within their own authority, Stage 3).
+- `function_groups` (Stage 1): every member reads names; writes need the
+  existing **Roles** settings area (the same people who manage job titles);
+  no delete rule.
+
+### C8. Compatibility with the hard-coded role checks
+
+- Nothing in the ~180 role checks changes. The seven QA-007 modules stay
+  "Set by role" until each is converted on purpose.
+- Only modules whose checks already call `can()` (onboarding, cars, forms,
+  reports, built features, enquiries, contracts, staff records, settings
+  areas) and new modules can use title and group grants.
+- Performance: `can()` gains two indexed lookups (title, groups); measured
+  on the large local data before Stage 3 is released.
+
+### Recommended smallest safe approach for Stage 1
+
+- **One table, `function_groups`:** id (uuid), `key` (unique, can't change
+  after creation, used by code), name, description, active, order,
+  created/updated who and when. Seeded with the six groups.
+- **RLS:** members read; insert and update need the Roles settings area
+  (`can_admin_area('roles')`); **no delete** (deactivate instead).
+- **A small INVOKER guard trigger:** keeps `key` unchanged and fills
+  updated who and when. **No new SECURITY DEFINER:** changes are written to
+  the change log by the server action (the existing Access page pattern).
+- **Screen:** a "Function groups" section on the Roles page (list, add,
+  rename, describe, deactivate) for people with the Roles area.
+- **Nothing else:** no links to titles, no grants, no change to `can()`, to
+  any role check or to anyone's access.
+- **Delivery:** live update 92 with undo, round trip, database tests (members
+  read; staff can't write; Roles-area holders can; key can't change; nothing
+  deleted; six seeded), browser check, completion report.

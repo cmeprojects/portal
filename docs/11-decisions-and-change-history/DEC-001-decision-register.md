@@ -84,6 +84,8 @@ end with the next number.
 
 | D-044 | 16 Nov 2026 | Standing rule: every piece of work updates the documents as it goes (decision register, the relevant plan or record, the register, and the "Where we are now" section in docs/HANDOVER.md), so nothing is lost if the conversation context is refreshed. | Owner (session) |
 
+| D-045 | 16 Nov 2026 | Function-based access model approved in principle; one final focused clarification before Stage 1 (added to AUD-016). Stages: 1 Function Groups; 2 title-to-function mapping; 3 function and title grants in the existing engine; 4 module mapping and registration rules; 5 Client Management and assigned-client access; 6 later (multiple titles, program scope, Allied Health). Each stage its own migration, tests, rollback and report; behaviour unchanged until each is approved and verified. Suggested ratings for five risks only. Efficiency: reuse findings, update existing registers, smallest safe change, no scope growth. | Owner (session) |
+
 ## Change history
 
 | Version | Date | Author | Change | Approved by |
