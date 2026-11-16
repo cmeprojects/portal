@@ -89,3 +89,12 @@ Revert the one commit. No data to restore.
   it works (task to In progress, card leaves the list); no page errors;
   system admin page loads. Local test changes restored afterwards.
 - Rollback: revert the commit.
+- **Extension (16 Nov 2026, owner screenshot):** the Tasks page "Needs your
+  attention" quick view (`src/app/(portal)/ongoing-table.tsx`) showed
+  "Escalated to you. Take it over … Dealt with" for any escalated task the
+  viewer can edit, including their own (refused: "You can't make this
+  change"; a task is never escalated to its own assignee, constraint
+  `tasks_escalated_to_check`). Now, on your own escalated task, it shows
+  "Escalated about you: your manager deals with the escalation…" and no
+  Take it over / Dealt with. `TaskSnapshot` gains `mine`. Browser 5 of 5;
+  lint and typecheck pass. Same rule, same approval (QA-009).

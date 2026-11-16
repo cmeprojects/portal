@@ -241,5 +241,7 @@ export type TaskSnapshot = {
   canEdit: boolean;
   canApprove: boolean;
   files: number;
+  // cmeprojects (QA-009): the person looking is the one it's assigned to.
+  mine?: boolean;
 };
 

@@ -41,13 +41,14 @@ type Ctx = { names: Map<string, string>; timeZone: string };
 
 async function loadSnapshot(id: string, ctx: Ctx): Promise<TaskSnapshot | null> {
   const db = createClient();
-  const [{ data: task }, { data: helpers }, { data: events }, { data: canEdit }, { count }, { data: canApprove }] = await Promise.all([
-    db.from("tasks").select("id, description").eq("id", id).maybeSingle(),
+  const [{ data: task }, { data: helpers }, { data: events }, { data: canEdit }, { count }, { data: canApprove }, { data: session }] = await Promise.all([
+    db.from("tasks").select("id, description, assigned_to").eq("id", id).maybeSingle(),
     db.from("task_helpers").select("user_id").eq("task_id", id),
     db.from("task_events").select("type, actor_id, from_value, to_value, comment, created_at").eq("task_id", id).order("created_at").order("id"),
     db.rpc("can_edit_task", { p_task_id: id }),
     db.from("task_attachments").select("id", { count: "exact", head: true }).eq("task_id", id),
     db.rpc("can_approve_task", { p_task_id: id }),
+    db.auth.getSession(),
   ]);
   if (!task) return null;
   const nameOf = (uid: string | null) => (uid ? ctx.names.get(uid) ?? "Admin" : "System");
@@ -59,6 +60,7 @@ async function loadSnapshot(id: string, ctx: Ctx): Promise<TaskSnapshot | null> 
     canEdit: Boolean(canEdit),
     canApprove: Boolean(canApprove),
     files: count ?? 0,
+    mine: Boolean(task.assigned_to) && task.assigned_to === session.session?.user.id,
   };
 }
 
@@ -282,7 +284,12 @@ function Snapshot({ row, people, ctx }: { row: OngoingRow; people: { id: string;
         </div>
       ) : null}
 
-      {escalation ? (
+      {escalation && data.mine ? (
+        // cmeprojects (QA-009): an escalation about you is dealt with by your manager.
+        <div className="rounded-md border border-warn/40 bg-warn-soft/40 p-3">
+          <p className="text-sm font-semibold">Escalated about you: your manager deals with the escalation. Update or finish the task to move it on.</p>
+        </div>
+      ) : escalation ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-warn/40 bg-warn-soft/40 p-3">
           <p className="mr-auto text-sm font-semibold">Escalated to you. Take it over, reassign it or add someone to help.</p>
           <Button type="button" onClick={() => setPanel(panel === "takeover" ? "none" : "takeover")}>
