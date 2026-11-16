@@ -86,6 +86,8 @@ end with the next number.
 
 | D-045 | 16 Nov 2026 | Function-based access model approved in principle; one final focused clarification before Stage 1 (added to AUD-016). Stages: 1 Function Groups; 2 title-to-function mapping; 3 function and title grants in the existing engine; 4 module mapping and registration rules; 5 Client Management and assigned-client access; 6 later (multiple titles, program scope, Allied Health). Each stage its own migration, tests, rollback and report; behaviour unchanged until each is approved and verified. Suggested ratings for five risks only. Efficiency: reuse findings, update existing registers, smallest safe change, no scope growth. | Owner (session) |
 
+| D-046 | 16 Nov 2026 | "Go ahead with all 3": (1) AUD-016 final clarification and the Stage 1 approach approved: build Stage 1 (Function Groups, live update 92; SQL reviewed by the owner before it runs on Dev); (2) the six suggested risk ratings approved as written (RSK-001 §3); (3) Next.js upgrade approved as its own change. | Owner (session) |
+
 ## Change history
 
 | Version | Date | Author | Change | Approved by |
