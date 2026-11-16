@@ -19,7 +19,7 @@ Last updated: 16 Nov 2026.
   allowed to use it; clear refusal messages; same button style.
 - **Waiting on the owner:** review and run live update 92 (Stage 1, Function Groups)
   on Dev: `supabase/live-updates/update-92.sql` (undo-92.sql). Then check the Roles page
-  shows Function groups. Next.js upgrade (RSK-17, approved D-046) is a separate change.
+  shows Function groups. Next.js upgraded to 16.4.6 (RSK-17 treated).
 - **Approved (D-046):** AUD-016 clarification and Stage 1; six risk ratings (RSK-001 §3).
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2

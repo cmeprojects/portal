@@ -11,3 +11,5 @@ Staff Portal · © cmeproject. Each version is kept as a branch, so it can be re
 - **Demo:** in Vercel, deploy the version's branch to a demo project. Use a database set up with the setup SQL from that branch (`supabase/install/fresh-install.sql`).
 - **Restore Development to a version:** run the `undo-NN.sql` files in reverse order down to that version's last update, then deploy the version's branch.
 - Git tags couldn't be pushed from this environment, so versions are branches. A `v0.1.0` tag exists locally.
+
+- 16 Nov 2026: Next.js 16.4.3 → **16.4.6** (security patch; owner approval D-046). Lint, typecheck, unit, build and a page check for every role passed; `npm audit --omit=dev` 0 vulnerabilities.
