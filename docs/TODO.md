@@ -5,6 +5,8 @@ to. When asked for a summary, include everything here.
 
 Which live updates each copy has: see supabase/live-updates/README.md. Start with docs/HANDOVER.md.
 
+**Documentation register (start here):** docs/00-governance/GOV-002-documentation-register.md lists every document with its ID, owner role, status and path; decisions are in docs/11-decisions-and-change-history/DEC-001-decision-register.md.
+
 ## ON HOLD: Clients & Care and new roles (owner, 16 Nov 2026)
 
 Paused by the owner; pick up from here when asked. Done and on Dev:

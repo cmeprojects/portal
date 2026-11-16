@@ -7,6 +7,8 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 ---
 
+**Documentation register (start here):** docs/00-governance/GOV-002-documentation-register.md lists every document with its ID, owner role, status and path; decisions are in docs/11-decisions-and-change-history/DEC-001-decision-register.md.
+
 ## On hold (16 Nov 2026)
 
 Clients & Care and the new roles plan are paused by the owner: see docs/TODO.md (top section) and docs/roadmap/new-roles-plan.md.
