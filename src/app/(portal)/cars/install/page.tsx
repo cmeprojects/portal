@@ -26,7 +26,7 @@ export default async function InstallCarsAppPage({ searchParams }: PageProps<"/c
   const [brand, rules, params, offered] = await Promise.all([getBranding(), getCarRules(), searchParams, carsAppOffered(features)]);
   // Cars is inside the Staff app: that's the one app staff get (the company's Apps page).
   if (!offered) redirect("/apps");
-  const manages = await managesCarsFor(profile.role, rules);
+  const manages = await managesCarsFor();
   const appUrl = `${env.siteUrl}/cars-app`;
   const onlyCar = typeof params.car === "string" ? params.car : "";
   const supabase = await createClient();

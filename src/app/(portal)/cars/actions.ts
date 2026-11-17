@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireSession } from "@/lib/session";
-import { canUseCars, getCarRules } from "@/lib/cars";
+import { canUseCars } from "@/lib/cars";
 import { friendlyError } from "@/lib/db-error";
 import { text, type FormState } from "@/lib/form";
 import { managesCarsFor } from "@/lib/module-access";
@@ -28,7 +28,7 @@ async function requireDriver() {
 
 async function requireCarManager() {
   const session = await requireDriver();
-  if (!(await managesCarsFor(session.profile.role, await getCarRules()))) throw new Error("Only car managers can do this");
+  if (!(await managesCarsFor())) throw new Error("Only car managers can do this");
   return session;
 }
 
@@ -38,7 +38,7 @@ async function requireClientManager() {
   const session = await requireSession();
   const role = session.profile.role;
   if (["manager", "staff_admin", "system_admin"].includes(role)) return session;
-  if (canUseCars(role, session.features) && (await managesCarsFor(role, await getCarRules()))) return session;
+  if (canUseCars(role, session.features) && (await managesCarsFor())) return session;
   throw new Error("You can't change the client list");
 }
 

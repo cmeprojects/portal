@@ -526,3 +526,28 @@ waiting (run after 94).**
   Access page shows the copied default); lint, typecheck, build pass.
 - Rollback: `undo-95.sql` (copied defaults kept but inactive).
 - **Next:** Cars (`vehicles.manager_roles`), same pattern.
+
+## Stage 3b implementation record: Cars (17 Nov 2026)
+
+Owner: "94 and 95 done, go ahead with cars". **Built and tested; live update 96
+waiting.**
+
+- Files: `supabase/migrations/20270210000001_cars_switch_over.sql`,
+  `update-96.sql`, `undo-96.sql`, `supabase/setup/verify-96-after.sql`,
+  `supabase/tests/cars_switch.test.sql` (18 checks); app: `module-access.ts`
+  (`managesCarsFor()` = `can('ops.cars.manage', 'configure')`), `cars.ts`
+  (old rule removed), cars pages and both phone apps, System settings (old
+  control hidden).
+- Only `ops.cars.manage` switched; using a car and the Cars app unchanged.
+- Defaults copied once from "Who manages cars" (full Manage cars per role).
+- `can_manage_cars()` = Cars on and the check; `car_managers()` (notices) =
+  system admin plus access levels given Manage cars. Car reports: car
+  managers still see them (follows the check); "Who sees car reports"
+  unchanged (reports switch later).
+- Small tightening: the system admin now needs the second sign-in step
+  (when MFA is required) to manage cars, like every other part.
+- Older engine tests now undo the switch-overs at their start so they keep
+  testing person grants on their own.
+- Proof: verify-96-after on the local copy: 313 people, 0 changed; full suite
+  1,236 pass; round trip clean; browser 16 of 16 (system admin and manager manage cars and see car reports; staff admin, team leader, support worker refused; old control gone; Access page shows the default); lint and typecheck pass.
+- Rollback: `undo-96.sql`.

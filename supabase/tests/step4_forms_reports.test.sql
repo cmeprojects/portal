@@ -15,7 +15,9 @@ grant execute on all functions in schema test to authenticated;
 set session_replication_role = replica;
 update public.features set enabled = true, included = true where key in ('vehicles', 'forms', 'form_builder');
 set session_replication_role = origin;
-update public.app_settings set value = '[]'::jsonb where key in ('forms.maker_roles', 'vehicles.manager_roles', 'vehicles.report_roles');
+update public.app_settings set value = '[]'::jsonb where key in ('forms.maker_roles', 'vehicles.report_roles');
+-- Who manages cars is the Access page since update 96: remove the managers' default.
+update public.access_baselines set revoked_at = now() where module_id = 'ops.cars.manage' and revoked_at is null;
 
 select test.act_as('boss@example.com');
 set role authenticated;

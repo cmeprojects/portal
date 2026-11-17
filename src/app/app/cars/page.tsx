@@ -4,7 +4,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { hasPin } from "@/lib/car-pin";
-import { canManageCars, canUseCars, getCarRules, loadCarScreen } from "@/lib/cars";
+import { canUseCars, loadCarScreen } from "@/lib/cars";
+import { managesCarsFor } from "@/lib/module-access";
 import { getStaffAppLook } from "@/lib/branding";
 import { staffAppOn } from "@/lib/staff-app";
 import { getTimeZone } from "@/lib/settings";
@@ -20,7 +21,7 @@ export default async function StaffAppCars({ searchParams }: PageProps<"/app/car
   const look = await getStaffAppLook();
   if (!staffAppOn(features) || !look.cars || !canUseCars(profile.role, features)) notFound();
   if (!(await hasPin(profile.id))) redirect("/app/unlock");
-  const [rules, timeZone, data, params] = await Promise.all([getCarRules(), getTimeZone(), loadCarScreen(profile.id), searchParams]);
+  const [timeZone, data, params] = await Promise.all([getTimeZone(), loadCarScreen(profile.id), searchParams]);
   return (
     <>
       <LiveRefresh tables={["cars"]} />
@@ -29,7 +30,7 @@ export default async function StaffAppCars({ searchParams }: PageProps<"/app/car
       </Link>
       <CarsDesk data={data} userId={profile.id} timeZone={timeZone} preselect={typeof params.car === "string" ? params.car : undefined} />
       <AppNav base="/app">
-        {canManageCars(profile.role, rules) ? (
+        {(await managesCarsFor()) ? (
           <Link href="/cars-app/manage" className="font-semibold text-brand underline">
             Manage cars
           </Link>

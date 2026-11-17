@@ -37,7 +37,7 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     seesReports: await seesTaskReportFor(role, rules),
     complianceReport: features.compliance !== false && (await seesComplianceReportFor(role, rules)),
     seesRegisters: role !== "new_starter" && canSeeRegisters(role, rules),
-    carManager: await managesCarsFor(role, carRules),
+    carManager: await managesCarsFor(),
     carReports: await seesCarReportFor(role, carRules),
     adminAreas,
     customFeatures,

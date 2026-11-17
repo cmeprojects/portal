@@ -36,6 +36,11 @@ insert into public.team_members (team_id, user_id) select id, test.pid('sam@exam
 insert into public.team_members (team_id, user_id) select id, test.pid('lead@example.com') from public.teams where name = 'North';
 insert into public.team_members (team_id, user_id) select id, test.pid('kim@example.com') from public.teams where name = 'South';
 
+-- This file tests the engine on Manage cars from scratch: undo its
+-- switch-over (update 96) here.
+update public.access_baselines set revoked_at = now() where module_id = 'ops.cars.manage' and revoked_at is null;
+update public.app_modules set grant_ready = false where id = 'ops.cars.manage';
+
 -- Nothing changes until a module is switched over.
 select test.ok(not test.can_as('sam@example.com', 'ops.cars.manage', 'configure'), 'no grants: a support worker can''t (same as today)');
 select test.act_as('owner@example.com');
@@ -111,7 +116,7 @@ set role authenticated;
 select test.refused($$update public.access_baselines set actions = '{delete}' where access_level = 'team_leader' and revoked_at is null$$, 'a grant isn''t edited (revoke and add)');
 delete from public.access_baselines;
 reset role;
-select test.ok((select count(*) from public.access_baselines where module_id not like 'hr.onboarding%') = 7, 'nothing is deleted');
+select test.ok((select count(*) from public.access_baselines where module_id not like 'hr.onboarding%' and note not like 'Set at switch-over%') = 7, 'nothing is deleted');
 select test.ok((select count(*) from public.access_baselines where revoked_at is not null and revoked_by = test.pid('owner@example.com') and module_id not like 'hr.onboarding%') = 2, 'revoking records who');
 
 -- Manager Administrators: only within their own authority (boss is one, above).
@@ -151,10 +156,10 @@ select test.ok((select count(*) from public.access_baselines where access_level 
 select test.ok((select count(*) from public.access_baselines where function_group_id = test.fg('care_coordination')) >= 1, 'staff read their own groups'' grants (the check needs them)');
 reset role;
 
--- Modules not switched over: helpers unchanged (person-grant gate still applies).
+-- Modules not switched over (forms): helpers unchanged.
 select test.act_as('sam@example.com');
 set role authenticated;
-select test.ok(not public.can_manage_cars(), 'helpers of modules not yet switched over are unchanged');
+select test.ok(not public.can_make_forms(), 'helpers of modules not yet switched over are unchanged');
 reset role;
 
 \o

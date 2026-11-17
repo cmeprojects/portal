@@ -23,7 +23,6 @@ export const getCarRules = cache(async (): Promise<CarRules> => {
     return Number.isFinite(n) && n >= 0 ? n : fallback;
   };
   return {
-    managerRoles: roles("vehicles.manager_roles", ["manager"]),
     reportRoles: roles("vehicles.report_roles", ["manager"]),
     clientField: choice("vehicles.client_field"),
     odoPhoto: choice("vehicles.odo_photo"),
@@ -33,9 +32,9 @@ export const getCarRules = cache(async (): Promise<CarRules> => {
 });
 
 export const canUseCars = (role: Role, features: Record<string, boolean>) => features.vehicles === true && role !== "new_starter";
-export const canManageCars = (role: Role, rules: CarRules) => role === "system_admin" || rules.managerRoles.includes(role);
-export const canSeeCarReports = (role: Role, rules: CarRules) =>
-  canManageCars(role, rules) || rules.reportRoles.includes(role);
+// Who manages cars is the permission check now (update 96): managesCarsFor().
+// The roles in "Who sees car reports" (car managers see them too).
+export const canSeeCarReports = (role: Role, rules: CarRules) => role === "system_admin" || rules.reportRoles.includes(role);
 
 const TRIP_COLUMNS = "id, car_id, purpose, details, client_name, started_at, start_odo, gap_km, returned_at, end_odo, km, returned_by, driver_id";
 

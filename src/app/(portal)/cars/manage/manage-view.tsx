@@ -42,8 +42,7 @@ type TripRow = {
 // Shared with the Cars app (base "/cars-app"), so managers can do this on their phone.
 export async function ManageCars({ base, tabParam }: { base: string; tabParam: string | string[] | undefined }) {
   const { profile, features } = await requireSession();
-  const rules = await getCarRules();
-  if (!canUseCars(profile.role, features) || !(await managesCarsFor(profile.role, rules))) redirect(base);
+  if (!canUseCars(profile.role, features) || !(await managesCarsFor())) redirect(base);
   const asked = tabParam;
   const tab: Tab = TABS.some((t) => t.key === asked) ? (asked as Tab) : "out";
   const supabase = await createClient();

@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
-import { canManageCars, canUseCars, getCarRules, loadCarScreen } from "@/lib/cars";
+import { canUseCars, loadCarScreen } from "@/lib/cars";
+import { managesCarsFor } from "@/lib/module-access";
 import { hasPin } from "@/lib/car-pin";
 import { getTimeZone } from "@/lib/settings";
 import { CarsDesk } from "@/components/cars-desk";
@@ -19,7 +20,7 @@ export default async function CarsAppHome({ searchParams }: PageProps<"/cars-app
     );
   }
   // First time on this phone: choose a PIN.
-  const [pinSet, rules, timeZone, data, params] = await Promise.all([hasPin(profile.id), getCarRules(), getTimeZone(), loadCarScreen(profile.id), searchParams]);
+  const [pinSet, timeZone, data, params] = await Promise.all([hasPin(profile.id), getTimeZone(), loadCarScreen(profile.id), searchParams]);
   if (!pinSet) redirect("/cars-app/unlock");
 
   return (
@@ -27,7 +28,7 @@ export default async function CarsAppHome({ searchParams }: PageProps<"/cars-app
       <InstallHint />
       <CarsDesk data={data} userId={profile.id} timeZone={timeZone} preselect={typeof params.car === "string" ? params.car : undefined} />
       <AppNav base="/cars-app">
-        {canManageCars(profile.role, rules) ? (
+        {(await managesCarsFor()) ? (
           <Link href="/cars-app/manage" className="font-semibold text-brand underline">
             Manage cars
           </Link>

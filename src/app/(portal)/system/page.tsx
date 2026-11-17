@@ -164,7 +164,8 @@ const ROWS: Row[] = [
     intro: "Company cars and trips. Car managers add cars, clients and purposes on Manage cars.",
     switches: ["vehicles"],
     sections: [
-      { title: "Cars", area: "vehicles", keys: (k) => (k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") && !k.startsWith("vehicles.weekly_")) || k === "cars.cleared_only" },
+      // cmeprojects (update 96, D-049): who manages cars is set on the Access page now; the old setting is kept but unused.
+      { title: "Cars", intro: "Who manages cars is set on Settings → Access (access by role, group or access level).", area: "vehicles", keys: (k) => (k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") && !k.startsWith("vehicles.weekly_") && k !== "vehicles.manager_roles") || k === "cars.cleared_only" },
       { title: "Weekly mileage report", intro: "Who gets it, which day, from what hour, and what it covers.", area: "vehicles", keys: (k) => k.startsWith("vehicles.weekly_") },
     ],
     areas: ["vehicles"],

@@ -28,8 +28,12 @@ Last updated: 17 Nov 2026.
   onboarding and who sees progress now come only from `can()`; the "Who manages Compliance"
   setting was copied once into access-level defaults (staff admins full; managers see progress;
   team leaders see their teams; managers full only if no staff admin when it runs). The old setting
-  is hidden and unused. **Waiting on the owner:** run update 94, then 95, then the read-only
-  check `supabase/setup/verify-95-after.sql` (expect changed = 0). Next module: Cars (same pattern).
+  is hidden and unused. **94 and 95 run on Dev (17 Nov 2026).**
+- **Stage 3b, Cars: Manage cars switched over (17 Nov 2026, update 96).** "Who manages cars" copied once
+  into access-level defaults (managers by default); car managers still see car reports; old setting
+  hidden. **Waiting on the owner:** run update 96, then `supabase/setup/verify-96-after.sql`
+  (expect changed = 0). Next: Forms ("who makes forms"), then reports, then the hard-coded modules
+  (Tasks, Staff, Teams, Staff requests, Due dates, Request approvals), then Stage 4 to 6.
 - **DECIDED (D-047, 17 Nov 2026): the proper fix, no band-aid.** Every module will use only the
   permission check `can()`. Today's role rules become default grants per access level, so no one's
   access changes when a module switches. Order:

@@ -57,7 +57,7 @@ export default async function AppsPage({ searchParams }: PageProps<"/apps">) {
       ? await supabase.from("custom_features").select("slug, name, menu_label, app_icon, app_colour").eq("status", "published").eq("enabled", true).eq("in_app", true).order("sort_order")
       : { data: [] };
   // Dashboard stickers for each car (car managers): open that car in whichever app has Cars.
-  const carManager = canUseCars(profile.role, features) && (await managesCarsFor(profile.role, rules));
+  const carManager = canUseCars(profile.role, features) && (await managesCarsFor());
   const { data: cars } = carManager ? await supabase.from("cars").select("id, name, rego").eq("active", true).order("name") : { data: [] };
   const carBase = carsOffered ? carsUrl : `${staffUrl}/cars`;
   const [carsQr, staffQr, ...rest] = await Promise.all([

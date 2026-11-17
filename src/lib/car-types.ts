@@ -6,7 +6,6 @@ import type { Role } from "@/lib/roles";
 export type Choice = "off" | "optional" | "required";
 
 export type CarRules = {
-  managerRoles: Role[];
   reportRoles: Role[];
   clientField: Choice;
   odoPhoto: Choice;

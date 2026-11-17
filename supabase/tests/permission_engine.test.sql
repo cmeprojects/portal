@@ -7,6 +7,9 @@
 \set ON_ERROR_STOP 1
 \set QUIET 1
 \o /dev/null
+-- Person grants only here: undo the switch-overs (updates 95, 96).
+update public.access_baselines set revoked_at = now() where revoked_at is null;
+update public.app_modules set grant_ready = false where grant_ready;
 
 insert into auth.users (email) values ('owner@example.com');
 insert into public.invitations (email, full_name, role) values
