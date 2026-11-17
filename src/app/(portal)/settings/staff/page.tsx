@@ -234,10 +234,7 @@ export default async function StaffPage() {
                   </span>
                   {p.job_title_id && titleName.get(p.job_title_id) ? <span className="text-sm">{titleName.get(p.job_title_id)}</span> : null}
                   {groupsOfTitle(p.job_title_id).length ? (
-                    <span title={`Access level: ${ROLE_LABELS[row.role]}`} className="flex flex-col items-start leading-tight">
-                      <Badge tone="soft">{groupsOfTitle(p.job_title_id).join(" · ")}</Badge>
-                      <span className="mt-0.5 text-[11px] text-muted">{ROLE_LABELS[row.role]} access</span>
-                    </span>
+                    <Badge tone="soft">{groupsOfTitle(p.job_title_id).join(" · ")}</Badge>
                   ) : (
                     <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>
                   )}
@@ -290,8 +287,10 @@ export default async function StaffPage() {
       </div>
 
       <Card className="p-5">
-        <h2 className="mb-3 heading-sm">What each access level can do</h2>
-        <p className="mb-3 text-sm text-muted">Every role (job title) is linked to one of these. Managers add roles on the Roles page.</p>
+        <h2 className="mb-3 heading-sm">Access levels: where everyone starts</h2>
+        <p className="mb-3 text-sm text-muted">
+          Every role (job title) sits on one of these. It&apos;s only the starting point: the role and its function group get more on the Access page, and these defaults can be changed there too. Roles are added on the Roles page.
+        </p>
         <dl className="grid gap-3 md:grid-cols-2">
           {ROLES.filter((r) => r !== "system_admin" || me.role === "system_admin").map((r) => (
             <div key={r}>

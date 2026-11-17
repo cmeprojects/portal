@@ -110,7 +110,8 @@ export default async function RolesPage() {
       ) : null}
 
       <Card className="p-5">
-        <h2 className="mb-3 heading-sm">Access levels</h2>
+        <h2 className="mb-3 heading-sm">Access levels: where everyone starts</h2>
+        <p className="mb-3 text-sm text-muted">Each role sits on an access level. It&apos;s only the starting point: the role and its function group get more on the Access page.</p>
         <dl className="grid gap-3 md:grid-cols-2">
           {(["support_worker", "team_leader", "manager", "staff_admin"] as const).map((r) => (
             <div key={r}>

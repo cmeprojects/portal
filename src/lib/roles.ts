@@ -25,12 +25,12 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const ROLE_HELP: Record<Role, string> = {
   new_starter: "Joined with a general invite. Does their onboarding (reading, trainings, documents) and gets a role once it's done, or earlier as a conditional role.",
-  support_worker: "Sees only tasks they're assigned to, helping on or created. Can be in several teams.",
-  team_leader: "Leads one team, and also sees the tasks of everyone in it.",
-  manager: "In the core team: sees every team's tasks. Approvals, reports and due-date SLAs. Invites people, changes roles and teams, and adds job titles.",
-  staff_admin: "In the core team, like HR: invites people and manages their details. Role and team changes go to a manager to approve. Doesn't see other people's tasks.",
+  support_worker: "Their own tasks (assigned, helping on or created), and their teams' clients' locations and alerts. Most roles start here and get more from their role on the Access page (for example Case Manager: their assigned clients).",
+  team_leader: "Leads one team: also sees their team's tasks, onboarding progress and staff requests.",
+  manager: "In the core team: every team's tasks, staff, teams, staff requests, clients, due dates, cars, forms and reports. Approves role and team changes.",
+  staff_admin: "In the core team, like HR: staff, teams, staff requests, onboarding, clients and the compliance report. Role and team changes go to a manager to approve. Doesn't see other people's tasks.",
   system_admin: "Everything, plus System settings. The only role that can create system admins. Hidden from other staff and never given tasks.",
-  external: "For later: allied health and other outside practitioners. They can sign in, but have no access to anything yet.",
+  external: "Allied health and other outside practitioners. Nothing by default; access to their assigned clients comes with the next stage.",
 };
 
 // Access levels someone may give out: managers and staff admins (HR) give any
