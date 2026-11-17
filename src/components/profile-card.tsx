@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import type { ReactNode } from "react";
 import { Mail, Phone, MapPin, HeartPulse, Briefcase, CalendarDays } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import type { PersonCard } from "@/lib/profiles";
@@ -7,15 +8,17 @@ import { DAYS, EMPLOYMENT, SHIFTS } from "@/lib/profiles-shared";
 // cmeprojects: a staff member's profile, laid out like a business profile:
 // photo and name up top, contact and work details, skills, and (for the
 // person and people who manage staff) private details and availability.
-export function ProfileCard({ person }: { person: PersonCard }) {
+// cmeprojects: `actions` (Edit details, Their compliance) sit beside the name.
+export function ProfileCard({ person, actions }: { person: PersonCard; actions?: ReactNode }) {
   const d = person.directory;
   const p = person.private;
   return (
     <div className="shadow-card @container overflow-hidden rounded-xl border border-line bg-surface">
       <div className="h-20 bg-brand-dark" aria-hidden="true" />
       <div className="flex flex-col gap-5 px-5 pb-5 sm:px-6">
-        <div className="-mt-11">
+        <div className="-mt-11 flex flex-wrap items-end justify-between gap-3">
           <Avatar name={person.name} src={person.photo} size={88} className="bg-brand-soft text-brand ring-4 ring-surface" />
+          {actions ? <div className="flex flex-wrap items-center gap-3 pb-1 print:hidden">{actions}</div> : null}
         </div>
         <div className="-mt-2 flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">

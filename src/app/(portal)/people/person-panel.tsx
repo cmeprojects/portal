@@ -69,7 +69,10 @@ export async function PersonPanel({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <div className="flex min-w-0 flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+        <ProfileCard
+          person={person}
+          actions={
+            <>
           {me ? (
             <p className="text-sm text-muted">
               This is you.{" "}
@@ -97,8 +100,9 @@ export async function PersonPanel({
               Their compliance
             </Link>
           ) : null}
-        </div>
-        <ProfileCard person={person} />
+                    </>
+          }
+        />
       </div>
       <div className="flex min-w-0 flex-col gap-4">
         {tasks ? (
