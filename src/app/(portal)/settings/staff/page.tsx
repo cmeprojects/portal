@@ -3,6 +3,7 @@ import { photoLinks, type PhotoOwner } from "@/lib/avatars";
 import { Avatar } from "@/components/avatar";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { nowMs } from "@/lib/access";
 import { requireSession } from "@/lib/session";
 import { managesStaffFor } from "@/lib/module-access";
 import { rolesOn, teamsOn } from "@/lib/feature-parts";
@@ -16,16 +17,6 @@ import { decideChangeRequest } from "./actions";
 import { FormPending } from "@/components/form-pending";
 
 export const metadata: Metadata = { title: "Staff & roles" };
-
-const ROLE_TONE: Record<Role, "dark" | "soft" | "grey"> = {
-  new_starter: "grey",
-  system_admin: "dark",
-  staff_admin: "dark",
-  manager: "soft",
-  team_leader: "soft",
-  support_worker: "grey",
-  external: "grey",
-};
 
 // Who has signed in at least once (from the sign-in system).
 async function joinedIds(): Promise<Set<string> | null> {
@@ -70,14 +61,21 @@ export default async function StaffPage() {
     supabase.from("job_title_functions").select("job_title_id, function_group_id"),
     supabase.from("function_groups").select("id, name").eq("active", true),
   ]);
+  // cmeprojects: who is a Manager Administrator right now (nominated by the
+  // system admin on the Access page), with their dates for the badge.
+  const { data: desigRows } = await supabase.from("admin_designations").select("user_id, status, starts_at, expires_at");
+  const now = nowMs();
+  const maDates = new Map(
+    ((desigRows ?? []) as { user_id: string; status: string; starts_at: string; expires_at: string | null }[])
+      .filter((d) => d.status === "active" && new Date(d.starts_at).getTime() <= now && (!d.expires_at || new Date(d.expires_at).getTime() > now))
+      .map((d) => [d.user_id, d]),
+  );
+  const auDay = (iso: string) => new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" });
   const groupName = new Map(((groupRows ?? []) as { id: string; name: string }[]).map((g) => [g.id, g.name]));
   const groupsOfTitle = (titleId: string | null) =>
     titleId ? ((linkRows ?? []) as { job_title_id: string; function_group_id: string }[]).filter((l) => l.job_title_id === titleId).map((l) => groupName.get(l.function_group_id)).filter(Boolean) as string[] : [];
   // cmeprojects: photos, read on their own so a copy without photos still works.
   const { data: photoRows } = await supabase.from("profiles").select("id, avatar_ref");
-  // cmeprojects: the owner's account can only be changed by the owner (update 74).
-  const { data: ownerRow } = await supabase.from("profiles").select("id").eq("is_owner", true).maybeSingle();
-  const ownerId = ownerRow?.id as string | undefined;
   const photos = await photoLinks((photoRows ?? []) as PhotoOwner[]);
   // Who the system admin let off two-factor login (read on its own: before update 48 there's no such column).
   const exemptRows = me.role === "system_admin" ? await supabase.from("profiles").select("id, mfa_exempt") : null;
@@ -114,7 +112,6 @@ export default async function StaffPage() {
         }),
     ),
   );
-  const docList = (list: string[]) => (list.length <= 2 ? list.join(", ") : `${list.length} documents`);
   const titleName = new Map(titles.map((t) => [t.id, t.name]));
   const nameOf = new Map((people ?? []).map((p) => [p.id, p.full_name || p.email]));
   type RoleValue = { role: Role; title: string | null };
@@ -229,36 +226,52 @@ export default async function StaffPage() {
                   <span className="min-w-48 flex-1">
                     <span className={`block font-semibold ${p.active ? "" : "text-muted"}`}>
                       {p.full_name || "(no name yet)"} {row.isMe ? <span className="font-normal text-muted">(you)</span> : null}
+                      {row.role === "manager" && maDates.has(p.id) ? (
+                        <span
+                          className="ml-1 cursor-help font-normal text-muted"
+                          title={`Manager Administrator since ${auDay(maDates.get(p.id)!.starts_at)}${maDates.get(p.id)!.expires_at ? ` until ${auDay(maDates.get(p.id)!.expires_at!)}` : " (no end date)"}. Set on the Access page.`}
+                        >
+                          (administrator)
+                        </span>
+                      ) : null}
                     </span>
                     <span className="block text-sm text-muted">{p.email}</span>
                   </span>
-                  {p.job_title_id && titleName.get(p.job_title_id) ? <span className="text-sm">{titleName.get(p.job_title_id)}</span> : null}
-                  {groupsOfTitle(p.job_title_id).length ? (
-                    <Badge tone="soft">{groupsOfTitle(p.job_title_id).join(" · ")}</Badge>
-                  ) : (
-                    <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>
-                  )}
-                  {p.id === ownerId ? <Badge tone="dark">Owner · protected</Badge> : null}
-                  {pending.has(p.id) ? <Badge tone="warn">→ {roleText(pending.get(p.id)!.to_value as RoleValue)} waiting</Badge> : null}
-                  {row.missing?.length ? (
-                    <Badge tone="warn">Onboarding: {row.missing.length} to do</Badge>
-                  ) : row.missing && p.onboarded_at ? (
-                    <Badge tone="good">Onboarding done</Badge>
-                  ) : null}
-                  {expiryFor.get(p.id)?.expired.length ? (
-                    <span title={expiryFor.get(p.id)!.expired.join(", ")}>
-                      <Badge tone="warn">Expired: {docList(expiryFor.get(p.id)!.expired)}</Badge>
-                    </span>
-                  ) : null}
-                  {expiryFor.get(p.id)?.expiring.length ? (
-                    <span title={expiryFor.get(p.id)!.expiring.join(", ")}>
-                      <Badge tone="warn">Expiring: {docList(expiryFor.get(p.id)!.expiring)}</Badge>
-                    </span>
-                  ) : null}
-                  <span className="w-40 text-sm text-muted">
-                    {!showTeams ? "" : inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team"}
+                  {(() => {
+                    // cmeprojects: one tidy column: the role (or access level), then its group and team.
+                    const title = p.job_title_id ? titleName.get(p.job_title_id) : undefined;
+                    const groups = groupsOfTitle(p.job_title_id);
+                    const team = !showTeams ? "" : inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team";
+                    const sub = [groups.join(" · "), team].filter(Boolean).join(" · ");
+                    return (
+                      <span className="w-60 min-w-0">
+                        {row.role === "system_admin" ? (
+                          <Badge tone="dark">Developer · protected</Badge>
+                        ) : (
+                          <span className="block truncate text-sm font-medium">{title ?? ROLE_LABELS[row.role]}</span>
+                        )}
+                        {sub ? <span className="block truncate text-xs text-muted">{sub}</span> : null}
+                      </span>
+                    );
+                  })()}
+                  <span className="flex w-64 flex-wrap items-center justify-end gap-2">
+                  {(() => {
+                    // Anything that needs attention, in one small chip (details on hover).
+                    const notes: string[] = [];
+                    if (pending.has(p.id)) notes.push(`Role change to ${roleText(pending.get(p.id)!.to_value as RoleValue)} waiting for approval`);
+                    if (row.missing?.length) notes.push(`Onboarding: ${row.missing.length} to do`);
+                    if (expiryFor.get(p.id)?.expired.length) notes.push(`Expired: ${expiryFor.get(p.id)!.expired.join(", ")}`);
+                    if (expiryFor.get(p.id)?.expiring.length) notes.push(`Expiring: ${expiryFor.get(p.id)!.expiring.join(", ")}`);
+                    return notes.length ? (
+                      <span title={notes.join("\n")} className="cursor-help">
+                        <Badge tone="warn">
+                          {notes.length === 1 ? notes[0].split(":")[0].replace(/ to .* waiting.*/, " waiting") : `${notes.length} to check`}
+                        </Badge>
+                      </span>
+                    ) : null;
+                  })()}
+                  {status === "Active" ? null : <Badge tone={statusTone}>{status}</Badge>}
                   </span>
-                  <Badge tone={statusTone}>{status}</Badge>
                   <span className="text-sm font-semibold text-brand group-open:hidden">{row.editable ? "Edit" : "View"}</span>
                   <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
                 </summary>

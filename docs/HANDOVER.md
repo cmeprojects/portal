@@ -73,6 +73,9 @@ Last updated: 17 Nov 2026.
   Screens: Clients pages and menu use the check; client page "Assigned staff"; Access page "Their
   assigned clients". Check: `supabase/setup/verify-107-after.sql`. **105 to 107 run on Dev (17 Nov 2026).**
   Undo order: 107, then 106, then 105. Test data only until SEC-003.
+- **Staff list tidy (17 Nov 2026, owner requests):** one role column (role or access level, then group and
+  team), Manager Administrators marked "(administrator)" by the name (dates on hover), system admin shown as
+  "Developer · protected", warnings in one chip (details on hover), status only when not Active.
 - **Parked (owner, 17 Nov 2026):** more default access for Case Manager, Intake and Payroll & Rostering, to
   decide after the HR and Care blocks (docs/TODO.md).
 - **Wording (17 Nov 2026, owner requests):** the base access level shows as "Standard access" (was
