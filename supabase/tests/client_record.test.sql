@@ -81,9 +81,13 @@ reset role;
 set role anon;
 select test.refused($$select * from public.team_clients()$$, 'signed-out users can''t run team_clients');
 reset role;
+select test.act_as('boss@example.com');
+set role authenticated;
+select test.ok((select count(*) = 4 and bool_or(reference <> '') from public.car_clients), 'managers still see every client and its reference (unchanged)');
+reset role;
 select test.act_as('office@example.com');
 set role authenticated;
-select test.ok((select count(*) = 4 and bool_or(reference <> '') from public.car_clients), 'people managers still see every client and its reference (unchanged)');
+select test.ok((select count(*) from public.car_clients) = 0, 'staff admins don''t, by default (update 109)');
 reset role;
 
 -- Programs

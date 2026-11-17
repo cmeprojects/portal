@@ -25,8 +25,9 @@ Health access (Stage 6).
 ## Access (proposed defaults; changed on the Access page)
 
 Each section is its own part of Clients, so it can be given on its own.
+Staff admins have no client access by default (D-052, update 109).
 
-| Section | Managers, staff admins | Case Manager | Intake officer | Team staff |
+| Section | Managers | Case Manager | Intake officer | Team staff |
 |---|---|---|---|---|
 | Documents | all clients | assigned, view and add | all clients, view and add | no |
 | Care plans | all clients | assigned, view and change | all, view | worker instructions only (own teams' clients) |
@@ -63,3 +64,34 @@ notes and shifts are the later blocks. Columns and tabs follow the Access
 page (a person only sees the columns and tabs for parts they hold). Proposal:
 build the table and side panel early with the columns that exist, and add
 each column or tab as its step lands.
+
+## Owner notes (17 Nov 2026)
+
+1. **"Participant" or "Client":** every client screen uses the existing
+   setting `wording.client` ("What you call the people you support", today
+   "Participant" on Dev). It's in the Branding settings area, so the system
+   admin can hand it to the Manager Administrator on the Access page (they set
+   up their business later). Today the setting exists but client screens don't
+   use it yet; the Care block makes them use it.
+2. **Every step considers NDIS and Support at Home** (and Private, Other).
+   Program-specific parts come from the program, not from code: each program
+   has its own rules (date of birth needed already; review rules, funding
+   shape, agreement wording next).
+3. **C5 reviews (owner's concern): NDIS plan reviews vs Support at Home
+   re-assessments.** Proposed design:
+   - Each program says what its review is called and how it works: NDIS
+     "Plan review" (planned, from the plan end date), Support at Home
+     "Re-assessment" (scheduled, and also when the situation changes).
+     Private and Other: "Review", optional.
+   - **Two kinds of review per client service:** scheduled (a due date,
+     from the plan end date or a set interval) and **change of situation**
+     (raised any time by staff with a reason, for example hospital stay,
+     carer change, decline in health; it becomes due straight away).
+   - **Notices:** before a scheduled review is due (days set per program,
+     e.g. 90/60/30 for NDIS plan end, 30 for Support at Home), when it's
+     overdue, and immediately when a change of situation is raised. They go
+     to the client's assigned case manager, else the managers; the bell and
+     email, like other notices.
+   - Each review records who did it, the outcome and the next due date;
+     never deleted. Funding (C7) and agreements (C6) follow the same program
+     rules.

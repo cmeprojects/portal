@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270222000001_service_delivery_wording.sql
+-- Built from every migration up to: 20270223000001_staff_admin_no_client_default.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -231,7 +231,8 @@ begin
     (123, '20270219000001_client_parts_and_roles.sql'),
     (124, '20270220000001_client_assignments.sql'),
     (125, '20270221000001_clients_switch_over.sql'),
-    (126, '20270222000001_service_delivery_wording.sql')
+    (126, '20270222000001_service_delivery_wording.sql'),
+    (127, '20270223000001_staff_admin_no_client_default.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -22050,5 +22051,38 @@ update public.function_groups
 
 $m126$;
   insert into public.install_log (name) values ('20270222000001_service_delivery_wording.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270223000001_staff_admin_no_client_default.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270223000001_staff_admin_no_client_default.sql') then
+    return;
+  end if;
+  execute $m127$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 109; owner decision D-052, 17 Nov 2026): staff admins
+-- no longer have default access to client records.
+--
+--   * The staff admin access-level defaults for every part of Clients
+--     (copied from the old rule in update 107) are revoked. Kept for history,
+--     never deleted.
+--   * A staff admin can still be given client access on the Access page (in
+--     person, or through their role). Managers, the system admin, Case
+--     Managers and Intake officers are unchanged.
+--   * Revoked only if it's still the default copied at switch-over (a default
+--     set later by the system admin is left alone).
+
+update public.access_baselines
+   set revoked_at = now()
+ where access_level = 'staff_admin' and module_id like 'clients.%' and revoked_at is null
+   and note = 'Set at switch-over: managers and staff admins managed clients';
+
+$m127$;
+  insert into public.install_log (name) values ('20270223000001_staff_admin_no_client_default.sql');
 end;
 $part$;

@@ -73,6 +73,8 @@ Last updated: 17 Nov 2026.
   Screens: Clients pages and menu use the check; client page "Assigned staff"; Access page "Their
   assigned clients". Check: `supabase/setup/verify-107-after.sql`. **105 to 107 run on Dev (17 Nov 2026).**
   Undo order: 107, then 106, then 105. Test data only until SEC-003.
+- **Staff admins: no default client access (17 Nov 2026, D-052, update 109).** Check: `supabase/setup/verify-109-after.sql`
+  (lists staff admins who still see clients and why). Waiting on the owner: 109.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

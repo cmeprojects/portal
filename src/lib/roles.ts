@@ -40,7 +40,7 @@ export const ROLE_HELP: Record<Role, string> = {
   support_worker: "Base access: their own tasks (assigned, helping on or created) and their teams' clients' locations and alerts. Most roles use this base and get what the job needs from the role itself (for example Case Manager: their assigned clients).",
   team_leader: "Base access for leading a team: the above, plus their team's tasks, onboarding progress and staff requests.",
   manager: "Base access for running the service: every team's tasks, staff, teams, staff requests, clients, due dates, cars, forms and reports. Approves role and team changes.",
-  staff_admin: "Base access for HR and the office: staff, teams, staff requests, onboarding, clients and the compliance report, but not other people's tasks. Their role and team changes go to a manager to approve.",
+  staff_admin: "Base access for HR and the office: staff, teams, staff requests, onboarding and the compliance report, but not other people's tasks or client records. Their role and team changes go to a manager to approve.",
   system_admin: "Everything, plus System settings. The only role that can create system admins. Hidden from other staff and never given tasks.",
   external: "Base access for outside practitioners (allied health): nothing by default. Access to their assigned clients comes with the next stage.",
 };
