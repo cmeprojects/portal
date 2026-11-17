@@ -11,8 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assignableRoles, inCoreTeam, JOB_TITLE_COLUMNS, ROLE_HELP, ROLE_LABELS, ROLES, type JobTitle, type Role } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
-import { InviteForm, PersonEditor, type PersonRow } from "./forms";
+import { PersonEditor, type PersonRow } from "./forms";
 import { ChecksChip, StaffTable, type StaffRow } from "./staff-table";
+import { InviteDialog } from "./invite-dialog";
 import { canHelpSignIn, canInvite, getPeopleRules } from "@/lib/settings";
 import { decideChangeRequest } from "./actions";
 import { FormPending } from "@/components/form-pending";
@@ -223,11 +224,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
         title="Staff"
         intro="Your team, their roles and their checks. Click someone to see and manage everything about them."
         action={
-          canInvite(me.role, rules) ? (
-            <a href="#invite" className={buttonClass("primary")}>
-              Invite staff member
-            </a>
-          ) : undefined
+          canInvite(me.role, rules) ? <InviteDialog /> : undefined
         }
       />
 
@@ -281,15 +278,6 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
 
       <StaffTable rows={rowsForTable} selected={picked} showTeams={showTeams} />
 
-      {canInvite(me.role, rules) ? (
-        <details id="invite" className="shadow-card scroll-mt-24 rounded-xl border border-line bg-surface target:ring-2 target:ring-brand" open={false}>
-          <summary className="cursor-pointer list-none px-5 py-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">+ Invite staff member</summary>
-          <div className="border-t border-line p-5">
-            <InviteForm />
-          </div>
-        </details>
-      ) : null}
-
       <Card className="p-5">
         <h2 className="mb-3 heading-sm">Access levels: the base each role builds on</h2>
         <p className="mb-3 text-sm text-muted">
@@ -320,9 +308,14 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
                   {selRow.conditional ? <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold">Conditional role</span> : null}
                 </div>
               </div>
-              <Link href="/settings/staff" scroll={false} className={buttonClass("outline")}>
-                Close
-              </Link>
+              <span className="flex gap-2">
+                <Link href={`/settings/staff/${sel.id}`} className={buttonClass("primary")}>
+                  View full profile
+                </Link>
+                <Link href="/settings/staff" scroll={false} className={buttonClass("outline")}>
+                  Close
+                </Link>
+              </span>
             </div>
             <nav aria-label="Person sections" className="flex gap-1 border-b border-line px-4">
               {[

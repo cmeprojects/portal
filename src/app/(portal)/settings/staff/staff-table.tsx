@@ -1,9 +1,10 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Eye, Pencil, Search } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { inputClass } from "@/components/ui";
 
@@ -92,6 +93,7 @@ export function StaffTable({ rows, selected, showTeams }: { rows: StaffRow[]; se
                 <th scope="col" className="px-3 py-2">Employment</th>
                 <th scope="col" className="px-3 py-2">Status</th>
                 <th scope="col" className="px-3 py-2">Compliance</th>
+                <th scope="col" className="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -127,6 +129,18 @@ export function StaffTable({ rows, selected, showTeams }: { rows: StaffRow[]; se
                   </td>
                   <td className="px-3 py-2">
                     <ChecksChip r={r} />
+                  </td>
+                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                    <span className="flex justify-end gap-1">
+                      <Link href={`/settings/staff/${r.id}`} title="View" aria-label={`View ${r.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-brand-soft text-brand hover:opacity-80">
+                        <Eye aria-hidden="true" className="size-4" />
+                      </Link>
+                      {r.protectedAdmin ? null : (
+                        <Link href={`/settings/staff/${r.id}?edit=info`} title="Edit" aria-label={`Edit ${r.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-good-soft text-ink hover:opacity-80">
+                          <Pencil aria-hidden="true" className="size-4" />
+                        </Link>
+                      )}
+                    </span>
                   </td>
                 </tr>
               ))}
