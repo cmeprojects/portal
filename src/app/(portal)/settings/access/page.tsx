@@ -358,7 +358,7 @@ export default async function AccessPage() {
       </>
       ) : null}
 
-      {admin ? <RoleGroupAccessSection /> : null}
+      {admin || iAmMA ? <RoleGroupAccessSection me={profile.id} admin={admin} /> : null}
 
       {admin ? <KeepingRecords /> : null}
 
@@ -504,24 +504,37 @@ async function KeepingRecords() {
 // cmeprojects (Stage 3, update 94, D-047): access held by a function group,
 // a role (job title) or an access level, for parts switched over to the one
 // permission check. Hidden before update 94.
-async function RoleGroupAccessSection() {
+async function RoleGroupAccessSection({ me, admin }: { me: string; admin: boolean }) {
   const supabase = await createClient();
   const [mods, rows, groups, titles] = await Promise.all([
     supabase.from("app_modules").select("id, label, actions, sensitivity").eq("grant_ready", true).eq("status", "active").order("sort_order"),
-    supabase.from("access_baselines").select("job_title_id, function_group_id, access_level, module_id, effect, actions, scope").is("revoked_at", null),
+    supabase.from("access_baselines").select("job_title_id, function_group_id, access_level, module_id, effect, actions, scope, granted_by").is("revoked_at", null),
     supabase.from("function_groups").select("id, name").eq("active", true).order("sort_order"),
     supabase.from("job_titles").select("id, name").eq("active", true).order("sort_order").order("name"),
   ]);
   if (mods.error || rows.error) return null;
-  const modules: BaselineModule[] = ((mods.data ?? []) as { id: string; label: string; actions: string[]; sensitivity: string }[])
-    .filter((m) => m.sensitivity !== "protected")
-    .map((m) => ({ id: m.id, label: m.label, actions: m.actions, sensitive: m.sensitivity === "sensitive" }));
-  const live: BaselineRow[] = ((rows.data ?? []) as { job_title_id: string | null; function_group_id: string | null; access_level: string | null; module_id: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams" }[]).map((r) => ({
+  const all = ((mods.data ?? []) as { id: string; label: string; actions: string[]; sensitivity: string }[]).filter((m) => m.sensitivity !== "protected");
+  // A Manager Administrator sees only what they may pass on; the database
+  // answers (baseline_grant_allowed), so the rule lives in one place.
+  const modules: BaselineModule[] = (
+    await Promise.all(
+      all.map(async (m) => {
+        const base = { id: m.id, label: m.label, actions: m.actions, sensitive: m.sensitivity === "sensitive" };
+        if (admin) return { ...base, allowed: m.actions, everything: true };
+        const ask = (actions: string[]) => supabase.rpc("baseline_grant_allowed", { p_module: m.id, p_actions: actions }).then((r) => r.data === true);
+        const [everything, ...each] = await Promise.all([ask([]), ...m.actions.map((a) => ask([a]))]);
+        const allowed = m.actions.filter((_, i) => each[i]);
+        return allowed.length ? { ...base, allowed, everything } : null;
+      }),
+    )
+  ).filter((m): m is BaselineModule => m !== null);
+  const live: BaselineRow[] = ((rows.data ?? []) as { job_title_id: string | null; function_group_id: string | null; access_level: string | null; module_id: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams"; granted_by: string | null }[]).map((r) => ({
     holder: r.function_group_id ? `group:${r.function_group_id}` : r.job_title_id ? `title:${r.job_title_id}` : `level:${r.access_level}`,
     module: r.module_id,
     effect: r.effect,
     actions: r.actions,
     scope: r.scope,
+    mine: admin || r.granted_by === me,
   }));
   return (
     <Card className="flex flex-col gap-3 p-5 sm:p-6">
@@ -536,7 +549,8 @@ async function RoleGroupAccessSection() {
         rows={live}
         groups={((groups.data ?? []) as { id: string; name: string }[]).map((g) => ({ value: `group:${g.id}`, label: g.name }))}
         titles={((titles.data ?? []) as { id: string; name: string }[]).map((t) => ({ value: `title:${t.id}`, label: t.name }))}
-        levels={["support_worker", "team_leader", "manager", "staff_admin"].map((r) => ({ value: `level:${r}`, label: ROLE_LABELS[r as keyof typeof ROLE_LABELS] }))}
+        levels={admin ? ["support_worker", "team_leader", "manager", "staff_admin"].map((r) => ({ value: `level:${r}`, label: ROLE_LABELS[r as keyof typeof ROLE_LABELS] })) : []}
+        admin={admin}
       />
     </Card>
   );

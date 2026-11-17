@@ -5,6 +5,7 @@
 begin;
 drop table if exists public.access_baselines;
 drop function if exists public.guard_access_baseline();
+drop function if exists public.baseline_grant_allowed(text, text[]);
 CREATE OR REPLACE FUNCTION public.can(p_module text, p_action text DEFAULT 'view'::text, p_person uuid DEFAULT NULL::uuid)
  RETURNS boolean
  LANGUAGE plpgsql

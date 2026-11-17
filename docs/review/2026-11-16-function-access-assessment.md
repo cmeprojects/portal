@@ -449,7 +449,8 @@ Approved by the owner (D-047; "go further, just give me a briefer").
   records; sensitive never to a group; system admin, new starter and
   external can't hold access-level defaults. RLS: system admin and Manager
   Administrators read all; members read their own title, groups and level;
-  only the system admin writes (Manager Administrators later).
+  the system admin writes any; Manager Administrators write groups and
+  roles within their authority (below, D-048).
 - `can()`: person grants first (unchanged); then job title, function
   groups, access level (first tier with an applicable grant decides; nearest
   module level; restriction beats allow); only for `grant_ready` modules;
@@ -468,6 +469,19 @@ Approved by the owner (D-047; "go further, just give me a briefer").
   switched over; with one module marked locally for the test: a group grant
   saves, is logged, can be set back and is kept in history; phone width; no
   errors; not shown to a manager); lint, typecheck, unit, build pass.
+- **Manager Administrators (D-048, added 17 Nov 2026 before update 94 was
+  run):** an MA may give a function group or a job title access only to a
+  part they hold themselves with "may pass on" (their own top-level allow
+  grant, covering the part), and only actions they hold
+  (`baseline_grant_allowed`, INVOKER). They can't set access-level defaults
+  (system admin only). Their grants stop counting the moment they stop being
+  an MA (checked in `can()`); `by_system_admin` is recorded at insert
+  because the system admin is hidden from staff by profiles RLS. Revoke:
+  the system admin, or whoever gave it. Access page: shown to MAs with
+  groups and roles only, the parts and actions the database says they may
+  pass on, and others' grants read-only. Tests: 34 checks in
+  access_baselines (9 new); full suite 1,190 pass; round trip clean;
+  browser 6 of 6 as an MA and the system admin.
 - Rollback: `undo-94.sql`.
 - **Next:** Stage 3b: switch over the first module (My onboarding /
   onboarding management) with defaults reproducing today's rules and a

@@ -5,15 +5,18 @@ import { useMemo, useState, useTransition } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { saveBaselines, type BaselineEntry } from "./baseline-actions";
 
-export type BaselineModule = { id: string; label: string; actions: string[]; sensitive: boolean };
-export type BaselineRow = { holder: string; module: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams" };
+// allowed: actions this person may give; everything: may give "all actions".
+export type BaselineModule = { id: string; label: string; actions: string[]; sensitive: boolean; allowed: string[]; everything: boolean };
+// mine: false for a grant someone else gave (a Manager Administrator can't change it).
+export type BaselineRow = { holder: string; module: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams"; mine: boolean };
 type Choice = { value: string; label: string };
 
 // cmeprojects (Stage 3, D-047): give a function group, a job title or an access
 // level access to modules that have been switched over to the one permission
 // check. Precedence: a person's own setting, then job title, then function
-// group, then access level.
-export function RoleGroupAccess({ modules, rows, groups, titles, levels }: { modules: BaselineModule[]; rows: BaselineRow[]; groups: Choice[]; titles: Choice[]; levels: Choice[] }) {
+// group, then access level. A Manager Administrator sees groups and roles only,
+// and only the parts and actions they may pass on.
+export function RoleGroupAccess({ modules, rows, groups, titles, levels, admin }: { modules: BaselineModule[]; rows: BaselineRow[]; groups: Choice[]; titles: Choice[]; levels: Choice[]; admin: boolean }) {
   const [holder, setHolder] = useState("");
   const [draft, setDraft] = useState<Record<string, BaselineEntry>>({});
   const [msg, setMsg] = useState<{ error?: string; message?: string } | null>(null);
@@ -24,7 +27,7 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels }: { mod
   const choose = (value: string) => {
     setHolder(value);
     setMsg(null);
-    setDraft(Object.fromEntries(rows.filter((r) => r.holder === value).map((r) => [r.module, { module: r.module, effect: r.effect, actions: r.actions, scope: r.scope }])));
+    setDraft(Object.fromEntries(rows.filter((r) => r.holder === value && r.mine).map((r) => [r.module, { module: r.module, effect: r.effect, actions: r.actions, scope: r.scope }])));
   };
   const set = (id: string, v: Partial<BaselineEntry> | null) =>
     setDraft((d) => {
@@ -34,6 +37,9 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels }: { mod
       return next;
     });
 
+  if (!modules.length && !admin) {
+    return <p className="text-sm text-muted">You can&apos;t pass on any part that uses role or group access yet.</p>;
+  }
   if (!modules.length) {
     return (
       <p className="text-sm text-muted">
@@ -46,10 +52,10 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels }: { mod
       <label htmlFor="rg-holder" className="flex flex-col gap-1 text-sm font-medium">
         Who it&apos;s for
         <select id="rg-holder" value={holder} onChange={(e) => choose(e.target.value)} className={inputClass}>
-          <option value="">Choose a function group, role or access level…</option>
+          <option value="">{admin ? "Choose a function group, role or access level…" : "Choose a function group or role…"}</option>
           <optgroup label="Function groups">{groups.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}</optgroup>
           <optgroup label="Roles (job titles)">{titles.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}</optgroup>
-          <optgroup label="Access levels (default for everyone at that level)">{levels.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}</optgroup>
+          {levels.length ? <optgroup label="Access levels (default for everyone at that level)">{levels.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}</optgroup> : null}
         </select>
       </label>
       {holder ? (
@@ -58,6 +64,18 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels }: { mod
             {shown.map((m) => {
               const e = draft[m.id];
               const state = e ? e.effect : "off";
+              const other = rows.find((r) => r.holder === holder && r.module === m.id && !r.mine);
+              if (other) {
+                return (
+                  <li key={m.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
+                    <span className="min-w-40 flex-1 font-medium">{m.label}</span>
+                    <span className="text-muted">
+                      {other.effect === "allow" ? "Allowed" : "Blocked"}
+                      {other.actions.length ? `: ${other.actions.map((a) => a.replace(/_/g, " ")).join(", ")}` : ""} · set by someone else
+                    </span>
+                  </li>
+                );
+              }
               return (
                 <li key={m.id} className="flex flex-col gap-2 px-3 py-2 text-sm">
                   <div className="flex flex-wrap items-center gap-3">
@@ -65,7 +83,7 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels }: { mod
                       {m.label}
                       {m.sensitive ? <span className="ml-2 text-xs text-muted">sensitive: roles and people only</span> : null}
                     </span>
-                    <select aria-label={`${m.label}: access`} value={state} onChange={(ev) => (ev.target.value === "off" ? set(m.id, null) : set(m.id, { effect: ev.target.value as "allow" | "restrict" }))} className={`${inputClass} w-36`}>
+                    <select aria-label={`${m.label}: access`} value={state} onChange={(ev) => (ev.target.value === "off" ? set(m.id, null) : set(m.id, { effect: ev.target.value as "allow" | "restrict", ...(e || m.everything ? {} : { actions: m.allowed }) }))} className={`${inputClass} w-36`}>
                       <option value="off">Not set</option>
                       <option value="allow">Allow</option>
                       <option value="restrict">Block</option>
@@ -77,9 +95,9 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels }: { mod
                       </select>
                     ) : null}
                   </div>
-                  {e && e.effect === "allow" && m.actions.length > 1 ? (
+                  {e && e.effect === "allow" && (m.actions.length > 1 || !m.everything) ? (
                     <div className="flex flex-wrap gap-1.5" role="group" aria-label={`What they can do in ${m.label}`}>
-                      {m.actions.map((a) => {
+                      {m.allowed.map((a) => {
                         const on = !e.actions.length || e.actions.includes(a);
                         return (
                           <button
@@ -89,7 +107,8 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels }: { mod
                             onClick={() => {
                               const all = e.actions.length ? e.actions : m.actions;
                               const next = on ? all.filter((x) => x !== a) : [...all, a];
-                              set(m.id, { actions: next.length === m.actions.length ? [] : next });
+                              if (!next.length) return;
+                              set(m.id, { actions: next.length === m.actions.length && m.everything ? [] : next });
                             }}
                             className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${on ? "bg-brand text-brand-fg ring-brand" : "bg-surface text-muted ring-line"}`}
                           >

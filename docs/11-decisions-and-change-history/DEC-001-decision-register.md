@@ -5,7 +5,7 @@
 | Document ID | DEC-001 |
 | Title | Decision Register |
 | Category | 11 Decisions and change history |
-| Version | 0.5 |
+| Version | 0.6 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Product Owner / Technical Lead / Product Owner |
 | Created | 16 Nov 2026 |
@@ -89,6 +89,7 @@ end with the next number.
 | D-046 | 16 Nov 2026 | "Go ahead with all 3": (1) AUD-016 final clarification and the Stage 1 approach approved: build Stage 1 (Function Groups, live update 92; SQL reviewed by the owner before it runs on Dev); (2) the six suggested risk ratings approved as written (RSK-001 §3); (3) Next.js upgrade approved as its own change. | Owner (session) |
 
 | D-047 | 17 Nov 2026 | **No band-aid: option 3 is the plan** for function-based access. Every module will ask one permission check (`can()`); today's role rules become **default grants per access level**, so nobody's access changes when a module switches over; the old side-by-side role logic is removed module by module. Stage 3 = grants table (holders: person [existing], job title, function group, access level), precedence person → job title → function group → access-level default, the Access page screens, and default grants seeded to reproduce today's rules. Stage 3b onwards = convert each module to use only `can()`, one at a time (each: its own update, tests, before/after comparison proving no access change, undo, Stage 1 speed check on changed policies). Option 1 (widening the person-only gates) is **not** used. Owner asked that this is noted in the handover. | Owner (session) |
+| D-048 | 17 Nov 2026 | **Manager Administrators set role and group access within their own authority.** They can give a function group or job title access only to parts they hold with "may pass on", and only the actions they hold; their grants stop counting if they stop being a Manager Administrator; they revoke only what they gave. **Access-level defaults stay with the system admin only.** The system admin keeps full power. Added to update 94 before it was run. | Owner (session) |
 
 ## Change history
 
@@ -99,3 +100,4 @@ end with the next number.
 | 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-039 to D-041 | Not approved |
 | 0.4 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-042 | Not approved |
 | 0.5 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-043 | Not approved |
+| 0.6 | 17 Nov 2026 | Technical Lead (prepared by Claude) | D-044 to D-048 | Not approved |

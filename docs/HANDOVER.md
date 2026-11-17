@@ -20,7 +20,8 @@ Last updated: 17 Nov 2026.
 - **Stage 1 (Function Groups) done:** update 92 run on Dev (17 Nov 2026). No SQL waiting.
 - **Stage 2 done:** update 93 run on Dev (17 Nov 2026).
 - **Stage 3 built (17 Nov 2026):** grants for job titles, function groups and access levels in
-  `can()`; Access page section. **Waiting on the owner:** run update 94 on Dev
+  `can()`; Access page section. Manager Administrators can give groups and roles access within
+  what they may pass on; access-level defaults are system admin only (D-048). **Waiting on the owner:** run update 94 on Dev
   (`supabase/live-updates/update-94.sql`, undo-94.sql). No access changes until a module is
   switched over. Next: Stage 3b, first module switch-over (onboarding).
 - **DECIDED (D-047, 17 Nov 2026): the proper fix, no band-aid.** Every module will use only the

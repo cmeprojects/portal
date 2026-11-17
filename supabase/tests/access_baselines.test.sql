@@ -114,8 +114,38 @@ reset role;
 select test.ok((select count(*) from public.access_baselines) = 7, 'nothing is deleted');
 select test.ok((select count(*) from public.access_baselines where revoked_at is not null and revoked_by = test.pid('owner@example.com')) = 2, 'revoking records who');
 
+-- Manager Administrators: only within their own authority (boss is one, above).
+insert into public.job_titles (name, access_level) values ('Driver', 'support_worker');
+select test.act_as('owner@example.com');
+set role authenticated;
+update public.access_grants set revoked_at = now() where user_id = test.pid('boss@example.com') and module_id = 'ops.cars.manage' and revoked_at is null;
+insert into public.access_grants (module_id, user_id, granted_by, actions, can_pass_on) values ('ops.cars.manage', test.pid('boss@example.com'), test.pid('owner@example.com'), '{view,configure}', true);
+reset role;
+select test.act_as('boss@example.com');
+set role authenticated;
+insert into public.access_baselines (job_title_id, module_id, actions) values (test.jt('Driver'), 'ops.cars.manage', '{view}');
+select test.refused($$insert into public.access_baselines (function_group_id, module_id, actions) values (test.fg('service_delivery'), 'ops.cars.manage', '{delete}')$$, 'a Manager Administrator can''t give wider actions than they hold');
+select test.refused($$insert into public.access_baselines (function_group_id, module_id, actions) values (test.fg('service_delivery'), 'ops.cars.manage', '{}')$$, 'or "everything" when they hold only some actions');
+select test.refused($$insert into public.access_baselines (access_level, module_id, actions) values ('staff_admin', 'ops.cars.manage', '{view}')$$, 'a Manager Administrator can''t set access-level defaults');
+select test.refused($$insert into public.access_baselines (job_title_id, module_id, actions) values (test.jt('Driver'), 'hr.contracts', '{view}')$$, 'nor give a part they don''t hold');
+reset role;
+select test.ok((select granted_by = test.pid('boss@example.com') from public.access_baselines where job_title_id = test.jt('Driver') and revoked_at is null), 'a Manager Administrator gives a role what they hold (recorded as theirs)');
+update public.profiles set job_title_id = test.jt('Driver') where email = 'kim@example.com';
+select test.ok(test.can_as('kim@example.com', 'ops.cars.manage', 'view'), 'and it works');
+update public.admin_designations set status = 'ended' where user_id = test.pid('boss@example.com');
+select test.ok(not test.can_as('kim@example.com', 'ops.cars.manage', 'view'), 'it stops counting when they stop being a Manager Administrator');
+update public.admin_designations set status = 'active' where user_id = test.pid('boss@example.com');
+select test.act_as('boss@example.com');
+set role authenticated;
+update public.access_baselines set revoked_at = now() where job_title_id = test.jt('Driver') and revoked_at is null;
+select test.ok((select count(*) from public.access_baselines where function_group_id = test.fg('care_coordination') and revoked_at is not null) = 0, 'they can''t revoke what someone else gave');
+update public.access_baselines set revoked_at = now() where function_group_id = test.fg('care_coordination') and revoked_at is null;
+reset role;
+select test.ok((select revoked_at is not null from public.access_baselines where job_title_id = test.jt('Driver') order by created_at desc limit 1), 'they revoke what they gave');
+select test.ok((select count(*) from public.access_baselines where function_group_id = test.fg('care_coordination') and revoked_at is null) = 1, 'and not what the system admin gave');
+
 -- Who reads them.
-select test.act_as('kim@example.com');
+select test.act_as('sam@example.com');
 set role authenticated;
 select test.ok((select count(*) from public.access_baselines where access_level = 'manager') = 0, 'staff can''t read other levels'' grants');
 select test.ok((select count(*) from public.access_baselines where function_group_id = test.fg('care_coordination')) >= 1, 'staff read their own groups'' grants (the check needs them)');

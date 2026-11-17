@@ -20052,7 +20052,11 @@ begin
 --   * Only modules marked `grant_ready` (switched over to `can()` alone,
 --     Stage 3b onwards) can be given this way. None are yet, so nobody's
 --     access changes in this update.
---   * Only the system admin sets these grants for now; revoked, never deleted.
+--   * The system admin sets any of these. A Manager Administrator sets job
+--     title and function group grants only within their own authority: parts
+--     they hold with "may pass on", never wider actions, never access-level
+--     defaults; their grants stop counting if they stop being a Manager
+--     Administrator. Revoked, never deleted.
 
 alter table public.app_modules add column if not exists grant_ready boolean not null default false;
 
@@ -20068,6 +20072,8 @@ create table if not exists public.access_baselines (
   scope text not null default 'all' check (scope in ('all', 'own_teams')),
   note text not null default '' check (length(note) <= 300),
   granted_by uuid default auth.uid() references public.profiles (id),
+  -- Given by the system admin (set on saving; system admins are hidden from staff).
+  by_system_admin boolean not null default false,
   created_at timestamptz not null default now(),
   revoked_at timestamptz,
   revoked_by uuid references public.profiles (id),
@@ -20089,12 +20095,46 @@ create policy "the system admin, manager administrators and holders read baselin
                                     join public.profiles p on p.job_title_id = jf.job_title_id
                                    where p.id = (select auth.uid()))
          or access_level = (select p.role from public.profiles p where p.id = (select auth.uid())));
-drop policy if exists "the system admin adds baselines" on public.access_baselines;
-create policy "the system admin adds baselines" on public.access_baselines
-  for insert to authenticated with check ((select public.is_system_admin()));
-drop policy if exists "the system admin revokes baselines" on public.access_baselines;
-create policy "the system admin revokes baselines" on public.access_baselines
-  for update to authenticated using ((select public.is_system_admin())) with check ((select public.is_system_admin()));
+-- A Manager Administrator may give a job title or function group only what
+-- they hold themselves with "may pass on" (same module, or a parent or
+-- category that includes it), never wider actions.
+create or replace function public.baseline_grant_allowed(p_module text, p_actions text[])
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  with recursive up(id) as (
+    select p_module
+    union all
+    select m.parent_id from public.app_modules m join up on m.id = up.id where m.parent_id is not null
+  )
+  select public.is_manager_admin() and public.mfa_ok() and exists (
+    select 1
+      from public.access_grants g, public.app_modules target
+     where target.id = p_module
+       and g.user_id = auth.uid() and g.area is null and g.parent_id is null
+       and g.can_pass_on and g.effect = 'allow' and g.revoked_at is null
+       and (g.expires_at is null or g.expires_at > now()) and (g.starts_at is null or g.starts_at <= now())
+       and (g.module_id = p_module
+            or (target.sensitivity = 'normal' and g.include_children
+                and (g.module_id in (select id from up) or g.module_id = 'cat_' || target.category)))
+       and (cardinality(g.actions) = 0 or (cardinality(p_actions) > 0 and p_actions <@ g.actions)))
+$$;
+revoke execute on function public.baseline_grant_allowed(text, text[]) from public, anon;
+grant execute on function public.baseline_grant_allowed(text, text[]) to authenticated;
+
+drop policy if exists "the system admin and manager administrators add baselines" on public.access_baselines;
+create policy "the system admin and manager administrators add baselines" on public.access_baselines
+  for insert to authenticated
+  with check ((select public.is_system_admin())
+              or (access_level is null and public.baseline_grant_allowed(module_id, actions)));
+drop policy if exists "the system admin and the giver revoke baselines" on public.access_baselines;
+create policy "the system admin and the giver revoke baselines" on public.access_baselines
+  for update to authenticated
+  using ((select public.is_system_admin()) or granted_by = (select auth.uid()))
+  with check ((select public.is_system_admin()) or granted_by = (select auth.uid()));
 -- No delete rule: revoked, never deleted.
 grant select, insert, update on public.access_baselines to authenticated;
 
@@ -20125,6 +20165,7 @@ begin
     raise exception 'That access level can''t hold grants.';
   end if;
   new.granted_by := auth.uid();
+  new.by_system_admin := public.is_system_admin();
   new.created_at := now();
   return new;
 end;
@@ -20234,6 +20275,8 @@ begin
       from public.access_baselines b
       join levels l on l.id = b.module_id
      where b.revoked_at is null
+       -- Given by the system admin, or by someone who is still an active Manager Administrator.
+       and (b.by_system_admin or public.is_manager_admin(b.granted_by))
        and ((b.job_title_id is not null and b.job_title_id = v_me.job_title_id and v_me.title_active)
             or (b.function_group_id is not null and b.function_group_id = any (v_groups) and m.sensitivity = 'normal')
             or (b.access_level is not null and b.access_level = v_me.role))
