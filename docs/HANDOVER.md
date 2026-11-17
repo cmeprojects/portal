@@ -79,7 +79,7 @@ Last updated: 17 Nov 2026.
   "Support worker"; the database value `support_worker` is unchanged); access levels described as the
   base each role builds on; Staff list shows a role's function group, not its level; role picker grouped
   by function group. Update 108: Service Delivery description "Frontline staff and team leaders
-  delivering services." (wording only). Waiting on the owner: 108.
+  delivering services." (wording only). **108 run on Dev (17 Nov 2026).**
 - **Menu sections in the side panel (17 Nov 2026, owner screenshot):** on wide screens with the full menu,
   each section heading opens the side panel listing its pages (sub-pages indented); the section holding
   this page is marked; My workspace stays inline; phone drawer unchanged (inline).
