@@ -51,7 +51,10 @@ Last updated: 17 Nov 2026.
   team changes (within `can_manage_role` limits) now `can('people.staff', ...)`; defaults managers and
   staff admins. Also finishes 95: onboarding status functions follow Onboarding (view) per person.
   Check: `supabase/setup/verify-101-after.sql`. `can_manage_people()` now only used by Clients and car
-  clients (switch with Stage 5). Next: Due dates (SLA) and Request approvals, then Tasks.
+  clients (switch with Stage 5).
+- **Due dates and Request approvals (17 Nov 2026, update 102).** Request approvals catalogued as part
+  of the HR settings area (same answer as before); Due dates a grant (managers by default) or the Tasks
+  settings area. Check: `supabase/setup/verify-102-after.sql`. Next: Tasks (needs scoping).
 - **Plan (approved 17 Nov 2026):** the hard-coded parts share one helper,
   `can_manage_people()` (managers, staff admins, system admin), used by 35 policies on 17 tables and 9
   functions, covering Staff, Teams, Staff requests, Clients and car clients. Switching them means

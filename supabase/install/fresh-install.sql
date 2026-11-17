@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270215000001_staff_switch_over.sql
+-- Built from every migration up to: 20270216000001_sla_request_rules_switch_over.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -222,7 +222,8 @@ begin
     (116, '20270212000001_reports_switch_over.sql'),
     (117, '20270213000001_staff_requests_switch_over.sql'),
     (118, '20270214000001_teams_switch_over.sql'),
-    (119, '20270215000001_staff_switch_over.sql')
+    (119, '20270215000001_staff_switch_over.sql'),
+    (120, '20270216000001_sla_request_rules_switch_over.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -21280,5 +21281,55 @@ $function$;
 
 $m119$;
   insert into public.install_log (name) values ('20270215000001_staff_switch_over.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270216000001_sla_request_rules_switch_over.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270216000001_sla_request_rules_switch_over.sql') then
+    return;
+  end if;
+  execute $m120$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 102; function-based access, Stage 3b; D-047, D-049):
+-- Due dates (SLA settings) and Request approvals follow the one permission
+-- check `can()`.
+--
+--   * Request approvals: already decided by the HR settings area everywhere
+--     (page and database). It's now catalogued as part of that settings area,
+--     so `can('workflows.request_rules', ...)` gives the same answer and it's
+--     given with the HR settings area on the Access page. No access changes.
+--   * Due dates (SLA): "managers always" becomes a grant,
+--     `can('workflows.sla', 'configure')`, with a default for managers (today's
+--     rule). Whoever looks after the Tasks settings area still can, as before.
+--     Nobody's access changes.
+
+update public.app_modules set legacy_kind = 'settings', legacy_area = 'hr'
+ where id = 'workflows.request_rules' and legacy_kind is null;
+
+update public.app_modules set grant_ready = true where id = 'workflows.sla' and not grant_ready;
+
+do $$
+begin
+  if exists (select 1 from public.access_baselines
+              where module_id = 'workflows.sla' and access_level is not null and revoked_at is null) then
+    return;
+  end if;
+  insert into public.access_baselines (access_level, module_id, actions, scope, note)
+  values ('manager', 'workflows.sla', '{}', 'all', 'Set at switch-over: managers set the due dates');
+end $$;
+
+drop policy if exists "managers change the SLA" on public.app_settings;
+create policy "managers change the SLA" on public.app_settings
+  for update to authenticated
+  using (key like 'tasks.sla%' and (select public.can('workflows.sla', 'configure')))
+  with check (key like 'tasks.sla%' and (select public.can('workflows.sla', 'configure')));
+
+$m120$;
+  insert into public.install_log (name) values ('20270216000001_sla_request_rules_switch_over.sql');
 end;
 $part$;

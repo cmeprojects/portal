@@ -1,7 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireRole } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { setsDueDatesFor } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { SettingForm } from "../../system/forms";
@@ -17,8 +18,9 @@ const KEYS = SLA_KEYS;
 // Managers, the system admin, and anyone looking after Task settings set the
 // company's default due dates (the database checks this too).
 export default async function SlaPage() {
-  const { profile } = await requireRole(["manager", "system_admin", "staff_admin"]);
-  if (profile.role === "staff_admin" && !(await getMyAdminAreas(profile.role)).includes("tasks")) notFound();
+  // The Access page (update 102), or whoever looks after the Tasks settings area.
+  const { profile } = await requireSession();
+  if (!(await setsDueDatesFor()) && !(await getMyAdminAreas(profile.role)).includes("tasks")) notFound();
   const supabase = await createClient();
   const { data: settings } = await supabase
     .from("app_settings")

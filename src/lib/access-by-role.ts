@@ -18,16 +18,6 @@ export const UNSUPPORTED_DELEGATION: Record<string, Unsupported> = {
     note: `Who sees and changes tasks follows their role (managers see every team's tasks; team leaders their team's; staff their own). It ${ROLE_NOTE}`,
   },
   "clients.list": { kind: "role", badge: "Set by role", note: `Managers, staff admins and the system admin manage clients through their role. It ${ROLE_NOTE}` },
-  "workflows.sla": {
-    kind: "unavailable",
-    badge: "Not available",
-    note: "Can't be given here. Managers and the system admin have it; a staff admin gets it with the Tasks settings area (Settings areas, further down).",
-  },
-  "workflows.request_rules": {
-    kind: "unavailable",
-    badge: "Not available",
-    note: "Can't be given here. The system admin has it; a manager or staff admin gets it with the HR settings area (Settings areas, further down).",
-  },
 };
 
 export const unsupportedDelegation = (id: string): Unsupported | undefined => UNSUPPORTED_DELEGATION[id];

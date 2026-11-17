@@ -26,6 +26,8 @@ export type NavAccess = {
   teams?: boolean;
   // Sees and manages Staff (Access page, update 101).
   staff?: boolean;
+  // Sets the due dates (SLA): Access page, update 102.
+  dueDates?: boolean;
   // Live features built in the Feature builder that this person uses.
   customFeatures?: { slug: string; label: string }[];
   // Their reports, for those ticked under "Who sees every entry".
@@ -97,7 +99,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
     ],
     settings: [
       // cmeprojects: one place for due dates: Settings → SLA settings.
-      (admin || role === "manager" || (access.adminAreas ?? []).includes("tasks")) && { href: "/settings/sla", text: "SLA settings" },
+      (Boolean(access.dueDates) || (access.adminAreas ?? []).includes("tasks")) && { href: "/settings/sla", text: "SLA settings" },
       (admin || settingsAreas.length > 0) && { href: "/system", text: "System settings" },
       // The system admin always sees Website settings (to set it up before switching it on).
       (admin || (features.assistant === true && (access.adminAreas ?? []).includes("website"))) && { href: "/assistant", text: "Website settings" },

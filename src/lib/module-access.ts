@@ -43,6 +43,9 @@ export const managesTeamsFor = async (action = "edit") => canDo("people.teams", 
 // Staff (switched over, update 101): see and manage staff.
 export const managesStaffFor = async (action = "edit") => canDo("people.staff", action);
 
+// Due dates (SLA, update 102): a grant (managers by default), or the Tasks settings area.
+export const setsDueDatesFor = async () => canDo("workflows.sla", "configure");
+
 // Reports (each report on its own; "export" = the Excel download). Switched
 // over (update 98, D-049): only the one permission check, set on the Access
 // page. Car managers also see the car reports.

@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { setsDueDatesFor } from "@/lib/module-access";
 import { CHOICES } from "@/lib/setting-choices";
 import { env } from "@/lib/env";
 
@@ -101,7 +102,8 @@ async function mayChange(key: string) {
   const area = areaOf(key);
   return (
     profile.role === "system_admin" ||
-    (key.startsWith("tasks.sla") && profile.role === "manager") ||
+    // Due dates: the Access page (update 102).
+    (key.startsWith("tasks.sla") && (await setsDueDatesFor())) ||
     (area !== null && (await getMyAdminAreas(profile.role)).includes(area))
   );
 }

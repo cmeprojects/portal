@@ -676,3 +676,24 @@ waiting.**
   `supabase/tests/staff_switch.test.sql` (16 checks).
 - Proof: verify-101-after locally, 313 people, 0 changed; full suite 1,297
   pass; round trip clean; browser 10 of 10; lint and typecheck pass.
+
+## Stage 3b implementation record: Due dates and Request approvals (17 Nov 2026)
+
+**Built and tested; live update 102 waiting.**
+
+- Request approvals (`workflows.request_rules`): already decided by the HR
+  settings area on the page and in the database (`can_admin_area('hr')`).
+  Now catalogued as part of that settings area (`legacy_kind` settings,
+  `legacy_area` hr), so `can()` gives the same answer and the Access page
+  gives it with the HR settings area. No access change.
+- Due dates (`workflows.sla`): "managers always" is now a grant
+  (`can('workflows.sla', 'configure')`, default managers); the Tasks settings
+  area still works. Policy "managers change the SLA", the SLA page, the menu
+  and the setting save check use it.
+- Both removed from the QA-007 "not available" list; all seven QA-007
+  modules are now handled except Tasks and Clients.
+- Files: migration `20270216000001_sla_request_rules_switch_over.sql`,
+  `update-102.sql`, `undo-102.sql`, `supabase/setup/verify-102-after.sql`,
+  `supabase/tests/sla_request_rules_switch.test.sql` (11 checks).
+- Proof: verify-102-after locally, 313 people, 0 changed; full suite 1,308
+  pass; round trip clean; browser 9 of 9; lint and typecheck pass.

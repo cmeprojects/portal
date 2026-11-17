@@ -31,7 +31,7 @@ set session_replication_role = origin;
 
 -- Switched over, with the settings' defaults copied (fresh install).
 select test.ok((select bool_and(grant_ready) from public.app_modules where id in ('workflows.forms', 'insights.reports', 'insights.reports.tasks', 'insights.reports.compliance', 'insights.reports.cars')), 'Forms and Reports are switched over');
-select test.ok((select string_agg(module_id || '=' || access_level, ',' order by module_id) from public.access_baselines where (module_id like 'insights%' or module_id like 'workflows%') and revoked_at is null)
+select test.ok((select string_agg(module_id || '=' || access_level, ',' order by module_id) from public.access_baselines where (module_id like 'insights%' or module_id = 'workflows.forms') and revoked_at is null)
   = 'insights.reports.cars=manager,insights.reports.compliance=staff_admin,insights.reports.tasks=manager,workflows.forms=manager', 'defaults copied from the four settings');
 
 -- Forms: same as today.

@@ -52,7 +52,7 @@ Modules: 54 in the database; 54 in `src/lib/modules.ts`; missing from code: none
 | `system.settings.reports` | Who can see reports | `system.settings` | system | view, configure | normal | yes | active | settings: reports | — | no page |
 | `system.settings.tasks` | Task settings | `system.settings` | system | view, configure | normal | yes | active | settings: tasks | — | no page |
 | `system.settings.vehicles` | Car settings | `system.settings` | system | view, configure | normal | yes | active | settings: vehicles | — | no page |
-| `workflows.request_rules` | Request approvals | `system.settings` | system | view, approve, configure | normal | yes | active | — | /settings/requests | yes |
+| `workflows.request_rules` | Request approvals | `system.settings` | system | view, approve, configure | normal | yes | active | settings: hr | /settings/requests | yes |
 | `workflows.sla` | SLA settings | `system.settings` | system | view, configure | normal | yes | active | — | /settings/sla | yes |
 | `workspace.contracts` | My contracts | — | workspace | view | normal | no | active | — | /account/contracts | yes |
 | `workspace.dashboard` | Dashboard | — | workspace | view | normal | no | active | — | / | yes |
