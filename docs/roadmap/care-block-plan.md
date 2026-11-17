@@ -42,3 +42,24 @@ Each section is its own part of Clients, so it can be given on its own.
 3. Client documents: allowed file types (PDF, images, Word) and size limit
    (suggest 10 MB).
 4. Stay on test data until SEC-003 (privacy review) is done.
+
+## Owner's concept for the client list (17 Nov 2026, screenshots; decisions still to come)
+
+The owner shared a concept (layout only; their menu crossed out, not wanted):
+
+- **Client list as a table:** search (name or NDIS number), a filter, an
+  "Add client" button; columns name, NDIS number, service, plan management
+  (plan-, NDIA- or self-managed), funds used (%), plan status (active, "ends
+  in N days" in amber or red).
+- **Click a client: a side panel** (the list stays visible), with the name,
+  status chips and tabs: Overview (NDIS number, date of birth, phone, suburb,
+  service, plan dates, plan management, support coordinator, care alerts as
+  chips, goals), Plan budget, Progress notes, Shifts.
+
+How it maps to this plan: Overview uses today's record (details, locations,
+alerts, services) plus goals from care plans (C4); plan management, funds used
+and plan dates come with funding and service agreements (C6, C7); progress
+notes and shifts are the later blocks. Columns and tabs follow the Access
+page (a person only sees the columns and tabs for parts they hold). Proposal:
+build the table and side panel early with the columns that exist, and add
+each column or tab as its step lands.
