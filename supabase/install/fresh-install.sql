@@ -25298,7 +25298,7 @@ begin
     for select to authenticated
     using (bucket_id = 'client-docs' and (storage.foldername(name))[1] ~ '^[0-9a-f-]{36}$'
            and public.external_sees(((storage.foldername(name))[1])::uuid)
-           and name in (select d.file_path from public.client_documents d));
+           and (owner = (select auth.uid()) or name in (select d.file_path from public.client_documents d)));
   drop policy if exists "practitioners add report files" on storage.objects;
   create policy "practitioners add report files" on storage.objects
     for insert to authenticated

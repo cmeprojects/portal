@@ -23,7 +23,7 @@ Waiting:
    per-person access ticks for sensitive client parts; delegation of client
    setup by Manager Administrators.
 3. **HR:** termination record (B4), then bank and super history (B5).
-4. **Rostering:** first version (122) and round 2 (123, premium package) built. Later: use `client_readiness()` and `client_service_gaps()` in Suggest worker; Stage 6 next.
+4. **Rostering:** first version (122) and round 2 (123, premium package) built. Later: use `client_readiness()` and `client_service_gaps()` in Suggest worker; Stage 6 (Allied Health access, update 124) built; waiting for the owner to run 124.
 
 Owner's open checks: docs/review/TEMP-to-review.md.
 

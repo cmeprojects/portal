@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Staff directory" };
 // way back to the list.
 export default async function DirectoryPage({ searchParams }: PageProps<"/people">) {
   const { profile, features } = await requireSession();
-  if (features.hr_profiles === false || !(await profilesReady())) notFound();
+  if (profile.role === "external" || features.hr_profiles === false || !(await profilesReady())) notFound();
   const people = (await loadPeople()).filter((p) => p.active && p.role !== "system_admin");
   const sp = await searchParams;
   const picked = typeof sp.p === "string" && /^[0-9a-f-]{36}$/.test(sp.p) ? sp.p : null;

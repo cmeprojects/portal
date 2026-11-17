@@ -10,6 +10,7 @@ one else in a company can, and the database refuses it if they try.
 |---|---|---|
 | Cars (company cars, trips, mileage, Cars app) | `vehicles` | Yes |
 | Rostering (roster, My shifts, timesheets, change requests, client shifts, staff hours; one package) | `rostering` | Yes |
+| Allied Health access (outside practitioners see their own clients, upload reports, write notes) | `allied_health` | Yes |
 
 - **On:** the feature shows for everyone it applies to.
 - **Off:** it's hidden everywhere (menu, pages, reports, settings, reminders).

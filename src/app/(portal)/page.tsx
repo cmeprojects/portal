@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { PractitionerHome } from "./practitioner-home";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { onboardingOn } from "@/lib/feature-parts";
@@ -20,21 +21,14 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const { profile } = await requireSession();
   const params = await searchParams;
   if (profile.role === "new_starter" && !(await getPeopleRules()).newStarterTasks) return <Welcome name={profile.full_name} />;
-  // cmeprojects: the system admin's home is the platform; external contractors have nothing yet.
+  // cmeprojects: the system admin's home is the platform; practitioners (external) see their clients (update 124).
   if (profile.role === "system_admin") {
     // A new, empty copy opens the setup wizard first (cmeprojects).
     const { data: setup } = await (await createClient()).from("app_settings").select("value").eq("key", "setup.completed").maybeSingle();
     if (setup && setup.value === false) redirect("/setup");
     return <PlatformDashboard name={profile.full_name} />;
   }
-  if (profile.role === "external") {
-    return (
-      <>
-        <PageHeader title={`Welcome${profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}`} />
-        <Card className="max-w-2xl p-5 text-sm">Your account is ready. There&apos;s nothing here for you yet; we&apos;ll let you know when there is.</Card>
-      </>
-    );
-  }
+  if (profile.role === "external") return <PractitionerHome me={profile.id} name={profile.full_name} />;
   // cmeprojects: managers, staff admins and team leaders get their role's
   // dashboard (their task lists are under Tasks); support workers get My tasks.
   if (hasRoleDashboard(profile.role)) return <RoleDashboard />;

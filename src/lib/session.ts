@@ -51,6 +51,12 @@ export const getSession = cache(async (): Promise<Session | null> => {
   ]);
   if (!access || !access.active || !profile) redirect("/deactivated");
   if (access.mfa_required && !access.mfa_ok) redirect("/mfa");
+  // cmeprojects (update 124, D-058): Allied Health practitioners always use
+  // two-factor sign-in while the package is on (they see client health records).
+  if (profile.role === "external" && claims?.claims?.aal !== "aal2") {
+    const { data: ah } = await supabase.rpc("feature_enabled", { p_key: "allied_health" });
+    if (ah === true) redirect("/mfa");
+  }
 
   // A premium feature only counts as on if it's included in the plan, and a
   // part of a feature (cmeprojects) only while its feature is on too.

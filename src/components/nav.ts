@@ -151,8 +151,8 @@ export function navFor(
     ...(features.hr_profiles !== false && role !== "new_starter" ? [{ href: "/people", label: "Directory" }] : []),
   ];
 
-  // External contractors (for later): nothing yet but their account.
-  if (role === "external") return [{ items: [{ href: "/", label: "Home" }] }, { items: [{ href: "/account", label: "My account" }] }];
+  // Allied Health practitioners (external, update 124): their clients (on Home) and their account.
+  if (role === "external") return [{ items: [{ href: "/", label: "My clients", match: ["/practitioner"] }] }, { items: [{ href: "/account", label: "My account" }] }];
 
   // New starters: just their welcome page and onboarding until they have a role.
   if (role === "new_starter" && !access.newStarterTasks) {

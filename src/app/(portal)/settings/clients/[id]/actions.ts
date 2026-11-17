@@ -443,3 +443,65 @@ export async function endFunding(form: FormData) {
   await (await createClient()).from("client_funding").update({ status: "ended" }).eq("id", id).eq("client_id", clientId);
   revalidatePath(`/settings/clients/${clientId}`);
 }
+
+// cmeprojects (update 124, Stage 6): Allied Health practitioner access. The
+// database checks who may give it, the 12-month limit and the consent date.
+const SECTIONS = ["details", "alerts", "care_plan", "documents", "notes"];
+export async function givePractitionerAccess(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const userId = String(form.get("user_id") ?? "");
+  const endsOn = String(form.get("ends_on") ?? "");
+  const consentOn = String(form.get("consent_on") ?? "");
+  const consentDoc = String(form.get("consent_document_id") ?? "");
+  const sections = form.getAll("sections").map(String).filter((s) => SECTIONS.includes(s));
+  if (!isId(clientId)) return { error: "That didn't save. Please reload the page." };
+  if (!isId(userId)) return { error: "Choose the practitioner." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(endsOn)) return { error: "Choose when access ends." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(consentOn)) return { error: "Record the date the client (or their representative) agreed." };
+  const { error } = await (await createClient()).from("client_external_access").insert({
+    client_id: clientId,
+    user_id: userId,
+    sections,
+    ends_on: endsOn,
+    consent_on: consentOn,
+    consent_note: String(form.get("consent_note") ?? "").trim().slice(0, 500),
+    consent_document_id: isId(consentDoc) ? consentDoc : null,
+    reason: String(form.get("reason") ?? "").trim().slice(0, 500),
+  });
+  if (error) return { error: error.message.includes("client_external_access_one_open") ? "That practitioner already has access. Extend it instead." : friendlyError(error) };
+  await createAdminClient().rpc("run_practitioner_alerts");
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: "Access given. The practitioner has been told." };
+}
+
+export async function extendPractitionerAccess(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  const endsOn = String(form.get("ends_on") ?? "");
+  const sections = form.getAll("sections").map(String).filter((s) => SECTIONS.includes(s));
+  if (!isId(id) || !isId(clientId) || !/^\d{4}-\d{2}-\d{2}$/.test(endsOn)) return { error: "Choose the new end date." };
+  const { error } = await (await createClient()).from("client_external_access").update({ ends_on: endsOn, sections }).eq("id", id);
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: "Saved." };
+}
+
+export async function endPractitionerAccess(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(id) || !isId(clientId)) return;
+  await (await createClient()).from("client_external_access").update({ ended_at: new Date().toISOString() }).eq("id", id);
+  revalidatePath(`/settings/clients/${clientId}`);
+}
+
+export async function shareWithPractitioners(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(id) || !isId(clientId)) return;
+  await (await createClient()).from("client_documents").update({ shared_with_practitioners: form.get("shared") === "1" }).eq("id", id);
+  revalidatePath(`/settings/clients/${clientId}`);
+}

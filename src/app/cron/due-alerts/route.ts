@@ -54,6 +54,9 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
   // cmeprojects (rostering): tell workers about new or changed shifts, and the day before (after live update 122).
   const { data: roster, error: rosterError } = await admin.rpc("run_roster_alerts");
   if (rosterError && rosterError.code !== "PGRST202") return { status: 500, body: { ok: false, error: rosterError.message } };
+  // cmeprojects (Allied Health): practitioners told about access given and ending; case managers about notes and reports (after live update 124).
+  const { data: practitioners, error: practitionerError } = await admin.rpc("run_practitioner_alerts");
+  if (practitionerError && practitionerError.code !== "PGRST202") return { status: 500, body: { ok: false, error: practitionerError.message } };
   // cmeprojects: a week before access or a Manager Administrator nomination ends.
   const accessEnding = await remindAccessEnding(admin);
   // cmeprojects: 7 days after clearance, if bank, super, TFN or right to work are still to finish.
@@ -64,7 +67,7 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
     if (!count) break;
     await flushOutbox();
   }
-  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), ...(care ?? {}), ...(hr ?? {}), ...(roster ?? {}), requests_escalated: escalatedRequests ?? 0, access_ending: accessEnding, onboarding_late: onboardingLate } };
+  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), ...(care ?? {}), ...(hr ?? {}), ...(roster ?? {}), practitioners: practitioners ?? null, requests_escalated: escalatedRequests ?? 0, access_ending: accessEnding, onboarding_late: onboardingLate } };
 }
 
 export const GET = run;

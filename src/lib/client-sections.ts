@@ -177,3 +177,12 @@ export const PLAN_MANAGEMENT: [string, string][] = [
   ["plan", "Plan-managed"],
   ["self", "Self-managed"],
 ];
+
+// cmeprojects (update 124): what an Allied Health practitioner can be given.
+export const PRACTITIONER_SECTIONS: [string, string][] = [
+  ["details", "Client details (DOB, communication needs)"],
+  ["alerts", "Alerts"],
+  ["care_plan", "Care plan and support instructions"],
+  ["documents", "Documents marked “Share with practitioners”"],
+  ["notes", "Other practitioners' notes"],
+];

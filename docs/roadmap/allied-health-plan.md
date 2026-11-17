@@ -1,6 +1,6 @@
 # Stage 6: Allied Health external access (plan for approval)
 
-cmeprojects · 17 Nov 2026 · Status: **approved 17 Nov 2026 (D-058); building as update 124**
+cmeprojects · 17 Nov 2026 · Status: **approved 17 Nov 2026 (D-058); built as update 124 (waiting to run on Dev)**
 
 ## The problem
 

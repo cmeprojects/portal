@@ -13,14 +13,15 @@ import { ArchiveClientForm, ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
-import { archiveClientDocument, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
+import { archiveClientDocument, endPractitionerAccess, shareWithPractitioners, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
 import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
 import { AgreementForm, SignAgreementForm, type Agreement } from "./agreement-form";
 import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
 import { canDo, canDoFor } from "@/lib/module-access";
-import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
+import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -166,6 +167,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     funding: ["funding"],
     staff: ["staff"],
     shifts: ["shifts"],
+    practitioners: ["practitioners"],
   };
   const STEP_SECTIONS: Record<string, string[]> = {
     basic: ["details", "locations", "staff"],
@@ -189,6 +191,33 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             .order("starts_at")
         ).data as { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; status: string; service_id: string | null }[] | null)
       : null;
+  // cmeprojects (update 124, Stage 6; premium): Allied Health practitioners for this client.
+  const seesPractitioners = feats.allied_health !== false && (await canDoFor("clients.external", "view", id));
+  type PAccess = { id: string; user_id: string; sections: string[]; starts_on: string; ends_on: string; consent_on: string; reason: string; ended_at: string | null; created_at: string };
+  const [pAccessRes, pNotesRes, pViewsRes, pSharedRes, pPeopleRes, canGivePractitioners] = seesPractitioners
+    ? await Promise.all([
+        supabase.from("client_external_access").select("id, user_id, sections, starts_on, ends_on, consent_on, reason, ended_at, created_at").eq("client_id", id).order("created_at", { ascending: false }),
+        supabase.from("client_practitioner_notes").select("id, author_id, note_date, body").eq("client_id", id).order("note_date", { ascending: false }).limit(30),
+        supabase.from("client_external_views").select("user_id, viewed_at").eq("client_id", id).order("viewed_at", { ascending: false }).limit(200),
+        supabase.from("client_documents").select("id").eq("client_id", id).eq("shared_with_practitioners", true),
+        supabase.from("profiles").select("id, full_name, email").eq("role", "external").eq("active", true).order("full_name"),
+        canDoFor("clients.external", "edit", id),
+      ])
+    : [null, null, null, null, null, false];
+  const practitionerAccess = pAccessRes && !pAccessRes.error ? ((pAccessRes.data ?? []) as PAccess[]) : null;
+  const practitionerNotes = (pNotesRes?.data ?? []) as { id: string; author_id: string | null; note_date: string; body: string }[];
+  const lastViewed = new Map<string, string>();
+  for (const v of (pViewsRes?.data ?? []) as { user_id: string; viewed_at: string }[]) if (!lastViewed.has(v.user_id)) lastViewed.set(v.user_id, v.viewed_at);
+  const sharedDocs = new Set(((pSharedRes?.data ?? []) as { id: string }[]).map((x) => x.id));
+  const practitionerPeople = ((pPeopleRes?.data ?? []) as { id: string; full_name: string | null; email: string }[]).map((x) => [x.id, x.full_name || x.email] as [string, string]);
+  const practitionerName = new Map(practitionerPeople);
+  const todayAu = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  const in14Days = new Date(Date.parse(`${todayAu}T12:00:00Z`) + 14 * 86_400_000).toISOString().slice(0, 10);
+  const plusMonths = (n: number) => {
+    const d = new Date(`${todayAu}T12:00:00`);
+    d.setMonth(d.getMonth() + n);
+    return d.toISOString().slice(0, 10);
+  };
   const tabs: [string, string, boolean][] = [
     ["overview", "Overview", true],
     ["profile", "Profile", true],
@@ -199,6 +228,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["funding", "Funding", showFunding],
     ["staff", "Assigned staff", !!assignments],
     ["shifts", "Shifts", !!clientShifts],
+    ["practitioners", "Practitioners", !!practitionerAccess],
   ];
   const canEditClient = await canDoFor("clients.list", "edit", id);
   const det = (details.data ?? null) as Record<string, unknown> | null;
@@ -324,6 +354,74 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           </nav>
         )}
       </Card>
+      {inView("practitioners") && practitionerAccess ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Allied Health practitioners</h2>
+            <p className="text-sm text-muted">Outside practitioners see only what you tick, until the end date, and must use two-factor sign-in. Documents show to them only when marked &ldquo;Share with practitioners&rdquo; on the Documents tab.</p>
+          </div>
+          {practitionerAccess.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {practitionerAccess.map((a) => {
+                const live = !a.ended_at && a.ends_on >= todayAu;
+                const soon = live && a.ends_on <= in14Days;
+                return (
+                  <li key={a.id} className={`flex flex-col gap-2 px-3 py-2 ${live ? "" : "opacity-60"}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex-1 font-semibold">{practitionerName.get(a.user_id) ?? "Practitioner"}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${!live ? "bg-page ring-1 ring-line" : soon ? "bg-warn-soft" : "bg-good-soft"}`}>
+                        {a.ended_at ? `Ended ${day(a.ended_at.slice(0, 10))}` : live ? `Until ${day(a.ends_on)}` : `Ended ${day(a.ends_on)}`}
+                      </span>
+                      {live && canGivePractitioners ? (
+                        <form action={endPractitionerAccess}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <input type="hidden" name="client_id" value={id} />
+                          <button className="text-xs font-semibold text-danger underline">End now</button>
+                        </form>
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-muted">
+                      Sees: {a.sections.length ? a.sections.map((s) => PRACTITIONER_SECTIONS.find(([k]) => k === s)?.[1].split(" (")[0] ?? s).join(", ") : "their own reports and notes only"} · consent {day(a.consent_on)}
+                      {a.reason ? ` · ${a.reason}` : ""}
+                      {lastViewed.get(a.user_id) ? ` · last opened ${new Date(lastViewed.get(a.user_id)!).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}` : " · not opened yet"}
+                    </p>
+                    {live && canGivePractitioners ? (
+                      <details>
+                        <summary className="cursor-pointer text-xs font-semibold text-brand">Extend or change what they see</summary>
+                        <div className="mt-2">
+                          <ExtendAccessForm id={a.id} clientId={id} endsOn={a.ends_on} sections={a.sections} today={todayAu} maxEnd={plusMonths(12)} />
+                        </div>
+                      </details>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No practitioners have access.</p>
+          )}
+          {canGivePractitioners ? (
+            <Add label="Give a practitioner access">
+              <GiveAccessForm clientId={id} people={practitionerPeople} documents={(docs ?? []).map((x) => [x.id, x.title] as [string, string])} today={todayAu} defaultEnd={plusMonths(6)} maxEnd={plusMonths(12)} />
+            </Add>
+          ) : null}
+          <div className="flex flex-col gap-2 border-t border-line pt-3">
+            <h3 className="text-sm font-semibold">Practitioner notes</h3>
+            {practitionerNotes.length ? (
+              practitionerNotes.map((n) => (
+                <div key={n.id} className="rounded-md border border-line p-3 text-sm">
+                  <p className="text-xs text-muted">
+                    {day(n.note_date)} · {(n.author_id && practitionerName.get(n.author_id)) || "Practitioner"}
+                  </p>
+                  <p className="mt-1 whitespace-pre-line">{n.body}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted">No notes yet.</p>
+            )}
+          </div>
+        </Card>
+      ) : null}
       {inView("shifts") && clientShifts ? (
         <Card className="flex flex-col gap-3 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -507,6 +605,16 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                           {d.expires_on ? ` · ${expired ? "expired" : "expires"} ${day(d.expires_on)}` : ""}
                         </span>
                       </span>
+                      {canDocs && practitionerAccess ? (
+                        <form action={shareWithPractitioners}>
+                          <input type="hidden" name="id" value={d.id} />
+                          <input type="hidden" name="client_id" value={id} />
+                          <input type="hidden" name="shared" value={sharedDocs.has(d.id) ? "0" : "1"} />
+                          <button className={`rounded-full px-2 py-0.5 text-xs font-semibold ${sharedDocs.has(d.id) ? "bg-good-soft" : "text-brand underline"}`}>
+                            {sharedDocs.has(d.id) ? "Shared with practitioners ✓" : "Share with practitioners"}
+                          </button>
+                        </form>
+                      ) : null}
                       {canDocs ? (
                         <form action={archiveClientDocument}>
                           <input type="hidden" name="id" value={d.id} />

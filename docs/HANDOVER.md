@@ -140,6 +140,18 @@ Last updated: 17 Nov 2026.
   week label), `/roster/timesheets` (tiles, worker columns split from pay-period columns, expand, edit modal, payroll
   CSV), `/my-shifts` (confirm times, ask to swap). run_roster_alerts also sends request and query notices.
   Next: Stage 6 (Allied Health external access; design for approval first).
+- **Stage 6, Allied Health access (update 124, 17 Nov 2026; D-058; plan `docs/roadmap/allied-health-plan.md`):**
+  premium package `features.allied_health`. Practitioners are `external` accounts. `client_external_access`
+  (per client: sections details/alerts/care_plan/documents/notes, start/end date at most 12 months, consent date,
+  reason; ends by itself). Checks `external_sees_basics()` / `external_sees()` are INVOKER (use
+  `feature_enabled`, as externals can't read `features`); they need aal2 (two-factor), an active external
+  profile and a live access row; archived clients drop out. Extra permissive SELECT policies on car_clients,
+  client_details, client_alerts, care plans/goals/instructions, client_documents (shared ones + their own) and
+  storage; practitioners insert report/assessment documents and `client_practitioner_notes` (change within
+  24 h). `client_external_views` logs page opens. `run_practitioner_alerts` (service_role, hourly timer and on
+  giving access). New part `clients.external` (managers all clients, Case Managers assigned). App: session
+  sends practitioners to `/mfa` while the package is on; Home = My clients; `/practitioner/[id]`; client page
+  Practitioners tab (give, extend, end, notes, last opened) and "Share with practitioners" on documents.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client
