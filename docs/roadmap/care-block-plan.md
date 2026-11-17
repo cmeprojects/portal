@@ -111,3 +111,43 @@ each column or tab as its step lands.
      `tasks.public_holidays`); a year view could be added later.
    - Not taken: AI shift notes (separate decision; Assistant privacy review
      first, RSK-09).
+
+## Programs decide wording, rules and policies (owner, 17 Nov 2026)
+
+Owner: "I want a proper determination; I don't want to cross over the
+wordings and business rules and policies in between."
+
+New first step **C0: programs and schemes**, before C1:
+
+- Each program belongs to one **scheme**, a fixed list built into the portal:
+  **NDIS**, **Support at Home**, **Private**, **Other**. The business can add
+  its own programs (for example "NDIS SIL" and "NDIS Community access"), but
+  each one sits under exactly one scheme, and the scheme can't change once the
+  program is used.
+- **The scheme decides everything scheme-specific**, never mixed:
+  - wording (for example NDIS "plan review" vs Support at Home
+    "re-assessment"; NDIS number vs Support at Home identifiers; plan vs
+    budget), with the word for the person ("Participant" or "Client") per
+    scheme, falling back to the organisation's word;
+  - which fields and sections show (an NDIS plan's dates and plan management
+    only on NDIS services; Support at Home classification and budget only on
+    Support at Home services);
+  - business rules (date of birth, readiness, review timing and reminders,
+    agreement and funding rules);
+  - policies and documents tied to a scheme.
+- **A client's program(s) come from their services.** Each service is one
+  program, so one scheme. A client can have services in more than one scheme
+  (for example moving from NDIS to Support at Home); each service keeps its
+  own scheme's wording and rules, and the screens show them separately (one
+  block per scheme), never blended.
+- The client list and the top of the client page show the client's current
+  scheme(s) as chips.
+- **Managing programs moves to a settings area** the system admin can hand to
+  the Manager Administrator on the Access page (with the wording), so they
+  set up their business. The scheme list itself stays fixed in the portal.
+- Tests prove the separation: an NDIS-only field or rule never applies to a
+  Support at Home service and the other way round.
+
+Revised order: C0 programs and schemes, C1 My clients, C2 switches and
+preferences, C3 documents, C4 care plans, C5 reviews, C6 agreements, C7
+funding.
