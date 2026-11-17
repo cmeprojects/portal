@@ -624,3 +624,25 @@ waiting.**
   1,267 pass; round trip clean; browser 14 of 14 (system admin, manager,
   staff admin see all requests; team leader sees their team's; support
   worker refused); lint and typecheck pass.
+
+## Stage 3b implementation record: Teams (17 Nov 2026)
+
+**Built and tested; live update 100 waiting** (owner runs 99 onwards later).
+
+- `people.teams` switched. Policies: "managers and admins manage teams"
+  (teams) uses `can('people.teams', 'edit')`; "managers change team members"
+  and "managers set team leaders" use the check and still exclude staff
+  admins from direct writes (as before). `set_team()` uses the check; staff
+  admins still send membership changes for approval while
+  `people.staff_admin_team_approval` is on (a workflow rule, kept).
+- Defaults: managers and staff admins, all actions.
+- App: Teams page, its actions and the menu use the check; Teams is grantable
+  on the Access page (removed from the QA-007 list).
+- Noted, unchanged (pre-existing): `request_team_change()` doesn't check who
+  asks; a manager still decides every request.
+- Files: migration `20270214000001_teams_switch_over.sql`, `update-100.sql`,
+  `undo-100.sql`, `supabase/setup/verify-100-after.sql`,
+  `supabase/tests/teams_switch.test.sql` (14 checks).
+- Proof: verify-100-after on the local copy, 313 people, 0 changed; full
+  suite 1,281 pass; round trip clean; browser 10 of 10; lint and typecheck
+  pass.

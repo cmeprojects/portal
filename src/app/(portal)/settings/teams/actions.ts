@@ -3,7 +3,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { managesTeamsFor } from "@/lib/module-access";
+
+// Who manages teams: the Access page (update 100). The database checks too.
+async function requireTeams() {
+  const session = await requireSession();
+  if (!(await managesTeamsFor())) throw new Error("You can't change teams.");
+  return session;
+}
 import { friendlyError } from "@/lib/db-error";
 import { text, type FormState } from "@/lib/form";
 import { getPeopleRules } from "@/lib/settings";
@@ -11,7 +19,7 @@ import { getPeopleRules } from "@/lib/settings";
 const PAGE = "/settings/teams";
 
 export async function createTeam(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireTeams();
   const name = text(form, "name");
   if (!name) return { error: "Give the team a name." };
   const supabase = await createClient();
@@ -22,7 +30,7 @@ export async function createTeam(_: FormState, form: FormData): Promise<FormStat
 }
 
 export async function saveTeam(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me } = await requireTeams();
   const id = text(form, "id");
   const name = text(form, "name");
   const active = form.get("active") === "on";

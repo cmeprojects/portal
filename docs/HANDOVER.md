@@ -43,7 +43,10 @@ Last updated: 17 Nov 2026.
   that order"). Seeing everyone's staff requests (and leave, shift changes) is now `can('hr.requests',
   'view')`; defaults managers and staff admins; team leaders keep their team's (team rule); who approves
   unchanged. **Waiting on the owner:** run 99, then `supabase/setup/verify-99-after.sql` (changed = 0).
-  Next: Teams.
+- **Teams switched over (17 Nov 2026, update 100).** Managing teams is now `can('people.teams', 'edit')`;
+  defaults managers and staff admins; staff admins' membership changes still go for approval while that
+  People rule is on. Owner will run 99 onwards later ("i will all the sqls later"). Check script:
+  `supabase/setup/verify-100-after.sql`. Next: Staff.
 - **Plan (approved 17 Nov 2026):** the hard-coded parts share one helper,
   `can_manage_people()` (managers, staff admins, system admin), used by 35 policies on 17 tables and 9
   functions, covering Staff, Teams, Staff requests, Clients and car clients. Switching them means

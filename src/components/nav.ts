@@ -22,6 +22,8 @@ export type NavAccess = {
   carReports?: boolean;
   // Sees everyone's staff requests (Access page, update 99).
   allRequests?: boolean;
+  // Sees and manages Teams (Access page, update 100).
+  teams?: boolean;
   // Live features built in the Feature builder that this person uses.
   customFeatures?: { slug: string; label: string }[];
   // Their reports, for those ticked under "Who sees every entry".
@@ -77,7 +79,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
     people: [
       peopleManager && { href: "/settings/staff", text: "Staff" },
       // Switched off: only the system admin still sees them (cmeprojects).
-      peopleManager && (admin || teamsOn(features)) && { href: "/settings/teams", text: "Teams" },
+      Boolean(access.teams) && (admin || teamsOn(features)) && { href: "/settings/teams", text: "Teams" },
       (admin || (rolesOn(features) && (access.adminAreas ?? []).includes("roles"))) && { href: "/settings/roles", text: "Roles" },
       peopleManager && { href: "/settings/clients", text: "Clients" },
       requests && approver && { href: "/people/requests", text: "Staff requests" },

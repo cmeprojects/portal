@@ -2,9 +2,10 @@
 import { EmptyState } from "@/components/ui";
 import { Users } from "lucide-react";
 import type { Metadata } from "next";
-import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { managesTeamsFor } from "@/lib/module-access";
 import { teamsOn } from "@/lib/feature-parts";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { inCoreTeam, ROLE_LABELS, type Role } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
@@ -18,7 +19,9 @@ export const metadata: Metadata = { title: "Teams" };
 type TeamValue = { members: string[]; leader: string | null };
 
 export default async function TeamsPage() {
-  const { profile: me, features } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me, features } = await requireSession();
+  // Who manages teams: the Access page (update 100).
+  if (!(await managesTeamsFor("view"))) notFound();
   // Teams switched off: only the system admin can still manage them (cmeprojects).
   if (me.role !== "system_admin" && !teamsOn(features)) redirect("/settings/staff");
   const supabase = await createClient();
