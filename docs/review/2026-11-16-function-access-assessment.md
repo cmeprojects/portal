@@ -407,3 +407,27 @@ The AUD-016 clarification (C8) missed these gates.
   policies stay as they are.
 Equivalence: with no title or group grants, every helper and page gives
 today's answer (full suite plus a before/after comparison).
+
+## Decision D-047 (17 Nov 2026): the proper fix (option 3), not option 1
+
+The owner chose the clean end state over widening the person-only gates.
+
+- **Holders of grants:** person (existing `access_grants`, unchanged), job
+  title, function group, and **access level** (the default for everyone at
+  that level, used to reproduce today's role rules).
+- **Precedence:** person → job title → function group → access-level default.
+  The first tier with an applicable grant decides; within a tier the nearest
+  module level decides and a restriction beats an allow. A person's
+  restriction is never overridden.
+- **Ceiling:** protected modules stay system admin only; new starters and
+  external accounts get nothing inherited; sensitive modules only to a job
+  title or person (an access-level default only where today's rule already
+  gives that level the access).
+- **Stage 3:** the grants table, the new precedence in `can()`, the Access
+  page screens, and default grants seeded to match today's role rules. No
+  module is switched over in Stage 3, so no access changes.
+- **Stage 3b onwards:** each module in turn drops its old role rules and asks
+  only `can()`; its defaults already reproduce today's answers, proven by a
+  before/after comparison for every role. Order: onboarding, cars, forms,
+  reports, built features, enquiries, contracts; then the seven "Set by
+  role" modules; Clients built directly on the model (Stage 5).

@@ -19,9 +19,17 @@ Last updated: 17 Nov 2026.
   allowed to use it; clear refusal messages; same button style.
 - **Stage 1 (Function Groups) done:** update 92 run on Dev (17 Nov 2026). No SQL waiting.
 - **Stage 2 done:** update 93 run on Dev (17 Nov 2026). No SQL waiting.
-- **Stage 3 paused for a decision:** architectural conflict found (person-only gates in nine
-  database helpers and in `given()`); resolution proposed in AUD-016 "Stage 3: architectural
-  conflict". Waiting for the owner.
+- **DECIDED (D-047, 17 Nov 2026): the proper fix, no band-aid.** Every module will use only the
+  permission check `can()`. Today's role rules become default grants per access level, so no one's
+  access changes when a module switches. Order:
+  - **Stage 3:** grants table for job titles, function groups and access-level defaults; precedence
+    person → job title → function group → access-level default; Access page screens; defaults seeded
+    to match today's rules (no module switched yet, so nothing changes).
+  - **Stage 3b onwards:** convert modules one at a time to use only `can()` (smallest first: onboarding,
+    cars, forms, reports, built features, enquiries, contracts; then the seven "Set by role" modules).
+    Each: own update, tests, before/after proof of no access change, undo, Stage 1 speed check.
+  - Clients (Stage 5) is built directly on this model.
+  - Option 1 (widening person-only gates) is NOT used.
 - **Approved (D-046):** AUD-016 clarification and Stage 1; six risk ratings (RSK-001 §3).
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2

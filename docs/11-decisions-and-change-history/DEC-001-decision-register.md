@@ -88,6 +88,8 @@ end with the next number.
 
 | D-046 | 16 Nov 2026 | "Go ahead with all 3": (1) AUD-016 final clarification and the Stage 1 approach approved: build Stage 1 (Function Groups, live update 92; SQL reviewed by the owner before it runs on Dev); (2) the six suggested risk ratings approved as written (RSK-001 §3); (3) Next.js upgrade approved as its own change. | Owner (session) |
 
+| D-047 | 17 Nov 2026 | **No band-aid: option 3 is the plan** for function-based access. Every module will ask one permission check (`can()`); today's role rules become **default grants per access level**, so nobody's access changes when a module switches over; the old side-by-side role logic is removed module by module. Stage 3 = grants table (holders: person [existing], job title, function group, access level), precedence person → job title → function group → access-level default, the Access page screens, and default grants seeded to reproduce today's rules. Stage 3b onwards = convert each module to use only `can()`, one at a time (each: its own update, tests, before/after comparison proving no access change, undo, Stage 1 speed check on changed policies). Option 1 (widening the person-only gates) is **not** used. Owner asked that this is noted in the handover. | Owner (session) |
+
 ## Change history
 
 | Version | Date | Author | Change | Approved by |
