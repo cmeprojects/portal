@@ -4,18 +4,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
-import { AddCareClientForm, ClientCareForm, ProgramRow, AddProgramForm, SchemeRow, type Scheme } from "./care-forms";
+import { AddCareClientForm, ProgramRow, AddProgramForm, SchemeRow, type Scheme } from "./care-forms";
 import { canDo } from "@/lib/module-access";
 import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader } from "@/components/ui";
-import { ClientRow } from "../../cars/manage/forms";
 import { ClientTeamsForm } from "./team-form";
+import { ClientList, type ListClient } from "./client-list";
+import { PLAN_MANAGEMENT } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Clients" };
 
 // The company's client list, used by Cars and by built features (for example Fluid intake).
-export default async function ClientsPage() {
+export default async function ClientsPage({ searchParams }: PageProps<"/settings/clients">) {
   // Who sees Clients: the Access page (update 107); which clients, the database.
   const { profile } = await requireSession();
   if (!(await seesClientsFor())) notFound();
@@ -42,43 +43,118 @@ export default async function ClientsPage() {
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
     supabase.from("client_teams").select("client_id, team_id"),
   ]);
+  const setup = (await searchParams).view === "setup";
+
+  // cmeprojects (owner's client list concept): one row per client with what
+  // this person may already see (each query is limited by the database; a
+  // part they can't see comes back empty, and its column is hidden).
+  const today = new Date().toISOString().slice(0, 10);
+  const [detailsRes, assignRes, servicesRes, fundingRes, reviewsRes, agreementsRes, alertsRes] = setup
+    ? []
+    : await Promise.all([
+        supabase.from("client_details").select("client_id, date_of_birth, ndis_number"),
+        supabase.from("client_assignments").select("client_id, user_id, assigned_as, starts_on, ends_on").is("ended_at", null).in("assigned_as", ["case_manager", "support_coordinator"]),
+        supabase.from("client_services").select("id, client_id, label, status, client_programs(scheme)").neq("status", "ended"),
+        supabase.from("client_funding").select("client_id, service_id, scheme, total_amount, used_amount, used_as_of, period_start, period_end, plan_management, classification").eq("status", "active"),
+        supabase.from("client_reviews").select("client_id, scheme, kind, due_on").eq("status", "open").order("due_on"),
+        supabase.from("client_agreements").select("client_id, service_id, scheme, status, ends_on").neq("status", "ended"),
+        supabase.from("client_alerts").select("client_id").eq("active", true).neq("kind", "no_known_alerts"),
+      ]);
+  const schemeLabel = (k: string) => schemes.find((x) => x.key === k)?.label ?? k;
+  const staffName = new Map<string, string>();
+  if (assignRes?.data?.length) {
+    const ids = [...new Set((assignRes.data as { user_id: string }[]).map((a) => a.user_id))];
+    const { data: people } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
+    for (const p of (people ?? []) as { id: string; full_name: string | null; email: string }[]) staffName.set(p.id, p.full_name || p.email);
+  }
+  const teamName = new Map(((teams ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
+  type Svc = { id: string; client_id: string; label: string; client_programs: { scheme: string } | null };
+  const services = ((servicesRes?.data ?? []) as unknown as Svc[]);
+  const svcLabel = new Map(services.map((v) => [v.id, v.label]));
+  const ageOf = (dob: string | null) => {
+    if (!dob) return null;
+    const [y, m, d] = dob.split("-").map(Number);
+    const [ty, tm, td] = today.split("-").map(Number);
+    return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
+  };
+  const details = new Map(((detailsRes?.data ?? []) as { client_id: string; date_of_birth: string | null; ndis_number: string | null }[]).map((d) => [d.client_id, d]));
+  const listClients: ListClient[] = clients.map((c) => {
+    const mine = services.filter((v) => v.client_id === c.id);
+    return {
+      id: c.id,
+      name: c.name,
+      ref: c.client_ref ?? "",
+      reference: c.reference ?? "",
+      preferredName: c.preferred_name ?? "",
+      status: c.status ?? (c.active ? "active" : "discharged"),
+      active: c.active,
+      age: ageOf(details.get(c.id)?.date_of_birth ?? null),
+      ndisNumber: details.get(c.id)?.ndis_number ?? "",
+      schemes: [...new Set(mine.map((v) => v.client_programs?.scheme ?? "other"))],
+      services: mine.map((v) => v.label),
+      managers: ((assignRes?.data ?? []) as { client_id: string; user_id: string; assigned_as: string; starts_on: string; ends_on: string | null }[])
+        .filter((a) => a.client_id === c.id && a.starts_on <= today && (!a.ends_on || a.ends_on >= today))
+        .map((a) => ({ name: staffName.get(a.user_id) ?? "Staff member", as: a.assigned_as === "support_coordinator" ? "support coordinator" : "care manager" })),
+      teams: ((links ?? []) as { client_id: string; team_id: string }[]).filter((l) => l.client_id === c.id).map((l) => teamName.get(l.team_id) ?? "").filter(Boolean),
+      budgets: ((fundingRes?.data ?? []) as { client_id: string; service_id: string; scheme: string; total_amount: number; used_amount: number; used_as_of: string | null; period_start: string; period_end: string; plan_management: string | null; classification: number | null }[])
+        .filter((f) => f.client_id === c.id)
+        .map((f) => ({
+          scheme: f.scheme,
+          schemeLabel: schemeLabel(f.scheme),
+          label: svcLabel.get(f.service_id) ?? "Service",
+          total: Number(f.total_amount),
+          used: Number(f.used_amount),
+          usedAsOf: f.used_as_of,
+          periodStart: f.period_start,
+          periodEnd: f.period_end,
+          management: f.plan_management ? (PLAN_MANAGEMENT.find(([k]) => k === f.plan_management)?.[1] ?? "") : f.classification ? `Classification ${f.classification}` : "",
+        })),
+      reviews: ((reviewsRes?.data ?? []) as { client_id: string; scheme: string; kind: string; due_on: string }[])
+        .filter((r) => r.client_id === c.id)
+        .map((r) => {
+          const w = schemes.find((x) => x.key === r.scheme);
+          return { label: w ? (r.kind === "scheduled" ? w.review_label : w.change_review_label) : "Review", due: r.due_on, overdue: r.due_on < today };
+        }),
+      agreements: ((agreementsRes?.data ?? []) as { client_id: string; service_id: string; scheme: string; status: string; ends_on: string | null }[])
+        .filter((a) => a.client_id === c.id)
+        .map((a) => ({ label: `${svcLabel.get(a.service_id) ?? "Service"} (${schemeLabel(a.scheme)})`, status: a.status === "sent" ? "sent for signing" : a.status, ends: a.ends_on })),
+      alerts: ((alertsRes?.data ?? []) as { client_id: string }[]).filter((a) => a.client_id === c.id).length,
+    };
+  });
+  const showNdis = !detailsRes?.error && listClients.some((c) => c.ndisNumber);
+  const showBudget = !fundingRes?.error && (await canDo("clients.funding", "view"));
   return (
     <>
       <PageHeader
-        title="Clients"
-        intro="The people you support. Each client has a reference (CL-00001) and a status. Staff pick from this list in Cars and features like Fluid intake, and only see the name."
+        title={orgWord.endsWith("s") ? orgWord : `${orgWord}s`}
+        intro="The people you support. Click a name to see a summary; open the full profile for everything else."
       />
-      <Card className="p-4">
-        <AddCareClientForm staff={staff} word={orgWord} />
-      </Card>
-      {toCheck.length ? (
-        <Notice tone="info">
-          {toCheck.length === 1 ? "1 client is" : `${toCheck.length} clients are`} <strong>to check</strong>: {toCheck.slice(0, 5).map((c) => c.name).join(", ")}
-          {toCheck.length > 5 ? " and more" : ""}. Open a client, check their details and set the status (for example Active).
-        </Notice>
-      ) : null}
-      {clients.length ? (
-        <Card className="overflow-hidden">
-          <h2 className="border-b border-line px-4 py-2 text-sm font-semibold">
-            {clients.filter((c) => c.active).length} shown{clients.some((c) => !c.active) ? ` · ${clients.filter((c) => !c.active).length} hidden` : ""}
-          </h2>
-          <ul className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 [&>li]:border-line sm:[&>li]:border-b">
-            {clients.map((c) => (
-              <ClientRow key={c.id} client={c}>
-                {c.client_ref && c.status ? (
-                  <>
-                    <ClientCareForm client={{ id: c.id, name: c.name, client_ref: c.client_ref, status: c.status, preferred_name: c.preferred_name ?? "" }} />
-                    <Link href={`/settings/clients/${c.id}`} className="mt-2 inline-block text-sm font-semibold text-brand hover:underline">
-                      Open full profile (locations, contacts, safety, services)
-                    </Link>
-                  </>
-                ) : null}
-              </ClientRow>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-      {!linkError && clients.some((c) => c.active) ? (
+      <nav className="flex gap-1 border-b border-line text-sm" aria-label="Client pages">
+        <Link href="/settings/clients" className={`-mb-px border-b-2 px-3 py-2 font-semibold ${setup ? "border-transparent text-muted hover:text-ink" : "border-brand"}`}>
+          List
+        </Link>
+        <Link href="/settings/clients?view=setup" className={`-mb-px border-b-2 px-3 py-2 font-semibold ${setup ? "border-brand" : "border-transparent text-muted hover:text-ink"}`}>
+          Teams and programs
+        </Link>
+      </nav>
+      {setup ? null : (
+        <>
+          <details className="shadow-card group rounded-xl border border-line bg-surface">
+            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">+ Add {orgWord.toLowerCase()}</summary>
+            <div className="border-t border-line p-4">
+              <AddCareClientForm staff={staff} word={orgWord} />
+            </div>
+          </details>
+          {toCheck.length ? (
+            <Notice tone="info">
+              {toCheck.length === 1 ? `1 ${orgWord.toLowerCase()} is` : `${toCheck.length} ${(orgWord.endsWith("s") ? orgWord : `${orgWord}s`).toLowerCase()} are`} <strong>to check</strong>: {toCheck.slice(0, 5).map((c) => c.name).join(", ")}
+              {toCheck.length > 5 ? " and more" : ""}. Open them, check their details and set the status (for example Active).
+            </Notice>
+          ) : null}
+          <ClientList clients={listClients} word={orgWord} schemes={schemes.map((x) => [x.key, x.label])} showNdis={showNdis} showBudget={showBudget} />
+        </>
+      )}
+      {setup && !linkError && clients.some((c) => c.active) ? (
         <Card className="p-4">
           <h2 className="heading-sm">Which team looks after each client</h2>
           <p className="mb-2 text-sm text-muted">Team leaders see their team&apos;s clients, with their open tasks, on their dashboard.</p>
@@ -95,7 +171,7 @@ export default async function ClientsPage() {
           )}
         </Card>
       ) : null}
-      {programs ? (
+      {setup && programs ? (
         <Card className="p-4">
           <h2 className="heading-sm">Programs and schemes</h2>
           <p className="mb-2 text-sm text-muted">

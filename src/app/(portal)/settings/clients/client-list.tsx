@@ -1,0 +1,360 @@
+// Staff Portal · © cmeproject. All rights reserved.
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
+import { inputClass } from "@/components/ui";
+import { ClientCareForm } from "./care-forms";
+import { ClientRow, ClientStatusChip } from "../../cars/manage/forms";
+
+export type ListBudget = { scheme: string; schemeLabel: string; label: string; total: number; used: number; usedAsOf: string | null; periodStart: string; periodEnd: string; management: string };
+export type ListClient = {
+  id: string;
+  name: string;
+  ref: string;
+  reference: string;
+  preferredName: string;
+  status: string;
+  active: boolean;
+  age: number | null;
+  ndisNumber: string;
+  schemes: string[];
+  services: string[];
+  managers: { name: string; as: string }[];
+  teams: string[];
+  budgets: ListBudget[];
+  reviews: { label: string; due: string; overdue: boolean }[];
+  agreements: { label: string; status: string; ends: string | null }[];
+  alerts: number;
+};
+
+type SortKey = "name" | "age" | "manager" | "used" | "review";
+const aud = (n: number) => n.toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
+const day = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "");
+const usedPct = (c: ListClient) => {
+  const total = c.budgets.reduce((s, b) => s + b.total, 0);
+  return total > 0 ? Math.round((c.budgets.reduce((s, b) => s + b.used, 0) / total) * 100) : null;
+};
+const isArchived = (c: ListClient) => !c.active || c.status === "discharged";
+
+// cmeprojects (owner's client list concept, 17 Nov 2026): a searchable,
+// sortable table with Active and Archived tabs; a client opens in a side
+// panel (Overview, Plan budget, Reviews and agreements). Each column only
+// holds what this person may already see (the database decides).
+export function ClientList({ clients, word, schemes, showNdis, showBudget }: { clients: ListClient[]; word: string; schemes: [string, string][]; showNdis: boolean; showBudget: boolean }) {
+  const [tab, setTab] = useState<"active" | "archived">("active");
+  const [q, setQ] = useState("");
+  const [scheme, setScheme] = useState("");
+  const [manager, setManager] = useState("");
+  const [status, setStatus] = useState("");
+  const [sort, setSort] = useState<{ key: SortKey; up: boolean }>({ key: "name", up: true });
+  const [open, setOpen] = useState<string | null>(null);
+  const plural = word.endsWith("s") ? word : `${word}s`;
+
+  const managers = useMemo(() => [...new Set(clients.flatMap((c) => c.managers.map((m) => m.name)))].sort(), [clients]);
+  const counts = { active: clients.filter((c) => !isArchived(c)).length, archived: clients.filter(isArchived).length };
+  const rows = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const list = clients.filter(
+      (c) =>
+        (tab === "archived") === isArchived(c) &&
+        (!term || [c.name, c.preferredName, c.ref, c.reference, c.ndisNumber, ...c.services].some((v) => v.toLowerCase().includes(term))) &&
+        (!scheme || c.schemes.includes(scheme)) &&
+        (!manager || (manager === "-" ? c.managers.length === 0 : c.managers.some((m) => m.name === manager))) &&
+        (!status || c.status === status),
+    );
+    const val = (c: ListClient): string | number => {
+      switch (sort.key) {
+        case "age":
+          return c.age ?? -1;
+        case "manager":
+          return c.managers[0]?.name ?? "~";
+        case "used":
+          return usedPct(c) ?? -1;
+        case "review":
+          return c.reviews[0]?.due ?? "9999";
+        default:
+          return c.name.toLowerCase();
+      }
+    };
+    return list.sort((a, b) => {
+      const x = val(a);
+      const y = val(b);
+      return (x < y ? -1 : x > y ? 1 : 0) * (sort.up ? 1 : -1);
+    });
+  }, [clients, tab, q, scheme, manager, status, sort]);
+  const picked = clients.find((c) => c.id === open) ?? null;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <div className="shadow-card flex flex-col rounded-xl border border-line bg-surface">
+      <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 pt-2">
+        {(["active", "archived"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${tab === t ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}
+          >
+            {t === "active" ? "Active" : "Archived"} <span className="text-xs font-normal text-muted">{counts[t]}</span>
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-end gap-2 p-3">
+        <label className="relative min-w-48 flex-1">
+          <span className="sr-only">Search</span>
+          <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search name, reference${showNdis ? ", NDIS number" : ""} or service`} className={`${inputClass} pl-8`} />
+        </label>
+        <select aria-label="Scheme" value={scheme} onChange={(e) => setScheme(e.target.value)} className={`${inputClass.replace("w-full", "")} w-full sm:w-44`}>
+          <option value="">All schemes</option>
+          {schemes.map(([k, l]) => (
+            <option key={k} value={k}>
+              {l}
+            </option>
+          ))}
+        </select>
+        <select aria-label="Assigned manager" value={manager} onChange={(e) => setManager(e.target.value)} className={`${inputClass.replace("w-full", "")} w-full sm:w-44`}>
+          <option value="">Any manager</option>
+          <option value="-">Nobody assigned</option>
+          {managers.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+        {tab === "active" ? (
+          <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)} className={`${inputClass.replace("w-full", "")} w-full sm:w-44`}>
+            <option value="">Any status</option>
+            <option value="active">Active</option>
+            <option value="pending">To check</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        ) : null}
+      </div>
+      {rows.length ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[46rem] text-sm">
+            <thead className="border-y border-line bg-page/60">
+              <tr>
+                <HeadCell sort={sort} setSort={setSort} k="name">Name</HeadCell>
+                <HeadCell sort={sort} setSort={setSort} k="age" className="w-16">Age</HeadCell>
+                {showNdis ? <HeadCell sort={sort} setSort={setSort}>NDIS number</HeadCell> : null}
+                <HeadCell sort={sort} setSort={setSort}>Services</HeadCell>
+                <HeadCell sort={sort} setSort={setSort} k="manager">Assigned manager</HeadCell>
+                {showBudget ? <HeadCell sort={sort} setSort={setSort} k="used" className="w-36">Funds used</HeadCell> : null}
+                <HeadCell sort={sort} setSort={setSort} k="review">Next review</HeadCell>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {rows.map((c) => {
+                const pct = usedPct(c);
+                return (
+                  <tr key={c.id} onClick={() => setOpen(c.id)} className={`cursor-pointer hover:bg-page/70 ${open === c.id ? "bg-brand-soft/40" : ""}`}>
+                    <td className="px-3 py-2">
+                      <button type="button" onClick={() => setOpen(c.id)} className="text-left font-semibold hover:text-brand">
+                        {c.name}
+                      </button>
+                      <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                        {c.ref}
+                        {c.status !== "active" ? <ClientStatusChip status={c.status} /> : null}
+                        {c.alerts ? <span className="rounded-full bg-warn-soft px-1.5 text-ink">{c.alerts} alert{c.alerts === 1 ? "" : "s"}</span> : null}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-muted">{c.age ?? ""}</td>
+                    {showNdis ? <td className="px-3 py-2 tabular-nums">{c.ndisNumber}</td> : null}
+                    <td className="px-3 py-2">
+                      <span className="flex flex-wrap gap-1">
+                        {c.schemes.map((s) => (
+                          <span key={s} className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">
+                            {schemes.find(([k]) => k === s)?.[1] ?? s}
+                          </span>
+                        ))}
+                        {!c.schemes.length ? <span className="text-xs text-muted">None yet</span> : null}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">{c.managers.length ? c.managers.map((m) => m.name).join(", ") : <span className="text-muted">Nobody</span>}</td>
+                    {showBudget ? (
+                      <td className="px-3 py-2">
+                        {pct === null ? (
+                          <span className="text-muted">—</span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <span className="h-1.5 w-16 overflow-hidden rounded-full bg-line" aria-hidden="true">
+                              <span className={`block h-full ${pct >= 90 ? "bg-danger" : pct >= 75 ? "bg-warn" : "bg-good"}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                            </span>
+                            <span className="text-xs tabular-nums">{pct}%</span>
+                          </span>
+                        )}
+                      </td>
+                    ) : null}
+                    <td className={`px-3 py-2 text-xs ${c.reviews[0]?.overdue ? "font-semibold text-danger" : "text-muted"}`}>
+                      {c.reviews[0] ? `${c.reviews[0].label} · ${c.reviews[0].overdue ? "overdue" : day(c.reviews[0].due)}` : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="px-4 pb-6 pt-2 text-center text-sm text-muted">
+          {clients.length ? `No ${plural.toLowerCase()} match.` : `No ${plural.toLowerCase()} yet. Add one above.`}
+        </p>
+      )}
+      {picked ? <Panel client={picked} onClose={() => setOpen(null)} schemes={schemes} showBudget={showBudget} /> : null}
+    </div>
+  );
+}
+
+function HeadCell({ k, children, className = "", sort, setSort }: { k?: SortKey; children: string; className?: string; sort: { key: SortKey; up: boolean }; setSort: (f: (s: { key: SortKey; up: boolean }) => { key: SortKey; up: boolean }) => void }) {
+  return (
+    <th scope="col" className={`px-3 py-2 text-left text-xs font-semibold text-muted ${className}`}>
+      {k ? (
+        <button type="button" onClick={() => setSort((s) => ({ key: k, up: s.key === k ? !s.up : true }))} className="inline-flex items-center gap-1 hover:text-ink">
+          {children}
+          {sort.key === k ? sort.up ? <ArrowUp aria-hidden="true" className="size-3" /> : <ArrowDown aria-hidden="true" className="size-3" /> : null}
+        </button>
+      ) : (
+        children
+      )}
+    </th>
+  );
+}
+
+function Panel({ client: c, onClose, schemes, showBudget }: { client: ListClient; onClose: () => void; schemes: [string, string][]; showBudget: boolean }) {
+  const [tab, setTab] = useState<"overview" | "budget" | "reviews">("overview");
+  const tabs: [typeof tab, string][] = [["overview", "Overview"], ...(showBudget ? [["budget", "Plan budget"] as [typeof tab, string]] : []), ["reviews", "Reviews and agreements"]];
+  return (
+    <>
+      <button type="button" aria-label="Close" onClick={onClose} className="fixed inset-0 z-40 bg-black/20" />
+      <aside role="dialog" aria-label={c.name} className="thin-scroll fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col overflow-y-auto bg-surface shadow-2xl">
+        <div className="flex items-start gap-2 border-b border-line p-4">
+          <div className="min-w-0 flex-1">
+            <h2 className="heading-sm">{c.name}</h2>
+            <p className="text-xs text-muted">
+              {c.ref}
+              {c.preferredName ? ` · goes by ${c.preferredName}` : ""}
+              {c.age !== null ? ` · ${c.age} years` : ""}
+            </p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              <ClientStatusChip status={c.status} />
+              {c.schemes.map((s) => (
+                <span key={s} className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">
+                  {schemes.find(([k]) => k === s)?.[1] ?? s}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-page hover:text-ink">
+            <X aria-hidden="true" className="size-5" />
+          </button>
+        </div>
+        <div className="flex gap-1 border-b border-line px-3">
+          {tabs.map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setTab(k)} className={`-mb-px border-b-2 px-2 py-2 text-xs font-semibold ${tab === k ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-col gap-4 p-4 text-sm">
+          {tab === "overview" ? (
+            <>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+                {c.ndisNumber ? (
+                  <>
+                    <dt className="text-muted">NDIS number</dt>
+                    <dd className="tabular-nums">{c.ndisNumber}</dd>
+                  </>
+                ) : null}
+                <dt className="text-muted">Services</dt>
+                <dd>{c.services.length ? c.services.join(", ") : "None yet"}</dd>
+                <dt className="text-muted">Managed by</dt>
+                <dd>{c.managers.length ? c.managers.map((m) => `${m.name} (${m.as})`).join(", ") : "Nobody assigned"}</dd>
+                <dt className="text-muted">Teams</dt>
+                <dd>{c.teams.length ? c.teams.join(", ") : "None"}</dd>
+                <dt className="text-muted">Safety alerts</dt>
+                <dd>{c.alerts ? `${c.alerts} active` : "None active"}</dd>
+              </dl>
+              <Link href={`/settings/clients/${c.id}`} className="inline-flex w-fit rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-brand-fg hover:opacity-90">
+                Open full profile
+              </Link>
+              <div className="border-t border-line pt-3">
+                <h3 className="mb-1 text-xs font-semibold uppercase text-muted">Status and preferred name</h3>
+                <ClientCareForm client={{ id: c.id, name: c.name, client_ref: c.ref, status: c.status, preferred_name: c.preferredName }} />
+              </div>
+              <ul className="border-t border-line pt-1">
+                <ClientRow client={{ id: c.id, name: c.name, reference: c.reference, active: c.active, client_ref: c.ref, status: c.status }} />
+              </ul>
+            </>
+          ) : tab === "budget" ? (
+            c.budgets.length ? (
+              <ul className="flex flex-col gap-3">
+                {c.budgets.map((b, i) => {
+                  const pct = b.total > 0 ? Math.round((b.used / b.total) * 100) : 0;
+                  return (
+                    <li key={i} className="rounded-lg border border-line p-3">
+                      <p className="font-semibold">
+                        {b.label} · {b.schemeLabel}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {day(b.periodStart)} to {day(b.periodEnd)}
+                        {b.management ? ` · ${b.management}` : ""}
+                      </p>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-line" aria-hidden="true">
+                        <div className={`h-full ${pct >= 90 ? "bg-danger" : pct >= 75 ? "bg-warn" : "bg-good"}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                      </div>
+                      <p className="mt-1 text-xs">
+                        {aud(b.used)} of {aud(b.total)} used ({pct}%) · {aud(Math.max(0, b.total - b.used))} left{b.usedAsOf ? ` · as at ${day(b.usedAsOf)}` : ""}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-muted">No current budgets.</p>
+            )
+          ) : (
+            <>
+              <div>
+                <h3 className="mb-1 text-xs font-semibold uppercase text-muted">Open reviews</h3>
+                {c.reviews.length ? (
+                  <ul className="flex flex-col gap-1">
+                    {c.reviews.map((r, i) => (
+                      <li key={i} className={r.overdue ? "font-semibold text-danger" : ""}>
+                        {r.label} · {r.overdue ? `overdue (due ${day(r.due)})` : `due ${day(r.due)}`}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted">None open.</p>
+                )}
+              </div>
+              <div>
+                <h3 className="mb-1 text-xs font-semibold uppercase text-muted">Service agreements</h3>
+                {c.agreements.length ? (
+                  <ul className="flex flex-col gap-1">
+                    {c.agreements.map((a, i) => (
+                      <li key={i}>
+                        {a.label} · {a.status}
+                        {a.ends ? ` · ends ${day(a.ends)}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted">None current.</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+}
