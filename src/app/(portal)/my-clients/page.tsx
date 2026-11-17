@@ -41,12 +41,15 @@ export default async function MyClientsPage() {
   }
   const clients = [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
   const ids = clients.map((c) => c.id);
-  const [locs, alerts] = ids.length
+  const { data: plansOn } = await supabase.from("app_settings").select("value").eq("key", "care.section_care_plans").maybeSingle();
+  const [locs, alerts, steps] = ids.length
     ? await Promise.all([
         supabase.from("client_locations").select("id, client_id, label, address, suburb, access_notes, from_date, to_date").in("client_id", ids).eq("approved", true),
         supabase.from("client_alerts").select("id, client_id, title, severity, worker_instructions").in("client_id", ids).eq("active", true),
+        // cmeprojects (Care block C4): current worker instructions (none before update 113).
+        supabase.from("client_worker_instructions").select("id, client_id, title, instructions").in("client_id", plansOn?.value === false ? [] : ids).eq("active", true).order("sort_order").order("title"),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
   const opens = new Map(await Promise.all(ids.map(async (id) => [id, await canDoFor("clients.list", "view", id)] as const)));
   const plural = word.endsWith("s") ? word : `${word}s`;
   return (
@@ -59,6 +62,7 @@ export default async function MyClientsPage() {
           {clients.map((c) => {
             const myLocs = ((locs.data ?? []) as Loc[]).filter((l) => l.client_id === c.id && (!l.from_date || l.from_date <= today) && (!l.to_date || l.to_date >= today));
             const myAlerts = ((alerts.data ?? []) as Alert[]).filter((a) => a.client_id === c.id);
+            const mySteps = ((steps.data ?? []) as { id: string; client_id: string; title: string; instructions: string }[]).filter((w) => w.client_id === c.id);
             return (
               <Card key={c.id} className="flex flex-col gap-3 p-4">
                 <div className="flex flex-wrap items-start gap-2">
@@ -99,6 +103,16 @@ export default async function MyClientsPage() {
                 ) : (
                   <p className="text-sm text-muted">No active alerts.</p>
                 )}
+                {mySteps.length ? (
+                  <ul className="flex flex-col gap-1 text-sm">
+                    {mySteps.map((w) => (
+                      <li key={w.id}>
+                        <span className="font-medium">{w.title}</span>
+                        <span className="block whitespace-pre-line text-muted">{w.instructions}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 {myLocs.length ? (
                   <ul className="flex flex-col gap-1 text-sm">
                     {myLocs.map((l) => (

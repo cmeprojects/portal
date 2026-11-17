@@ -91,7 +91,7 @@ export async function assignStaff(_: FormState, form: FormData): Promise<FormSta
   const startsOn = String(form.get("starts_on") ?? "");
   const endsOn = String(form.get("ends_on") ?? "");
   if (!isId(clientId) || !isId(userId)) return { error: "Choose a staff member." };
-  if (!["case_manager", "intake", "key_worker", "other"].includes(as)) return { error: "Choose what they're assigned as." };
+  if (!["case_manager", "support_coordinator", "intake", "key_worker", "other"].includes(as)) return { error: "Choose what they're assigned as." };
   const day = /^\d{4}-\d{2}-\d{2}$/;
   const { error } = await (await createClient()).from("client_assignments").insert({
     client_id: clientId,
@@ -187,5 +187,93 @@ export async function archiveClientDocument(form: FormData) {
   const clientId = String(form.get("client_id") ?? "");
   if (!isId(id) || !isId(clientId)) return;
   await (await createClient()).from("client_documents").update({ archived_at: new Date().toISOString() }).eq("id", id);
+  revalidatePath(`/settings/clients/${clientId}`);
+}
+
+// cmeprojects (Care block C4, update 113): care plans, goals and worker
+// instructions. The database checks who may (Care plans, for this client),
+// keeps one current plan, fixes a plan's wording once it's current and never
+// deletes anything.
+const ymd = (v: FormDataEntryValue | null) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? String(v) : null);
+
+export async function saveCarePlan(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const id = String(form.get("id") ?? "");
+  const documentId = String(form.get("document_id") ?? "");
+  if (!isId(clientId) || (id && !isId(id)) || (documentId && !isId(documentId))) return { error: "That didn't save. Please reload the page." };
+  const title = String(form.get("title") ?? "").trim().slice(0, 120);
+  if (!title) return { error: "Give the plan a title." };
+  const values = {
+    title,
+    assessed_on: ymd(form.get("assessed_on")),
+    starts_on: ymd(form.get("starts_on")),
+    review_by: ymd(form.get("review_by")),
+    summary: String(form.get("summary") ?? "").trim().slice(0, 5000),
+    document_id: documentId || null,
+  };
+  const supabase = await createClient();
+  const { error } = id
+    ? await supabase.from("client_care_plans").update(values).eq("id", id).eq("client_id", clientId)
+    : await supabase.from("client_care_plans").insert({ client_id: clientId, ...values });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: id ? "Saved." : "Draft added." };
+}
+
+export async function setCarePlanStatus(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  const status = String(form.get("status") ?? "");
+  if (!isId(id) || !isId(clientId) || !["current", "archived"].includes(status)) return;
+  await (await createClient()).from("client_care_plans").update({ status }).eq("id", id).eq("client_id", clientId);
+  revalidatePath(`/settings/clients/${clientId}`);
+}
+
+export async function saveCareGoal(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const planId = String(form.get("plan_id") ?? "");
+  if (!isId(clientId) || !isId(planId)) return { error: "That didn't save. Please reload the page." };
+  const goal = String(form.get("goal") ?? "").trim().slice(0, 500);
+  if (!goal) return { error: "Write the goal." };
+  const { error } = await (await createClient())
+    .from("client_care_goals")
+    .insert({ client_id: clientId, plan_id: planId, goal, measure: String(form.get("measure") ?? "").trim().slice(0, 500) });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: "Goal added." };
+}
+
+export async function setCareGoalStatus(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  const status = String(form.get("status") ?? "");
+  if (!isId(id) || !isId(clientId) || !["active", "achieved", "discontinued"].includes(status)) return;
+  await (await createClient()).from("client_care_goals").update({ status }).eq("id", id).eq("client_id", clientId);
+  revalidatePath(`/settings/clients/${clientId}`);
+}
+
+export async function saveWorkerInstruction(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(clientId)) return { error: "That didn't save. Please reload the page." };
+  const title = String(form.get("title") ?? "").trim().slice(0, 120);
+  const instructions = String(form.get("instructions") ?? "").trim().slice(0, 2000);
+  if (!title || !instructions) return { error: "Fill in the heading and the instructions." };
+  const { error } = await (await createClient()).from("client_worker_instructions").insert({ client_id: clientId, title, instructions });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: "Added." };
+}
+
+export async function setWorkerInstructionActive(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(id) || !isId(clientId)) return;
+  await (await createClient()).from("client_worker_instructions").update({ active: form.get("active") === "true" }).eq("id", id).eq("client_id", clientId);
   revalidatePath(`/settings/clients/${clientId}`);
 }

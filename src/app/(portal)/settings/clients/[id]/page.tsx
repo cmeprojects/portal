@@ -13,7 +13,8 @@ import { ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
-import { archiveClientDocument, endAssignment } from "./actions";
+import { archiveClientDocument, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
 import { canDoFor } from "@/lib/module-access";
 import { ALERT_KINDS, ASSIGNED_AS, DOC_TYPE_LABELS, PERSON_KINDS, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
@@ -53,6 +54,21 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
     for (const sgn of signed ?? []) if (sgn.signedUrl && sgn.path) docLinks.set(sgn.path, sgn.signedUrl);
   }
   const showDocs = docs !== null && docsOn.data?.value !== false && (docs.length > 0 || canDocs);
+  // cmeprojects (Care block C4): care plans, goals and worker instructions, if that section is on.
+  type Goal = { id: string; plan_id: string; goal: string; measure: string; status: string };
+  type Instruction = { id: string; title: string; instructions: string; active: boolean };
+  const [plansRes, goalsRes, instrRes, plansOn, canPlans] = await Promise.all([
+    supabase.from("client_care_plans").select("id, title, status, assessed_on, starts_on, review_by, summary, document_id").eq("client_id", id).order("created_at", { ascending: false }),
+    supabase.from("client_care_goals").select("id, plan_id, goal, measure, status").eq("client_id", id).order("sort_order").order("goal"),
+    supabase.from("client_worker_instructions").select("id, title, instructions, active").eq("client_id", id).order("active", { ascending: false }).order("sort_order").order("title"),
+    supabase.from("app_settings").select("value").eq("key", "care.section_care_plans").maybeSingle(),
+    canDoFor("clients.care_plans", "edit", id),
+  ]);
+  const plans = plansRes.error ? null : ((plansRes.data ?? []) as CarePlan[]);
+  const goals = (goalsRes.data ?? []) as Goal[];
+  const instructions = instrRes.error ? null : ((instrRes.data ?? []) as Instruction[]);
+  const plansSectionOn = plansOn.data?.value !== false;
+  const docChoices: [string, string][] = (docs ?? []).map((d) => [d.id, `${d.title} (version ${d.version})`]);
   // cmeprojects (Care block C2): communication preferences, if that section is on.
   const [commsRes, commsOn, canComms] = await Promise.all([
     supabase.from("client_comms").select("preferred_contact, language, interpreter_needed, accessibility_needs, notes").eq("client_id", id).maybeSingle(),
@@ -159,6 +175,131 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
               <DocumentForm clientId={id} />
             </Add>
           ) : null}
+        </Card>
+      ) : null}
+      {plansSectionOn && plans && (plans.length || canPlans) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Care plans</h2>
+            <p className="text-sm text-muted">Start a draft, add its goals, then make it current (the old plan is archived). A current plan&apos;s wording is fixed: start a new draft to change it. Progress on goals can be updated any time.</p>
+          </div>
+          {plans.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {plans.map((p) => {
+                const planGoals = goals.filter((g) => g.plan_id === p.id);
+                return (
+                  <li key={p.id} className={`px-3 py-2 ${p.status === "archived" ? "text-muted" : ""}`}>
+                    <details name="care-plan" open={p.status === "current"}>
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 [&::-webkit-details-marker]:hidden">
+                        <span className="min-w-40 flex-1 font-semibold">{p.title}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.status === "current" ? "bg-good-soft" : p.status === "draft" ? "bg-warn-soft" : "bg-line"}`}>
+                          {p.status === "current" ? "Current" : p.status === "draft" ? "Draft" : "Archived"}
+                        </span>
+                        {p.review_by ? <span className="text-xs text-muted">review by {day(p.review_by)}</span> : null}
+                      </summary>
+                      <div className="mt-2 flex flex-col gap-2">
+                        {canPlans && p.status === "draft" ? (
+                          <CarePlanForm clientId={id} plan={p} documents={docChoices} />
+                        ) : (
+                          <>
+                            <p className="text-xs text-muted">
+                              {p.assessed_on ? `Assessed ${day(p.assessed_on)}` : "Assessment date not recorded"}
+                              {p.starts_on ? ` · starts ${day(p.starts_on)}` : ""}
+                              {p.document_id ? ` · document: ${label(docChoices, p.document_id) || "archived"}` : ""}
+                            </p>
+                            {p.summary ? <p className="whitespace-pre-line">{p.summary}</p> : null}
+                          </>
+                        )}
+                        <h3 className="text-xs font-semibold uppercase text-muted">Goals</h3>
+                        {planGoals.length ? (
+                          <ul className="flex flex-col gap-1">
+                            {planGoals.map((g) => (
+                              <li key={g.id} className="flex flex-wrap items-center gap-2">
+                                <span className="min-w-40 flex-1">
+                                  {g.goal}
+                                  {g.measure ? <span className="block text-xs text-muted">{g.measure}</span> : null}
+                                </span>
+                                {canPlans && p.status !== "archived" ? (
+                                  <form action={setCareGoalStatus} className="flex items-center gap-1">
+                                    <input type="hidden" name="id" value={g.id} />
+                                    <input type="hidden" name="client_id" value={id} />
+                                    <select name="status" defaultValue={g.status} className="rounded border border-line bg-surface px-1 py-0.5 text-xs" aria-label="Progress">
+                                      <option value="active">Working on it</option>
+                                      <option value="achieved">Achieved</option>
+                                      <option value="discontinued">Discontinued</option>
+                                    </select>
+                                    <button className="text-xs font-semibold text-brand underline">Update</button>
+                                  </form>
+                                ) : (
+                                  <span className="text-xs text-muted">{g.status === "active" ? "Working on it" : g.status === "achieved" ? "Achieved" : "Discontinued"}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-muted">No goals yet.</p>
+                        )}
+                        {canPlans && p.status === "draft" ? <Add label="Add a goal"><CareGoalForm clientId={id} planId={p.id} /></Add> : null}
+                        {canPlans && p.status !== "archived" ? (
+                          <div className="flex flex-wrap gap-3">
+                            {p.status === "draft" ? (
+                              <form action={setCarePlanStatus}>
+                                <input type="hidden" name="id" value={p.id} />
+                                <input type="hidden" name="client_id" value={id} />
+                                <input type="hidden" name="status" value="current" />
+                                <button className="text-xs font-semibold text-brand underline">Make this the current plan</button>
+                              </form>
+                            ) : null}
+                            <form action={setCarePlanStatus}>
+                              <input type="hidden" name="id" value={p.id} />
+                              <input type="hidden" name="client_id" value={id} />
+                              <input type="hidden" name="status" value="archived" />
+                              <button className="text-xs font-semibold text-brand underline">Archive</button>
+                            </form>
+                          </div>
+                        ) : null}
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No care plans yet.</p>
+          )}
+          {canPlans ? <Add label="Start a new draft"><CarePlanForm clientId={id} documents={docChoices} /></Add> : null}
+        </Card>
+      ) : null}
+      {plansSectionOn && instructions && (instructions.length || canPlans) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Worker instructions</h2>
+            <p className="text-sm text-muted">What staff do on shift. Staff in the client&apos;s team see the current ones (not the care plan).</p>
+          </div>
+          {instructions.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {instructions.map((w) => (
+                <li key={w.id} className={`flex flex-wrap items-start gap-3 px-3 py-2 ${w.active ? "" : "text-muted"}`}>
+                  <span className="min-w-40 flex-1">
+                    <span className="font-semibold">{w.title}</span>
+                    {w.active ? "" : " · not current"}
+                    <span className="block whitespace-pre-line">{w.instructions}</span>
+                  </span>
+                  {canPlans ? (
+                    <form action={setWorkerInstructionActive}>
+                      <input type="hidden" name="id" value={w.id} />
+                      <input type="hidden" name="client_id" value={id} />
+                      <input type="hidden" name="active" value={w.active ? "false" : "true"} />
+                      <button className="text-xs font-semibold text-brand underline">{w.active ? "Stop using" : "Use again"}</button>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No worker instructions yet.</p>
+          )}
+          {canPlans ? <Add label="Add an instruction"><WorkerInstructionForm clientId={id} /></Add> : null}
         </Card>
       ) : null}
       {showComms && (comms || canComms) ? (

@@ -83,7 +83,10 @@ Last updated: 17 Nov 2026.
   assigned_as support_coordinator). **C3 update 112** (client_documents, private bucket client-docs 10 MB, read/add
   files only with clients.documents for that client, no change or delete, versions, archive only; care_alerts_sent;
   client_care_contacts(); run_care_alerts() service_role only, called by the hourly cron; expiry notices 30 days
-  and on the day; tests care_documents.test.sql). Next: C4 care plans, C5 reviews, C6 agreements, C7 funding. Updates from 113.
+  and on the day; tests care_documents.test.sql). **C4 update 113** (client_care_plans draft/current/archived, one
+  current per client, wording fixed once current; client_care_goals; client_worker_instructions readable by team
+  staff, shown on My clients; tests care_plans.test.sql; also Support coordinator added to the Assign form).
+  Next: C5 reviews, C6 agreements, C7 funding. Updates from 114.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client
