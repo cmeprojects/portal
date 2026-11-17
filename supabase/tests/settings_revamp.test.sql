@@ -91,7 +91,7 @@ select test.ok(public.onboarding_missing(test.pid('sam@example.com')) = array['C
 update public.features set enabled = true where key = 'compliance_upload';
 
 -- Form builder off: only the system admin makes forms.
-update public.app_settings set value = '["manager"]' where key = 'forms.maker_roles';
+-- (Managers make forms by default: update 97 copied the setting.)
 select test.act_as('boss@example.com');
 set role authenticated;
 select test.ok(public.can_make_forms(), 'a manager makes forms while the builder is on');

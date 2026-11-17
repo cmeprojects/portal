@@ -139,7 +139,7 @@ const ROWS: Row[] = [
     ],
     sections: [
       // cmeprojects (update 95, D-049): who manages onboarding is set on the Access page now; the old setting is kept but unused.
-      { title: "Compliance settings", intro: "Who manages onboarding is set on Settings → Access (access by role, group or access level).", area: "compliance", keys: (k) => (k.startsWith("compliance.") && !["compliance.clearance_started", "compliance.clearance_roles", "compliance.manager_roles"].includes(k)) || k === "reports.compliance_roles" },
+      { title: "Compliance settings", intro: "Who manages onboarding is set on Settings → Access (access by role, group or access level).", area: "compliance", keys: (k) => (k.startsWith("compliance.") && !["compliance.clearance_started", "compliance.clearance_roles", "compliance.manager_roles"].includes(k)) },
       { title: "Clearance to work", intro: "Managers can always clear people to work and give overrides.", area: "hr", keys: (k) => k === "compliance.clearance_roles" },
     ],
     areas: ["compliance", "hr"],
@@ -154,7 +154,8 @@ const ROWS: Row[] = [
     label: "Forms",
     intro: "With the Form builder off, forms already published still work, and staff fill them in from the Forms menu.",
     switches: ["forms", "form_builder"],
-    sections: [{ title: "Who can make and manage forms", intro: "The system admin always can.", keys: (k) => k.startsWith("forms.") }],
+    // cmeprojects (update 97): who makes forms is set on the Access page now.
+    sections: [{ title: "Forms settings", intro: "Who can make and manage forms is set on Settings → Access (access by role, group or access level). The system admin always can.", keys: (k) => k.startsWith("forms.") && k !== "forms.maker_roles" }],
     areas: [],
     links: [{ href: "/forms", text: "Forms" }],
   },
@@ -165,7 +166,7 @@ const ROWS: Row[] = [
     switches: ["vehicles"],
     sections: [
       // cmeprojects (update 96, D-049): who manages cars is set on the Access page now; the old setting is kept but unused.
-      { title: "Cars", intro: "Who manages cars is set on Settings → Access (access by role, group or access level).", area: "vehicles", keys: (k) => (k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") && !k.startsWith("vehicles.weekly_") && k !== "vehicles.manager_roles") || k === "cars.cleared_only" },
+      { title: "Cars", intro: "Who manages cars and who sees car reports are set on Settings → Access (access by role, group or access level).", area: "vehicles", keys: (k) => (k.startsWith("vehicles.") && !k.startsWith("vehicles.app_") && !k.startsWith("vehicles.weekly_") && k !== "vehicles.manager_roles" && k !== "vehicles.report_roles") || k === "cars.cleared_only" },
       { title: "Weekly mileage report", intro: "Who gets it, which day, from what hour, and what it covers.", area: "vehicles", keys: (k) => k.startsWith("vehicles.weekly_") },
     ],
     areas: ["vehicles"],
@@ -196,7 +197,8 @@ const ROWS: Row[] = [
     label: "Reports and exports",
     intro: "Each report only shows while its feature is on (car reports with Cars, the compliance report with Compliance).",
     switches: ["reports"],
-    sections: [{ title: "Who sees which reports", area: "reports", keys: (k) => k.startsWith("reports.") && k !== "reports.compliance_roles" }],
+    // cmeprojects (update 98): who sees each report is set on the Access page now.
+    sections: [{ title: "Who sees which reports", intro: "Who sees each report is set on Settings → Access (access by role, group or access level).", area: "reports", keys: (k) => k.startsWith("reports.") && !["reports.roles", "reports.compliance_roles"].includes(k) }],
     areas: ["reports"],
   },
   {

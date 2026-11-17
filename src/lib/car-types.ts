@@ -1,12 +1,9 @@
 // Staff Portal · © cmeproject. All rights reserved.
-import type { Role } from "@/lib/roles";
-
 // Shared by the server and the Cars screens in the browser.
 
 export type Choice = "off" | "optional" | "required";
 
 export type CarRules = {
-  reportRoles: Role[];
   clientField: Choice;
   odoPhoto: Choice;
   undoMinutes: number;

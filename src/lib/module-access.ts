@@ -3,9 +3,6 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/roles";
-import { canSeeComplianceReport, canSeeReports, type PeopleRules } from "@/lib/settings";
-import { canSeeCarReports } from "@/lib/cars";
-import type { CarRules } from "@/lib/car-types";
 
 // cmeprojects module framework step 4: pages follow the access given on the
 // Access page as well as the existing role rules. Each check is "the old rule,
@@ -37,11 +34,12 @@ export const seesExpiryFor = async () => canDo("hr.onboarding.expiry", "view");
 // Switched over (update 96, D-049): only the one permission check; set on the Access page.
 export const managesCarsFor = async () => canDo("ops.cars.manage", "configure");
 
-// Reports (each report on its own; "export" = the Excel download).
-export const seesTaskReportFor = async (role: Role, rules: PeopleRules, action = "view") => canSeeReports(role, rules) || (await given(role, "insights.reports.tasks", action));
-export const seesComplianceReportFor = async (role: Role, rules: PeopleRules, action = "view") =>
-  canSeeComplianceReport(role, rules) || (await given(role, "insights.reports.compliance", action));
-export const seesCarReportFor = async (role: Role, rules: CarRules, action = "view") => canSeeCarReports(role, rules) || (await managesCarsFor()) || (await given(role, "insights.reports.cars", action));
+// Reports (each report on its own; "export" = the Excel download). Switched
+// over (update 98, D-049): only the one permission check, set on the Access
+// page. Car managers also see the car reports.
+export const seesTaskReportFor = async (action = "view") => canDo("insights.reports.tasks", action);
+export const seesComplianceReportFor = async (action = "view") => canDo("insights.reports.compliance", action);
+export const seesCarReportFor = async (action = "view") => (await managesCarsFor()) || (await canDo("insights.reports.cars", action));
 
 // Contracts: any of its ticks (view, prepare and send, sign for the employer, download).
 export const anyContractAccess = async (role: Role) => {

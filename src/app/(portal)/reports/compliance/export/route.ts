@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSession } from "@/lib/session";
 import { getBranding } from "@/lib/branding";
-import { getPeopleRules, getTimeZone } from "@/lib/settings";
+import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import { SHOW_LABELS, VIEW_LABELS, buildComplianceReport, parseComplianceFilter } from "@/lib/compliance-report";
 import { pngSize, tableToXlsx, type ExcelHeader } from "@/lib/excel";
@@ -27,7 +27,7 @@ async function fetchLogo(url: string, origin: string): Promise<ExcelHeader["logo
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.redirect(new URL("/login", request.url));
-  if (!(await seesComplianceReportFor(session.profile.role, await getPeopleRules(), "export")) || session.features.reports === false) {
+  if (!(await seesComplianceReportFor("export")) || session.features.reports === false) {
     return new NextResponse("Not allowed", { status: 403 });
   }
   const params: Record<string, string | string[]> = {};

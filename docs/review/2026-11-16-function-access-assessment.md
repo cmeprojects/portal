@@ -551,3 +551,50 @@ waiting.**
 - Proof: verify-96-after on the local copy: 313 people, 0 changed; full suite
   1,236 pass; round trip clean; browser 16 of 16 (system admin and manager manage cars and see car reports; staff admin, team leader, support worker refused; old control gone; Access page shows the default); lint and typecheck pass.
 - Rollback: `undo-96.sql`.
+
+## Stage 3b implementation record: Forms and Reports (17 Nov 2026)
+
+Owner: "96 done, go ahead with everything". **Built and tested; live updates
+97 and 98 waiting.**
+
+- Update 97: `workflows.forms` switched; defaults from "Who can make forms";
+  `can_make_forms()` = system admin, or form builder on and
+  `can('workflows.forms', 'create')`. Filling in forms unchanged.
+- Update 98: the three reports (and their parent) switched; defaults from
+  "Who sees reports" (tasks), "Who sees the compliance report" (plus managers
+  if no staff admin when run; fresh install without) and "Who sees car
+  reports"; `can_see_car_reports()` = car managers or the check. App report
+  checks are `can()` only; the compliance report links to the Access page.
+- Files: migrations `20270211000001_forms_switch_over.sql`,
+  `20270212000001_reports_switch_over.sql`; `update-97/98.sql`,
+  `undo-97/98.sql`; `supabase/setup/verify-98-after.sql`;
+  `supabase/tests/forms_reports_switch.test.sql` (19 checks); four older
+  tests moved from the settings to defaults.
+- Proof: verify-98-after on the local copy, 311 people x 4 parts, 0 changed;
+  full suite 1,255 pass; round trips clean; browser: reports 16 of 16 and
+  forms 4 of 4 by role; lint and typecheck pass.
+- Speed: the policies that use the switched helpers already call them once
+  per statement (`(select helper())`, Stage 1 form), so `can()` runs once per
+  query, not per row. `can_manage_form(id)` stays per row (unchanged, not
+  part of these updates).
+
+## Addendum: Stage 1A cross-check (17 Nov 2026, review only)
+
+The owner asked to cross-check the "Stage 1A architecture clarifications"
+brief against what is now built (Stages 1 to 3b, updates 92 to 98). Nothing
+was changed for this addendum.
+
+| Brief item | Status now | Finding |
+|---|---|---|
+| 1. Grant holder design | Built (update 94) | Separate table `access_baselines` with nullable FKs (job title, function group, access level), check "exactly one holder", ON DELETE RESTRICT, partial unique indexes (one live grant per holder and part), revoke only. `access_grants` (person grants) unchanged. Matches the brief's first option, in a separate table. **Differs from C2:** no start or end dates on role, group and level grants (not needed yet); access level added as a holder (D-047). |
+| 2. Module mapping vs granting | Partly built | Title → group mapping built (`job_title_functions`, update 93). Module ownership table (`function_group_modules`) **not built** (planned Stage 4); nothing grants by mapping. New modules start with `grant_ready` false and no grants. |
+| 3. Access level as a ceiling | **C3 no longer true** | For switched parts (onboarding, cars, forms, reports) a job title or group grant can give access the access level wouldn't have (tested: a support-worker title given Manage cars). Hard limits that do hold: protected parts system admin only; new starters and externals inherit nothing; sensitive parts never through a group; staff records and settings areas keep their own rules; person grants only for managers and staff admins; only the system admin, or a Manager Administrator within what they hold, can grant. **Owner decision needed:** keep it this way (governance by who can grant) or add a per-level maximum before switching the hard-coded parts. |
+| 4. Existing title migration | Done (update 93, owner approved the mapping) | Titles kept their IDs, assignments and levels. **To reconfirm:** external titles were mapped to Allied Health by default; the brief says not to assume that. Changeable on the Roles page; mapping grants nothing by itself. |
+| 5. RLS and resolver | Built | `can()` is INVOKER and reads grants through RLS (members read their own title, groups and level); no recursion (policies don't call `can()`); Manager Administrators limited by `baseline_grant_allowed` (INVOKER); nobody edits their own grants; person grants unchanged; no new SECURITY DEFINER (existing helpers now call `can()`); helpers run once per statement. Not done: a separate timing benchmark for 95 to 98. |
+| 6. Allied Health and client assignment | Not built (Stage 5 and 6) | Agreed requirements: assignment plus permission, dated assignments, expiry removes access without deleting records. |
+| 7. SaaS tenancy | Unchanged (D-038) | Separate database per customer; `org_id` present on new tables but not a security boundary. |
+| 8. Stage plan | Ahead of the brief | Stages 1, 2, 3 and 3b (four parts) built; remaining: hard-coded parts, Stage 4 (module mapping, remove old role logic), 5 (clients), 6 (multiple titles, programs, Allied Health). |
+
+**Recommendation:** no need to redo Stage 1. Before switching the hard-coded
+parts, the owner decides (a) ceiling or no ceiling, (b) the external →
+Allied Health default.

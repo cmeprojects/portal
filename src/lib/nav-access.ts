@@ -4,7 +4,6 @@ import { cache } from "react";
 import type { NavAccess } from "@/components/nav";
 import type { Role } from "@/lib/roles";
 import { canInvite, canSeeRegisters, canSeeScoreboard, getMyAdminAreas, getPeopleRules } from "@/lib/settings";
-import { getCarRules } from "@/lib/cars";
 import { getMenuFeatures, getReportFeatures } from "@/lib/custom-features";
 import { canMakeForms } from "@/lib/forms";
 import { requireSession } from "@/lib/session";
@@ -17,9 +16,8 @@ import { anyContractAccess, managesCarsFor, seesCarReportFor, seesComplianceFor,
 
 // What the menu and the section tabs show this person (worked out once per page).
 export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
-  const [rules, carRules, adminAreas, customFeatures, featureReports] = await Promise.all([
+  const [rules, adminAreas, customFeatures, featureReports] = await Promise.all([
     getPeopleRules(),
-    getCarRules(),
     getMyAdminAreas(role),
     getMenuFeatures(role),
     getReportFeatures(role),
@@ -34,11 +32,11 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     // Compliance is a premium add-on (on for companies that already use it).
     seesCompliance: features.compliance !== false && (await seesComplianceFor()),
     seesScoreboard: canSeeScoreboard(role, rules),
-    seesReports: await seesTaskReportFor(role, rules),
-    complianceReport: features.compliance !== false && (await seesComplianceReportFor(role, rules)),
+    seesReports: await seesTaskReportFor(),
+    complianceReport: features.compliance !== false && (await seesComplianceReportFor()),
     seesRegisters: role !== "new_starter" && canSeeRegisters(role, rules),
     carManager: await managesCarsFor(),
-    carReports: await seesCarReportFor(role, carRules),
+    carReports: await seesCarReportFor(),
     adminAreas,
     customFeatures,
     featureReports,

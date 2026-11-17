@@ -14,7 +14,9 @@ create function test.pid(p_email text) returns uuid language sql security define
 grant execute on all functions in schema test to authenticated;
 update public.features set included = true where key = 'forms';
 update public.features set enabled = true where key in ('forms', 'form_builder');
-update public.app_settings set value = '["staff_admin", "manager"]' where key = 'forms.maker_roles';
+-- (Since update 97 that's the Access page.)
+select set_config('request.jwt.claims', '', false);
+insert into public.access_baselines (access_level, module_id) values ('staff_admin', 'workflows.forms');
 
 -- Olive (staff admin) makes a form and is chosen for People settings.
 select test.act_as('office@example.com');

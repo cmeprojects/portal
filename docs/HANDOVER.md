@@ -31,9 +31,15 @@ Last updated: 17 Nov 2026.
   is hidden and unused. **94 and 95 run on Dev (17 Nov 2026).**
 - **Stage 3b, Cars: Manage cars switched over (17 Nov 2026, update 96).** "Who manages cars" copied once
   into access-level defaults (managers by default); car managers still see car reports; old setting
-  hidden. **Waiting on the owner:** run update 96, then `supabase/setup/verify-96-after.sql`
-  (expect changed = 0). Next: Forms ("who makes forms"), then reports, then the hard-coded modules
-  (Tasks, Staff, Teams, Staff requests, Due dates, Request approvals), then Stage 4 to 6.
+  hidden. **96 run on Dev (17 Nov 2026).**
+- **Stage 3b, Forms and Reports switched over (17 Nov 2026, updates 97 and 98).** "Who can make forms",
+  "Who sees reports", "Who sees the compliance report" and "Who sees car reports" copied once into
+  access-level defaults; old settings hidden. **Waiting on the owner:** run 97, then 98, then
+  `supabase/setup/verify-98-after.sql` (expect changed = 0).
+- **Paused for owner decisions (Stage 1A cross-check addendum in AUD-016):** access level is not a
+  ceiling for switched modules (C3 corrected); external → Allied Health mapping to reconfirm; whether
+  to add a per-level ceiling before the hard-coded modules (Tasks, Staff, Teams, Staff requests, Due
+  dates, Request approvals) are switched.
 - **DECIDED (D-047, 17 Nov 2026): the proper fix, no band-aid.** Every module will use only the
   permission check `can()`. Today's role rules become default grants per access level, so no one's
   access changes when a module switches. Order:

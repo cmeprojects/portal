@@ -3,7 +3,7 @@ import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireTaskAccess } from "@/lib/session";
-import { getPeopleRules, getTimeZone } from "@/lib/settings";
+import { getTimeZone } from "@/lib/settings";
 import { PRIORITIES, PRIORITY_LABELS, todayIn } from "@/lib/tasks";
 import { buildReports, parsePeriod, parseTaskFilter, taskFilterQuery } from "@/lib/reports";
 import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
@@ -21,8 +21,7 @@ const RANGES = [
 
 export default async function ReportsPage({ searchParams }: PageProps<"/reports">) {
   const { profile, features } = await requireTaskAccess();
-  const rules = await getPeopleRules();
-  if (!(await seesTaskReportFor(profile.role, rules)) || features.reports === false) redirect("/");
+  if (!(await seesTaskReportFor()) || features.reports === false) redirect("/");
   const timeZone = await getTimeZone();
   const today = todayIn(timeZone);
   const params = await searchParams;

@@ -2,7 +2,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { isRole, type Role } from "@/lib/roles";
+import type { Role } from "@/lib/roles";
 import type { CarBoardRow, CarRules, CarScreen, MyTrip } from "@/lib/car-types";
 
 // Car settings (System settings → Cars).
@@ -10,10 +10,6 @@ export const getCarRules = cache(async (): Promise<CarRules> => {
   const supabase = await createClient();
   const { data } = await supabase.from("app_settings").select("key, value").like("key", "vehicles.%");
   const get = (k: string) => data?.find((r) => r.key === k)?.value;
-  const roles = (k: string, fallback: Role[]) => {
-    const v = get(k);
-    return Array.isArray(v) ? v.filter(isRole) : fallback;
-  };
   const choice = (k: string) => {
     const v = get(k);
     return v === "off" || v === "required" ? v : "optional";
@@ -23,7 +19,6 @@ export const getCarRules = cache(async (): Promise<CarRules> => {
     return Number.isFinite(n) && n >= 0 ? n : fallback;
   };
   return {
-    reportRoles: roles("vehicles.report_roles", ["manager"]),
     clientField: choice("vehicles.client_field"),
     odoPhoto: choice("vehicles.odo_photo"),
     undoMinutes: num("vehicles.undo_minutes", 10),
@@ -32,9 +27,7 @@ export const getCarRules = cache(async (): Promise<CarRules> => {
 });
 
 export const canUseCars = (role: Role, features: Record<string, boolean>) => features.vehicles === true && role !== "new_starter";
-// Who manages cars is the permission check now (update 96): managesCarsFor().
-// The roles in "Who sees car reports" (car managers see them too).
-export const canSeeCarReports = (role: Role, rules: CarRules) => role === "system_admin" || rules.reportRoles.includes(role);
+// Who manages cars and who sees car reports: the permission check (updates 96, 98).
 
 const TRIP_COLUMNS = "id, car_id, purpose, details, client_name, started_at, start_odo, gap_km, returned_at, end_odo, km, returned_by, driver_id";
 

@@ -71,25 +71,18 @@ export type PeopleRules = {
   // set on the Access page since update 95.)
   inviteRoles: Role[];
   scoreboardRoles: Role[];
-  reportRoles: Role[];
-  complianceReportRoles: Role[];
   registersRoles: Role[];
   accessResetRoles: Role[];
   // Roles that may only raise General tasks and questions.
   limitedTaskRoles: Role[];
-  // With no active staff admin, managers see the compliance report (cmeprojects).
-  hasStaffAdmin: boolean;
 };
 
 export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
   const supabase = await createClient();
-  const [{ data }, { count: staffAdmins }] = await Promise.all([
-    supabase
-      .from("app_settings")
-      .select("key, value")
-      .or("key.like.people.%,key.eq.reports.roles,key.eq.reports.compliance_roles,key.eq.tasks.registers_roles,key.eq.tasks.limited_roles"),
-    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "staff_admin").eq("active", true),
-  ]);
+  const { data } = await supabase
+    .from("app_settings")
+    .select("key, value")
+    .or("key.like.people.%,key.eq.tasks.registers_roles,key.eq.tasks.limited_roles");
   // people.access_reset_roles is included by "people.%".
   const on = (k: string, fallback: boolean) => {
     const v = data?.find((r) => r.key === k)?.value;
@@ -107,20 +100,14 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
     newStarterTasks: on("people.new_starter_tasks", false),
     inviteRoles: roles("people.invite_roles", ["staff_admin", "manager"]),
     scoreboardRoles: roles("people.scoreboard_roles", ["staff_admin", "manager"]),
-    reportRoles: roles("reports.roles", ["manager"]),
-    complianceReportRoles: roles("reports.compliance_roles", ["staff_admin"]),
     registersRoles: roles("tasks.registers_roles", ["team_leader", "manager", "staff_admin"]),
     accessResetRoles: roles("people.access_reset_roles", []),
     limitedTaskRoles: roles("tasks.limited_roles", ["support_worker"]),
-    hasStaffAdmin: (staffAdmins ?? 0) > 0,
   };
 });
 
 export const canInvite = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.inviteRoles.includes(role);
-export const canSeeReports = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.reportRoles.includes(role);
 // Send a password reset link, reset two-factor, clear the Cars app PIN (Staff & roles).
 export const canHelpSignIn = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.accessResetRoles.includes(role);
 export const canSeeRegisters = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.registersRoles.includes(role);
-export const canSeeComplianceReport = (role: Role, rules: PeopleRules) =>
-  role === "system_admin" || rules.complianceReportRoles.includes(role) || (role === "manager" && !rules.hasStaffAdmin);
 export const canSeeScoreboard = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.scoreboardRoles.includes(role);

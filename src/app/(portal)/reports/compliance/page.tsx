@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
-import { getPeopleRules, getTimeZone } from "@/lib/settings";
+import { getTimeZone } from "@/lib/settings";
 import { todayIn } from "@/lib/tasks";
 import { getBranding } from "@/lib/branding";
 import { ROLES, ROLE_LABELS } from "@/lib/roles";
@@ -24,8 +24,7 @@ export const metadata: Metadata = { title: "Compliance report" };
 
 export default async function ComplianceReportPage({ searchParams }: PageProps<"/reports/compliance">) {
   const { profile, features } = await requireSession();
-  const rules = await getPeopleRules();
-  if (!(await seesComplianceReportFor(profile.role, rules)) || features.reports === false) redirect("/");
+  if (!(await seesComplianceReportFor()) || features.reports === false) redirect("/");
   const params = await searchParams;
   // No choices in the address: open their saved view, if they have one.
   const saved = (await cookies()).get(DEFAULT_COOKIE)?.value;
@@ -68,9 +67,8 @@ export default async function ComplianceReportPage({ searchParams }: PageProps<"
       {params.saved ? <Notice tone="success">Saved. The report opens like this for you next time.</Notice> : null}
       {profile.role === "system_admin" ? (
         <p className="-mt-2 text-sm text-muted print:hidden">
-          Who sees this report: you
-          {rules.complianceReportRoles.map((r) => `, ${ROLE_LABELS[r]}s`).join("")}.{" "}
-          <Link href="/system?tab=reports" className="font-semibold text-brand underline">
+          Who sees this report is set on the Access page.{" "}
+          <Link href="/settings/access" className="font-semibold text-brand underline">
             Change who sees it
           </Link>
         </p>

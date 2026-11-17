@@ -110,8 +110,9 @@ select test.ok((select count(*) from public.form_responses) = 0, 'nor do staff a
 reset role;
 
 -- Ticked staff admins can make forms; a form in Compliance counts when filled in.
-select test.act_as('owner@example.com');
-update public.app_settings set value = '["manager", "staff_admin"]' where key = 'forms.maker_roles';
+-- (Since update 97 that's the Access page.)
+select set_config('request.jwt.claims', '', false);
+insert into public.access_baselines (access_level, module_id) values ('staff_admin', 'workflows.forms');
 select test.act_as('office@example.com');
 set role authenticated;
 insert into public.forms (title, repeatable) values ('Policy sign-off', false);
