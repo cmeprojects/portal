@@ -374,6 +374,7 @@ Approved by the owner ("approve", 17 Nov 2026, with the starting mapping).
   be saved with no group (nothing typed is lost), counts shown, phone width,
   no errors. Local test roles removed afterwards.
 - Rollback: `undo-93.sql` (removes the links, restores the Stage 1 guard).
+- **Run on Dev by the owner, 17 Nov 2026** (update 93). Stage 2 complete.
 
 ## Stage 3: architectural conflict found before building (17 Nov 2026)
 

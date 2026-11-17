@@ -18,8 +18,7 @@ Last updated: 17 Nov 2026.
 - **QA-009 done (16 Nov 2026):** dashboard panel shows each button only to people
   allowed to use it; clear refusal messages; same button style.
 - **Stage 1 (Function Groups) done:** update 92 run on Dev (17 Nov 2026). No SQL waiting.
-- **Waiting on the owner:** run live update 93 on Dev (Stage 2: roles linked to function
-  groups): `supabase/live-updates/update-93.sql` (undo-93.sql); check the Roles page.
+- **Stage 2 done:** update 93 run on Dev (17 Nov 2026). No SQL waiting.
 - **Stage 3 paused for a decision:** architectural conflict found (person-only gates in nine
   database helpers and in `given()`); resolution proposed in AUD-016 "Stage 3: architectural
   conflict". Waiting for the owner.
