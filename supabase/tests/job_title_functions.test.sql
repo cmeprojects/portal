@@ -29,6 +29,8 @@ delete from public.job_title_functions;
 reset role;
 select test.ok((select count(*) from public.job_title_functions where job_title_id in (test.jt('Care Manager'), test.jt('Speech Pathologist'))) = 3, 'a support worker can''t unlink roles');
 
+-- Update 125 puts Support Worker under Service Delivery; take it out here so this test can switch that group off.
+delete from public.job_title_functions where job_title_id = test.jt('Support Worker');
 select test.act_as('owner@example.com');
 set role authenticated;
 select test.refused($$update public.function_groups set active = false where key = 'allied_health'$$, 'a group used by an active role can''t be deactivated');

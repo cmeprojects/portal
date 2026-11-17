@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270310000001_allied_health.sql
+-- Built from every migration up to: 20270311000001_support_worker_role.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -261,7 +261,8 @@ begin
     (139, '20270307000001_staff_reviews.sql'),
     (140, '20270308000001_rostering.sql'),
     (141, '20270309000001_rostering_round_2.sql'),
-    (142, '20270310000001_allied_health.sql')
+    (142, '20270310000001_allied_health.sql'),
+    (143, '20270311000001_support_worker_role.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -25504,5 +25505,38 @@ end $$;
 
 $m142$;
   insert into public.install_log (name) values ('20270310000001_allied_health.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270311000001_support_worker_role.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270311000001_support_worker_role.sql') then
+    return;
+  end if;
+  execute $m143$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 125): "Support Worker" is a role again. Its access level
+-- stays Standard access (renamed in update 108); it sits under the Service
+-- Delivery function. Staff on Standard access with no role are given Support
+-- Worker, so their role shows as Support Worker. Nobody's access changes.
+insert into public.job_titles (name, access_level, description, sort_order)
+select 'Support Worker', 'support_worker',
+       'Frontline support: their own tasks and shifts, and their teams'' clients'' locations, alerts and support instructions.', 5
+ where not exists (select 1 from public.job_titles where lower(name) = 'support worker');
+update public.job_titles set active = true where lower(name) = 'support worker' and not active;
+insert into public.job_title_functions (job_title_id, function_group_id)
+select j.id, g.id from public.job_titles j, public.function_groups g
+ where lower(j.name) = 'support worker' and g.name = 'Service Delivery'
+on conflict do nothing;
+update public.profiles p set job_title_id = (select id from public.job_titles where lower(name) = 'support worker')
+ where p.role = 'support_worker' and p.job_title_id is null;
+update public.invitations i set job_title_id = (select id from public.job_titles where lower(name) = 'support worker')
+ where i.role = 'support_worker' and i.job_title_id is null;
+
+$m143$;
+  insert into public.install_log (name) values ('20270311000001_support_worker_role.sql');
 end;
 $part$;

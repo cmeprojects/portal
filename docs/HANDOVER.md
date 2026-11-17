@@ -140,6 +140,9 @@ Last updated: 17 Nov 2026.
   week label), `/roster/timesheets` (tiles, worker columns split from pay-period columns, expand, edit modal, payroll
   CSV), `/my-shifts` (confirm times, ask to swap). run_roster_alerts also sends request and query notices.
   Next: Stage 6 (Allied Health external access; design for approval first).
+- **Support Worker role (update 125, 17 Nov 2026):** owner: "role should still be support worker" with Standard access as
+  its access. Job title "Support Worker" at `support_worker` (Standard access), under Service Delivery; staff and
+  invitations on Standard access with no role were given it. Nobody's access changed.
 - **Stage 6, Allied Health access (update 124, 17 Nov 2026; D-058; plan `docs/roadmap/allied-health-plan.md`):**
   premium package `features.allied_health`. Practitioners are `external` accounts. `client_external_access`
   (per client: sections details/alerts/care_plan/documents/notes, start/end date at most 12 months, consent date,
