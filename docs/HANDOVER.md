@@ -11,15 +11,14 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 ## Where we are now (keep this updated every step: decision D-044)
 
-Last updated: 16 Nov 2026.
+Last updated: 17 Nov 2026.
 
 - **QA-008 (odometer photos off) closed:** update 91 applied and verified on Dev
   (16 Nov 2026), all 7 checks as expected. No SQL waiting for Dev.
 - **QA-009 done (16 Nov 2026):** dashboard panel shows each button only to people
   allowed to use it; clear refusal messages; same button style.
-- **Waiting on the owner:** review and run live update 92 (Stage 1, Function Groups)
-  on Dev: `supabase/live-updates/update-92.sql` (undo-92.sql). Then check the Roles page
-  shows Function groups. Next.js upgraded to 16.4.6 (RSK-17 treated).
+- **Stage 1 (Function Groups) done:** update 92 run on Dev (17 Nov 2026). No SQL waiting.
+- **Next:** Stage 2 plan (job titles linked to function groups) for the owner's approval.
 - **Approved (D-046):** AUD-016 clarification and Stage 1; six risk ratings (RSK-001 §3).
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2

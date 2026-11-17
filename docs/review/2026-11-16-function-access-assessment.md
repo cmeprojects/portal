@@ -345,3 +345,5 @@ the owner to review and run on Dev.**
   and deactivate, phone width, no errors, a support worker can't open Roles)
   plus the Roles page working before the update (section hidden).
 - Rollback: `undo-92.sql` (removes the list; nothing else uses it).
+
+- **Run on Dev by the owner, 17 Nov 2026** (update 92). Stage 1 complete.
