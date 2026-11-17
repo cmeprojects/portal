@@ -12,11 +12,6 @@ export type Unsupported = { kind: "role" | "unavailable"; badge: string; note: s
 const ROLE_NOTE = "can't be given or removed here.";
 
 export const UNSUPPORTED_DELEGATION: Record<string, Unsupported> = {
-  "ops.tasks": {
-    kind: "role",
-    badge: "Set by role",
-    note: `Who sees and changes tasks follows their role (managers see every team's tasks; team leaders their team's; staff their own). It ${ROLE_NOTE}`,
-  },
   "clients.list": { kind: "role", badge: "Set by role", note: `Managers, staff admins and the system admin manage clients through their role. It ${ROLE_NOTE}` },
 };
 

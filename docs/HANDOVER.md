@@ -54,7 +54,12 @@ Last updated: 17 Nov 2026.
   clients (switch with Stage 5).
 - **Due dates and Request approvals (17 Nov 2026, update 102).** Request approvals catalogued as part
   of the HR settings area (same answer as before); Due dates a grant (managers by default) or the Tasks
-  settings area. Check: `supabase/setup/verify-102-after.sql`. Next: Tasks (needs scoping).
+  settings area. **99 to 102 run on Dev (17 Nov 2026).**
+- **Tasks switched over with a faster task check (17 Nov 2026, update 103, owner chose option A).** "Sees
+  every task" = `can('ops.tasks', 'view')` (default managers); tasks policy set-based (permission check
+  once per query; mine / helping / my team's in one go); timeline and files follow the task. Same rows
+  for every sampled person; task list 9 to 13 s → about 10 ms on 10,515 tasks locally. Waiting on the
+  owner: update 103. Remaining: Clients (Stage 5), Stage 4, Stage 6.
 - **Plan (approved 17 Nov 2026):** the hard-coded parts share one helper,
   `can_manage_people()` (managers, staff admins, system admin), used by 35 policies on 17 tables and 9
   functions, covering Staff, Teams, Staff requests, Clients and car clients. Switching them means

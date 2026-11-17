@@ -697,3 +697,28 @@ waiting.**
   `supabase/tests/sla_request_rules_switch.test.sql` (11 checks).
 - Proof: verify-102-after locally, 313 people, 0 changed; full suite 1,308
   pass; round trip clean; browser 9 of 9; lint and typecheck pass.
+
+## Stage 3b implementation record: Tasks (17 Nov 2026)
+
+Owner chose option A (switch together with the faster task check). **Built
+and tested; live update 103 waiting.**
+
+- `ops.tasks` switched; default managers (view, everyone's tasks).
+- `tasks` read policy rewritten set-based: system admin or
+  `can('ops.tasks', 'view')` (once per query), or assigned / made by me, or I
+  help on it, or (teams on and team leader or above) assigned to or made by
+  someone in a team I lead (same as `leads_user`). `task_helpers`: own rows,
+  the check, or `can_see_task`. `task_events` and `task_attachments`: follow
+  the task (exists on `tasks`, through its policy). `can_see_task()` (used
+  by the task functions) uses the check instead of the manager role.
+- Unchanged: who may change a task (assignee, maker, team leader, register
+  managers), register and approval rules, limited task roles.
+- Proof: tasks and timelines compared row by row (md5 of ids) before and after
+  for 11 people across every role, including team leaders and support
+  workers: identical. Time per person 9 to 13 s before, 8 to 18 ms after
+  (10,515 tasks, 4,537 timeline entries, local copy). Tests: 18 new; full
+  suite 1,326 pass; round trip clean; lint and typecheck pass.
+- Files: migration `20270217000001_tasks_switch_over.sql`, `update-103.sql`,
+  `undo-103.sql`, `supabase/tests/tasks_switch.test.sql`.
+- All seven QA-007 "set by role" modules are now handled except Clients
+  (Stage 5).
