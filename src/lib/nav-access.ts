@@ -14,6 +14,18 @@ import { createClient } from "@/lib/supabase/server";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
 import { anyContractAccess, managesCarsFor, managesStaffFor, seesClientsFor, setsDueDatesFor, managesTeamsFor, seesAllRequestsFor, seesCarReportFor, seesComplianceFor, seesComplianceReportFor, seesTaskReportFor } from "@/lib/module-access";
 
+// cmeprojects (Care block C1): any team or currently assigned clients?
+async function hasMyClients(): Promise<boolean> {
+  const supabase = await createClient();
+  const me = (await supabase.auth.getUser()).data.user?.id;
+  if (!me) return false;
+  const [{ data: team }, { count }] = await Promise.all([
+    supabase.rpc("team_clients"),
+    supabase.from("client_assignments").select("id", { count: "exact", head: true }).eq("user_id", me).is("ended_at", null),
+  ]);
+  return Boolean((team ?? []).length) || (count ?? 0) > 0;
+}
+
 // What the menu and the section tabs show this person (worked out once per page).
 export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
   const [rules, adminAreas, customFeatures, featureReports] = await Promise.all([
@@ -41,6 +53,7 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     teams: await managesTeamsFor("view"),
     staff: await managesStaffFor("view"),
     clients: await seesClientsFor(),
+    myClients: role !== "new_starter" && role !== "system_admin" && (await hasMyClients()),
     dueDates: await setsDueDatesFor(),
     adminAreas,
     customFeatures,

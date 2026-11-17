@@ -38,7 +38,7 @@ insert into public.client_alerts (client_id, kind, severity, title, worker_instr
 insert into public.client_alert_notes (alert_id, client_id, details) values ((select id from public.client_alerts where title = 'Nut allergy'), gen_random_uuid(), 'Plan reviewed.');
 
 -- Set up (updates 105 and 107).
-select test.ok((select count(*) from public.app_modules where id like 'clients.%' and grant_ready) = 8, 'Clients and its seven parts are switched over');
+select test.ok((select count(*) from public.app_modules where id in ('clients.list', 'clients.details', 'clients.people', 'clients.locations', 'clients.alerts', 'clients.notes', 'clients.services', 'clients.assign') and grant_ready) = 8, 'Clients and its seven parts are switched over');
 select test.ok((select count(*) from public.app_modules where id in ('clients.details', 'clients.people', 'clients.notes', 'clients.services') and sensitivity = 'sensitive') = 4, 'details, contacts, risk notes and services are sensitive');
 select test.ok((select count(*) from public.job_titles where name in ('Case Manager', 'Intake & Assessment Officer', 'Payroll & Rostering') and access_level = 'support_worker') = 3, 'three new roles at support worker level');
 

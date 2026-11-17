@@ -172,6 +172,16 @@ const ROWS: Row[] = [
     areas: ["vehicles"],
   },
   {
+    // cmeprojects (Care block C2, update 111): which client sections are on, and what team staff see.
+    id: "care",
+    label: "Care",
+    intro: "Client sections your organisation uses, and what team staff see. Programs and schemes are on the Clients page.",
+    always: true,
+    switches: [],
+    sections: [{ title: "Care settings", area: "care", keys: (k) => k.startsWith("care.") }],
+    areas: ["care"],
+  },
+  {
     id: "staff-app",
     label: "Staff app",
     intro: "One phone app for staff with the features you choose. Tick Show in the staff app on each built feature.",

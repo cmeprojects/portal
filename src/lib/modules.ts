@@ -51,6 +51,7 @@ export const MODULES: ModuleDef[] = [
   { id: "workspace.forms", category: "workspace", label: "My forms", icon: "ClipboardList", href: "/forms" },
   { id: "workspace.contracts", category: "workspace", label: "My contracts", icon: "FileSignature", href: "/account/contracts" },
   { id: "workspace.directory", category: "workspace", label: "Directory", icon: "Contact", href: "/people" },
+  { id: "workspace.my_clients", category: "workspace", label: "My clients", icon: "HeartHandshake", href: "/my-clients" },
 
   // Operations
   { id: "ops.tasks", category: "operations", label: "Tasks", icon: "ListChecks", href: "/tasks", match: ["/tasks", "/my-tasks"], delegable: true },
@@ -92,6 +93,7 @@ export const MODULES: ModuleDef[] = [
   { id: "clients.notes", category: "clients", parent: "clients.list", label: "Risk notes", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
   { id: "clients.services", category: "clients", parent: "clients.list", label: "Services", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
   { id: "clients.assign", category: "clients", parent: "clients.list", label: "Assigning staff", icon: "HeartHandshake", href: "", delegable: true },
+  { id: "clients.comms", category: "clients", parent: "clients.list", label: "Communication preferences", icon: "HeartHandshake", href: "", delegable: true },
 
   // Forms & workflows
   { id: "workflows.forms", category: "operations", label: "Forms", icon: "ClipboardList", href: "/forms", delegable: true },

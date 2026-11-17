@@ -111,3 +111,28 @@ export async function saveScheme(_: FormState, form: FormData): Promise<FormStat
   revalidatePath("/settings/clients");
   return { message: "Saved." };
 }
+
+// cmeprojects (Care block, owner: a new client is given its care manager or
+// support coordinator when it's added). Adds the client, then the first
+// assignment. The database checks both (Clients change; Assigning staff).
+export async function addClientWithManager(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const name = String(form.get("name") ?? "").trim().slice(0, 80);
+  if (!name) return { error: "Enter their name." };
+  const managerId = String(form.get("manager_id") ?? "");
+  const as = String(form.get("assigned_as") ?? "case_manager");
+  if (managerId && !isId(managerId)) return { error: "Choose who manages them." };
+  if (!["case_manager", "support_coordinator"].includes(as)) return { error: "Choose care manager or support coordinator." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("car_clients").insert({ name, reference: String(form.get("reference") ?? "").trim().slice(0, 60) }).select("id").single();
+  if (error || !data) return { error: friendlyError(error) };
+  if (managerId) {
+    const { error: aError } = await supabase.from("client_assignments").insert({ client_id: data.id, user_id: managerId, assigned_as: as });
+    if (aError) {
+      revalidatePath("/settings/clients");
+      return { error: `${name} was added, but not assigned: ${friendlyError(aError)} Assign them on their page.` };
+    }
+  }
+  revalidatePath("/settings/clients");
+  return { message: managerId ? `${name} added and assigned.` : `${name} added.` };
+}

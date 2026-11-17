@@ -7,7 +7,7 @@ import { requireSession } from "@/lib/session";
 import { canUseCars } from "@/lib/cars";
 import { friendlyError } from "@/lib/db-error";
 import { text, type FormState } from "@/lib/form";
-import { managesCarsFor } from "@/lib/module-access";
+import { managesCarsFor, seesClientsFor } from "@/lib/module-access";
 
 // Readings are typed with spaces or commas on phones: keep the digits.
 function reading(form: FormData, name: string): number | null {
@@ -37,7 +37,8 @@ async function requireCarManager() {
 async function requireClientManager() {
   const session = await requireSession();
   const role = session.profile.role;
-  if (["manager", "staff_admin", "system_admin"].includes(role)) return session;
+  // cmeprojects (update 107): Clients (change) on the Access page, or car managers.
+  if (await seesClientsFor("edit")) return session;
   if (canUseCars(role, session.features) && (await managesCarsFor())) return session;
   throw new Error("You can't change the client list");
 }

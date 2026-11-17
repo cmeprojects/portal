@@ -28,6 +28,8 @@ export type NavAccess = {
   staff?: boolean;
   // Sees Clients (Access page, update 107).
   clients?: boolean;
+  // Has team or assigned clients (My clients).
+  myClients?: boolean;
   // Sets the due dates (SLA): Access page, update 102.
   dueDates?: boolean;
   // Live features built in the Feature builder that this person uses.
@@ -137,6 +139,8 @@ export function navFor(
     ...(features.hr_requests !== false && role !== "system_admin" && role !== "new_starter" ? [{ href: "/requests", label: "My requests", match: ["/requests"] }] : []),
     ...(access.myForms ? [{ href: "/forms", label: "My forms", match: ["/forms"] }] : []),
     ...(access.myContracts ? [{ href: "/account/contracts", label: "My contracts", match: ["/account/contracts"] }] : []),
+    // cmeprojects (Care block C1): the clients they work with.
+    ...(access.myClients ? [{ href: "/my-clients", label: "My clients", match: ["/my-clients"] }] : []),
     // cmeprojects: the system admin sees the Directory too.
     ...(features.hr_profiles !== false && role !== "new_starter" ? [{ href: "/people", label: "Directory" }] : []),
   ];

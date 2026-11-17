@@ -4,11 +4,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
-import { ClientCareForm, ProgramRow, AddProgramForm, SchemeRow, type Scheme } from "./care-forms";
+import { AddCareClientForm, ClientCareForm, ProgramRow, AddProgramForm, SchemeRow, type Scheme } from "./care-forms";
+import { canDo } from "@/lib/module-access";
 import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader } from "@/components/ui";
-import { AddClientForm, ClientRow } from "../../cars/manage/forms";
+import { ClientRow } from "../../cars/manage/forms";
 import { ClientTeamsForm } from "./team-form";
 
 export const metadata: Metadata = { title: "Clients" };
@@ -32,6 +33,10 @@ export default async function ClientsPage() {
   const schemes = schemeRes.error ? [] : ((schemeRes.data ?? []) as Scheme[]);
   const { data: wordRow } = await supabase.from("app_settings").select("value").eq("key", "wording.client").maybeSingle();
   const orgWord = typeof wordRow?.value === "string" && wordRow.value ? wordRow.value : "Client";
+  // Who can manage a new client (when this person may assign staff).
+  const canAssign = await canDo("clients.assign", "edit");
+  const { data: staffRows } = canAssign ? await supabase.from("profiles").select("id, full_name, email").eq("active", true).not("role", "in", "(new_starter,system_admin)").order("full_name") : { data: null };
+  const staff = staffRows ? (staffRows as { id: string; full_name: string | null; email: string }[]).map((p) => ({ id: p.id, name: p.full_name || p.email })) : null;
   // cmeprojects: which team looks after each client (hidden before live update 54).
   const [{ data: teams }, { data: links, error: linkError }] = await Promise.all([
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
@@ -44,7 +49,7 @@ export default async function ClientsPage() {
         intro="The people you support. Each client has a reference (CL-00001) and a status. Staff pick from this list in Cars and features like Fluid intake, and only see the name."
       />
       <Card className="p-4">
-        <AddClientForm />
+        <AddCareClientForm staff={staff} word={orgWord} />
       </Card>
       {toCheck.length ? (
         <Notice tone="info">

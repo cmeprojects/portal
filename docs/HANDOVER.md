@@ -78,8 +78,9 @@ Last updated: 17 Nov 2026.
 - **Care block in progress (owner: "go with everything in the listed steps without further approval, list
   sql after, no security or privacy compromised").** Done: **C0 update 110** (client_schemes; programs under a
   fixed scheme, scheme immutable once used; new settings area "care" for programs and scheme wording; Clients
-  page "Programs and schemes"). Next: C1 My clients, C2 switches + communication preferences (+ who manages a
-  new client), C3 documents, C4 care plans, C5 reviews, C6 agreements, C7 funding. Updates from 111.
+  page "Programs and schemes"). **C1+C2 update 111** (My clients page in Your workspace; section switches
+  care.section_*; client_comms with team-visibility switch; Add client chooses care manager / support coordinator;
+  assigned_as support_coordinator). Next: C3 documents, C4 care plans, C5 reviews, C6 agreements, C7 funding. Updates from 111.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

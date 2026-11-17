@@ -12,6 +12,7 @@ import { ClientStatusChip } from "../../../cars/manage/forms";
 import { ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
+import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
 import { endAssignment } from "./actions";
 import { canDoFor } from "@/lib/module-access";
 import { ALERT_KINDS, ASSIGNED_AS, PERSON_KINDS, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
@@ -37,6 +38,14 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
   if (!client) notFound();
 
   // cmeprojects (Stage 5): who is assigned to this client (hidden before update 106).
+  // cmeprojects (Care block C2): communication preferences, if that section is on.
+  const [commsRes, commsOn, canComms] = await Promise.all([
+    supabase.from("client_comms").select("preferred_contact, language, interpreter_needed, accessibility_needs, notes").eq("client_id", id).maybeSingle(),
+    supabase.from("app_settings").select("value").eq("key", "care.section_comms").maybeSingle(),
+    canDoFor("clients.comms", "edit", id),
+  ]);
+  const comms = commsRes.error ? undefined : ((commsRes.data ?? null) as Comms | null);
+  const showComms = comms !== undefined && commsOn.data?.value !== false;
   const [assignRes, canAssign, staffRes] = await Promise.all([
     supabase.from("client_assignments").select("id, user_id, assigned_as, starts_on, ends_on, note, ended_at").eq("client_id", id).order("ended_at", { ascending: true, nullsFirst: true }).order("starts_on", { ascending: false }),
     canDoFor("clients.assign", "edit", id),
@@ -84,6 +93,30 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           )
         ) : null}
       </div>
+      {showComms && (comms || canComms) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <h2 className="heading-sm">Communication preferences</h2>
+          {canComms ? (
+            <CommsForm clientId={id} comms={comms ?? null} />
+          ) : comms ? (
+            <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+              <dt className="text-muted">Preferred contact</dt>
+              <dd>{label(CONTACT_WAYS, comms.preferred_contact) || "Not set"}</dd>
+              <dt className="text-muted">Language</dt>
+              <dd>
+                {comms.language || "Not set"}
+                {comms.interpreter_needed ? " · needs an interpreter" : ""}
+              </dd>
+              {comms.accessibility_needs ? (
+                <>
+                  <dt className="text-muted">Needs</dt>
+                  <dd className="whitespace-pre-line">{comms.accessibility_needs}</dd>
+                </>
+              ) : null}
+            </dl>
+          ) : null}
+        </Card>
+      ) : null}
       {assignments ? (
         <Card className="flex flex-col gap-3 p-4">
           <h2 className="heading-sm">Assigned staff</h2>

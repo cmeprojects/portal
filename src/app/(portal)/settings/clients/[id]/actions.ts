@@ -114,3 +114,25 @@ export async function endAssignment(form: FormData) {
   await (await createClient()).from("client_assignments").update({ ended_at: new Date().toISOString() }).eq("id", id);
   revalidatePath(`/settings/clients/${clientId}`);
 }
+
+// cmeprojects (Care block C2, update 111): communication preferences. The
+// database checks who may (Communication preferences, edit, for this client).
+export async function saveComms(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(clientId)) return { error: "That didn't save. Please reload the page." };
+  const contact = String(form.get("preferred_contact") ?? "");
+  if (!["", "phone", "sms", "email", "in_person", "through_representative"].includes(contact)) return { error: "Choose how to contact them." };
+  const values = {
+    client_id: clientId,
+    preferred_contact: contact,
+    language: String(form.get("language") ?? "").trim().slice(0, 60),
+    interpreter_needed: form.get("interpreter_needed") === "on",
+    accessibility_needs: String(form.get("accessibility_needs") ?? "").trim().slice(0, 1000),
+    notes: String(form.get("notes") ?? "").trim().slice(0, 1000),
+  };
+  const { error } = await (await createClient()).from("client_comms").upsert(values, { onConflict: "client_id" });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: "Saved." };
+}

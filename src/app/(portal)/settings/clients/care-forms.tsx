@@ -7,7 +7,7 @@ import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
 import { CLIENT_STATUS } from "../../cars/manage/forms";
-import { saveClientCare, saveProgram, saveScheme } from "./actions";
+import { addClientWithManager, saveClientCare, saveProgram, saveScheme } from "./actions";
 
 // cmeprojects (Clients step 1): a client's preferred name and status. Changing
 // the status asks first; the database records who changed it and when.
@@ -201,5 +201,54 @@ export function SchemeRow({ scheme, canEdit, orgWord }: { scheme: Scheme; canEdi
         </div>
       </form>
     </li>
+  );
+}
+
+// cmeprojects (Care block): add a client and choose who manages them (their
+// care manager or support coordinator), when you may assign staff.
+export function AddCareClientForm({ staff, word }: { staff: { id: string; name: string }[] | null; word: string }) {
+  const [state, action, pending] = useActionState(addClientWithManager, null);
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="flex flex-col gap-1 text-xs font-medium">
+          Name
+          <input name="name" required maxLength={80} className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium">
+          Your own reference (optional)
+          <input name="reference" maxLength={60} className={inputClass} />
+        </label>
+        {staff ? (
+          <>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Managed by
+              <select name="manager_id" defaultValue="" className={inputClass}>
+                <option value="">Choose later</option>
+                {staff.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              As
+              <select name="assigned_as" defaultValue="case_manager" className={inputClass}>
+                <option value="case_manager">Care manager</option>
+                <option value="support_coordinator">Support coordinator</option>
+              </select>
+            </label>
+          </>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button size="sm" disabled={pending}>
+          {pending ? "Adding…" : `Add ${word.toLowerCase()}`}
+        </Button>
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+        {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+      </div>
+    </form>
   );
 }
