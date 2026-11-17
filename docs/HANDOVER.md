@@ -20,8 +20,9 @@ Last updated: 17 Nov 2026.
 - **Stage 1 (Function Groups) done:** update 92 run on Dev (17 Nov 2026). No SQL waiting.
 - **Waiting on the owner:** run live update 93 on Dev (Stage 2: roles linked to function
   groups): `supabase/live-updates/update-93.sql` (undo-93.sql); check the Roles page.
-- **In progress:** Stage 3 (function-group and job-title grants), approved by the owner
-  ("proceed to next stage", 17 Nov 2026).
+- **Stage 3 paused for a decision:** architectural conflict found (person-only gates in nine
+  database helpers and in `given()`); resolution proposed in AUD-016 "Stage 3: architectural
+  conflict". Waiting for the owner.
 - **Approved (D-046):** AUD-016 clarification and Stage 1; six risk ratings (RSK-001 §3).
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2

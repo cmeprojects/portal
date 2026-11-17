@@ -374,3 +374,35 @@ Approved by the owner ("approve", 17 Nov 2026, with the starting mapping).
   be saved with no group (nothing typed is lost), counts shown, phone width,
   no errors. Local test roles removed afterwards.
 - Rollback: `undo-93.sql` (removes the links, restores the Stage 1 guard).
+
+## Stage 3: architectural conflict found before building (17 Nov 2026)
+
+Reported to the owner before any Stage 3 code (rule: stop and report).
+
+**Finding (verified):** title and group grants would **not take effect** if
+only `can()` and a new grants table were added, because two "gates" in
+front of `can()` only look at person grants:
+
+1. **Nine database helpers** used by RLS (`can_manage_cars`,
+   `can_manage_compliance`, `can_make_forms`, `can_see_car_reports`,
+   `can_see_enquiries`, `can_see_feature`, `can_fill_feature`,
+   `can_manage_feature`, `contract_access`) call `can()` only after
+   `exists (select 1 from access_grants where user_id = auth.uid() ...)`
+   (a speed check added in updates 75 to 78).
+2. **The app helper** `given()` (`src/lib/module-access.ts`) asks `can()`
+   only for managers and staff admins (`MAY_HOLD`), so other roles' grants
+   would be ignored by pages and menus.
+
+The AUD-016 clarification (C8) missed these gates.
+
+**Proposed resolution (for approval):** in Stage 3, also
+- add one INVOKER helper, `has_any_grant()` (person grant, or a grant for
+  my job title or my function groups), and use it in place of the person-only
+  `exists` in the nine helpers (same functions, same SECURITY DEFINER status,
+  bodies changed only at that one check);
+- let `given()` ask `can()` for any active member except new starters and
+  external accounts (the database still decides);
+- no RLS policy text changes (policies call the helpers), so the Stage 1
+  policies stay as they are.
+Equivalence: with no title or group grants, every helper and page gives
+today's answer (full suite plus a before/after comparison).
