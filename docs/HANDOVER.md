@@ -79,7 +79,8 @@ Last updated: 17 Nov 2026.
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client
   list (table with NDIS number, service, plan management, funds used, plan status; side panel with tabs) is
-  noted in the same file; owner will come back to it.
+  noted in the same file; owner will come back to it. Also noted there: wording.client (Participant/Client,
+  delegable via Branding), NDIS vs Support at Home in every step, C5 review design, company settings reference.
 - **Staff list tidy (17 Nov 2026, owner requests):** one role column (role or access level, then group and
   team), Manager Administrators marked "(administrator)" by the name (dates on hover), system admin shown as
   "Developer · protected", warnings in one chip (details on hover), status only when not Active.

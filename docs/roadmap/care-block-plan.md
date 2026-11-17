@@ -95,3 +95,19 @@ each column or tab as its step lands.
    - Each review records who did it, the outcome and the next due date;
      never deleted. Funding (C7) and agreements (C6) follow the same program
      rules.
+4. **Reference: another product's company settings (owner screenshot,
+   17 Nov 2026; idea only, nothing copied).** Points worth taking:
+   - **Company profile:** ABN, NDIS provider registration number, phone,
+     email, website, business address and a separate invoice address. Most of
+     ours exists (Organisation and Branding); NDIS provider number and invoice
+     address would be new, needed for service agreements (C6) and funding (C7).
+   - **What support workers see about a client, by kind of information**
+     (switches the business sets): public, general, need-to-know, useful,
+     likes, dislikes, disability. Fits our model as a setting per client
+     section ("show to team staff: yes/no"), on top of the Access page, with
+     need-to-know safety information (alerts, worker instructions) always
+     shown. Proposed for C2 alongside the section switches.
+   - **Public holidays by year:** we already have public holidays (Due dates,
+     `tasks.public_holidays`); a year view could be added later.
+   - Not taken: AI shift notes (separate decision; Assistant privacy review
+     first, RSK-09).
