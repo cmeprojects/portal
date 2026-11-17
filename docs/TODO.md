@@ -116,3 +116,10 @@ Still to do (agreed, not built yet):
 - **Website pages and menu** (future): the system admin (or a delegate) adds pages such as Services, with photos and ready-made layouts, and chooses the menu.
 - A free bot check (Cloudflare Turnstile) on Request a call back (see docs/AUDIT-2026-11.md).
 - Test with about 20 real questions on Haiku, then decide whether to move to Sonnet.
+
+## Later (owner, 17 Nov 2026)
+
+- **More default access for Case Manager, Intake & Assessment Officer and Payroll & Rostering.** Decide once
+  the HR block and the Care block are finished. Set on the Access page (role grants); no code change needed
+  unless a new part is involved. Today: Case Manager has assigned clients only; Intake has every client and
+  assigning; Payroll & Rostering has nothing extra.
