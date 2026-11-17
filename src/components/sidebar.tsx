@@ -238,7 +238,7 @@ export function Sidebar({
   // Wide screens, full menu: sections open in the panel instead of inline.
   const sectionPanels = !drawer && !compact;
   const itemClass = (active: boolean, sub = false) =>
-    `flex items-center gap-3 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${compact ? "size-11 justify-center" : sub ? "min-h-9 px-3 text-[13px]" : "min-h-11 px-3 text-[14.5px] md:min-h-10"} ${
+    `flex items-center gap-3 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${compact ? "size-11 justify-center" : sub ? "min-h-9 px-3 text-[12.5px]" : "min-h-11 px-3 text-[13.5px] md:min-h-10"} ${
       active ? "bg-brand font-semibold text-brand-fg shadow-[0_6px_14px_rgba(47,111,228,0.35)]" : "text-side-muted hover:bg-side-hover hover:text-side-fg"
     }`;
 
@@ -531,7 +531,7 @@ export function Sidebar({
                 role="menuitem"
                 onClick={() => closeFly(true)}
                 aria-current={k.id === current ? "page" : undefined}
-                className={`flex items-center gap-3 outline-none hover:bg-page focus-visible:bg-page ${depth ? "py-2 pr-4 pl-12 text-[14px]" : "px-4 py-2.5 text-[15px] font-medium"} ${k.id === current ? "bg-brand-soft font-semibold text-brand" : "text-ink"}`}
+                className={`flex items-center gap-3 outline-none hover:bg-page focus-visible:bg-page ${depth ? "py-2 pr-4 pl-12 text-[13px]" : "px-4 py-2.5 text-[14px] font-medium"} ${k.id === current ? "bg-brand-soft font-semibold text-brand" : "text-ink"}`}
               >
                 {depth || !fly.id.startsWith("c:") ? null : <ModuleIcon name={k.icon} className="size-[18px] shrink-0 text-muted" />}
                 <span className="truncate">{label}</span>

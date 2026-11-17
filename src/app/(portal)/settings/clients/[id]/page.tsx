@@ -14,6 +14,7 @@ import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
 import { archiveClientDocument, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
 import { canDoFor } from "@/lib/module-access";
@@ -69,6 +70,23 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
   const instructions = instrRes.error ? null : ((instrRes.data ?? []) as Instruction[]);
   const plansSectionOn = plansOn.data?.value !== false;
   const docChoices: [string, string][] = (docs ?? []).map((d) => [d.id, `${d.title} (version ${d.version})`]);
+  // cmeprojects (Care block C5): reviews and re-assessments, worded by scheme.
+  type Review = { id: string; scheme: string; service_id: string | null; kind: string; due_on: string; reason: string; status: string; completed_on: string | null; outcome: string };
+  const [reviewsRes, schemesRes, reviewSvcRes, reviewsOn, canReviews] = await Promise.all([
+    supabase.from("client_reviews").select("id, scheme, service_id, kind, due_on, reason, status, completed_on, outcome").eq("client_id", id).order("status").order("due_on"),
+    supabase.from("client_schemes").select("key, label, review_label, change_review_label").order("sort_order"),
+    supabase.from("client_services").select("id, label, status, client_programs(scheme)").eq("client_id", id).neq("status", "ended"),
+    supabase.from("app_settings").select("value").eq("key", "care.section_reviews").maybeSingle(),
+    canDoFor("clients.reviews", "edit", id),
+  ]);
+  const reviews = reviewsRes.error ? null : ((reviewsRes.data ?? []) as Review[]);
+  const schemeWords = (schemesRes.data ?? []) as SchemeWords[];
+  const reviewServices = ((reviewSvcRes.data ?? []) as unknown as { id: string; label: string; client_programs: { scheme: string } | null }[]).map((v) => ({ id: v.id, label: v.label, scheme: v.client_programs?.scheme ?? "other" }));
+  const reviewName = (r: Review) => {
+    const w = schemeWords.find((k) => k.key === r.scheme);
+    return `${w ? (r.kind === "scheduled" ? w.review_label : w.change_review_label) : "Review"} (${w?.label ?? r.scheme})`;
+  };
+  const showReviews = reviews !== null && reviewsOn.data?.value !== false && (reviews.length > 0 || canReviews);
   // cmeprojects (Care block C2): communication preferences, if that section is on.
   const [commsRes, commsOn, canComms] = await Promise.all([
     supabase.from("client_comms").select("preferred_contact, language, interpreter_needed, accessibility_needs, notes").eq("client_id", id).maybeSingle(),
@@ -300,6 +318,54 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
             <p className="text-sm text-muted">No worker instructions yet.</p>
           )}
           {canPlans ? <Add label="Add an instruction"><WorkerInstructionForm clientId={id} /></Add> : null}
+        </Card>
+      ) : null}
+      {showReviews && reviews ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Reviews and re-assessments</h2>
+            <p className="text-sm text-muted">Each one follows its scheme&apos;s wording and reminders (Care settings). Reminders go to the assigned care manager or support coordinator, else the managers.</p>
+          </div>
+          {reviews.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {reviews.map((r) => {
+                const overdue = r.status === "open" && r.due_on < today;
+                return (
+                  <li key={r.id} className={`px-3 py-2 ${r.status === "open" ? "" : "text-muted"}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="min-w-40 flex-1 font-semibold">{reviewName(r)}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${overdue ? "bg-danger-soft" : r.status === "open" ? "bg-warn-soft" : "bg-line"}`}>
+                        {r.status === "open" ? (overdue ? "Overdue" : "Open") : r.status === "completed" ? "Completed" : "Cancelled"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted">
+                      {r.service_id ? `${reviewServices.find((v) => v.id === r.service_id)?.label ?? "Service"} · ` : ""}
+                      due {day(r.due_on)}
+                      {r.completed_on ? ` · completed ${day(r.completed_on)}` : ""}
+                    </p>
+                    {r.reason ? <p className="mt-1 whitespace-pre-line">What changed: {r.reason}</p> : null}
+                    {r.outcome ? <p className="mt-1 whitespace-pre-line">Outcome: {r.outcome}</p> : null}
+                    {canReviews && r.status === "open" ? (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs font-semibold text-brand">Close this review</summary>
+                        <div className="mt-2">
+                          <CloseReviewForm clientId={id} reviewId={r.id} documents={docChoices} />
+                        </div>
+                      </details>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No reviews yet.</p>
+          )}
+          {canReviews ? (
+            <>
+              <Add label="Schedule a review"><ReviewForm clientId={id} kind="scheduled" services={reviewServices} schemes={schemeWords} /></Add>
+              <Add label="Raise a change of situation"><ReviewForm clientId={id} kind="change_of_situation" services={reviewServices} schemes={schemeWords} /></Add>
+            </>
+          ) : null}
         </Card>
       ) : null}
       {showComms && (comms || canComms) ? (

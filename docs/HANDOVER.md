@@ -86,7 +86,11 @@ Last updated: 17 Nov 2026.
   and on the day; tests care_documents.test.sql). **C4 update 113** (client_care_plans draft/current/archived, one
   current per client, wording fixed once current; client_care_goals; client_worker_instructions readable by team
   staff, shown on My clients; tests care_plans.test.sql; also Support coordinator added to the Assign form).
-  Next: C5 reviews, C6 agreements, C7 funding. Updates from 114.
+  **C5 update 114** (client_reviews per scheme, scheme taken from the service's program; scheduled and change of
+  situation (reason, due today, reminder straight away via the admin client calling run_care_alerts); reminders at
+  the scheme's lead days, once each, and once overdue; reminders never include the reason; tests care_reviews.test.sql).
+  **Text size (owner 17 Nov):** Tailwind text scale one step smaller in globals.css @theme; menu and small buttons too.
+  Next: C6 agreements, C7 funding. Updates from 115.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

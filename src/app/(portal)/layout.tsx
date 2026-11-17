@@ -75,7 +75,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
   // cmeprojects: credits, larger and always visible at the foot of the menu.
   const credits = (
-    <div className="px-2 text-center text-[15px] leading-relaxed text-side-muted">
+    <div className="px-2 text-center text-[14px] leading-relaxed text-side-muted">
       <p>
         © {new Date().getFullYear()}{" "}
         <Link href="/about" className="hover:text-side-fg hover:underline">

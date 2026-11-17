@@ -12,6 +12,7 @@ async function requireClients() {
   return session;
 }
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { SECTION_FIELDS, type SectionTable } from "@/lib/client-sections";
@@ -276,4 +277,59 @@ export async function setWorkerInstructionActive(form: FormData) {
   if (!isId(id) || !isId(clientId)) return;
   await (await createClient()).from("client_worker_instructions").update({ active: form.get("active") === "true" }).eq("id", id).eq("client_id", clientId);
   revalidatePath(`/settings/clients/${clientId}`);
+}
+
+// cmeprojects (Care block C5, update 114): reviews and re-assessments. The
+// database takes the scheme from the service's program (so NDIS and Support
+// at Home never mix), checks who may (Reviews, for this client) and keeps
+// closed reviews as they were. A change of situation sends its reminder
+// straight away (the same hourly job, which only sends what's due once).
+const SCHEMES = ["ndis", "support_at_home", "private", "other"];
+
+export async function addClientReview(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const serviceId = String(form.get("service_id") ?? "");
+  const scheme = String(form.get("scheme") ?? "");
+  const kind = String(form.get("kind") ?? "scheduled");
+  if (!isId(clientId) || (serviceId && !isId(serviceId))) return { error: "That didn't save. Please reload the page." };
+  if (!serviceId && !SCHEMES.includes(scheme)) return { error: "Choose the service or the scheme." };
+  if (!["scheduled", "change_of_situation"].includes(kind)) return { error: "Choose the kind of review." };
+  const dueOn = ymd(form.get("due_on"));
+  if (kind === "scheduled" && !dueOn) return { error: "Choose the due date." };
+  const reason = String(form.get("reason") ?? "").trim().slice(0, 1000);
+  const { error } = await (await createClient()).from("client_reviews").insert({
+    client_id: clientId,
+    service_id: serviceId || null,
+    scheme: SCHEMES.includes(scheme) ? scheme : "other",
+    kind,
+    due_on: dueOn ?? new Date().toISOString().slice(0, 10),
+    reason,
+  });
+  if (error) return { error: friendlyError(error) };
+  if (kind === "change_of_situation") {
+    const { error: alertError } = await createAdminClient().rpc("run_care_alerts");
+    if (alertError) console.error("care alerts", alertError.message);
+  }
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: kind === "change_of_situation" ? "Raised. The care team has been told." : "Added." };
+}
+
+export async function closeClientReview(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  const status = String(form.get("status") ?? "");
+  const documentId = String(form.get("document_id") ?? "");
+  if (!isId(id) || !isId(clientId) || (documentId && !isId(documentId)) || !["completed", "cancelled"].includes(status)) return { error: "That didn't save. Please reload the page." };
+  const outcome = String(form.get("outcome") ?? "").trim().slice(0, 2000);
+  if (status === "completed" && !outcome) return { error: "Record the outcome." };
+  const { error } = await (await createClient())
+    .from("client_reviews")
+    .update({ status, outcome, completed_on: status === "completed" ? ymd(form.get("completed_on")) : null, document_id: documentId || null })
+    .eq("id", id)
+    .eq("client_id", clientId);
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: status === "completed" ? "Completed." : "Cancelled." };
 }

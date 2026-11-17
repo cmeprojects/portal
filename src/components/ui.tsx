@@ -52,7 +52,7 @@ const BUTTON = {
 // "sm": a quieter, smaller button for rows of actions (still 36px to tap).
 // cmeprojects: icons are always the same size and labels stay on one line.
 export function buttonClass(variant: keyof typeof BUTTON = "primary", extra = "", size: "md" | "sm" = "md") {
-  const box = size === "sm" ? "min-h-9 px-3 text-[13px] md:min-h-8 [&_svg]:size-3.5" : "min-h-11 px-4 text-sm md:min-h-10 [&_svg]:size-4";
+  const box = size === "sm" ? "min-h-9 px-3 text-[12px] md:min-h-8 [&_svg]:size-3.5" : "min-h-11 px-4 text-sm md:min-h-10 [&_svg]:size-4";
   return `inline-flex items-center justify-center gap-2 rounded-lg border font-semibold whitespace-nowrap transition-[color,background-color,border-color,filter,transform] duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0 ${box} ${BUTTON[variant]} ${extra}`;
 }
 

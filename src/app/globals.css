@@ -98,6 +98,17 @@
   color-scheme: light;
 }
 
+/* cmeprojects (owner, 17 Nov 2026: "a little smaller, more professional"):
+   every text size one step finer (spacing unchanged). */
+@theme {
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.1875rem;
+  --text-2xl: 1.375rem;
+}
+
 @theme inline {
   --color-page: var(--bg);
   --color-surface: var(--surface);
@@ -130,16 +141,17 @@
 body {
   background: var(--bg);
   color: var(--fg);
+  font-size: 0.9375rem;
 }
 
 @layer components {
   /* cmeprojects: page and section headings in sentence case: calmer and easier
      to read than spaced-out capitals. */
   .heading {
-    @apply font-display text-[1.65rem] leading-tight font-semibold tracking-tight text-balance;
+    @apply font-display text-[1.5rem] leading-tight font-semibold tracking-tight text-balance;
   }
   .heading-sm {
-    @apply font-display text-[1.05rem] font-semibold tracking-tight;
+    @apply font-display text-[0.98rem] font-semibold tracking-tight;
   }
   .shadow-card {
     box-shadow: var(--shadow-card);
