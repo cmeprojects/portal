@@ -16,13 +16,15 @@ export function ProfileCard({ person, actions }: { person: PersonCard; actions?:
     <div className="shadow-card @container overflow-hidden rounded-xl border border-line bg-surface">
       <div className="h-20 bg-brand-dark" aria-hidden="true" />
       <div className="flex flex-col gap-5 px-5 pb-5 sm:px-6">
-        <div className="-mt-11 flex flex-wrap items-end justify-between gap-3">
+        <div className="-mt-11">
           <Avatar name={person.name} src={person.photo} size={88} className="bg-brand-soft text-brand ring-4 ring-surface" />
-          {actions ? <div className="flex flex-wrap items-center gap-3 pb-1 print:hidden">{actions}</div> : null}
         </div>
         <div className="-mt-2 flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">
-            <h2 className="heading">{person.name}</h2>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h2 className="heading">{person.name}</h2>
+              {actions ? <div className="flex items-center gap-0.5 print:hidden">{actions}</div> : null}
+            </div>
             <p className="text-sm text-muted">
               {d.preferred_name ? `Goes by ${d.preferred_name} · ` : ""}
               {person.jobTitle}

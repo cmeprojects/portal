@@ -19,6 +19,11 @@ import { getTimeZone } from "@/lib/settings";
 import { onboardingOn } from "@/lib/feature-parts";
 import type { Role } from "@/lib/roles";
 import { managesStaffFor } from "@/lib/module-access";
+import { Pencil, PencilOff, ShieldCheck } from "lucide-react";
+
+// cmeprojects: small icon buttons beside the person's name (hover says what each does).
+const ICON_BTN =
+  "grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-brand-soft hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none";
 import { ProfileCard } from "@/components/profile-card";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
 import { SensitiveRecords } from "./sensitive-records";
@@ -73,38 +78,25 @@ export async function PersonPanel({
           person={person}
           actions={
             <>
-          {me ? (
-            <p className="text-sm text-muted">
-              This is you.{" "}
-              <Link
-                href="/account"
-                className="font-semibold text-brand underline"
-              >
-                Edit your details in My account
-              </Link>
-            </p>
-          ) : canEdit === true ? (
-            <EditProfileDialog
-              key={person.id}
-              person={person}
-              employment
-            />
-          ) : manager ? (
-            <p className="text-sm text-muted">You don&apos;t have access to edit staff details. The system admin can give it to you.</p>
-          ) : null}
-          {manager && onboardingOn(features) ? (
-            <Link
-              href={`/compliance/people/${id}`}
-              className="text-sm font-semibold text-brand underline"
-            >
-              Their compliance
-            </Link>
-          ) : null}
-                    </>
+              {me ? (
+                <Link href="/account" title="Edit your details in My account" aria-label="Edit your details in My account" className={ICON_BTN}>
+                  <Pencil aria-hidden="true" className="size-4" />
+                </Link>
+              ) : canEdit === true ? (
+                <EditProfileDialog key={person.id} person={person} employment compact />
+              ) : manager ? (
+                <span title="You don't have access to edit staff details. The system admin can give it to you." aria-label="You can't edit their details" className={`${ICON_BTN} cursor-help opacity-60`}>
+                  <PencilOff aria-hidden="true" className="size-4" />
+                </span>
+              ) : null}
+              {manager && onboardingOn(features) ? (
+                <Link href={`/compliance/people/${id}`} title="Their compliance" aria-label="Their compliance" className={ICON_BTN}>
+                  <ShieldCheck aria-hidden="true" className="size-4" />
+                </Link>
+              ) : null}
+            </>
           }
         />
-      </div>
-      <div className="flex min-w-0 flex-col gap-4">
         {tasks ? (
           <Card className="p-5">
             <h2 className="heading-sm mb-2">
@@ -154,6 +146,8 @@ export async function PersonPanel({
             ) : null}
           </Card>
         ) : null}
+      </div>
+      <div className="flex min-w-0 flex-col gap-4">
         {/* cmeprojects Phase 3: only for people whose access covers them. */}
         <SensitiveRecords subject={id} viewer={viewer.id} />
         {reqs && reqs.length ? (
