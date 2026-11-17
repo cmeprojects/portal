@@ -71,7 +71,7 @@ Last updated: 17 Nov 2026.
   `can('clients.<part>', ..., client)`; defaults managers and staff admins (today's rule); Case Manager
   all parts assigned only; Intake every client (risk notes and services view only) and assigns staff.
   Screens: Clients pages and menu use the check; client page "Assigned staff"; Access page "Their
-  assigned clients". Check: `supabase/setup/verify-107-after.sql`. Waiting on the owner: 105, 106, 107.
+  assigned clients". Check: `supabase/setup/verify-107-after.sql`. **105 to 107 run on Dev (17 Nov 2026).**
   Undo order: 107, then 106, then 105. Test data only until SEC-003.
 - **Menu sections in the side panel (17 Nov 2026, owner screenshot):** on wide screens with the full menu,
   each section heading opens the side panel listing its pages (sub-pages indented); the section holding
