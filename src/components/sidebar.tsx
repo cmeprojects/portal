@@ -138,18 +138,107 @@ export function Sidebar({
     }
   };
 
-  const compact = rail && !drawer;
+  // cmeprojects: when shrunk, pointing at the menu opens it over the page for
+  // a moment (it isn't kept open); the button beside the logo keeps it open.
+  const [peek, setPeek] = useState(false);
+  const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startPeek = () => {
+    if (!rail || drawer) return;
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    peekTimer.current = setTimeout(() => setPeek(true), 120);
+  };
+  const endPeek = () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    setPeek(false);
+  };
+  useEffect(() => () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+  }, []);
+  const peeking = rail && peek && !drawer;
+  const compact = rail && !drawer && !peek;
+
+  // cmeprojects: sub-pages open in a panel beside the menu (wide screens);
+  // on phones they open inline in the drawer.
+  const asideRef = useRef<HTMLElement>(null);
+  const [fly, setFly] = useState<{ id: string; top: number; left: number } | null>(null);
+  const flyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keepFly = () => {
+    if (flyTimer.current) clearTimeout(flyTimer.current);
+  };
+  const closeFly = (now = false) => {
+    keepFly();
+    if (now) setFly(null);
+    else flyTimer.current = setTimeout(() => setFly(null), 160);
+  };
+  const openFly = (id: string, el: HTMLElement | null) => {
+    keepFly();
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const edge = asideRef.current?.getBoundingClientRect().right ?? r.right;
+    setFly({ id, top: Math.max(8, Math.min(r.top - 4, window.innerHeight - 280)), left: edge });
+  };
+  useEffect(() => setFly(null), [path]);
+  useEffect(() => {
+    if (!fly) return;
+    const esc = (e: globalThis.KeyboardEvent) => e.key === "Escape" && setFly(null);
+    document.addEventListener("keydown", esc);
+    return () => document.removeEventListener("keydown", esc);
+  }, [fly]);
+  useEffect(() => () => keepFly(), []);
+  const flyNode = useMemo(() => {
+    if (!fly) return null;
+    for (const c of tree) for (const n of c.items) if (n.id === fly.id) return n;
+    return null;
+  }, [fly, tree]);
   const itemClass = (active: boolean, sub = false) =>
     `flex items-center gap-3 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${compact ? "size-11 justify-center" : sub ? "min-h-9 px-3 text-[13px]" : "min-h-11 px-3 text-[14.5px] md:min-h-10"} ${
       active ? "bg-brand font-semibold text-brand-fg shadow-[0_6px_14px_rgba(47,111,228,0.35)]" : "text-side-muted hover:bg-side-hover hover:text-side-fg"
     }`;
 
   const Item = ({ n, sub = false }: { n: NavNode; sub?: boolean }) => {
-    const hasKids = n.children.length > 0 && !compact;
+    const kids = n.children.length > 0;
+    const flyout = kids && !drawer && !sub;
+    const hasKids = kids && !compact && !flyout;
     const open = hasKids && shown.includes(n.id);
     const childActive = n.children.some((k) => k.id === current);
     // The module itself is active when one of its pages is open and its sub-pages are hidden.
     const active = n.id === current || (childActive && !open);
+    if (flyout) {
+      const flyOpen = fly?.id === n.id;
+      return (
+        <div
+          className={`flex items-center gap-1 ${compact ? "" : "w-full"}`}
+          onMouseEnter={(e) => openFly(n.id, e.currentTarget)}
+          onMouseLeave={() => closeFly()}
+        >
+          <Link
+            href={n.href}
+            data-nav
+            aria-current={active ? "page" : undefined}
+            title={compact ? n.label : undefined}
+            aria-label={compact ? n.label : undefined}
+            className={`${itemClass(active)} ${compact ? "" : "flex-1 pr-1"}`}
+          >
+            <ModuleIcon name={n.icon} className="size-[19px] shrink-0" />
+            {compact ? null : <span className="truncate">{n.label}</span>}
+          </Link>
+          {compact ? null : (
+            <button
+              type="button"
+              data-nav
+              aria-expanded={flyOpen}
+              aria-haspopup="menu"
+              onClick={(e) => (flyOpen ? closeFly(true) : openFly(n.id, e.currentTarget.parentElement))}
+              aria-label={`${n.label} pages`}
+              title="Pages"
+              className={`grid size-9 shrink-0 place-items-center rounded-lg hover:bg-side-hover hover:text-side-fg ${flyOpen ? "bg-side-hover text-side-fg" : "text-side-muted"}`}
+            >
+              <ChevronRight aria-hidden="true" className="size-4" />
+            </button>
+          )}
+        </div>
+      );
+    }
     const link = (
       <Link
         href={n.href}
@@ -193,7 +282,7 @@ export function Sidebar({
   };
 
   const menu = (
-    <nav ref={navRef} aria-label="Main" onKeyDown={onKey} className="flex flex-col gap-1">
+    <nav ref={navRef} aria-label="Main" onKeyDown={onKey} className={`flex flex-col gap-1 ${compact ? "w-full items-center" : ""}`}>
       {pins.length ? (
         <div className="flex flex-col gap-0.5">
           {compact ? null : (
@@ -223,9 +312,15 @@ export function Sidebar({
         // The top group (Dashboard, My onboarding…) has no heading, so it never closes.
         const shut = collapseSections ? cat.id !== "workspace" && openCat !== `c:${cat.id}` : closed.has(`c:${cat.id}`) && !here;
         return (
-          <div key={cat.id} className="flex flex-col gap-0.5">
+          <div key={cat.id} className={`flex flex-col gap-0.5 ${compact ? "items-center" : ""}`}>
             {compact ? (
-              i > 0 || pins.length ? <div className="mx-2 my-1.5 h-px bg-side-edge" /> : null
+              cat.id === "workspace" ? (
+                i > 0 || pins.length ? <div className="mx-auto my-1.5 h-px w-8 bg-side-edge" /> : null
+              ) : (
+                <p className="w-full truncate pt-2.5 pb-0.5 text-center text-[8.5px] font-semibold tracking-[0.02em] text-side-muted uppercase" title={cat.label}>
+                  {cat.label.split(/[\s&]+/)[0]}
+                </p>
+              )
             ) : cat.id === "workspace" && !pins.length ? null : (
               <button
                 type="button"
@@ -275,10 +370,22 @@ export function Sidebar({
         {mobileActions}
       </div>
       {drawer ? <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setDrawer(false)} aria-hidden="true" /> : null}
+      {/* Shrunk: the page keeps a 76px strip; the menu sits over it and opens over the page on hover. */}
+      {rail ? <div aria-hidden="true" className="hidden w-[76px] shrink-0 md:block print:hidden" /> : null}
       <aside
-        className={`print:hidden ${drawer ? "fixed inset-y-0 left-0 z-50 flex w-[min(300px,85vw)] shadow-2xl" : "hidden"} flex-col gap-4 overflow-hidden bg-brand-dark px-3 py-4 text-side-fg md:sticky md:top-0 md:flex md:h-screen md:py-5 ${
-          compact ? "md:w-[76px] md:items-center" : "md:w-[256px]"
-        } transition-[width] duration-200 motion-reduce:transition-none`}
+        ref={asideRef}
+        onMouseEnter={startPeek}
+        onMouseLeave={(e) => {
+          if ((e.relatedTarget as HTMLElement | null)?.closest?.('[role="menu"]')) return;
+          endPeek();
+        }}
+        onFocus={startPeek}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) endPeek();
+        }}
+        className={`print:hidden ${drawer ? "fixed inset-y-0 left-0 z-50 flex w-[min(300px,85vw)] shadow-2xl" : "hidden"} flex-col gap-4 overflow-hidden bg-brand-dark px-3 py-4 text-side-fg md:flex md:h-screen md:py-5 ${
+          rail ? "md:fixed md:inset-y-0 md:left-0 md:z-40" : "md:sticky md:top-0"
+        } ${compact ? "md:w-[76px] md:items-center md:px-2" : "md:w-[256px]"} ${peeking ? "md:shadow-[8px_0_24px_rgba(0,0,0,0.25)]" : ""} transition-[width,box-shadow] duration-200 motion-reduce:transition-none`}
       >
         <div className={`flex shrink-0 items-center gap-2 ${compact ? "flex-col justify-center" : "justify-between px-1"}`}>
           {compact ? <div className="[&_span:not(:first-child)]:hidden">{brandMark}</div> : <div className="min-w-0 flex-1">{brandMark}</div>}
@@ -286,10 +393,13 @@ export function Sidebar({
           {drawer ? null : (
             <button
               type="button"
-              onClick={() => write(STORE_RAIL, rail ? "" : "1")}
-              aria-label={rail ? "Show the full menu" : "Shrink the menu to icons"}
+              onClick={() => {
+                endPeek();
+                write(STORE_RAIL, rail ? "" : "1");
+              }}
+              aria-label={rail ? "Keep the full menu open" : "Shrink the menu to icons"}
               aria-pressed={rail}
-              title={rail ? "Show the full menu" : "Shrink the menu to icons"}
+              title={rail ? "Keep the full menu open" : "Shrink the menu to icons"}
               className="hidden size-9 shrink-0 place-items-center rounded-lg text-side-muted transition-colors hover:bg-brand hover:text-brand-fg focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none md:grid"
             >
               <LayoutGrid aria-hidden="true" className="size-5" />
@@ -301,9 +411,38 @@ export function Sidebar({
             </button>
           ) : null}
         </div>
-        <div className={`-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 ${compact ? "md:flex md:flex-col md:items-center" : ""}`}>{menu}</div>
+        <div className={`thin-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain ${compact ? "w-full [scrollbar-gutter:stable_both-edges]" : "-mx-1 px-1"}`}>{menu}</div>
         {bottom}
       </aside>
+      {fly && flyNode ? (
+        <div
+          role="menu"
+          aria-label={`${flyNode.label} pages`}
+          onMouseEnter={keepFly}
+          onMouseLeave={(e) => {
+            closeFly();
+            if (!asideRef.current?.contains(e.relatedTarget as Node | null)) endPeek();
+          }}
+          style={{ top: fly.top, left: fly.left }}
+          className="fixed z-50 hidden w-60 overflow-hidden rounded-r-xl border border-l-0 border-line bg-surface text-ink shadow-[8px_8px_24px_rgba(15,29,46,0.18)] md:block print:hidden"
+        >
+          <p className="border-b border-line px-4 py-2.5 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">{flyNode.label}</p>
+          <div className="flex flex-col py-1">
+            {[flyNode, ...flyNode.children].filter((k, i) => i > 0 || !flyNode.children.some((c) => c.href === flyNode.href)).map((k, i) => (
+              <Link
+                key={k.id}
+                href={k.href}
+                role="menuitem"
+                onClick={() => closeFly(true)}
+                aria-current={k.id === current ? "page" : undefined}
+                className={`px-4 py-2.5 text-[15px] font-medium outline-none hover:bg-page focus-visible:bg-page ${k.id === current ? "text-brand" : "text-ink"}`}
+              >
+                {i === 0 && k.id === flyNode.id ? "Overview" : k.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

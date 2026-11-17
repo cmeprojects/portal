@@ -64,6 +64,10 @@ Last updated: 17 Nov 2026.
   hover); the menu list scrolls on its own; credits (© year cmeproject, Version 0.1.1, and branch/commit
   for the system admin) larger and fixed at the foot of the menu. `src/components/sidebar.tsx`,
   `src/app/(portal)/layout.tsx`. No database change.
+  Then (owner screenshots): shrunk menu icons centred with short section labels; pointing at the shrunk menu
+  opens it over the page without moving it (closes when the pointer leaves; the grid button keeps it open);
+  thinner scrollbar (`.thin-scroll` in globals.css); sub-pages open in a panel beside the menu with the
+  module name as its heading (inline only in the phone drawer).
 - **Plan (approved 17 Nov 2026):** the hard-coded parts share one helper,
   `can_manage_people()` (managers, staff admins, system admin), used by 35 policies on 17 tables and 9
   functions, covering Staff, Teams, Staff requests, Clients and car clients. Switching them means
