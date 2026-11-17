@@ -45,6 +45,9 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
   // cmeprojects: requests nobody has acted on go to the escalation list (after live update 56).
   const { data: escalatedRequests, error: reqError } = await admin.rpc("escalate_requests");
   if (reqError && reqError.code !== "PGRST202") return { status: 500, body: { ok: false, error: reqError.message } };
+  // cmeprojects (Care block): client document expiry and review reminders (after live update 112).
+  const { data: care, error: careError } = await admin.rpc("run_care_alerts");
+  if (careError && careError.code !== "PGRST202") return { status: 500, body: { ok: false, error: careError.message } };
   // cmeprojects: a week before access or a Manager Administrator nomination ends.
   const accessEnding = await remindAccessEnding(admin);
   // cmeprojects: 7 days after clearance, if bank, super, TFN or right to work are still to finish.
@@ -55,7 +58,7 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
     if (!count) break;
     await flushOutbox();
   }
-  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), requests_escalated: escalatedRequests ?? 0, access_ending: accessEnding, onboarding_late: onboardingLate } };
+  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), ...(care ?? {}), requests_escalated: escalatedRequests ?? 0, access_ending: accessEnding, onboarding_late: onboardingLate } };
 }
 
 export const GET = run;

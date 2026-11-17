@@ -13,9 +13,10 @@ import { ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
-import { endAssignment } from "./actions";
+import { archiveClientDocument, endAssignment } from "./actions";
+import { DocumentForm } from "./document-form";
 import { canDoFor } from "@/lib/module-access";
-import { ALERT_KINDS, ASSIGNED_AS, PERSON_KINDS, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
+import { ALERT_KINDS, ASSIGNED_AS, DOC_TYPE_LABELS, PERSON_KINDS, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -38,6 +39,20 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
   if (!client) notFound();
 
   // cmeprojects (Stage 5): who is assigned to this client (hidden before update 106).
+  // cmeprojects (Care block C3): client documents, if that section is on.
+  type Doc = { id: string; doc_type: string; title: string; file_path: string; file_name: string; expires_on: string | null; version: number; created_at: string };
+  const [docsRes, docsOn, canDocs] = await Promise.all([
+    supabase.from("client_documents").select("id, doc_type, title, file_path, file_name, expires_on, version, created_at").eq("client_id", id).is("archived_at", null).order("created_at", { ascending: false }),
+    supabase.from("app_settings").select("value").eq("key", "care.section_documents").maybeSingle(),
+    canDoFor("clients.documents", "edit", id),
+  ]);
+  const docs = docsRes.error ? null : ((docsRes.data ?? []) as Doc[]);
+  const docLinks = new Map<string, string>();
+  if (docs?.length) {
+    const { data: signed } = await supabase.storage.from("client-docs").createSignedUrls(docs.map((d) => d.file_path), 600);
+    for (const sgn of signed ?? []) if (sgn.signedUrl && sgn.path) docLinks.set(sgn.path, sgn.signedUrl);
+  }
+  const showDocs = docs !== null && docsOn.data?.value !== false && (docs.length > 0 || canDocs);
   // cmeprojects (Care block C2): communication preferences, if that section is on.
   const [commsRes, commsOn, canComms] = await Promise.all([
     supabase.from("client_comms").select("preferred_contact, language, interpreter_needed, accessibility_needs, notes").eq("client_id", id).maybeSingle(),
@@ -93,6 +108,59 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           )
         ) : null}
       </div>
+      {showDocs && docs ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <h2 className="heading-sm">Documents</h2>
+          {docs.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {docs.map((d) => {
+                const expired = d.expires_on && d.expires_on < new Date().toISOString().slice(0, 10);
+                return (
+                  <li key={d.id} className="px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="min-w-40 flex-1">
+                        {docLinks.get(d.file_path) ? (
+                          <a href={docLinks.get(d.file_path)} target="_blank" rel="noreferrer" className="font-semibold text-brand hover:underline">
+                            {d.title}
+                          </a>
+                        ) : (
+                          <span className="font-semibold">{d.title}</span>
+                        )}
+                        <span className="block text-xs text-muted">
+                          {label(DOC_TYPE_LABELS, d.doc_type)} · version {d.version} · added {day(d.created_at.slice(0, 10))}
+                          {d.expires_on ? ` · ${expired ? "expired" : "expires"} ${day(d.expires_on)}` : ""}
+                        </span>
+                      </span>
+                      {canDocs ? (
+                        <form action={archiveClientDocument}>
+                          <input type="hidden" name="id" value={d.id} />
+                          <input type="hidden" name="client_id" value={id} />
+                          <button className="text-xs font-semibold text-brand underline">Archive</button>
+                        </form>
+                      ) : null}
+                    </div>
+                    {canDocs ? (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs font-semibold text-brand">Add a new version</summary>
+                        <div className="mt-2">
+                          <DocumentForm clientId={id} replaces={{ id: d.id, title: d.title, doc_type: d.doc_type }} />
+                        </div>
+                      </details>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No documents yet.</p>
+          )}
+          {canDocs ? (
+            <Add label="Add a document">
+              <DocumentForm clientId={id} />
+            </Add>
+          ) : null}
+        </Card>
+      ) : null}
       {showComms && (comms || canComms) ? (
         <Card className="flex flex-col gap-3 p-4">
           <h2 className="heading-sm">Communication preferences</h2>

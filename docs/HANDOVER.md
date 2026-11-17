@@ -80,7 +80,10 @@ Last updated: 17 Nov 2026.
   fixed scheme, scheme immutable once used; new settings area "care" for programs and scheme wording; Clients
   page "Programs and schemes"). **C1+C2 update 111** (My clients page in Your workspace; section switches
   care.section_*; client_comms with team-visibility switch; Add client chooses care manager / support coordinator;
-  assigned_as support_coordinator). Next: C3 documents, C4 care plans, C5 reviews, C6 agreements, C7 funding. Updates from 111.
+  assigned_as support_coordinator). **C3 update 112** (client_documents, private bucket client-docs 10 MB, read/add
+  files only with clients.documents for that client, no change or delete, versions, archive only; care_alerts_sent;
+  client_care_contacts(); run_care_alerts() service_role only, called by the hourly cron; expiry notices 30 days
+  and on the day; tests care_documents.test.sql). Next: C4 care plans, C5 reviews, C6 agreements, C7 funding. Updates from 113.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

@@ -94,6 +94,7 @@ export const MODULES: ModuleDef[] = [
   { id: "clients.services", category: "clients", parent: "clients.list", label: "Services", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
   { id: "clients.assign", category: "clients", parent: "clients.list", label: "Assigning staff", icon: "HeartHandshake", href: "", delegable: true },
   { id: "clients.comms", category: "clients", parent: "clients.list", label: "Communication preferences", icon: "HeartHandshake", href: "", delegable: true },
+  { id: "clients.documents", category: "clients", parent: "clients.list", label: "Client documents", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
 
   // Forms & workflows
   { id: "workflows.forms", category: "operations", label: "Forms", icon: "ClipboardList", href: "/forms", delegable: true },

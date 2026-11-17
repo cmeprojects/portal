@@ -119,3 +119,15 @@ export const ASSIGNED_AS: [string, string][] = [
   ["key_worker", "Key worker"],
   ["other", "Other"],
 ];
+
+// cmeprojects (Care block C3): kinds of client document.
+export const DOC_TYPE_LABELS: [string, string][] = [
+  ["consent", "Consent"],
+  ["assessment", "Assessment"],
+  ["plan", "Plan"],
+  ["report", "Report"],
+  ["agreement", "Agreement"],
+  ["correspondence", "Correspondence"],
+  ["identity", "Identity"],
+  ["other", "Other"],
+];
