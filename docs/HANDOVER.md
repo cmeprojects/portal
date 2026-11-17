@@ -62,8 +62,10 @@ Last updated: 17 Nov 2026.
 - **Stage 4 (17 Nov 2026, update 104):** `function_group_modules` (which parts each function group looks
   after; gives no access); starting mapping for all six groups; Roles page edits it per group; Access
   page lists a group's (or role's groups') parts first; catalogue test: every part (except My workspace
-  and protected ones) belongs to a group, new parts start not switched over with no grants. Waiting on
-  the owner: update 104. Old role code: QA-007 list now holds only Clients (Stage 5).
+  and protected ones) belongs to a group, new parts start not switched over with no grants. **104 run on Dev (17 Nov 2026).** Old role code: QA-007 list now holds only Clients (Stage 5).
+- **Deploys (17 Nov 2026):** owner reports Dev still shows the menu without the side panel after a hard
+  refresh; local production build passes. Likely Vercel builds after `c569c1d` failed or hit the free
+  plan's daily limit (RSK-16). Owner to check cme-dev deployments. Push fewer, larger batches.
 - **Menu (17 Nov 2026, owner request):** the shrink/expand button moved beside the logo (grid icon, highlights on
   hover); the menu list scrolls on its own; credits (© year cmeproject, Version 0.1.1, and branch/commit
   for the system admin) larger and fixed at the foot of the menu. `src/components/sidebar.tsx`,
