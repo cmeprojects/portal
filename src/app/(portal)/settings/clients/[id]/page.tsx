@@ -3,13 +3,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Mail, MapPin, Pencil, Phone } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
-import { Card, PageHeader } from "@/components/ui";
-import { ClientStatusChip } from "../../../cars/manage/forms";
-import { ClientCareForm } from "../care-forms";
+import { Card, Notice } from "@/components/ui";
+import { CLIENT_STATUS, ClientStatusChip } from "../../../cars/manage/forms";
+import { ArchiveClientForm, ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
@@ -20,7 +20,7 @@ import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
 import { canDoFor } from "@/lib/module-access";
-import { ALERT_KINDS, ASSIGNED_AS, DOC_TYPE_LABELS, PERSON_KINDS, PLAN_MANAGEMENT, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
+import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -32,15 +32,26 @@ const day = (d: unknown) => (typeof d === "string" && d ? new Date(`${d}T00:00:0
 // sections (details, locations, people, safety, services) and the readiness
 // check rostering will use. People managers and the system admin only; each
 // section appears once its database update has been run.
-export default async function ClientProfilePage({ params }: PageProps<"/settings/clients/[id]">) {
+export default async function ClientProfilePage({ params, searchParams }: PageProps<"/settings/clients/[id]">) {
   // Who sees Clients: the Access page (update 107); which clients, the database.
   await requireSession();
   if (!(await seesClientsFor())) notFound();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const supabase = await createClient();
-  const { data: client } = await supabase.from("car_clients").select("id, name, client_ref, status, preferred_name").eq("id", id).maybeSingle();
+  const full = await supabase.from("car_clients").select("id, name, client_ref, status, preferred_name, title, given_name, middle_name, family_name, archive_reason, archive_note, archived_at").eq("id", id).maybeSingle();
+  // Before update 118 the extra columns don't exist yet.
+  const { data: client } = (full.error ? await supabase.from("car_clients").select("id, name, client_ref, status, preferred_name").eq("id", id).maybeSingle() : full) as {
+    data: { id: string; name: string; client_ref: string; status: string; preferred_name: string | null; title?: string; given_name?: string; middle_name?: string; family_name?: string; archive_reason?: string | null; archive_note?: string; archived_at?: string | null } | null;
+  };
   if (!client) notFound();
+  const sp = await searchParams;
+  // cmeprojects (owner's concept): View shows one tab at a time; Edit walks
+  // through the sections in steps (Basic details, Support needs, Documents,
+  // Funding). The same sections and checks either way.
+  const STEPS: [string, string][] = [["basic", "Basic details"], ["support", "Support needs"], ["documents", "Documents"], ["funding", "Funding and agreements"]];
+  const step = typeof sp.edit === "string" && STEPS.some(([k]) => k === sp.edit) ? sp.edit : null;
+  const tab = typeof sp.tab === "string" ? sp.tab : "overview";
 
   // cmeprojects (Stage 5): who is assigned to this client (hidden before update 106).
   // cmeprojects (Care block C3): client documents, if that section is on.
@@ -134,15 +145,61 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
     supabase.from("client_alerts").select("*").eq("client_id", id).order("active", { ascending: false }).order("severity"),
     supabase.from("client_alert_notes").select("alert_id, details").eq("client_id", id),
     supabase.from("client_services").select("*").eq("client_id", id).order("start_date", { ascending: false }),
-    supabase.from("client_programs").select("id, name, active").order("sort_order"),
+    supabase.from("client_programs").select("id, name, active, scheme").order("sort_order"),
     supabase.rpc("client_readiness", { p_client: id }),
   ]);
   const ready = readiness.error ? null : (readiness.data as { ready: boolean; gaps: string[]; services: { id: string; label: string; gaps: string[] }[] });
   const noteOf = new Map(((notes.data ?? []) as { alert_id: string; details: string }[]).map((n) => [n.alert_id, n.details]));
+  const programScheme = new Map(((programs.data ?? []) as { id: string; scheme?: string }[]).map((p) => [p.id, p.scheme ?? "other"]));
   const programChoices: [string, string][] = ((programs.data ?? []) as { id: string; name: string; active: boolean }[]).map((p) => [p.id, p.active ? p.name : `${p.name} (not in use)`]);
   const locationRows = (locations.data ?? []) as Row[];
   const locationChoices: [string, string][] = locationRows.map((l) => [l.id, `${l.label}${l.approved ? "" : " (not approved)"}`]);
   const gapsOf = new Map((ready?.services ?? []).map((s) => [s.id, s.gaps]));
+
+  const TAB_SECTIONS: Record<string, string[]> = {
+    overview: ["overview", "ready"],
+    profile: ["details", "locations", "people", "safety", "services", "comms"],
+    documents: ["docs"],
+    care: ["plans", "instructions"],
+    reviews: ["reviews"],
+    agreements: ["agreements"],
+    funding: ["funding"],
+    staff: ["staff"],
+  };
+  const STEP_SECTIONS: Record<string, string[]> = {
+    basic: ["details", "locations", "staff"],
+    support: ["comms", "people", "safety", "services"],
+    documents: ["docs"],
+    funding: ["funding", "agreements"],
+  };
+  const inView = (key: string) => (step ? STEP_SECTIONS[step] : (TAB_SECTIONS[tab] ?? TAB_SECTIONS.overview)).includes(key);
+  const tabs: [string, string, boolean][] = [
+    ["overview", "Overview", true],
+    ["profile", "Profile", true],
+    ["documents", "Documents", showDocs],
+    ["care", "Care plans", plansSectionOn && !!plans && (plans.length > 0 || canPlans)],
+    ["reviews", "Reviews", showReviews],
+    ["agreements", "Agreements", showAgreements],
+    ["funding", "Funding", showFunding],
+    ["staff", "Assigned staff", !!assignments],
+  ];
+  const canEditClient = await canDoFor("clients.list", "edit", id);
+  const det = (details.data ?? null) as Record<string, unknown> | null;
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  const emergency = ((people.data ?? []) as Row[]).filter((p) => p.active && (p.kind === "emergency" || p.primary_contact));
+  const activeAlerts = ((alerts.data ?? []) as Row[]).filter((a) => a.active && a.kind !== "no_known_alerts");
+  const { data: activity } = await supabase.from("audit_log").select("id, action, created_at, actor_id, details").eq("entity", "client").eq("entity_id", id).order("created_at", { ascending: false }).limit(8);
+  const actorIds = [...new Set(((activity ?? []) as { actor_id: string | null }[]).map((a) => a.actor_id).filter((v): v is string => !!v && !nameOfStaff.has(v)))];
+  if (actorIds.length) {
+    const { data: more } = await supabase.from("profiles").select("id, full_name, email").in("id", actorIds);
+    for (const p of (more ?? []) as { id: string; full_name: string | null; email: string }[]) nameOfStaff.set(p.id, p.full_name || p.email);
+  }
+  const what = (a: string, d: Record<string, unknown>) =>
+    a === "client_status"
+      ? `Status changed from ${CLIENT_STATUS[String(d.from)] ?? d.from} to ${CLIENT_STATUS[String(d.to)] ?? d.to}`
+      : a.replace(/^client_/, "").replace(/_(added|changed)$/, " $1").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  const initials = client.name.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+  const clientSchemes = [...new Set(((services.data ?? []) as Row[]).filter((v) => v.status !== "ended").map((v) => programScheme.get(String(v.program_id)) ?? "other"))];
 
   const missing = (table: SectionTable) => <p className="text-sm text-muted">This section appears after database update {SECTION_UPDATE[table]}.</p>;
 
@@ -153,18 +210,239 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           <ArrowLeft aria-hidden="true" className="size-4" /> All clients
         </Link>
       </p>
-      <PageHeader title={client.name} intro={`${client.client_ref}${client.preferred_name ? ` · goes by ${client.preferred_name}` : ""}`} />
-      <div className="flex flex-wrap items-center gap-3">
-        <ClientStatusChip status={client.status} />
-        {ready ? (
-          ready.ready ? (
-            <span className="rounded-full bg-good-soft px-3 py-1 text-xs font-semibold text-ink">Ready for services</span>
-          ) : (
-            <span className="rounded-full bg-warn-soft px-3 py-1 text-xs font-semibold text-ink">Not ready for services yet</span>
-          )
+      <Card className="flex flex-col gap-3 p-4">
+        <div className="flex flex-wrap items-start gap-4">
+          <span aria-hidden="true" className="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand-soft font-display text-lg font-semibold text-brand">
+            {initials}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="heading">{client.name}</h1>
+            <p className="text-sm text-muted">
+              {client.client_ref}
+              {client.preferred_name ? ` · goes by ${client.preferred_name}` : ""}
+            </p>
+            {det ? (
+              <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                {str(det.home_address) ? (
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin aria-hidden="true" className="size-4 text-muted" />
+                    {str(det.home_address)}
+                  </span>
+                ) : null}
+                {str(det.email) ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Mail aria-hidden="true" className="size-4 text-muted" />
+                    {str(det.email)}
+                  </span>
+                ) : null}
+                {str(det.phone) ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Phone aria-hidden="true" className="size-4 text-muted" />
+                    {str(det.phone)}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <ClientStatusChip status={client.status} />
+              {clientSchemes.map((k) => (
+                <span key={k} className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">
+                  {schemeWords.find((w) => w.key === k)?.label ?? k}
+                </span>
+              ))}
+              {ready && client.status !== "discharged" ? (
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold text-ink ${ready.ready ? "bg-good-soft" : "bg-warn-soft"}`}>{ready.ready ? "Ready for services" : "Not ready for services yet"}</span>
+              ) : null}
+            </div>
+          </div>
+          {canEditClient ? (
+            step ? (
+              <Link href={`/settings/clients/${id}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold hover:bg-page">
+                Done editing
+              </Link>
+            ) : (
+              <Link href={`/settings/clients/${id}?edit=basic`} className="inline-flex items-center gap-1 rounded-lg border border-brand px-3 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft">
+                <Pencil aria-hidden="true" className="size-4" /> Edit
+              </Link>
+            )
+          ) : null}
+        </div>
+        {client.status === "discharged" ? (
+          <Notice tone="info">
+            Archived{client.archived_at ? ` on ${day(client.archived_at.slice(0, 10))}` : ""}
+            {client.archive_reason ? `: ${label(ARCHIVE_REASONS, client.archive_reason)}` : ""}
+            {client.archive_note ? ` (${client.archive_note})` : ""}. To bring them back, set their status to Active under Edit.
+          </Notice>
         ) : null}
-      </div>
-      {showDocs && docs ? (
+        {step ? (
+          <ol className="grid grid-cols-2 gap-2 border-t border-line pt-3 sm:grid-cols-4">
+            {STEPS.map(([k, l], i) => {
+              const at = STEPS.findIndex(([x]) => x === step);
+              return (
+                <li key={k}>
+                  <Link href={`/settings/clients/${id}?edit=${k}`} aria-current={k === step ? "step" : undefined} className="flex flex-col gap-1.5 text-xs font-semibold">
+                    <span className={`h-1.5 rounded-full ${i <= at ? "bg-brand" : "bg-line"}`} />
+                    <span className={k === step ? "text-ink" : "text-muted"}>
+                      {i + 1}. {l}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <nav aria-label="Client sections" className="thin-scroll -mx-1 flex gap-1 overflow-x-auto border-t border-line px-1 pt-2">
+            {tabs
+              .filter(([, , show]) => show)
+              .map(([k, l]) => (
+                <Link
+                  key={k}
+                  href={k === "overview" ? `/settings/clients/${id}` : `/settings/clients/${id}?tab=${k}`}
+                  scroll={false}
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold ${tab === k || (k === "overview" && !TAB_SECTIONS[tab]) ? "bg-brand text-brand-fg" : "text-muted hover:bg-page hover:text-ink"}`}
+                >
+                  {l}
+                </Link>
+              ))}
+          </nav>
+        )}
+      </Card>
+      {inView("overview") ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Card className="flex flex-col gap-2 p-4">
+            <h2 className="heading-sm">Contact profile</h2>
+            {det ? (
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+                <dt className="text-muted">Full name</dt>
+                <dd>{[label(TITLES, client.title ?? ""), client.given_name, client.middle_name, client.family_name].filter((v) => v && v !== "—").join(" ") || client.name}</dd>
+                <dt className="text-muted">Date of birth</dt>
+                <dd>{day(det.date_of_birth) || "Not recorded"}</dd>
+                <dt className="text-muted">Gender</dt>
+                <dd>{label(GENDERS, det.gender) || "Not recorded"}</dd>
+                <dt className="text-muted">Living situation</dt>
+                <dd>{label(LIVING, det.living_situation) || "Not recorded"}</dd>
+                <dt className="text-muted">Time zone</dt>
+                <dd>{label(TIME_ZONES, det.time_zone) || "Sydney"}</dd>
+                {str(det.ndis_number) ? (
+                  <>
+                    <dt className="text-muted">NDIS number</dt>
+                    <dd className="tabular-nums">{str(det.ndis_number)}</dd>
+                  </>
+                ) : null}
+                {str(det.aged_care_id) ? (
+                  <>
+                    <dt className="text-muted">My Aged Care ID</dt>
+                    <dd>{str(det.aged_care_id)}</dd>
+                  </>
+                ) : null}
+                {Array.isArray(det.tags) && det.tags.length ? (
+                  <>
+                    <dt className="text-muted">Tags</dt>
+                    <dd className="flex flex-wrap gap-1">
+                      {(det.tags as string[]).map((t) => (
+                        <span key={t} className="rounded-full bg-page px-2 py-0.5 text-xs ring-1 ring-line">
+                          {t}
+                        </span>
+                      ))}
+                    </dd>
+                  </>
+                ) : null}
+              </dl>
+            ) : (
+              <p className="text-sm text-muted">Personal details are for people who manage this client.</p>
+            )}
+          </Card>
+          <Card className="flex flex-col gap-2 p-4">
+            <h2 className="heading-sm">About</h2>
+            <p className="whitespace-pre-line text-sm">{str(det?.about) || <span className="text-muted">Nothing recorded yet.</span>}</p>
+          </Card>
+          <Card className="flex flex-col gap-2 p-4">
+            <h2 className="heading-sm">Emergency contacts</h2>
+            {people.error ? (
+              <p className="text-sm text-muted">For people who manage this client.</p>
+            ) : emergency.length ? (
+              <ul className="flex flex-col gap-1 text-sm">
+                {emergency.map((p) => (
+                  <li key={p.id}>
+                    <span className="font-semibold">{String(p.name)}</span>
+                    {p.relationship ? ` (${String(p.relationship)})` : ""} · {label(PERSON_KINDS, p.kind)}
+                    {p.phone ? <span className="block text-muted">{String(p.phone)}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-warn">No emergency contact yet.</p>
+            )}
+          </Card>
+          <Card className="flex flex-col gap-2 p-4">
+            <h2 className="heading-sm">Communication preferences</h2>
+            {comms ? (
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+                <dt className="text-muted">Contact method</dt>
+                <dd>{label(CONTACT_WAYS, comms.preferred_contact) || "Not set"}</dd>
+                <dt className="text-muted">Language</dt>
+                <dd>
+                  {comms.language || "Not set"}
+                  {comms.interpreter_needed ? " · needs an interpreter" : ""}
+                </dd>
+                {comms.accessibility_needs ? (
+                  <>
+                    <dt className="text-muted">Needs</dt>
+                    <dd className="whitespace-pre-line">{comms.accessibility_needs}</dd>
+                  </>
+                ) : null}
+              </dl>
+            ) : (
+              <p className="text-sm text-muted">Not recorded yet.</p>
+            )}
+          </Card>
+          <Card className="flex flex-col gap-2 p-4">
+            <h2 className="heading-sm">Safety</h2>
+            {activeAlerts.length ? (
+              <ul className="flex flex-col gap-1 text-sm">
+                {activeAlerts.map((a) => (
+                  <li key={a.id}>
+                    <span className="font-semibold">{String(a.title)}</span> · {label(ALERT_KINDS, a.kind)} · {String(a.severity)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">No active alerts.</p>
+            )}
+          </Card>
+          <Card className="flex flex-col gap-2 p-4">
+            <h2 className="heading-sm">Managed by</h2>
+            {assignments?.filter(isCurrent).length ? (
+              <ul className="flex flex-col gap-1 text-sm">
+                {assignments.filter(isCurrent).map((a) => (
+                  <li key={a.id}>
+                    <span className="font-semibold">{nameOfStaff.get(a.user_id) ?? "Staff member"}</span> · {label(ASSIGNED_AS, a.assigned_as)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">Nobody assigned.</p>
+            )}
+          </Card>
+          {activity?.length ? (
+            <Card className="flex flex-col gap-2 p-4 lg:col-span-2">
+              <h2 className="heading-sm">Recent activity</h2>
+              <ul className="flex flex-col divide-y divide-line text-sm">
+                {(activity as { id: string; action: string; created_at: string; actor_id: string | null; details: Record<string, unknown> }[]).map((a) => (
+                  <li key={a.id} className="flex flex-wrap gap-x-3 py-1.5">
+                    <span className="flex-1">{what(a.action, a.details ?? {})}</span>
+                    <span className="text-xs text-muted">
+                      {a.actor_id ? `${nameOfStaff.get(a.actor_id) ?? "Someone"} · ` : ""}
+                      {new Date(a.created_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
+      {inView("docs") && showDocs && docs ? (
         <Card className="flex flex-col gap-3 p-4">
           <h2 className="heading-sm">Documents</h2>
           {docs.length ? (
@@ -217,7 +495,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           ) : null}
         </Card>
       ) : null}
-      {plansSectionOn && plans && (plans.length || canPlans) ? (
+      {inView("plans") && plansSectionOn && plans && (plans.length || canPlans) ? (
         <Card className="flex flex-col gap-3 p-4">
           <div>
             <h2 className="heading-sm">Care plans</h2>
@@ -310,7 +588,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           {canPlans ? <Add label="Start a new draft"><CarePlanForm clientId={id} documents={docChoices} /></Add> : null}
         </Card>
       ) : null}
-      {plansSectionOn && instructions && (instructions.length || canPlans) ? (
+      {inView("instructions") && plansSectionOn && instructions && (instructions.length || canPlans) ? (
         <Card className="flex flex-col gap-3 p-4">
           <div>
             <h2 className="heading-sm">Worker instructions</h2>
@@ -342,7 +620,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           {canPlans ? <Add label="Add an instruction"><WorkerInstructionForm clientId={id} /></Add> : null}
         </Card>
       ) : null}
-      {showReviews && reviews ? (
+      {inView("reviews") && showReviews && reviews ? (
         <Card className="flex flex-col gap-3 p-4">
           <div>
             <h2 className="heading-sm">Reviews and re-assessments</h2>
@@ -390,7 +668,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           ) : null}
         </Card>
       ) : null}
-      {showAgreements && agreements ? (
+      {inView("agreements") && showAgreements && agreements ? (
         <Card className="flex flex-col gap-3 p-4">
           <div>
             <h2 className="heading-sm">Service agreements</h2>
@@ -449,7 +727,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           ) : null}
         </Card>
       ) : null}
-      {showFunding && funding ? (
+      {inView("funding") && showFunding && funding ? (
         <Card className="flex flex-col gap-3 p-4">
           <div>
             <h2 className="heading-sm">Funding and budgets</h2>
@@ -507,7 +785,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           ) : null}
         </Card>
       ) : null}
-      {showComms && (comms || canComms) ? (
+      {inView("comms") && showComms && (comms || canComms) ? (
         <Card className="flex flex-col gap-3 p-4">
           <h2 className="heading-sm">Communication preferences</h2>
           {canComms ? (
@@ -531,7 +809,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           ) : null}
         </Card>
       ) : null}
-      {assignments ? (
+      {inView("staff") && assignments ? (
         <Card className="flex flex-col gap-3 p-4">
           <h2 className="heading-sm">Assigned staff</h2>
           <p className="text-xs text-muted">An assignment gives a staff member this client only when their role allows it (for example case managers: assigned clients). Ending one stops their access straight away; it&apos;s kept for history.</p>
@@ -564,7 +842,7 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           {canAssign ? <Add label="Assign a staff member"><AssignForm clientId={id} staff={staffRows.map((p) => ({ id: p.id, name: p.full_name || p.email }))} /></Add> : null}
         </Card>
       ) : null}
-      {ready && !ready.ready && ready.gaps.length ? (
+      {inView("ready") && client.status !== "discharged" && ready && !ready.ready && ready.gaps.length ? (
         <Card className="p-4">
           <h2 className="heading-sm">Before services can start</h2>
           <ul className="mt-1 list-disc pl-5 text-sm">
@@ -575,13 +853,16 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
         </Card>
       ) : null}
 
+      {inView("details") ? (
       <Section title="Details" intro="Status and preferred name, then contact details, date of birth and identifiers (managers only).">
-        <ClientCareForm client={{ id: client.id, name: client.name, client_ref: client.client_ref, status: client.status, preferred_name: client.preferred_name ?? "" }} />
+        <ClientCareForm client={{ id: client.id, name: client.name, client_ref: client.client_ref, status: client.status, preferred_name: client.preferred_name ?? "", title: client.title, given_name: client.given_name, middle_name: client.middle_name, family_name: client.family_name }} />
         <div className="mt-4 border-t border-line pt-4">
           {details.error ? missing("client_details") : <SectionForm table="client_details" clientId={id} fields={SECTION_FIELDS.client_details} item={(details.data ?? { id: undefined }) as Row} submit="Save details" />}
         </div>
       </Section>
+      ) : null}
 
+      {inView("locations") ? (
       <Section title="Service locations" intro="Where support happens. A location must be approved before services can use it; staff see approved, current ones with the access instructions.">
         {locations.error ? (
           missing("client_locations")
@@ -598,7 +879,9 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           </>
         )}
       </Section>
+      ) : null}
 
+      {inView("people") ? (
       <Section title="Emergency contacts and representatives" intro="Sensitive: managers only. At least one current emergency contact is needed before services start.">
         {people.error ? (
           missing("client_people")
@@ -615,7 +898,9 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           </>
         )}
       </Section>
+      ) : null}
 
+      {inView("safety") ? (
       <Section title="Safety" intro="Alerts and what workers must do (staff in the client's team see current ones). Detailed risk notes are for managers only. Record 'no known safety alerts' if there are none.">
         {alerts.error ? (
           missing("client_alerts")
@@ -639,7 +924,9 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           </>
         )}
       </Section>
+      ) : null}
 
+      {inView("services") ? (
       <Section title="Service arrangements" intro="What the client receives, under which program, where and when. A service can only be made active when the client is ready for it.">
         {services.error ? (
           missing("client_services")
@@ -674,6 +961,40 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           </>
         )}
       </Section>
+      ) : null}
+      {step === "basic" && canEditClient && client.status !== "discharged" && client.title !== undefined ? (
+        <details className="shadow-card rounded-xl border border-line bg-surface p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-danger">Archive this client</summary>
+          <div className="mt-3">
+            <ArchiveClientForm clientId={id} name={client.name} />
+          </div>
+        </details>
+      ) : null}
+      {step ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {STEPS.findIndex(([k]) => k === step) > 0 ? (
+            <Link href={`/settings/clients/${id}?edit=${STEPS[STEPS.findIndex(([k]) => k === step) - 1][0]}`} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-page">
+              ← Back
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="flex gap-2">
+            <Link href={`/settings/clients/${id}`} className="rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page">
+              Cancel
+            </Link>
+            {STEPS.findIndex(([k]) => k === step) < STEPS.length - 1 ? (
+              <Link href={`/settings/clients/${id}?edit=${STEPS[STEPS.findIndex(([k]) => k === step) + 1][0]}`} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90">
+                Next →
+              </Link>
+            ) : (
+              <Link href={`/settings/clients/${id}`} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90">
+                Finish
+              </Link>
+            )}
+          </span>
+        </div>
+      ) : null}
     </>
   );
 }

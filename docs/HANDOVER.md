@@ -101,7 +101,15 @@ Last updated: 17 Nov 2026.
   Plan budget, Reviews and agreements; Progress notes and Shifts wait for those features). Every column comes from
   queries the database already limits. `settings/clients/client-list.tsx`. **Update 117 (D-053):** more default access for Case Manager,
   Intake and Payroll & Rostering (owner's choices; Payroll onboarding view held back, TODO). Check:
-  supabase/setup/verify-117-after.sql. Next: HR block, Stage 6.
+  supabase/setup/verify-117-after.sql. **Update 118 (D-054):** client names (title, first, middle, last),
+  optional details (gender, state, time zone, living situation, about, religion, marital status, Aboriginal and/or
+  Torres Strait Islander status, country of birth, nationality, tags; sensitive ones with consent), readiness needs
+  the NDIS number for NDIS services and the My Aged Care ID for Support at Home; archiving asks a reason (archive_reason,
+  note, who, when; hidden from Cars; can be made active again). Client page: header, tabs (Overview with contact
+  profile, about, emergency contacts, comms, safety, managed by, recent activity for change-log readers; Profile;
+  Documents; Care plans; Reviews; Agreements; Funding; Assigned staff) and Edit as steps (?edit=basic|support|
+  documents|funding). List: Filters button, email/suburb columns, View and Edit. Logo loading screen. Cost
+  calculation, day/evening/night bands and SMS opt-in wait for rostering and messaging. Next: HR block, Stage 6.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

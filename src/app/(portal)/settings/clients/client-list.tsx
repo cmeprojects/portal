@@ -221,7 +221,7 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                         <Link href={`/settings/clients/${c.id}`} title="View" aria-label={`View ${c.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-brand-soft text-brand hover:opacity-80">
                           <Eye aria-hidden="true" className="size-4" />
                         </Link>
-                        <Link href={`/settings/clients/${c.id}/edit`} title="Edit" aria-label={`Edit ${c.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-good-soft text-ink hover:opacity-80">
+                        <Link href={`/settings/clients/${c.id}?edit=basic`} title="Edit" aria-label={`Edit ${c.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-good-soft text-ink hover:opacity-80">
                           <Pencil aria-hidden="true" className="size-4" />
                         </Link>
                       </span>

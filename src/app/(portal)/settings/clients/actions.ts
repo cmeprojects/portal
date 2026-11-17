@@ -46,10 +46,45 @@ export async function saveClientCare(_: FormState, form: FormData): Promise<Form
   if (!STATUSES.includes(status)) return { error: "Choose a status." };
   const preferred = String(form.get("preferred_name") ?? "").trim().slice(0, 80);
   const supabase = await createClient();
-  const { error } = await supabase.from("car_clients").update({ preferred_name: preferred, status }).eq("id", id);
+  // Archiving has its own step (with the reason); this only keeps an archived client archived.
+  const { data: now } = await supabase.from("car_clients").select("status").eq("id", id).maybeSingle();
+  if (status === "discharged" && now?.status !== "discharged") return { error: "Use Archive to archive a client (it asks for the reason)." };
+  const names: Record<string, string> = {};
+  if (form.has("given_name")) {
+    const title = String(form.get("title") ?? "");
+    names.title = ["", "mr", "mrs", "ms", "miss", "mx", "dr"].includes(title) ? title : "";
+    names.given_name = String(form.get("given_name") ?? "").trim().slice(0, 40);
+    names.middle_name = String(form.get("middle_name") ?? "").trim().slice(0, 40);
+    names.family_name = String(form.get("family_name") ?? "").trim().slice(0, 40);
+    if (!names.given_name || !names.family_name) return { error: "Fill in the first and last name." };
+  }
+  const { error } = await supabase.from("car_clients").update({ preferred_name: preferred, status, ...names }).eq("id", id);
   if (error) return { error: friendlyError(error) };
   revalidatePath("/settings/clients");
   return { message: "Saved." };
+}
+
+// cmeprojects (update 118): archive a client with the reason. The database
+// checks who may (Clients, change) and records who and when.
+const ARCHIVE = ["transferred", "moved_away", "no_longer_needed", "funding_ended", "passed_away", "client_choice", "other"];
+export async function archiveClient(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const reason = String(form.get("archive_reason") ?? "");
+  const note = String(form.get("archive_note") ?? "").trim().slice(0, 500);
+  if (!isId(id)) return { error: "Choose a client." };
+  if (!ARCHIVE.includes(reason)) return { error: "Choose why they're being archived." };
+  if (reason === "other" && !note) return { error: "Say why they're being archived." };
+  const { data, error } = await (await createClient())
+    .from("car_clients")
+    .update({ status: "discharged", archive_reason: reason, archive_note: note })
+    .eq("id", id)
+    .select("id");
+  if (error) return { error: friendlyError(error) };
+  if (!data?.length) return { error: "You can't archive this client." };
+  revalidatePath("/settings/clients");
+  revalidatePath(`/settings/clients/${id}`);
+  return { message: "Archived." };
 }
 
 const SCHEMES = ["ndis", "support_at_home", "private", "other"];

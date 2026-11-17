@@ -7,11 +7,16 @@ import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
 import { CLIENT_STATUS } from "../../cars/manage/forms";
-import { addClientWithManager, saveClientCare, saveProgram, saveScheme } from "./actions";
+import { addClientWithManager, archiveClient, saveClientCare, saveProgram, saveScheme } from "./actions";
+import { ARCHIVE_REASONS, TITLES } from "@/lib/client-sections";
 
 // cmeprojects (Clients step 1): a client's preferred name and status. Changing
 // the status asks first; the database records who changed it and when.
-export function ClientCareForm({ client }: { client: { id: string; name: string; client_ref: string; preferred_name: string; status: string } }) {
+export function ClientCareForm({ client }: { client: { id: string; name: string; client_ref: string; preferred_name: string; status: string; title?: string; given_name?: string; middle_name?: string; family_name?: string } }) {
+  // Before update 118 (or for older records) the first and last name come from the full name.
+  const parts = client.name.trim().split(/\s+/);
+  const given = client.given_name || (parts.length > 1 ? parts.slice(0, -1).join(" ") : parts[0] ?? "");
+  const family = client.family_name || (parts.length > 1 ? parts[parts.length - 1] : "");
   const [state, action, pending] = useActionState(saveClientCare, null);
   const [, start] = useTransition();
   const { ref, dirty, markClean } = useDirty();
@@ -34,6 +39,32 @@ export function ClientCareForm({ client }: { client: { id: string; name: string;
       <p className="text-xs text-muted">
         Client reference <span className="font-mono font-semibold text-ink">{client.client_ref}</span> (made by the portal; it never changes)
       </p>
+      {client.title !== undefined ? (
+        <div className="grid gap-2 sm:grid-cols-[6rem_1fr_1fr_1fr]">
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Title
+            <select name="title" defaultValue={client.title} className={inputClass}>
+              {TITLES.map(([k, l]) => (
+                <option key={k} value={k}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            First name
+            <input name="given_name" required maxLength={40} defaultValue={given} className={inputClass} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Middle name (optional)
+            <input name="middle_name" maxLength={40} defaultValue={client.middle_name ?? ""} className={inputClass} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Last name
+            <input name="family_name" required maxLength={40} defaultValue={family} className={inputClass} />
+          </label>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex min-w-40 flex-1 flex-col gap-1 text-xs font-medium">
           Preferred name (optional)
@@ -42,7 +73,9 @@ export function ClientCareForm({ client }: { client: { id: string; name: string;
         <label className="flex min-w-40 flex-col gap-1 text-xs font-medium">
           Status
           <select name="status" defaultValue={client.status} className={inputClass}>
-            {Object.entries(CLIENT_STATUS).map(([k, label]) => (
+            {Object.entries(CLIENT_STATUS)
+              .filter(([k]) => k !== "discharged" || client.status === "discharged")
+              .map(([k, label]) => (
               <option key={k} value={k}>
                 {label}
               </option>
@@ -245,6 +278,44 @@ export function AddCareClientForm({ staff, word }: { staff: { id: string; name: 
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" disabled={pending}>
           {pending ? "Adding…" : `Add ${word.toLowerCase()}`}
+        </Button>
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+        {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+      </div>
+    </form>
+  );
+}
+
+// cmeprojects (update 118): archive a client, with the reason. They move to
+// the Archived tab and are hidden from Cars and features; nothing is deleted.
+export function ArchiveClientForm({ clientId, name }: { clientId: string; name: string }) {
+  const [state, action, pending] = useActionState(archiveClient, null);
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="id" value={clientId} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-xs font-medium">
+          Why is {name} being archived?
+          <select name="archive_reason" required defaultValue="" className={inputClass}>
+            <option value="" disabled>
+              Choose…
+            </option>
+            {ARCHIVE_REASONS.map(([k, l]) => (
+              <option key={k} value={k}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium">
+          Note (needed for Other)
+          <input name="archive_note" maxLength={500} placeholder="e.g. which provider, or when" className={inputClass} />
+        </label>
+      </div>
+      <p className="text-xs text-muted">They move to Archived and are hidden from Cars and features. Nothing is deleted; they can be made active again.</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button size="sm" variant="outline" disabled={pending}>
+          {pending ? "Archiving…" : "Archive"}
         </Button>
         {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
         {state?.message ? <Notice tone="success">{state.message}</Notice> : null}

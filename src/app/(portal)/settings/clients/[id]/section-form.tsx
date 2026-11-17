@@ -35,7 +35,7 @@ export function SectionForm({
   const value = (f: FieldSpec) => {
     const v = item?.[f.name];
     if (!item?.id && v === undefined) return f.def ?? "";
-    return v === null || v === undefined ? "" : String(v);
+    return v === null || v === undefined ? "" : Array.isArray(v) ? v.join(", ") : String(v);
   };
   return (
     <form key={round} ref={ref} action={action} className="flex flex-col gap-3">

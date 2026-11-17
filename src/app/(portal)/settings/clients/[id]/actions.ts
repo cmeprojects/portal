@@ -39,7 +39,8 @@ export async function saveClientSection(_: FormState, form: FormData): Promise<F
       notes = raw.slice(0, f.max ?? 5000);
       continue;
     }
-    if (f.type === "checkbox") values[f.name] = form.get(f.name) === "on";
+    if (f.name === "tags") values.tags = [...new Set(raw.split(",").map((t) => t.trim().replace(/[<>]/g, "").slice(0, 30)).filter(Boolean))].slice(0, 10);
+    else if (f.type === "checkbox") values[f.name] = form.get(f.name) === "on";
     else if (f.type === "date") values[f.name] = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
     else if (f.type === "select" && f.options) values[f.name] = f.options.some(([k]) => k === raw) ? raw : f.options[0][0];
     else if (f.type === "select") values[f.name] = isId(raw) ? raw : null;

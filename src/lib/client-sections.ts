@@ -45,6 +45,33 @@ export const CONTACT_WAYS: [string, string][] = [
   ["through_representative", "Through their representative"],
 ];
 
+// cmeprojects (update 118): client details the owner chose. Sensitive ones
+// (religion, marital status, cultural identity) are optional, with consent.
+export const TITLES: [string, string][] = [["", "—"], ["mr", "Mr"], ["mrs", "Mrs"], ["ms", "Ms"], ["miss", "Miss"], ["mx", "Mx"], ["dr", "Dr"]];
+export const GENDERS: [string, string][] = [["", "—"], ["female", "Female"], ["male", "Male"], ["non_binary", "Non-binary"], ["different_term", "Uses a different term"], ["prefer_not_to_say", "Prefer not to say"]];
+export const TIME_ZONES: [string, string][] = [
+  ["Australia/Sydney", "Sydney, Canberra (NSW, ACT)"],
+  ["Australia/Melbourne", "Melbourne (VIC)"],
+  ["Australia/Brisbane", "Brisbane (QLD)"],
+  ["Australia/Adelaide", "Adelaide (SA)"],
+  ["Australia/Darwin", "Darwin (NT)"],
+  ["Australia/Perth", "Perth (WA)"],
+  ["Australia/Hobart", "Hobart (TAS)"],
+  ["Australia/Lord_Howe", "Lord Howe Island"],
+];
+export const LIVING: [string, string][] = [["", "—"], ["own_home", "Own home"], ["with_family", "With family"], ["supported_accommodation", "Supported accommodation"], ["residential_care", "Residential care"], ["other", "Other"]];
+export const MARITAL: [string, string][] = [["", "—"], ["single", "Single"], ["partnered", "Partnered"], ["married", "Married"], ["separated", "Separated"], ["divorced", "Divorced"], ["widowed", "Widowed"], ["prefer_not_to_say", "Prefer not to say"]];
+export const ATSI: [string, string][] = [["", "—"], ["aboriginal", "Aboriginal"], ["torres_strait_islander", "Torres Strait Islander"], ["both", "Both Aboriginal and Torres Strait Islander"], ["neither", "Neither"], ["prefer_not_to_say", "Prefer not to say"]];
+export const ARCHIVE_REASONS: [string, string][] = [
+  ["transferred", "Transferred to another provider"],
+  ["moved_away", "Moved away"],
+  ["no_longer_needed", "No longer needs support"],
+  ["funding_ended", "Funding ended"],
+  ["passed_away", "Passed away"],
+  ["client_choice", "Their choice"],
+  ["other", "Other (say why)"],
+];
+
 export type SectionTable = "client_locations" | "client_details" | "client_people" | "client_alerts" | "client_services";
 
 export const SECTION_FIELDS: Record<SectionTable, FieldSpec[]> = {
@@ -60,14 +87,25 @@ export const SECTION_FIELDS: Record<SectionTable, FieldSpec[]> = {
     { name: "approved", label: "Approved for services", type: "checkbox" },
   ],
   client_details: [
-    { name: "date_of_birth", label: "Date of birth", type: "date", hint: "Needed for NDIS and Support at Home" },
-    { name: "phone", label: "Phone", type: "text", max: 30 },
+    { name: "date_of_birth", label: "Date of birth", type: "date", hint: "Required for NDIS and Support at Home" },
+    { name: "gender", label: "Gender (optional)", type: "select", options: GENDERS },
+    { name: "phone", label: "Mobile or phone", type: "text", max: 30 },
     { name: "email", label: "Email", type: "text", max: 120 },
     { name: "home_address", label: "Home address", type: "textarea", max: 300 },
+    { name: "state", label: "State", type: "select", options: STATES },
+    { name: "time_zone", label: "Time zone", type: "select", options: TIME_ZONES },
+    { name: "living_situation", label: "Living situation (optional)", type: "select", options: LIVING },
     { name: "preferred_contact", label: "Best way to contact", type: "select", options: CONTACT_WAYS },
     { name: "communication_needs", label: "Communication or accessibility needs", type: "textarea", max: 1000 },
-    { name: "ndis_number", label: "NDIS number", type: "text", max: 9, hint: "Nine numbers" },
-    { name: "aged_care_id", label: "My Aged Care ID", type: "text", max: 30 },
+    { name: "ndis_number", label: "NDIS number", type: "text", max: 9, hint: "Nine numbers. Required for NDIS services" },
+    { name: "aged_care_id", label: "My Aged Care ID", type: "text", max: 30, hint: "Required for Support at Home services" },
+    { name: "about", label: "About them (optional)", type: "textarea", max: 2000, hint: "What matters to them, likes and dislikes, how they like support" },
+    { name: "atsi_status", label: "Aboriginal and/or Torres Strait Islander (optional)", type: "select", options: ATSI, hint: "Ask; never assume. Only with consent" },
+    { name: "country_of_birth", label: "Country of birth (optional)", type: "text", max: 60 },
+    { name: "nationality", label: "Nationality (optional)", type: "text", max: 60 },
+    { name: "religion", label: "Religion or beliefs (optional)", type: "text", max: 60, hint: "Sensitive: only with consent, if it matters for their support" },
+    { name: "marital_status", label: "Marital status (optional)", type: "select", options: MARITAL, hint: "Sensitive: only with consent" },
+    { name: "tags", label: "Tags (optional)", type: "text", max: 300, hint: "Separate with commas, up to 10" },
   ],
   client_people: [
     { name: "kind", label: "Who they are", type: "select", options: PERSON_KINDS },
