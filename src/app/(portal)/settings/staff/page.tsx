@@ -225,15 +225,21 @@ export default async function StaffPage() {
                   <Avatar name={p.full_name || p.email} src={photos[p.id]} size={40} className="bg-brand-soft text-brand" />
                   <span className="min-w-48 flex-1">
                     <span className={`block font-semibold ${p.active ? "" : "text-muted"}`}>
-                      {p.full_name || "(no name yet)"} {row.isMe ? <span className="font-normal text-muted">(you)</span> : null}
-                      {row.role === "manager" && maDates.has(p.id) ? (
-                        <span
-                          className="ml-1 cursor-help font-normal text-muted"
-                          title={`Manager Administrator since ${auDay(maDates.get(p.id)!.starts_at)}${maDates.get(p.id)!.expires_at ? ` until ${auDay(maDates.get(p.id)!.expires_at!)}` : " (no end date)"}. Set on the Access page.`}
-                        >
-                          (administrator)
-                        </span>
-                      ) : null}
+                      {p.full_name || "(no name yet)"}{" "}
+                      {(() => {
+                        // cmeprojects: one bracket: (you), (administrator) or (you · administrator).
+                        const ma = row.role === "manager" && maDates.has(p.id);
+                        if (!row.isMe && !ma) return null;
+                        const d = ma ? maDates.get(p.id)! : null;
+                        return (
+                          <span
+                            className={`font-normal text-muted ${ma ? "cursor-help" : ""}`}
+                            title={d ? `Manager Administrator since ${auDay(d.starts_at)}${d.expires_at ? ` until ${auDay(d.expires_at)}` : " (no end date)"}. Set on the Access page.` : undefined}
+                          >
+                            ({[row.isMe ? "you" : "", ma ? "administrator" : ""].filter(Boolean).join(" · ")})
+                          </span>
+                        );
+                      })()}
                     </span>
                     <span className="block text-sm text-muted">{p.email}</span>
                   </span>
