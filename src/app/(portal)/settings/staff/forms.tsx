@@ -20,8 +20,39 @@ function Result({ state }: { state: FormState }) {
   return null;
 }
 
-// Job titles grouped under their access level, then the plain access level.
+// cmeprojects: roles grouped by their function group (Care & Coordination…),
+// then the access levels on their own (no role). Before function groups:
+// roles under their access level.
 function RoleOptions({ roles, titles }: { roles: Role[]; titles: JobTitle[] }) {
+  if (titles.some((t) => t.groups?.length)) {
+    const usable = titles.filter((t) => t.active && roles.includes(t.access_level));
+    const groupNames = [...new Set(usable.map((t) => t.groups?.[0] ?? "Other roles"))].sort((a, b) => (a === "Other roles" ? 1 : b === "Other roles" ? -1 : a.localeCompare(b)));
+    return (
+      <>
+        {roles.includes("new_starter") ? <option value={roleChoiceValue("new_starter", null)}>New starter (general invite, no role yet)</option> : null}
+        {groupNames.map((g) => (
+          <optgroup key={g} label={g}>
+            {usable
+              .filter((t) => (t.groups?.[0] ?? "Other roles") === g)
+              .map((t) => (
+                <option key={t.id} value={roleChoiceValue(t.access_level, t.id)}>
+                  {t.name}
+                </option>
+              ))}
+          </optgroup>
+        ))}
+        <optgroup label="Access level only (no role)">
+          {roles
+            .filter((r) => r !== "new_starter")
+            .map((r) => (
+              <option key={r} value={roleChoiceValue(r, null)}>
+                {ROLE_LABELS[r]}
+              </option>
+            ))}
+        </optgroup>
+      </>
+    );
+  }
   return roles.map((r) => {
     if (r === "new_starter") {
       return (

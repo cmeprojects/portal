@@ -25,12 +25,12 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const ROLE_HELP: Record<Role, string> = {
   new_starter: "Joined with a general invite. Does their onboarding (reading, trainings, documents) and gets a role once it's done, or earlier as a conditional role.",
-  support_worker: "Their own tasks (assigned, helping on or created), and their teams' clients' locations and alerts. Most roles start here and get more from their role on the Access page (for example Case Manager: their assigned clients).",
-  team_leader: "Leads one team: also sees their team's tasks, onboarding progress and staff requests.",
-  manager: "In the core team: every team's tasks, staff, teams, staff requests, clients, due dates, cars, forms and reports. Approves role and team changes.",
-  staff_admin: "In the core team, like HR: staff, teams, staff requests, onboarding, clients and the compliance report. Role and team changes go to a manager to approve. Doesn't see other people's tasks.",
+  support_worker: "Base access: their own tasks (assigned, helping on or created) and their teams' clients' locations and alerts. Most roles use this base and get what the job needs from the role itself, so roles like Case Manager or Intake & Assessment Officer aren't support workers.",
+  team_leader: "Base access for leading a team: the above, plus their team's tasks, onboarding progress and staff requests.",
+  manager: "Base access for running the service: every team's tasks, staff, teams, staff requests, clients, due dates, cars, forms and reports. Approves role and team changes.",
+  staff_admin: "Base access for HR and the office: staff, teams, staff requests, onboarding, clients and the compliance report, but not other people's tasks. Their role and team changes go to a manager to approve.",
   system_admin: "Everything, plus System settings. The only role that can create system admins. Hidden from other staff and never given tasks.",
-  external: "Allied health and other outside practitioners. Nothing by default; access to their assigned clients comes with the next stage.",
+  external: "Base access for outside practitioners (allied health): nothing by default. Access to their assigned clients comes with the next stage.",
 };
 
 // Access levels someone may give out: managers and staff admins (HR) give any
@@ -51,6 +51,8 @@ export type JobTitle = {
   description: string;
   active: boolean;
   sort_order: number;
+  // cmeprojects: the function group(s) the role belongs to, when loaded (for grouping).
+  groups?: string[];
 };
 
 export const JOB_TITLE_COLUMNS = "id, name, access_level, description, active, sort_order";

@@ -83,7 +83,7 @@ export default async function StaffPage() {
   const exemptRows = me.role === "system_admin" ? await supabase.from("profiles").select("id, mfa_exempt") : null;
   const mfaExemptOf = (id: string): boolean | null =>
     exemptRows && !exemptRows.error ? Boolean((exemptRows.data ?? []).find((r) => r.id === id)?.mfa_exempt) : null;
-  const titles = showTitles ? ((titleRows ?? []) as JobTitle[]) : [];
+  const titles = showTitles ? ((titleRows ?? []) as JobTitle[]).map((t) => ({ ...t, groups: groupsOfTitle(t.id) })) : [];
   const activeManagers = (people ?? []).filter((p) => p.role === "manager" && p.active).length;
   // New starters: what's still missing from onboarding.
   const missingFor = new Map(
@@ -287,7 +287,7 @@ export default async function StaffPage() {
       </div>
 
       <Card className="p-5">
-        <h2 className="mb-3 heading-sm">Access levels: where everyone starts</h2>
+        <h2 className="mb-3 heading-sm">Access levels: the base each role builds on</h2>
         <p className="mb-3 text-sm text-muted">
           Every role (job title) sits on one of these. It&apos;s only the starting point: the role and its function group get more on the Access page, and these defaults can be changed there too. Roles are added on the Roles page.
         </p>
