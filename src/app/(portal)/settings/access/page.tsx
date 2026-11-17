@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import { RoleGroupAccess, type BaselineModule, type BaselineRow } from "./role-group-access";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -357,6 +358,8 @@ export default async function AccessPage() {
       </>
       ) : null}
 
+      {admin ? <RoleGroupAccessSection /> : null}
+
       {admin ? <KeepingRecords /> : null}
 
       <AccessHistory
@@ -494,6 +497,47 @@ async function KeepingRecords() {
           </div>
         ))}
       </div>
+    </Card>
+  );
+}
+
+// cmeprojects (Stage 3, update 94, D-047): access held by a function group,
+// a role (job title) or an access level, for parts switched over to the one
+// permission check. Hidden before update 94.
+async function RoleGroupAccessSection() {
+  const supabase = await createClient();
+  const [mods, rows, groups, titles] = await Promise.all([
+    supabase.from("app_modules").select("id, label, actions, sensitivity").eq("grant_ready", true).eq("status", "active").order("sort_order"),
+    supabase.from("access_baselines").select("job_title_id, function_group_id, access_level, module_id, effect, actions, scope").is("revoked_at", null),
+    supabase.from("function_groups").select("id, name").eq("active", true).order("sort_order"),
+    supabase.from("job_titles").select("id, name").eq("active", true).order("sort_order").order("name"),
+  ]);
+  if (mods.error || rows.error) return null;
+  const modules: BaselineModule[] = ((mods.data ?? []) as { id: string; label: string; actions: string[]; sensitivity: string }[])
+    .filter((m) => m.sensitivity !== "protected")
+    .map((m) => ({ id: m.id, label: m.label, actions: m.actions, sensitive: m.sensitivity === "sensitive" }));
+  const live: BaselineRow[] = ((rows.data ?? []) as { job_title_id: string | null; function_group_id: string | null; access_level: string | null; module_id: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams" }[]).map((r) => ({
+    holder: r.function_group_id ? `group:${r.function_group_id}` : r.job_title_id ? `title:${r.job_title_id}` : `level:${r.access_level}`,
+    module: r.module_id,
+    effect: r.effect,
+    actions: r.actions,
+    scope: r.scope,
+  }));
+  return (
+    <Card className="flex flex-col gap-3 p-5 sm:p-6">
+      <div>
+        <h2 className="heading-sm">Access by function group, role or access level</h2>
+        <p className="text-sm text-muted">
+          Give a whole function group, role or access level access to a part of the portal. A person&apos;s own setting (above) comes first, then their role, then their function group, then their access level. Sensitive parts go only to a role or a person. New starters and external accounts never inherit access.
+        </p>
+      </div>
+      <RoleGroupAccess
+        modules={modules}
+        rows={live}
+        groups={((groups.data ?? []) as { id: string; name: string }[]).map((g) => ({ value: `group:${g.id}`, label: g.name }))}
+        titles={((titles.data ?? []) as { id: string; name: string }[]).map((t) => ({ value: `title:${t.id}`, label: t.name }))}
+        levels={["support_worker", "team_leader", "manager", "staff_admin"].map((r) => ({ value: `level:${r}`, label: ROLE_LABELS[r as keyof typeof ROLE_LABELS] }))}
+      />
     </Card>
   );
 }

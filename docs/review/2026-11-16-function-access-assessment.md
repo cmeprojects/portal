@@ -431,3 +431,44 @@ The owner chose the clean end state over widening the person-only gates.
   before/after comparison for every role. Order: onboarding, cars, forms,
   reports, built features, enquiries, contracts; then the seven "Set by
   role" modules; Clients built directly on the model (Stage 5).
+
+## Stage 3 implementation record (17 Nov 2026)
+
+Approved by the owner (D-047; "go further, just give me a briefer").
+**Built and tested; live update 94 waiting for the owner to run on Dev.**
+
+- Files: `supabase/migrations/20270208000001_access_baselines.sql`,
+  `supabase/live-updates/update-94.sql`, `undo-94.sql` (restores `can()`
+  exactly as it was, taken from the database definition),
+  `supabase/tests/access_baselines.test.sql`; Access page
+  (`page.tsx` section, `role-group-access.tsx`, `baseline-actions.ts`).
+- `access_baselines`: holder = job title, function group or access level
+  (exactly one); module, actions, allow/restrict, scope (everyone's / own
+  teams'); revoked, never deleted or edited; ON DELETE RESTRICT links.
+  Guard: only `grant_ready` modules; never protected, settings areas or staff
+  records; sensitive never to a group; system admin, new starter and
+  external can't hold access-level defaults. RLS: system admin and Manager
+  Administrators read all; members read their own title, groups and level;
+  only the system admin writes (Manager Administrators later).
+- `can()`: person grants first (unchanged); then job title, function
+  groups, access level (first tier with an applicable grant decides; nearest
+  module level; restriction beats allow); only for `grant_ready` modules;
+  never for new starters or external accounts.
+- `app_modules.grant_ready` (new, default false): set to true when a module
+  is switched over (Stage 3b onwards). **No module is switched over in this
+  update, so nobody's access changes.**
+- **Change from D-047's wording:** access-level defaults are seeded with each
+  module's switch-over, not all in Stage 3, because many of today's rules
+  come from settings (for example "who manages cars" is a list of roles
+  chosen in System settings). Same end result, no access change either way.
+- Tests: 25 new database checks (precedence, ceiling, sensitive, protected,
+  staff records, scope, revoke-only, who reads, helpers unchanged); full
+  suite 1,180 pass (proves nothing changed); round trip on the local copy
+  (undo matches, re-apply matches); browser 7 of 7 (explains nothing is
+  switched over; with one module marked locally for the test: a group grant
+  saves, is logged, can be set back and is kept in history; phone width; no
+  errors; not shown to a manager); lint, typecheck, unit, build pass.
+- Rollback: `undo-94.sql`.
+- **Next:** Stage 3b: switch over the first module (My onboarding /
+  onboarding management) with defaults reproducing today's rules and a
+  before/after proof for every role.
