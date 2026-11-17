@@ -1,6 +1,6 @@
 # Stage 6: Allied Health external access (plan for approval)
 
-cmeprojects · 17 Nov 2026 · Status: **for the owner's approval; nothing built yet**
+cmeprojects · 17 Nov 2026 · Status: **approved 17 Nov 2026 (D-058); building as update 124**
 
 ## The problem
 
@@ -68,9 +68,9 @@ Case Managers for their assigned clients. Nobody else by default.
 2. App: Practitioners tab, invite, practitioner home and client page, log,
    notices; browser test as manager, case manager and a practitioner.
 
-## Owner decisions needed
+## Owner decisions (17 Nov 2026, D-058)
 
-1. Premium package or included in every plan?
-2. Can practitioners upload reports and write notes, or view only?
-3. Default length of access (6 months suggested, 12 at most).
-4. Two-factor required for practitioners (recommended: yes).
+1. **Premium package** (`features.allied_health`), switched on by cmeproject.
+2. Practitioners **view, upload their reports and write their own notes** (editable for 24 hours).
+3. Access lasts **6 months by default, 12 at most**; can be extended before it ends.
+4. **Two-factor required** for practitioners.
