@@ -39,6 +39,9 @@ training. Lapsed checks are an audit finding and a risk to participants.
   (person, type, issued, expires, file, checked by). About one milestone.
 
 ### 2. Workforce availability and rostering
+
+**Status (17 Nov 2026):** built in updates 122 and 123 as the premium Rostering package (roster, open shifts, recurring shifts, swaps and can't-work requests that update the roster, timesheets, payroll CSV). The notes below are the original plan.
+
 - A **roster** of shifts (client, location, start, end, worker), built from
   availability, leave periods and skills (only qualified, available staff are
   offered for a shift).

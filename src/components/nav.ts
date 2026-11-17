@@ -176,6 +176,7 @@ export function navFor(
         ...(hasHomeDashboard(role) ? [{ href: "/tasks", label: "Tasks", match: ["/tasks", "/my-tasks"] }] : []),
         // Who sees Registers is set by the system admin (System settings → Tasks).
         ...(access.roster ? [{ href: "/roster", label: "Roster" }] : []),
+        ...(access.roster ? [{ href: "/roster/timesheets", label: "Timesheets" }] : []),
         ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),
         ...(access.forms ? [{ href: "/forms", label: "Forms", match: ["/forms"] }] : []),
         ...(access.enquiries ? [{ href: "/enquiries", label: "Enquiries" }] : []),

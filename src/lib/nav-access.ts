@@ -60,8 +60,9 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     staff: await managesStaffFor("view"),
     clients: await seesClientsFor(),
     myClients: role !== "new_starter" && role !== "system_admin" && (await hasMyClients()),
-    roster: await canDo("ops.roster", "view"),
-    myShifts: role !== "new_starter" && role !== "system_admin" && (await rosterOn()),
+    // Rostering is a premium package (update 123): the roster, timesheets and My shifts.
+    roster: features.rostering !== false && (await canDo("ops.roster", "view")),
+    myShifts: features.rostering !== false && role !== "new_starter" && role !== "system_admin" && (await rosterOn()),
     dueDates: await setsDueDatesFor(),
     adminAreas,
     customFeatures,

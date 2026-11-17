@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
-import { sydneyInstant } from "@/lib/sydney-time";
+import { addDays, mondayOf, sydneyInstant, sydneyParts } from "@/lib/sydney-time";
 
 // cmeprojects (update 122): rostering. The database checks who may
 // (Rostering, change), refuses leave and double-booking, and never deletes.
@@ -28,33 +28,88 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
   await requireRoster();
   const id = String(form.get("id") ?? "");
   const date = String(form.get("date") ?? "");
-  const start = sydney(date, String(form.get("start") ?? ""));
-  let end = sydney(date, String(form.get("end") ?? ""));
-  if (!start || !end) return { error: "Choose the date, start and finish." };
-  // Finishing after midnight: the next day.
-  if (end <= start) end = new Date(new Date(end).getTime() + 86_400_000).toISOString();
+  const startT = String(form.get("start") ?? "");
+  const endT = String(form.get("end") ?? "");
+  if (!sydney(date, startT) || !sydney(date, endT)) return { error: "Choose the date, start and finish." };
   const worker = String(form.get("worker_id") ?? "");
   const client = String(form.get("client_id") ?? "");
   const location = String(form.get("location_id") ?? "");
   const service = String(form.get("service_id") ?? "");
   const status = String(form.get("status") ?? "draft");
-  const values = {
+  const base = {
     worker_id: isId(worker) ? worker : null,
     client_id: isId(client) ? client : null,
     location_id: isId(client) && isId(location) ? location : null,
     service_id: isId(client) && isId(service) ? service : null,
-    starts_at: start,
-    ends_at: end,
     break_minutes: Math.max(0, Math.min(240, Number(form.get("break_minutes") ?? 0) || 0)),
     notes: String(form.get("notes") ?? "").trim().slice(0, 500),
     status: ["draft", "published"].includes(status) ? status : "draft",
   };
+  // One date: start and finish (finishing at or before the start, or ticked: the next day).
+  const times = (d: string) => {
+    const start = sydney(d, startT)!;
+    let end = sydney(d, endT)!;
+    if (end <= start || form.get("next_day") === "on") end = new Date(new Date(end).getTime() + 86_400_000).toISOString();
+    return { starts_at: start, ends_at: end };
+  };
   const supabase = await createClient();
-  const { error } = id && isId(id) ? await supabase.from("shifts").update(values).eq("id", id) : await supabase.from("shifts").insert(values);
-  if (error) return { error: friendlyError(error) };
-  if (values.status === "published") await tellWorkers();
+
+  if (id && isId(id)) {
+    // Changing a repeating shift: just this one, or this and the later ones in its series.
+    const scope = String(form.get("scope") ?? "one");
+    const { data: me } = await supabase.from("shifts").select("id, series_id, starts_at").eq("id", id).maybeSingle();
+    if (!me) return { error: "That shift isn't there any more. Please reload the page." };
+    if (scope === "future" && me.series_id) {
+      const { data: later } = await supabase.from("shifts").select("id, starts_at").eq("series_id", me.series_id).neq("status", "cancelled").gte("starts_at", me.starts_at);
+      let done = 0;
+      const refused: string[] = [];
+      for (const s of (later ?? []) as { id: string; starts_at: string }[]) {
+        const d = sydneyParts(s.starts_at).date;
+        const { error } = await supabase.from("shifts").update({ ...base, ...times(s.id === id ? date : d) }).eq("id", s.id);
+        if (error) refused.push(`${d}: ${friendlyError(error)}`);
+        else done++;
+      }
+      if (base.status === "published") await tellWorkers();
+      revalidatePath("/roster");
+      return refused.length ? { error: `${done} changed; not changed: ${refused.join("; ")}` } : { message: `${done} shifts changed.` };
+    }
+    const { error } = await supabase.from("shifts").update({ ...base, ...times(date) }).eq("id", id);
+    if (error) return { error: friendlyError(error) };
+    if (base.status === "published") await tellWorkers();
+    revalidatePath("/roster");
+    return { message: "Shift saved." };
+  }
+
+  // New: once, or repeating (every day / week / fortnight on chosen days) until a date or a number of shifts, at most 12 weeks.
+  const repeat = String(form.get("repeat") ?? "none");
+  let dates = [date];
+  if (["daily", "weekly", "fortnightly"].includes(repeat)) {
+    const days = form.getAll("repeat_days").map(Number).filter((n) => n >= 0 && n <= 6);
+    const until = String(form.get("repeat_until") ?? "");
+    const count = Math.max(1, Math.min(100, Number(form.get("repeat_count") ?? 0) || 0));
+    const byCount = form.get("repeat_end") === "count";
+    const last = byCount ? addDays(date, 84) : /^\d{4}-\d{2}-\d{2}$/.test(until) && until <= addDays(date, 84) ? until : addDays(date, 84);
+    const monday = mondayOf(date);
+    dates = [];
+    for (let d = date; d <= last && dates.length < (byCount ? count : 200); d = addDays(d, 1)) {
+      const dow = (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7;
+      const weekNo = Math.floor((new Date(`${mondayOf(d)}T12:00:00Z`).getTime() - new Date(`${monday}T12:00:00Z`).getTime()) / (7 * 86_400_000));
+      if (repeat === "daily" || (days.includes(dow) && (repeat === "weekly" || weekNo % 2 === 0))) dates.push(d);
+    }
+    if (!dates.length) return { error: "Choose at least one day for it to repeat on." };
+  }
+  const seriesId = dates.length > 1 ? crypto.randomUUID() : null;
+  let made = 0;
+  const refused: string[] = [];
+  for (const d of dates) {
+    const { error } = await supabase.from("shifts").insert({ ...base, ...times(d), series_id: seriesId });
+    if (error) refused.push(`${d}: ${friendlyError(error)}`);
+    else made++;
+  }
+  if (base.status === "published" && made) await tellWorkers();
   revalidatePath("/roster");
-  return { message: id ? "Shift saved." : "Shift added." };
+  if (!made) return { error: refused[0]?.replace(/^\d{4}-\d{2}-\d{2}: /, "") ?? "That didn't save." };
+  return { message: `${made} shift${made === 1 ? "" : "s"} added${refused.length ? `; skipped ${refused.length}: ${refused.slice(0, 3).join("; ")}${refused.length > 3 ? "…" : ""}` : ""}.` };
 }
 
 export async function cancelShift(form: FormData) {
@@ -114,4 +169,157 @@ export async function putHandUp(form: FormData) {
   if (!isId(id)) return;
   await (await createClient()).from("shift_interest").insert({ shift_id: id });
   revalidatePath("/my-shifts");
+}
+
+// End a repeat after this shift: the later shifts in its series are cancelled.
+export async function endRepeat(form: FormData) {
+  await requireRoster();
+  const id = String(form.get("id") ?? "");
+  if (!isId(id)) return;
+  const supabase = await createClient();
+  const { data: me } = await supabase.from("shifts").select("series_id, starts_at").eq("id", id).maybeSingle();
+  if (me?.series_id) await supabase.from("shifts").update({ status: "cancelled" }).eq("series_id", me.series_id).gt("starts_at", me.starts_at).neq("status", "cancelled");
+  revalidatePath("/roster");
+}
+
+// Copy this week's shifts into next week as drafts.
+export async function copyToNextWeek(_: FormState, form: FormData): Promise<FormState> {
+  await requireRoster();
+  const from = String(form.get("from") ?? "");
+  const to = String(form.get("to") ?? "");
+  if (!from || !to) return { error: "Choose a week." };
+  const supabase = await createClient();
+  const { data } = await supabase.from("shifts").select("worker_id, starts_at, ends_at, break_minutes, client_id, service_id, location_id, notes").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to);
+  return { message: await copyRows(supabase, (data ?? []) as Row[], "next week") };
+}
+
+type Row = { worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string };
+async function copyRows(supabase: Awaited<ReturnType<typeof createClient>>, rows: Row[], where: string) {
+  let added = 0;
+  let skipped = 0;
+  const week = 7 * 86_400_000;
+  for (const s of rows) {
+    const { error } = await supabase.from("shifts").insert({ ...s, starts_at: new Date(new Date(s.starts_at).getTime() + week).toISOString(), ends_at: new Date(new Date(s.ends_at).getTime() + week).toISOString(), status: "draft" });
+    if (error) skipped++;
+    else added++;
+  }
+  revalidatePath("/roster");
+  return `${added} shift${added === 1 ? "" : "s"} copied to ${where} as drafts${skipped ? `; ${skipped} skipped (leave, a clash, an expired check or someone no longer active)` : ""}.`;
+}
+
+// Selected shifts: copy to next week, publish, cancel or give to one worker.
+export async function bulkShifts(_: FormState, form: FormData): Promise<FormState> {
+  await requireRoster();
+  const ids = form.getAll("ids").map(String).filter(isId).slice(0, 300);
+  const what = String(form.get("bulk") ?? "");
+  if (!ids.length) return { error: "Tick at least one shift." };
+  const supabase = await createClient();
+  if (what === "copy") {
+    const { data } = await supabase.from("shifts").select("worker_id, starts_at, ends_at, break_minutes, client_id, service_id, location_id, notes").in("id", ids);
+    return { message: await copyRows(supabase, (data ?? []) as Row[], "the next week") };
+  }
+  if (what === "publish") {
+    const { error } = await supabase.from("shifts").update({ status: "published" }).in("id", ids).eq("status", "draft");
+    if (error) return { error: friendlyError(error) };
+    await tellWorkers();
+    revalidatePath("/roster");
+    return { message: "Published. The workers have been told." };
+  }
+  if (what === "cancel") {
+    const { error } = await supabase.from("shifts").update({ status: "cancelled" }).in("id", ids);
+    if (error) return { error: friendlyError(error) };
+    revalidatePath("/roster");
+    return { message: `${ids.length} shift${ids.length === 1 ? "" : "s"} cancelled.` };
+  }
+  if (what === "worker") {
+    const worker = String(form.get("bulk_worker") ?? "");
+    if (!isId(worker)) return { error: "Choose the worker." };
+    let done = 0;
+    let refused = 0;
+    for (const id of ids) {
+      const { error } = await supabase.from("shifts").update({ worker_id: worker }).eq("id", id);
+      if (error) refused++;
+      else done++;
+    }
+    await tellWorkers();
+    revalidatePath("/roster");
+    return { message: `${done} given to them${refused ? `; ${refused} refused (leave, a clash or an expired check)` : ""}.` };
+  }
+  return { error: "Choose what to do." };
+}
+
+// Shift change requests: decide (people who roster), ask or withdraw (the worker).
+export async function decideRequest(form: FormData) {
+  await requireRoster();
+  const id = String(form.get("id") ?? "");
+  const status = String(form.get("status") ?? "");
+  if (!isId(id) || !["approved", "declined"].includes(status)) return;
+  await (await createClient()).from("shift_change_requests").update({ status }).eq("id", id);
+  await tellWorkers();
+  revalidatePath("/roster");
+}
+
+export async function askChange(_: FormState, form: FormData): Promise<FormState> {
+  await requireSession();
+  const shift = String(form.get("shift_id") ?? "");
+  const kind = String(form.get("kind") ?? "");
+  const swap = String(form.get("swap_with") ?? "");
+  const reason = String(form.get("reason") ?? "").trim().slice(0, 500);
+  if (!isId(shift) || !["swap", "cannot_work"].includes(kind)) return { error: "Choose what you need." };
+  if (kind === "swap" && !isId(swap)) return { error: "Choose who you'd swap with." };
+  if (!reason) return { error: "Give a short reason." };
+  const { error } = await (await createClient()).from("shift_change_requests").insert({ shift_id: shift, kind, swap_with: kind === "swap" ? swap : null, reason });
+  if (error) return { error: friendlyError(error) };
+  await tellWorkers();
+  revalidatePath("/my-shifts");
+  return { message: "Sent to the roster team." };
+}
+
+export async function withdrawRequest(form: FormData) {
+  await requireSession();
+  const id = String(form.get("id") ?? "");
+  if (!isId(id)) return;
+  await (await createClient()).from("shift_change_requests").update({ status: "withdrawn" }).eq("id", id);
+  revalidatePath("/my-shifts");
+}
+
+// Timesheets: the worker sends their actual times; people who roster approve,
+// query or correct them (a correction needs a reason).
+export async function saveTimesheet(_: FormState, form: FormData): Promise<FormState> {
+  await requireSession();
+  const shift = String(form.get("shift_id") ?? "");
+  const date = String(form.get("date") ?? "");
+  const start = sydney(date, String(form.get("start") ?? ""));
+  let end = sydney(date, String(form.get("end") ?? ""));
+  if (!isId(shift) || !start || !end) return { error: "Fill in when you started and finished." };
+  if (end <= start) end = new Date(new Date(end).getTime() + 86_400_000).toISOString();
+  const allow = form.getAll("allowances").map(String).filter((a) => ["Sleepover", "Broken shift", "First aid", "Higher duties"].includes(a)).slice(0, 5);
+  const values = {
+    shift_id: shift,
+    actual_start: start,
+    actual_end: end,
+    break_minutes: Math.max(0, Math.min(240, Number(form.get("break_minutes") ?? 0) || 0)),
+    km: Math.max(0, Math.min(2000, Number(form.get("km") ?? 0) || 0)),
+    expense: Math.max(0, Math.min(10000, Number(form.get("expense") ?? 0) || 0)),
+    allowances: allow,
+    note: String(form.get("note") ?? "").trim().slice(0, 500),
+    change_reason: String(form.get("change_reason") ?? "").trim().slice(0, 500),
+  };
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("shift_timesheets").select("shift_id").eq("shift_id", shift).maybeSingle();
+  const { error } = existing ? await supabase.from("shift_timesheets").update(values).eq("shift_id", shift) : await supabase.from("shift_timesheets").insert(values);
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/my-shifts");
+  revalidatePath("/roster/timesheets");
+  return { message: existing ? "Timesheet saved." : "Times sent for approval." };
+}
+
+export async function decideTimesheet(form: FormData) {
+  await requireRoster();
+  const ids = form.getAll("shift_id").map(String).filter(isId);
+  const status = String(form.get("status") ?? "");
+  if (!ids.length || !["approved", "queried"].includes(status)) return;
+  await (await createClient()).from("shift_timesheets").update({ status }).in("shift_id", ids).neq("status", "approved");
+  if (status === "queried") await tellWorkers();
+  revalidatePath("/roster/timesheets");
 }

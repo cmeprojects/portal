@@ -154,7 +154,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
   const { data: leavingRows } = await supabase.from("offboardings").select("user_id, last_day").eq("status", "open");
   const leaving = new Map(((leavingRows ?? []) as { user_id: string; last_day: string }[]).map((r) => [r.user_id, r.last_day]));
   // cmeprojects (update 122): rostered hours this week and the next shift (people who see the roster).
-  const seesRoster = await canDo("ops.roster", "view");
+  const seesRoster = features.rostering !== false && (await canDo("ops.roster", "view"));
   const weekStart = sydneyInstant(mondayOf(sydneyToday()));
   const weekEnd = sydneyInstant(addDays(mondayOf(sydneyToday()), 7));
   const { data: shiftRows, error: shiftError } = seesRoster

@@ -129,6 +129,17 @@ Last updated: 17 Nov 2026.
   publish drafts, copy last week, give open shifts; `/my-shifts`; run_roster_alerts tells workers on publish/change
   and the day before; people who roster see leave dates). Not yet: approved swaps updating shifts, time bands/costs,
   timesheets, client-side shift view. Next: owner to choose (Stage 6, rostering round 2, Payroll onboarding view).
+- **Rostering round 2 (update 123, 17 Nov 2026; D-057):** Rostering is now a **premium package** (`features.rostering`):
+  roster, My shifts, timesheets, change requests, client Shifts tab and staff hours all hide when it's off, and the
+  database refuses shift saves. One owner-approved SECURITY DEFINER function, `roster_check_dates()` (read only:
+  check name and dates for people who roster; Payroll sees no files). An expired "before work" check refuses the
+  shift. New: `shifts.series_id` (repeat daily/weekly/fortnightly, until a date or count, max 12 weeks; edit "just
+  this / this and later"), `shift_events` (plain-English log), `shift_timesheets` (worker sends times; roster
+  approves/queries/edits with a reason), `shift_change_requests` (swap / can't work; approve moves or opens the
+  shift). Screens: `/roster` (Staff/Client switch, vacant row, side panels, Suggest worker, select mode, ⋮ menu,
+  week label), `/roster/timesheets` (tiles, worker columns split from pay-period columns, expand, edit modal, payroll
+  CSV), `/my-shifts` (confirm times, ask to swap). run_roster_alerts also sends request and query notices.
+  Next: Stage 6 (Allied Health external access; design for approval first).
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

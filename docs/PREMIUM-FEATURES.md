@@ -9,6 +9,7 @@ one else in a company can, and the database refuses it if they try.
 | Feature | Key | Premium |
 |---|---|---|
 | Cars (company cars, trips, mileage, Cars app) | `vehicles` | Yes |
+| Rostering (roster, My shifts, timesheets, change requests, client shifts, staff hours; one package) | `rostering` | Yes |
 
 - **On:** the feature shows for everyone it applies to.
 - **Off:** it's hidden everywhere (menu, pages, reports, settings, reminders).

@@ -98,6 +98,7 @@ end with the next number.
 | D-054 | 17 Nov 2026 | **More client details and archiving with a reason (update 118).** Required: first and last name, status; DOB for NDIS and Support at Home; NDIS number for NDIS services; My Aged Care ID for Support at Home services; an emergency contact before services start. Optional: title, middle name, gender, contact details, state, time zone, living situation, about, tags, and (sensitive, with consent, managers and the care manager only) religion, marital status, Aboriginal and/or Torres Strait Islander status, country of birth, nationality. Archiving asks a reason. Cost calculation, time bands and SMS opt-in wait for rostering and messaging. | Owner (session) |
 | D-055 | 17 Nov 2026 | **Staff page redesign** (owner's concept): table, side panel and full staff page with tabs and step-by-step edit; invite as a pop-up. Role assignment and conditional roles stay in one place (Role and access). | Owner (session) |
 | D-056 | 17 Nov 2026 | **HR block in the owner's order without step approvals:** offboarding (119), expired flag, leave balances and calendar (120), HR calendar, performance and development (121), rostering first version (122). New parts default to managers and staff admins; Rostering also to Payroll & Rostering; team leaders run reviews for their own teams. People who roster see approved leave dates (not reasons). | Owner (session) |
+| D-057 | 17 Nov 2026 | **Rostering round 2 as one premium package (update 123).** Roster, My shifts, timesheets, change requests, client shifts and staff hours sit under `features.rostering`. An expired "before work" check refuses a shift. One SECURITY DEFINER function approved by the owner: `roster_check_dates()` (read only, check names and dates; Payroll and roster people see no files). Recurring shifts, plain-English log, timesheets with approve/query/edit (reason needed), swap and can't-work requests. | Owner (session) |
 
 ## Change history
 
@@ -109,3 +110,4 @@ end with the next number.
 | 0.4 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-042 | Not approved |
 | 0.5 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-043 | Not approved |
 | 0.6 | 17 Nov 2026 | Technical Lead (prepared by Claude) | D-044 to D-056 | Not approved |
+| 0.7 | 17 Nov 2026 | Technical Lead (prepared by Claude) | D-057 | Not approved |

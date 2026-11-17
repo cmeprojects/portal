@@ -1,15 +1,16 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
-import { copyLastWeek, saveShift } from "./actions";
+import { bulkShifts, copyLastWeek, copyToNextWeek, saveShift } from "./actions";
 
 export type ShiftDraft = {
   id?: string;
   date: string;
   start: string;
   end: string;
+  nextDay: boolean;
   break_minutes: number;
   worker_id: string;
   client_id: string;
@@ -17,12 +18,32 @@ export type ShiftDraft = {
   service_id: string;
   notes: string;
   status: string;
+  series: boolean;
 };
 type Opt = { id: string; name: string };
+// What the Suggest button weighs, per worker (only what this person may see).
+export type WorkerFit = {
+  id: string;
+  name: string;
+  hours: number;
+  leave: string[];
+  busy: { date: string; start: string; end: string }[];
+  expiredBeforeWork: string;
+  expiredOther: string;
+  avail: Record<string, string[]> | null;
+};
 const field = "flex flex-col gap-1 text-xs font-medium";
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const AVAIL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const mins = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+const slot = (t: string) => {
+  const h = Number(t.slice(0, 2));
+  return h >= 6 && h < 12 ? "am" : h >= 12 && h < 18 ? "pm" : "night";
+};
+const dowOf = (d: string) => (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7;
 
-// cmeprojects (update 122): add or change a shift. A client's approved
-// locations and current services only; the database checks the rest.
+// cmeprojects (rostering round 2): add or change a shift. Refusals (leave,
+// clash, expired "before work" check) come from the database; warnings show here.
 export function ShiftForm({
   shift,
   workers,
@@ -31,92 +52,231 @@ export function ShiftForm({
   services,
 }: {
   shift: ShiftDraft;
-  workers: (Opt & { note?: string })[];
+  workers: WorkerFit[];
   clients: Opt[];
   locations: (Opt & { client_id: string })[];
   services: (Opt & { client_id: string })[];
 }) {
   const [state, action, pending] = useActionState(saveShift, null);
   const [client, setClient] = useState(shift.client_id);
+  const [worker, setWorker] = useState(shift.worker_id);
+  const [date, setDate] = useState(shift.date);
+  const [start, setStart] = useState(shift.start);
+  const [end, setEnd] = useState(shift.end);
+  const [repeat, setRepeat] = useState("none");
+  const [endBy, setEndBy] = useState("date");
+  const [suggesting, setSuggesting] = useState(false);
+  const hours = Math.max(0, ((mins(end) - mins(start) + (mins(end) <= mins(start) ? 1440 : 0)) / 60));
+  const fit = (w: WorkerFit) => {
+    const refuse: string[] = [];
+    const warn: string[] = [];
+    if (w.expiredBeforeWork) refuse.push(`expired: ${w.expiredBeforeWork}`);
+    if (w.leave.includes(date)) refuse.push("on leave");
+    if (w.busy.some((b) => b.date === date && mins(b.start) < mins(end) + (mins(end) <= mins(start) ? 1440 : 0) && mins(start) < mins(b.end))) refuse.push("already busy then");
+    const total = w.hours + (worker === w.id && shift.id ? 0 : hours);
+    if (total > 38) warn.push(`${total.toFixed(1)} h this week`);
+    if (w.avail && Object.values(w.avail).some((v) => v?.length) && !(w.avail[AVAIL_DAYS[dowOf(date)]] ?? []).includes(slot(start))) warn.push("outside their availability");
+    if (w.expiredOther) warn.push(`expired: ${w.expiredOther}`);
+    return { refuse, warn, total };
+  };
+  const chosen = workers.find((w) => w.id === worker);
+  const chosenFit = chosen ? fit(chosen) : null;
+  const ranked = useMemo(
+    () =>
+      workers
+        .map((w) => ({ w, f: fit(w) }))
+        .sort((a, b) => a.f.refuse.length - b.f.refuse.length || a.f.warn.length - b.f.warn.length || a.w.hours - b.w.hours)
+        .slice(0, 8),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [workers, date, start, end, worker],
+  );
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form action={action} className="flex flex-col gap-3">
       {shift.id ? <input type="hidden" name="id" value={shift.id} /> : null}
-      <div className="grid gap-2 sm:grid-cols-4">
-        <label className={field}>
-          Date
-          <input type="date" name="date" required defaultValue={shift.date} className={inputClass} />
-        </label>
-        <label className={field}>
-          Start
-          <input type="time" name="start" required defaultValue={shift.start} className={inputClass} />
-        </label>
-        <label className={field}>
-          Finish
-          <input type="time" name="end" required defaultValue={shift.end} className={inputClass} />
-        </label>
-        <label className={field}>
-          Unpaid break (minutes)
-          <input type="number" name="break_minutes" min={0} max={240} step={5} defaultValue={shift.break_minutes} className={inputClass} />
-        </label>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label className={field}>
-          Worker
-          <select name="worker_id" defaultValue={shift.worker_id} className={inputClass}>
-            <option value="">Open shift (anyone can put their hand up)</option>
-            {workers.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-                {w.note ? ` · ${w.note}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={field}>
-          Client (optional)
-          <select name="client_id" value={client} onChange={(e) => setClient(e.target.value)} className={inputClass}>
-            <option value="">No client (e.g. training, office)</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {client ? (
-          <>
-            <label className={field}>
-              Location
-              <select name="location_id" defaultValue={shift.location_id} className={inputClass}>
-                <option value="">Not set</option>
-                {locations
-                  .filter((l) => l.client_id === client)
-                  .map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className={field}>
-              Service
-              <select name="service_id" defaultValue={shift.service_id} className={inputClass}>
-                <option value="">Not set</option>
-                {services
-                  .filter((v) => v.client_id === client)
-                  .map((v) => (
+      <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+        <legend className="px-1 text-xs font-semibold text-muted">Client</legend>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <label className={field}>
+            Client
+            <select name="client_id" value={client} onChange={(e) => setClient(e.target.value)} className={inputClass}>
+              <option value="">No client (e.g. training, office)</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {client ? (
+            <>
+              <label className={field}>
+                Service
+                <select name="service_id" defaultValue={shift.service_id} className={inputClass}>
+                  <option value="">Not set</option>
+                  {services.filter((v) => v.client_id === client).map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name}
                     </option>
                   ))}
+                </select>
+              </label>
+              <label className={field}>
+                Location
+                <select name="location_id" defaultValue={shift.location_id} className={inputClass}>
+                  <option value="">Not set</option>
+                  {locations.filter((l) => l.client_id === client).map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          ) : null}
+        </div>
+      </fieldset>
+      <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+        <legend className="px-1 text-xs font-semibold text-muted">Time</legend>
+        <div className="grid gap-2 sm:grid-cols-4">
+          <label className={field}>
+            Date
+            <input type="date" name="date" required value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
+          </label>
+          <label className={field}>
+            Start
+            <input type="time" name="start" required value={start} onChange={(e) => setStart(e.target.value)} className={inputClass} />
+          </label>
+          <label className={field}>
+            Finish
+            <input type="time" name="end" required value={end} onChange={(e) => setEnd(e.target.value)} className={inputClass} />
+          </label>
+          <label className={field}>
+            Unpaid break
+            <select name="break_minutes" defaultValue={String(shift.break_minutes)} className={inputClass}>
+              {[0, 15, 30, 45, 60].map((b) => (
+                <option key={b} value={b}>
+                  {b ? `${b} minutes` : "None"}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="text-xs text-muted">
+          {hours.toFixed(2)} hours{mins(end) <= mins(start) ? " (finishes the next day)" : ""}.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="next_day" defaultChecked={shift.nextDay} className="size-4" /> Finishes the next day
+        </label>
+        {shift.id ? (
+          shift.series ? (
+            <label className={field}>
+              This is a repeating shift. Apply changes to
+              <select name="scope" className={inputClass}>
+                <option value="one">Just this shift</option>
+                <option value="future">This and the later shifts in the series</option>
               </select>
             </label>
-          </>
+          ) : null
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-3">
+            <label className={field}>
+              Repeat
+              <select name="repeat" value={repeat} onChange={(e) => setRepeat(e.target.value)} className={inputClass}>
+                <option value="none">Doesn&apos;t repeat</option>
+                <option value="daily">Every day</option>
+                <option value="weekly">Every week on…</option>
+                <option value="fortnightly">Every fortnight on…</option>
+              </select>
+            </label>
+            {repeat !== "none" ? (
+              <>
+                <label className={field}>
+                  Ends
+                  <select name="repeat_end" value={endBy} onChange={(e) => setEndBy(e.target.value)} className={inputClass}>
+                    <option value="date">On a date</option>
+                    <option value="count">After a number of shifts</option>
+                  </select>
+                </label>
+                {endBy === "date" ? (
+                  <label className={field}>
+                    Last date (12 weeks at most)
+                    <input type="date" name="repeat_until" className={inputClass} />
+                  </label>
+                ) : (
+                  <label className={field}>
+                    How many shifts
+                    <input type="number" name="repeat_count" min={1} max={100} defaultValue={10} className={inputClass} />
+                  </label>
+                )}
+                {repeat !== "daily" ? (
+                  <div className="flex flex-wrap gap-1 sm:col-span-3">
+                    {DAYS.map((d, i) => (
+                      <label key={d} className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs">
+                        <input type="checkbox" name="repeat_days" value={i} defaultChecked={i === dowOf(date)} /> {d}
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+                <p className="text-xs text-muted sm:col-span-3">Each shift is checked on its own (leave, clashes, checks); any refused are skipped and listed.</p>
+              </>
+            ) : null}
+          </div>
+        )}
+      </fieldset>
+      <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+        <legend className="px-1 text-xs font-semibold text-muted">Worker</legend>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className={`${field} min-w-56 flex-1`}>
+            Worker
+            <select name="worker_id" value={worker} onChange={(e) => setWorker(e.target.value)} className={inputClass}>
+              <option value="">Open shift (staff put their hand up)</option>
+              {workers.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name} · {w.hours.toFixed(0)}/38 h{w.expiredBeforeWork ? " · check expired" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button type="button" size="sm" variant="outline" onClick={() => setSuggesting((v) => !v)}>
+            Suggest worker
+          </Button>
+        </div>
+        {suggesting ? (
+          <ul className="flex flex-col gap-1">
+            {ranked.map(({ w, f }) => (
+              <li key={w.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWorker(w.id);
+                    setSuggesting(false);
+                  }}
+                  className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-md border border-line px-2 py-1.5 text-left text-sm hover:bg-page ${f.refuse.length ? "opacity-50" : ""}`}
+                >
+                  <span>
+                    <b>{w.name}</b> <span className="text-xs text-muted">{w.hours.toFixed(0)}/38 h</span>
+                  </span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${f.refuse.length ? "bg-danger-soft text-danger" : f.warn.length ? "bg-warn-soft" : "bg-good-soft"}`}>
+                    {f.refuse.length ? f.refuse.join(", ") : f.warn.length ? f.warn.join(", ") : "Good match"}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
         ) : null}
-      </div>
+        {chosenFit ? (
+          chosenFit.refuse.length ? (
+            <Notice tone="error">Can&apos;t give it to {chosen!.name}: {chosenFit.refuse.join(", ")}.</Notice>
+          ) : chosenFit.warn.length ? (
+            <Notice tone="info">Warning: {chosenFit.warn.join(", ")}.</Notice>
+          ) : (
+            <p className="text-xs text-good">Available, checks current, {chosenFit.total.toFixed(1)} of 38 hours this week.</p>
+          )
+        ) : null}
+      </fieldset>
       <label className={field}>
-        Notes for the worker
-        <textarea name="notes" maxLength={500} rows={2} defaultValue={shift.notes} className={inputClass} />
+        Instructions for the worker
+        <textarea name="notes" maxLength={500} rows={2} defaultValue={shift.notes} placeholder="What to do on this shift. The client's worker instructions show to them anyway." className={inputClass} />
       </label>
       <div className="flex flex-wrap items-center gap-3">
         <select name="status" defaultValue={shift.status === "published" ? "published" : "draft"} aria-label="Save as" className={`${inputClass.replace("w-full", "")} w-auto`}>
@@ -133,16 +293,63 @@ export function ShiftForm({
   );
 }
 
-export function CopyWeekForm({ from }: { from: string }) {
-  const [state, action, pending] = useActionState(copyLastWeek, null);
+export function CopyWeekForm({ from, to }: { from: string; to: string }) {
+  const [lastState, lastAction, lastPending] = useActionState(copyLastWeek, null);
+  const [nextState, nextAction, nextPending] = useActionState(copyToNextWeek, null);
+  const state = nextState ?? lastState;
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2">
-      <input type="hidden" name="from" value={from} />
-      <Button size="sm" variant="outline" disabled={pending}>
-        {pending ? "Copying…" : "Copy last week as drafts"}
-      </Button>
+    <div className="flex flex-col gap-1">
+      <form action={nextAction}>
+        <input type="hidden" name="from" value={from} />
+        <input type="hidden" name="to" value={to} />
+        <button disabled={nextPending} className="w-full px-3 py-2 text-left text-sm font-semibold hover:bg-page">
+          {nextPending ? "Copying…" : "Copy this week to next week"}
+        </button>
+      </form>
+      <form action={lastAction}>
+        <input type="hidden" name="from" value={from} />
+        <button disabled={lastPending} className="w-full px-3 py-2 text-left text-sm font-semibold hover:bg-page">
+          {lastPending ? "Copying…" : "Copy last week into this week"}
+        </button>
+      </form>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
-    </form>
+    </div>
+  );
+}
+
+// The bar under the roster while selecting shifts.
+export function BulkBar({ formId, workers }: { formId: string; workers: Opt[] }) {
+  const [state, action, pending] = useActionState(bulkShifts, null);
+  return (
+    <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-2 rounded-xl bg-ink px-3 py-2 text-sm text-surface shadow-lg">
+      <b>Selected shifts:</b>
+      {(
+        [
+          ["copy", "Copy to next week"],
+          ["publish", "Publish"],
+          ["cancel", "Cancel shifts"],
+        ] as const
+      ).map(([k, l]) => (
+        <button key={k} form={formId} formAction={action} name="bulk" value={k} disabled={pending} className="rounded-md border border-surface/30 px-2 py-1 font-semibold hover:bg-surface/10">
+          {l}
+        </button>
+      ))}
+      <span className="flex items-center gap-1">
+        <select form={formId} name="bulk_worker" aria-label="Give to" className="rounded-md bg-surface px-2 py-1 text-ink">
+          <option value="">Give to…</option>
+          {workers.map((w) => (
+            <option key={w.id} value={w.id}>
+              {w.name}
+            </option>
+          ))}
+        </select>
+        <button form={formId} formAction={action} name="bulk" value="worker" disabled={pending} className="rounded-md border border-surface/30 px-2 py-1 font-semibold hover:bg-surface/10">
+          Change worker
+        </button>
+      </span>
+      {state?.error ? <span className="rounded-md bg-danger-soft px-2 py-1 text-danger">{state.error}</span> : null}
+      {state?.message ? <span className="rounded-md bg-good-soft px-2 py-1 text-ink">{state.message}</span> : null}
+    </div>
   );
 }

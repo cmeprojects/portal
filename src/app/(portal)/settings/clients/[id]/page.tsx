@@ -19,7 +19,7 @@ import { AgreementForm, SignAgreementForm, type Agreement } from "./agreement-fo
 import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
-import { canDoFor } from "@/lib/module-access";
+import { canDo, canDoFor } from "@/lib/module-access";
 import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
@@ -165,6 +165,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     agreements: ["agreements"],
     funding: ["funding"],
     staff: ["staff"],
+    shifts: ["shifts"],
   };
   const STEP_SECTIONS: Record<string, string[]> = {
     basic: ["details", "locations", "staff"],
@@ -173,6 +174,21 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     funding: ["funding", "agreements"],
   };
   const inView = (key: string) => (step ? STEP_SECTIONS[step] : (TAB_SECTIONS[tab] ?? TAB_SECTIONS.overview)).includes(key);
+  // cmeprojects (rostering round 2; premium package): this client's shifts, last week to four weeks ahead.
+  const { features: feats } = await requireSession();
+  const clientShifts =
+    feats.rostering !== false && (await canDo("ops.roster", "view"))
+      ? ((
+          await supabase
+            .from("shifts")
+            .select("id, worker_id, starts_at, ends_at, break_minutes, status, service_id")
+            .eq("client_id", id)
+            .neq("status", "cancelled")
+            .gte("starts_at", new Date(Date.parse(new Date().toISOString()) - 7 * 86_400_000).toISOString())
+            .lte("starts_at", new Date(Date.parse(new Date().toISOString()) + 28 * 86_400_000).toISOString())
+            .order("starts_at")
+        ).data as { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; status: string; service_id: string | null }[] | null)
+      : null;
   const tabs: [string, string, boolean][] = [
     ["overview", "Overview", true],
     ["profile", "Profile", true],
@@ -182,6 +198,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["agreements", "Agreements", showAgreements],
     ["funding", "Funding", showFunding],
     ["staff", "Assigned staff", !!assignments],
+    ["shifts", "Shifts", !!clientShifts],
   ];
   const canEditClient = await canDoFor("clients.list", "edit", id);
   const det = (details.data ?? null) as Record<string, unknown> | null;
@@ -307,6 +324,31 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           </nav>
         )}
       </Card>
+      {inView("shifts") && clientShifts ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="heading-sm">Shifts (last week to four weeks ahead)</h2>
+            <Link href={`/roster?by=client&add=${new Date().toISOString().slice(0, 10)}&client=${id}`} className="text-sm font-semibold text-brand underline">
+              Add a shift
+            </Link>
+          </div>
+          {clientShifts.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {clientShifts.map((sh) => (
+                <li key={sh.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                  <Link href={`/roster?by=client&w=${sh.starts_at.slice(0, 10)}&shift=${sh.id}`} className="min-w-48 flex-1 font-semibold hover:text-brand">
+                    {new Date(sh.starts_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} – {new Date(sh.ends_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })}
+                  </Link>
+                  <span>{sh.worker_id ? (nameOfStaff.get(sh.worker_id) ?? "Staff member") : <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">Not filled</span>}</span>
+                  {sh.status === "draft" ? <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">Draft</span> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No shifts in that time.</p>
+          )}
+        </Card>
+      ) : null}
       {inView("overview") ? (
         <div className="grid gap-3 lg:grid-cols-2">
           <Card className="flex flex-col gap-2 p-4">
