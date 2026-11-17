@@ -17,14 +17,23 @@ export default async function RolesPage() {
   const { profile, features } = await requireSession();
   if (profile.role !== "system_admin" && !(rolesOn(features) && (await getMyAdminAreas(profile.role)).includes("roles"))) redirect("/");
   const supabase = await createClient();
-  const [{ data: rows }, { data: people }, groupsRes, linksRes] = await Promise.all([
+  const [{ data: rows }, { data: people }, groupsRes, linksRes, partsRes, mapRes] = await Promise.all([
     supabase.from("job_titles").select(JOB_TITLE_COLUMNS).order("sort_order").order("name"),
     supabase.from("profiles").select("job_title_id").not("job_title_id", "is", null),
     // cmeprojects (Stage 1, update 92): hidden before the update.
     supabase.from("function_groups").select("id, key, name, description, active").order("sort_order").order("name"),
     // cmeprojects (Stage 2, update 93): which groups each role belongs to (hidden before the update).
     supabase.from("job_title_functions").select("job_title_id, function_group_id"),
+    // cmeprojects (Stage 4, update 104): parts a group looks after (hidden before the update).
+    supabase.from("app_modules").select("id, label, category, sensitivity, parent_id").eq("status", "active").is("parent_id", null).order("sort_order"),
+    supabase.from("function_group_modules").select("function_group_id, module_id"),
   ]);
+  const parts = mapRes.error
+    ? null
+    : ((partsRes.data ?? []) as { id: string; label: string; category: string; sensitivity: string }[])
+        .filter((m) => !m.id.startsWith("cat_") && m.category !== "workspace" && m.sensitivity !== "protected")
+        .map((m) => ({ id: m.id, label: m.label, category: m.category }));
+  const partsOf = (groupId: string) => ((mapRes.data ?? []) as { function_group_id: string; module_id: string }[]).filter((r) => r.function_group_id === groupId).map((r) => r.module_id);
   const links = linksRes.error ? null : ((linksRes.data ?? []) as { job_title_id: string; function_group_id: string }[]);
   const groupsOf = (titleId: string) => (links ?? []).filter((l) => l.job_title_id === titleId).map((l) => l.function_group_id);
   const groups = groupsRes.error ? null : ((groupsRes.data ?? []) as { id: string; key: string; name: string; description: string; active: boolean }[]);
@@ -87,7 +96,7 @@ export default async function RolesPage() {
                   </summary>
                   {g.description ? <p className="mt-1 text-sm text-muted group-open:hidden">{g.description}</p> : null}
                   <div className="mt-3">
-                    <FunctionGroupForm group={g} />
+                    <FunctionGroupForm group={g} parts={parts} chosen={partsOf(g.id)} />
                   </div>
                 </details>
               </li>

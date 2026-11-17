@@ -59,6 +59,11 @@ Last updated: 17 Nov 2026.
   every task" = `can('ops.tasks', 'view')` (default managers); tasks policy set-based (permission check
   once per query; mine / helping / my team's in one go); timeline and files follow the task. Same rows
   for every sampled person; task list 9 to 13 s → about 10 ms on 10,515 tasks locally. **103 run on Dev (17 Nov 2026).** Remaining: Clients (Stage 5), Stage 4, Stage 6.
+- **Stage 4 (17 Nov 2026, update 104):** `function_group_modules` (which parts each function group looks
+  after; gives no access); starting mapping for all six groups; Roles page edits it per group; Access
+  page lists a group's (or role's groups') parts first; catalogue test: every part (except My workspace
+  and protected ones) belongs to a group, new parts start not switched over with no grants. Waiting on
+  the owner: update 104. Old role code: QA-007 list now holds only Clients (Stage 5).
 - **Menu (17 Nov 2026, owner request):** the shrink/expand button moved beside the logo (grid icon, highlights on
   hover); the menu list scrolls on its own; credits (© year cmeproject, Version 0.1.1, and branch/commit
   for the system admin) larger and fixed at the foot of the menu. `src/components/sidebar.tsx`,

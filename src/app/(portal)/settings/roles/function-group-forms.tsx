@@ -8,9 +8,12 @@ import { useDirty } from "@/components/use-dirty";
 import { saveFunctionGroup } from "./actions";
 
 type Group = { id: string; key: string; name: string; description: string; active: boolean };
+export type Part = { id: string; label: string; category: string };
 
 // cmeprojects (function-based access, Stage 1): one function group, or a new one.
-export function FunctionGroupForm({ group }: { group?: Group }) {
+// Stage 4 (update 104): which parts of the portal belong to it (offered first
+// on its screens; gives nobody access).
+export function FunctionGroupForm({ group, parts, chosen }: { group?: Group; parts?: Part[] | null; chosen?: string[] }) {
   const [state, action, pending] = useActionState(saveFunctionGroup, null);
   const { ref, dirty, markClean } = useDirty();
   useAfterSuccess(state, markClean);
@@ -28,6 +31,21 @@ export function FunctionGroupForm({ group }: { group?: Group }) {
           <input id={`fg-desc-${idp}`} name="description" maxLength={500} defaultValue={group?.description ?? ""} className={inputClass} />
         </label>
       </div>
+      {group && parts ? (
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-xs font-medium">Parts of the portal this group looks after</legend>
+          <p className="text-xs text-muted">Shown first when you set this group&apos;s access. Choosing a part here gives nobody access.</p>
+          <input type="hidden" name="parts_shown" value="1" />
+          <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+            {parts.map((p) => (
+              <label key={p.id} className="flex min-h-8 items-center gap-2 text-sm">
+                <input type="checkbox" name="parts" value={p.id} defaultChecked={(chosen ?? []).includes(p.id)} className="h-4 w-4 accent-[var(--brand-primary)]" />
+                {p.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         {group ? (
           <label className="flex min-h-9 items-center gap-2 text-sm">

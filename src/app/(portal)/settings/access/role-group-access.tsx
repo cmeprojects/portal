@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { saveBaselines, type BaselineEntry } from "./baseline-actions";
 
@@ -16,13 +16,20 @@ type Choice = { value: string; label: string };
 // check. Precedence: a person's own setting, then job title, then function
 // group, then access level. A Manager Administrator sees groups and roles only,
 // and only the parts and actions they may pass on.
-export function RoleGroupAccess({ modules, rows, groups, titles, levels, admin }: { modules: BaselineModule[]; rows: BaselineRow[]; groups: Choice[]; titles: Choice[]; levels: Choice[]; admin: boolean }) {
+export function RoleGroupAccess({ modules, rows, groups, titles, levels, admin, ownParts = {} }: { modules: BaselineModule[]; rows: BaselineRow[]; groups: Choice[]; titles: Choice[]; levels: Choice[]; admin: boolean; ownParts?: Record<string, string[]> }) {
   const [holder, setHolder] = useState("");
   const [draft, setDraft] = useState<Record<string, BaselineEntry>>({});
   const [msg, setMsg] = useState<{ error?: string; message?: string } | null>(null);
   const [pending, start] = useTransition();
   const isGroup = holder.startsWith("group:");
-  const shown = useMemo(() => modules.filter((m) => !(isGroup && m.sensitive)), [modules, isGroup]);
+  // Stage 4: the parts this group (or this role's groups) looks after come first.
+  const shown = useMemo(() => {
+    const list = modules.filter((m) => !(isGroup && m.sensitive));
+    const own = ownParts[holder] ?? [];
+    const mine = (id: string) => own.some((p) => id === p || id.startsWith(`${p}.`));
+    return [...list.filter((m) => mine(m.id)).map((m) => ({ ...m, own: true })), ...list.filter((m) => !mine(m.id)).map((m) => ({ ...m, own: false }))];
+  }, [modules, isGroup, ownParts, holder]);
+  const hasOwn = shown.some((m) => m.own);
 
   const choose = (value: string) => {
     setHolder(value);
@@ -61,23 +68,34 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels, admin }
       {holder ? (
         <>
           <ul className="divide-y divide-line rounded-lg border border-line">
-            {shown.map((m) => {
+            {shown.map((m, idx) => {
+              const heading =
+                hasOwn && (idx === 0 || shown[idx - 1].own !== m.own) ? (
+                  <li key={`h-${m.own}`} className="bg-page px-3 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
+                    {m.own ? "This group's parts" : "Other parts"}
+                  </li>
+                ) : null;
               const e = draft[m.id];
               const state = e ? e.effect : "off";
               const other = rows.find((r) => r.holder === holder && r.module === m.id && !r.mine);
               if (other) {
                 return (
-                  <li key={m.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
+                  <Fragment key={m.id}>
+                  {heading}
+                  <li className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
                     <span className="min-w-40 flex-1 font-medium">{m.label}</span>
                     <span className="text-muted">
                       {other.effect === "allow" ? "Allowed" : "Blocked"}
                       {other.actions.length ? `: ${other.actions.map((a) => a.replace(/_/g, " ")).join(", ")}` : ""} · set by someone else
                     </span>
                   </li>
+                  </Fragment>
                 );
               }
               return (
-                <li key={m.id} className="flex flex-col gap-2 px-3 py-2 text-sm">
+                <Fragment key={m.id}>
+                {heading}
+                <li className="flex flex-col gap-2 px-3 py-2 text-sm">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="min-w-40 flex-1 font-medium">
                       {m.label}
@@ -119,6 +137,7 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels, admin }
                     </div>
                   ) : null}
                 </li>
+                </Fragment>
               );
             })}
           </ul>

@@ -722,3 +722,30 @@ and tested; live update 103 waiting.**
   `undo-103.sql`, `supabase/tests/tasks_switch.test.sql`.
 - All seven QA-007 "set by role" modules are now handled except Clients
   (Stage 5).
+
+## Stage 4 implementation record (17 Nov 2026)
+
+Owner: "go ahead". **Built and tested; live update 104 waiting.**
+
+- `function_group_modules` (group, part; primary key both; ON DELETE
+  RESTRICT): which parts each group looks after. **Grants nothing**; a test
+  proves a mapped group's people get no access from it. Members read;
+  whoever looks after the Roles settings area maps and unmaps. Guard: active
+  groups only; top-level parts only; never My workspace or protected parts.
+- Starting mapping: Management & Administration 16 parts, HR & Workforce 8,
+  Service Delivery 4, Care & Coordination 3, Finance & Accounts 2, Allied
+  Health 2. Tasks and Forms are shared by several groups.
+- Future-module rule (catalogue test): every active part except My
+  workspace and protected parts belongs to at least one group and has a
+  sensitivity and actions; a new part starts with `grant_ready` false and no
+  grants, so only the system admin has it until approved.
+- Screens: Roles page, each function group lists the parts it looks after
+  (tick boxes, change logged); Access page lists "This group's parts" first
+  for a group or role.
+- Removing old role code: the role-only list (QA-007) now holds only Clients;
+  every other part asks `can()`. `can_manage_people()` remains for Clients
+  and car clients (Stage 5).
+- Files: migration `20270218000001_function_group_modules.sql`,
+  `update-104.sql`, `undo-104.sql`,
+  `supabase/tests/function_group_modules.test.sql` (13 checks).
+- Proof: full suite 1,339 pass; round trip clean; lint and typecheck pass.

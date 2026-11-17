@@ -506,12 +506,21 @@ async function KeepingRecords() {
 // permission check. Hidden before update 94.
 async function RoleGroupAccessSection({ me, admin }: { me: string; admin: boolean }) {
   const supabase = await createClient();
-  const [mods, rows, groups, titles] = await Promise.all([
+  const [mods, rows, groups, titles, mapRes, linkRes] = await Promise.all([
     supabase.from("app_modules").select("id, label, actions, sensitivity").eq("grant_ready", true).eq("status", "active").order("sort_order"),
     supabase.from("access_baselines").select("job_title_id, function_group_id, access_level, module_id, effect, actions, scope, granted_by").is("revoked_at", null),
     supabase.from("function_groups").select("id, name").eq("active", true).order("sort_order"),
     supabase.from("job_titles").select("id, name").eq("active", true).order("sort_order").order("name"),
+    // Stage 4 (update 104): the parts each group looks after, listed first.
+    supabase.from("function_group_modules").select("function_group_id, module_id"),
+    supabase.from("job_title_functions").select("job_title_id, function_group_id"),
   ]);
+  const map = (mapRes.error ? [] : (mapRes.data ?? [])) as { function_group_id: string; module_id: string }[];
+  const links = (linkRes.error ? [] : (linkRes.data ?? [])) as { job_title_id: string; function_group_id: string }[];
+  const partsOfGroup = (g: string) => map.filter((r) => r.function_group_id === g).map((r) => r.module_id);
+  const ownParts: Record<string, string[]> = {};
+  for (const g of new Set(map.map((r) => r.function_group_id))) ownParts[`group:${g}`] = partsOfGroup(g);
+  for (const l of links) ownParts[`title:${l.job_title_id}`] = [...new Set([...(ownParts[`title:${l.job_title_id}`] ?? []), ...partsOfGroup(l.function_group_id)])];
   if (mods.error || rows.error) return null;
   const all = ((mods.data ?? []) as { id: string; label: string; actions: string[]; sensitivity: string }[]).filter((m) => m.sensitivity !== "protected");
   // A Manager Administrator sees only what they may pass on; the database
@@ -551,6 +560,7 @@ async function RoleGroupAccessSection({ me, admin }: { me: string; admin: boolea
         titles={((titles.data ?? []) as { id: string; name: string }[]).map((t) => ({ value: `title:${t.id}`, label: t.name }))}
         levels={admin ? ["support_worker", "team_leader", "manager", "staff_admin"].map((r) => ({ value: `level:${r}`, label: ROLE_LABELS[r as keyof typeof ROLE_LABELS] })) : []}
         admin={admin}
+        ownParts={ownParts}
       />
     </Card>
   );

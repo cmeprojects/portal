@@ -241,21 +241,30 @@ body {
   color-scheme: light;
 }
 
-/* cmeprojects: a thin, quiet scrollbar (the menu). */
-.thin-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.22) transparent;
-}
+/* cmeprojects: a very thin, quiet scrollbar (the menu), no arrow buttons.
+   Chrome, Edge and Safari use the -webkit- rules; Firefox the standard ones. */
 .thin-scroll::-webkit-scrollbar {
-  width: 5px;
+  width: 4px;
+  height: 4px;
+}
+.thin-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .thin-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 .thin-scroll::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.2);
   border-radius: 9999px;
 }
-.thin-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgb(255 255 255 / 0.4);
+.thin-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.35);
+}
+@supports (-moz-appearance: none) {
+  .thin-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+  }
 }

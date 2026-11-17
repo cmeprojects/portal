@@ -58,3 +58,15 @@ Staff Portal · © cmeproject · Set by the owner on 11 November 2026. Applies t
 
 - Group related changes into fewer, larger commits; each push builds a Vercel deployment and the free plan's Function Storage is limited.
 - The restore branches (`version-*`, `restore-*`) are still updated in Git but not built by Vercel (`vercel.json`).
+
+## Adding a part of the portal (function-based access, Stage 4)
+
+1. Add it to the catalogue (`app_modules` and `src/lib/modules.ts`): id,
+   label, parent, category, actions, sensitivity.
+2. Map it to at least one function group (`function_group_modules`), unless
+   it's everyone's own page or protected. The catalogue test fails otherwise.
+3. Its pages, server actions and RLS ask `can('<id>', '<action>')`; no role
+   lists.
+4. It starts with no access (`grant_ready` false, no grants). When approved,
+   switch it over with defaults reproducing the agreed rule, a before and
+   after check, an undo, and tests.

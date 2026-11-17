@@ -114,8 +114,27 @@ export async function saveFunctionGroup(_: FormState, form: FormData): Promise<F
     action = "function_group_added";
   }
   if (error) return { error: error.code === "23505" ? "There's already a group with that name." : friendlyError(error) };
+  // Stage 4 (update 104): the parts this group looks after (no access given).
+  let partsChange: { added: string[]; removed: string[] } | null = null;
+  if (id && form.get("parts_shown") === "1") {
+    const want = [...new Set(form.getAll("parts").map(String))].filter((p) => /^[a-z_]+(\.[a-z_]+)*$/.test(p));
+    const { data: have, error: readError } = await supabase.from("function_group_modules").select("module_id").eq("function_group_id", id);
+    if (readError) return { error: friendlyError(readError) };
+    const current = (have ?? []).map((r) => r.module_id as string);
+    const added = want.filter((p) => !current.includes(p));
+    const removed = current.filter((p) => !want.includes(p));
+    if (removed.length) {
+      const { error: delError } = await supabase.from("function_group_modules").delete().eq("function_group_id", id).in("module_id", removed);
+      if (delError) return { error: friendlyError(delError) };
+    }
+    if (added.length) {
+      const { error: addError } = await supabase.from("function_group_modules").insert(added.map((module_id) => ({ function_group_id: id, module_id })));
+      if (addError) return { error: friendlyError(addError) };
+    }
+    if (added.length || removed.length) partsChange = { added, removed };
+  }
   const { createAdminClient } = await import("@/lib/supabase/admin");
-  await createAdminClient().from("audit_log").insert({ actor_id: profile.id, action, entity: "function_group", entity_id: id || null, details: { name, active: id ? form.get("active") === "on" : true } });
+  await createAdminClient().from("audit_log").insert({ actor_id: profile.id, action, entity: "function_group", entity_id: id || null, details: { name, active: id ? form.get("active") === "on" : true, ...(partsChange ? { parts: partsChange } : {}) } });
   revalidatePath(PAGE);
   return { message: id ? "Saved." : `${name} added.` };
 }
