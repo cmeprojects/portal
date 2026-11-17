@@ -96,6 +96,8 @@ end with the next number.
 | D-052 | 17 Nov 2026 | **Staff admins have no default access to client records.** Their access-level defaults for every part of Clients are revoked (update 109, kept for history); a staff admin can still be given client access on the Access page. Managers, the system admin, Case Manager and Intake unchanged. | Owner (session) |
 | D-053 | 17 Nov 2026 | **More default access for the new roles (update 117).** Case Manager (assigned clients): change funding and service agreements, view the compliance report. Intake & Assessment Officer (every client): view and add funding, view reviews, change services. Payroll & Rostering (every client, view only): client list, approved locations, services, safety alerts, funding; never details, notes, documents or care plans. The staff onboarding view the owner also chose for Payroll is held back: it needs a new read rule for other staff's check records (owner to decide, TODO). | Owner (session) |
 | D-054 | 17 Nov 2026 | **More client details and archiving with a reason (update 118).** Required: first and last name, status; DOB for NDIS and Support at Home; NDIS number for NDIS services; My Aged Care ID for Support at Home services; an emergency contact before services start. Optional: title, middle name, gender, contact details, state, time zone, living situation, about, tags, and (sensitive, with consent, managers and the care manager only) religion, marital status, Aboriginal and/or Torres Strait Islander status, country of birth, nationality. Archiving asks a reason. Cost calculation, time bands and SMS opt-in wait for rostering and messaging. | Owner (session) |
+| D-055 | 17 Nov 2026 | **Staff page redesign** (owner's concept): table, side panel and full staff page with tabs and step-by-step edit; invite as a pop-up. Role assignment and conditional roles stay in one place (Role and access). | Owner (session) |
+| D-056 | 17 Nov 2026 | **HR block in the owner's order without step approvals:** offboarding (119), expired flag, leave balances and calendar (120), HR calendar, performance and development (121), rostering first version (122). New parts default to managers and staff admins; Rostering also to Payroll & Rostering; team leaders run reviews for their own teams. People who roster see approved leave dates (not reasons). | Owner (session) |
 
 ## Change history
 
@@ -106,4 +108,4 @@ end with the next number.
 | 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-039 to D-041 | Not approved |
 | 0.4 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-042 | Not approved |
 | 0.5 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-043 | Not approved |
-| 0.6 | 17 Nov 2026 | Technical Lead (prepared by Claude) | D-044 to D-054 | Not approved |
+| 0.6 | 17 Nov 2026 | Technical Lead (prepared by Claude) | D-044 to D-056 | Not approved |

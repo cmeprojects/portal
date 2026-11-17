@@ -133,6 +133,15 @@ const documentsExpiring: Piece = async ({ supabase, today, features, complianceR
   return { tile: <Tile label="Documents expiring" value={n} note="Expired or due in 30 days" icon={FileWarning} tone={n ? "warn" : undefined} href="/compliance" /> };
 };
 
+// cmeprojects (HR block step 2): checks already expired (staff may not be
+// able to work until they're renewed).
+const checksExpired: Piece = async ({ supabase, today, features, complianceReport }) => {
+  if (!onboardingOn(features) || !complianceReport) return null;
+  const n = await count(supabase.from("compliance_records").select("id", { count: "exact", head: true }).in("status", ["accepted", "done"]).lt("expires_on", today));
+  if (!n) return null;
+  return { tile: <Tile label="Checks expired" value={n} note="Renew before they work" icon={FileWarning} tone="danger" href="/compliance/expiry" /> };
+};
+
 const uploadsToCheck: Piece = async ({ supabase, features, complianceReport }) => {
   if (!onboardingOn(features) || !complianceReport) return null;
   return { tile: <Tile label="Uploads to check" value={await count(supabase.from("compliance_records").select("id", { count: "exact", head: true }).eq("status", "submitted"))} note="Sent by staff, not checked yet" icon={Upload} tone="warn" href="/compliance" /> };
@@ -344,11 +353,11 @@ const teamClients: Piece = async ({ supabase }) => {
 const LAYOUTS: Record<"manager" | "staff_admin" | "team_leader", { intro: string; pieces: Piece[] }> = {
   manager: {
     intro: "How the whole operation is going today.",
-    pieces: [managerBoard, requestsWaiting, onboardingDone, documentsExpiring, newEnquiries, carsOut],
+    pieces: [managerBoard, requestsWaiting, checksExpired, onboardingDone, documentsExpiring, newEnquiries, carsOut],
   },
   staff_admin: {
     intro: "Staffing at a glance: invites, onboarding, documents and changes.",
-    pieces: [invitesPending, newStarters, uploadsToCheck, requestsWaiting, documentsExpiring, onboardingDone, roleChanges, noTeam, recentlyJoined],
+    pieces: [invitesPending, newStarters, uploadsToCheck, requestsWaiting, checksExpired, documentsExpiring, onboardingDone, roleChanges, noTeam, recentlyJoined],
   },
   team_leader: {
     intro: "Your team and the clients it looks after.",

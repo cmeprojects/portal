@@ -18,7 +18,7 @@ import {
 import { getTimeZone } from "@/lib/settings";
 import { onboardingOn } from "@/lib/feature-parts";
 import type { Role } from "@/lib/roles";
-import { managesStaffFor } from "@/lib/module-access";
+import { managesStaffFor, seesComplianceFor } from "@/lib/module-access";
 import { Pencil, PencilOff, ShieldCheck } from "lucide-react";
 
 // cmeprojects: small icon buttons beside the person's name (hover says what each does).
@@ -71,6 +71,11 @@ export async function PersonPanel({
       : Promise.resolve({ data: null }),
     me ? Promise.resolve({ data: false }) : supabase.rpc("has_access", { p_area: "staff_details", p_person: id }),
   ]);
+  // cmeprojects (HR block step 2): an expired or expiring check is flagged on
+  // their card, for people who look after onboarding only.
+  const checks = onboardingOn(features) && !me && (await seesComplianceFor()) ? (((await supabase.rpc("compliance_status", { p_user: id })).data ?? []) as { state: string }[]) : [];
+  const expiredN = checks.filter((c) => c.state === "expired").length;
+  const expiringN = checks.filter((c) => c.state === "expiring").length;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <div className="flex min-w-0 flex-col gap-3">
@@ -92,6 +97,15 @@ export async function PersonPanel({
               {manager && onboardingOn(features) ? (
                 <Link href={`/compliance/people/${id}`} title="Their compliance" aria-label="Their compliance" className={ICON_BTN}>
                   <ShieldCheck aria-hidden="true" className="size-4" />
+                </Link>
+              ) : null}
+              {expiredN || expiringN ? (
+                <Link
+                  href={`/compliance/people/${id}`}
+                  title={`${expiredN ? `${expiredN} expired` : ""}${expiredN && expiringN ? ", " : ""}${expiringN ? `${expiringN} expiring soon` : ""}`}
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${expiredN ? "bg-danger-soft text-danger" : "bg-warn-soft text-ink"}`}
+                >
+                  {expiredN ? `${expiredN} expired` : `${expiringN} expiring`}
                 </Link>
               ) : null}
             </>

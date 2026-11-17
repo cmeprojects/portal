@@ -23,7 +23,9 @@ export function NewRequestForm({
   today,
   initial,
   routes = {},
+  balances = {},
 }: {
+  balances?: Record<string, number>;
   types: string[];
   colleagues: { id: string; name: string }[];
   today: string;
@@ -80,6 +82,12 @@ export function NewRequestForm({
             </select>
           </Field>
           <input type="hidden" name="leave_label" value={LEAVE_TYPES.find(([v]) => v === leave)?.[1] ?? "Leave"} />
+          {balances[leave] !== undefined ? (
+            <p className="text-sm sm:col-span-2">
+              Your {LEAVE_TYPES.find(([v]) => v === leave)?.[1].toLowerCase() ?? "leave"} balance: <strong>{balances[leave].toFixed(1)} days</strong>
+              <span className="text-muted"> (approved leave already taken off)</span>
+            </p>
+          ) : null}
           <label className="flex items-center gap-2 self-end pb-2 text-sm">
             <input type="checkbox" name="part_day" className="h-5 w-5 accent-[var(--brand-primary)]" /> Part of a day only
           </label>

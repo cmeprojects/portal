@@ -25,6 +25,9 @@ export type StaffRow = {
   todo: number;
   conditional: boolean;
   waiting: boolean;
+  leaving: string;
+  hours: number | null;
+  nextShift: string;
   tag: string;
   protectedAdmin: boolean;
 };
@@ -42,7 +45,7 @@ export function ChecksChip({ r }: { r: Pick<StaffRow, "expired" | "expiring" | "
 
 // cmeprojects (owner's concept, 17 Nov 2026): the staff list as a table; a
 // row opens the person on the right (Details, Access, Compliance, Tasks).
-export function StaffTable({ rows, selected, showTeams }: { rows: StaffRow[]; selected: string | null; showTeams: boolean }) {
+export function StaffTable({ rows, selected, showTeams, showRoster = false }: { rows: StaffRow[]; selected: string | null; showTeams: boolean; showRoster?: boolean }) {
   const router = useRouter();
   const path = usePathname();
   const params = useSearchParams();
@@ -56,7 +59,7 @@ export function StaffTable({ rows, selected, showTeams }: { rows: StaffRow[]; se
           (show === "current" && r.status !== "Deactivated") ||
           (show === "deactivated" && r.status === "Deactivated") ||
           (show === "onboarding" && r.status !== "Deactivated" && r.status !== "Active") ||
-          (show === "action" && r.status !== "Deactivated" && (r.expired > 0 || r.expiring > 0 || r.waiting))) &&
+          (show === "action" && r.status !== "Deactivated" && (r.expired > 0 || r.expiring > 0 || r.waiting || !!r.leaving))) &&
         (!term || [r.name, r.email, r.role, r.sub, r.team].some((v) => v.toLowerCase().includes(term))),
     );
   }, [rows, q, show]);
@@ -84,13 +87,15 @@ export function StaffTable({ rows, selected, showTeams }: { rows: StaffRow[]; se
       </div>
       {list.length ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[44rem] text-sm">
+          <table className={`w-full text-sm ${showRoster ? "min-w-[60rem]" : "min-w-[44rem]"}`}>
             <thead className="border-y border-line bg-page/60 text-left text-xs font-semibold text-muted">
               <tr>
                 <th scope="col" className="px-3 py-2">Name</th>
                 <th scope="col" className="px-3 py-2">Role</th>
                 {showTeams ? <th scope="col" className="px-3 py-2">Team</th> : null}
                 <th scope="col" className="px-3 py-2">Employment</th>
+                {showRoster ? <th scope="col" className="px-3 py-2">Hours this week</th> : null}
+                {showRoster ? <th scope="col" className="px-3 py-2">Next shift</th> : null}
                 <th scope="col" className="px-3 py-2">Status</th>
                 <th scope="col" className="px-3 py-2">Compliance</th>
                 <th scope="col" className="px-3 py-2 text-right">Actions</th>
@@ -120,11 +125,18 @@ export function StaffTable({ rows, selected, showTeams }: { rows: StaffRow[]; se
                     {r.employment || <span className="text-muted">—</span>}
                     {r.startDate ? <span className="block text-xs text-muted">since {day(r.startDate)}</span> : null}
                   </td>
+                  {showRoster ? <td className={`px-3 py-2 tabular-nums ${(r.hours ?? 0) > 38 ? "font-semibold text-warn" : ""}`}>{r.hours === null ? "" : r.hours ? r.hours.toFixed(1) : "—"}</td> : null}
+                  {showRoster ? (
+                    <td className="px-3 py-2 text-xs">
+                      {r.nextShift ? new Date(r.nextShift).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) : <span className="text-muted">—</span>}
+                    </td>
+                  ) : null}
                   <td className="px-3 py-2">
                     <span className="flex flex-wrap gap-1">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${r.status === "Active" ? "bg-good-soft" : r.status === "Deactivated" ? "bg-line" : "bg-brand-soft"}`}>{r.status}</span>
                       {r.conditional ? <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold">Conditional</span> : null}
                       {r.waiting ? <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold">Role change waiting</span> : null}
+                      {r.leaving ? <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">Leaving {day(r.leaving)}</span> : null}
                     </span>
                   </td>
                   <td className="px-3 py-2">

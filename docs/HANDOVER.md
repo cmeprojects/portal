@@ -109,7 +109,26 @@ Last updated: 17 Nov 2026.
   profile, about, emergency contacts, comms, safety, managed by, recent activity for change-log readers; Profile;
   Documents; Care plans; Reviews; Agreements; Funding; Assigned staff) and Edit as steps (?edit=basic|support|
   documents|funding). List: Filters button, email/suburb columns, View and Edit. Logo loading screen. Cost
-  calculation, day/evening/night bands and SMS opt-in wait for rostering and messaging. Next: HR block, Stage 6.
+  calculation, day/evening/night bands and SMS opt-in wait for rostering and messaging.
+- **Staff page redesign (17 Nov, owner's concept):** `/settings/staff` = tiles, searchable table (role, team,
+  employment, hours this week, next shift, status, compliance chip, View/Edit), side panel (Details, Role and access
+  = the old PersonEditor with conditional role, Compliance with Update only when expired/expiring, Tasks), invite as a
+  pop-up. Full page `/settings/staff/[id]`: tabs Overview, Employment, Documents, Leave, Availability, Teams,
+  Performance, Offboarding; Edit as steps (Employee information = ProfileForm, Role and access = PersonEditor,
+  Documents). Team leaders may open their own team members' pages (reviews); data is limited by the database.
+- **HR block, owner's order (17 Nov, no step approvals):** (1) **update 119 offboarding** (hr.offboarding; reason,
+  last day, 7-step checklist + extra steps; deactivation ticks itself; exit notes private; one open per person).
+  (2) **expired flag** (directory card chip for onboarding managers; "Checks expired" dashboard tile). (3) **update 120
+  leave balances** (leave_balances, leave_balance(); set on the staff Leave tab; shown on the leave request form;
+  `/people/leave` calendar + payroll CSV export). (4) **HR calendar** `/people/hr-calendar` (leave, expiries, last
+  days, anniversaries, reviews; no SQL). (5) **update 121 performance** (hr.performance sensitive; staff_reviews
+  probation/annual/check-in; team leaders for their teams via leads_person(); person sees held ones on My account and
+  acknowledges; run_hr_alerts 14 days before/overdue and last-day-tomorrow). (6) **update 122 rostering, first
+  version** (ops.roster; shifts, open shifts + shift_interest; refused: leave, double-booking, inactive/onboarding
+  worker, other client's service/location, >16 h; warnings: availability, >38 h, expired checks; `/roster` week view,
+  publish drafts, copy last week, give open shifts; `/my-shifts`; run_roster_alerts tells workers on publish/change
+  and the day before; people who roster see leave dates). Not yet: approved swaps updating shifts, time bands/costs,
+  timesheets, client-side shift view. Next: owner to choose (Stage 6, rostering round 2, Payroll onboarding view).
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

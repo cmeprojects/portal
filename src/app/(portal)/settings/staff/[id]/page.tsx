@@ -8,7 +8,7 @@ import { Avatar } from "@/components/avatar";
 import { Card, Notice, buttonClass } from "@/components/ui";
 import { ProfileForm } from "@/components/profile-form";
 import { requireSession } from "@/lib/session";
-import { managesStaffFor } from "@/lib/module-access";
+import { canDo, managesStaffFor } from "@/lib/module-access";
 import { rolesOn, teamsOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -18,6 +18,12 @@ import { assignableRoles, inCoreTeam, JOB_TITLE_COLUMNS, ROLE_LABELS, type JobTi
 import { canHelpSignIn, getPeopleRules } from "@/lib/settings";
 import { PersonEditor, type PersonRow } from "../forms";
 import { ChecksChip } from "../staff-table";
+import { setOffboardingStep } from "./offboarding-actions";
+import { LeaveBalanceForm } from "./leave-form";
+import { HoldReviewForm, PlanReviewForm } from "./review-forms";
+import { REVIEW_KINDS, REVIEW_OUTCOMES } from "@/lib/hr-lists";
+import { AddStepForm, OffboardingForm, StartOffboardingForm } from "./offboarding-forms";
+import { LEAVING_REASONS } from "@/lib/hr-lists";
 
 export const metadata: Metadata = { title: "Staff member" };
 
@@ -30,10 +36,11 @@ const LEAVE: Record<string, string> = { annual: "Annual leave", personal: "Perso
 // this person may already see; the database decides each part.
 export default async function StaffMemberPage({ params, searchParams }: PageProps<"/settings/staff/[id]">) {
   const { profile: me, features } = await requireSession();
-  if (!(await managesStaffFor("view"))) notFound();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const supabase = await createClient();
+  // People who manage staff; team leaders for their own teams' staff (reviews).
+  if (!(await managesStaffFor("view")) && !(me.role === "team_leader" && (await supabase.rpc("leads_person", { p_person: id })).data === true)) notFound();
   const { data: base } = await supabase.from("profiles").select("id, full_name, email, role, job_title_id, active, joined_at, onboarded_at").eq("id", id).maybeSingle();
   if (!base) notFound();
   const person = await loadPerson(id);
@@ -114,6 +121,40 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
   const today = new Date().toISOString().slice(0, 10);
   const daysTo = (d: string) => Math.round((Date.parse(`${d}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
 
+  // cmeprojects (update 119): offboarding (hidden before the update, and for yourself).
+  const canOffboard = id !== me.id && (await canDo("hr.offboarding", "view"));
+  const canOffboardEdit = canOffboard && (await canDo("hr.offboarding", "edit"));
+  type Off = { id: string; reason: string; last_day: string; note: string; exit_notes: string; status: string; started_at: string; closed_at: string | null };
+  type OffStep = { id: string; offboarding_id: string; title: string; state: string; done_at: string | null; done_by: string | null; sort_order: number };
+  const offRes = canOffboard ? await supabase.from("offboardings").select("id, reason, last_day, note, exit_notes, status, started_at, closed_at").eq("user_id", id).order("started_at", { ascending: false }) : null;
+  const offboardings = offRes && !offRes.error ? ((offRes.data ?? []) as Off[]) : null;
+  const openOff = offboardings?.find((o) => o.status === "open") ?? null;
+  const { data: stepRows } = openOff ? await supabase.from("offboarding_steps").select("id, offboarding_id, title, state, done_at, done_by, sort_order").eq("offboarding_id", openOff.id).order("sort_order") : { data: [] };
+  const steps = (stepRows ?? []) as OffStep[];
+  // cmeprojects (update 120): leave balances (hidden before the update).
+  const balances =
+    tab === "leave"
+      ? await Promise.all(
+          ([["annual", "Annual leave"], ["personal", "Personal/carer's leave"], ["long_service", "Long service leave"]] as [string, string][]).map(async ([k, l]) => {
+            const { data, error } = await supabase.rpc("leave_balance", { p_user: id, p_type: k });
+            return { key: k, label: l, days: error ? undefined : (data as number | null) };
+          }),
+        )
+      : [];
+  const balancesReady = balances.length > 0 && balances.every((b) => b.days !== undefined);
+  // cmeprojects (update 121): performance and development (managers, staff
+  // admins and their team leaders; hidden before the update and for yourself).
+  type Review = { id: string; kind: string; due_on: string; reviewer_id: string | null; status: string; held_on: string | null; summary: string; goals: string; development: string; outcome: string; acknowledged_at: string | null };
+  const revRes = id !== me.id ? await supabase.from("staff_reviews").select("id, kind, due_on, reviewer_id, status, held_on, summary, goals, development, outcome, acknowledged_at").eq("user_id", id).order("due_on", { ascending: false }) : null;
+  const leadsThem = id !== me.id ? Boolean((await supabase.rpc("leads_person", { p_person: id })).data) : false;
+  const canReview = id !== me.id && ((await canDo("hr.performance", "view")) || leadsThem);
+  const canReviewEdit = canReview && ((await canDo("hr.performance", "edit")) || leadsThem);
+  const reviews = canReview && revRes && !revRes.error ? ((revRes.data ?? []) as Review[]) : null;
+  const { data: reviewerRows } =
+    reviews && canReviewEdit && tab === "performance"
+      ? await supabase.from("profiles").select("id, full_name, email").eq("active", true).in("role", ["manager", "staff_admin", "team_leader"]).neq("id", id).order("full_name")
+      : { data: [] };
+  const reviewerName = new Map(((reviewerRows ?? []) as { id: string; full_name: string | null; email: string }[]).map((r) => [r.id, r.full_name || r.email]));
   const tabs: [string, string][] = [
     ["overview", "Overview"],
     ["employment", "Employment"],
@@ -121,6 +162,8 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
     ["leave", "Leave"],
     ["availability", "Availability"],
     ...(showTeams ? ([["teams", "Teams"]] as [string, string][]) : []),
+    ...(reviews ? ([["performance", "Performance"]] as [string, string][]) : []),
+    ...(offboardings ? ([["offboarding", openOff ? "Offboarding (in progress)" : "Offboarding"]] as [string, string][]) : []),
   ];
   const tabHref = (k: string) => (k === "overview" ? `/settings/staff/${id}` : `/settings/staff/${id}?tab=${k}`);
 
@@ -204,6 +247,7 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
               <ChecksChip r={{ expired, expiring, todo, status }} />
               {status !== "Active" ? <span className="rounded-full bg-page px-2 py-0.5 text-xs font-semibold ring-1 ring-line">{status}</span> : null}
               {conditional ? <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold">Conditional role</span> : null}
+              {openOff ? <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">Leaving {auDay(openOff.last_day)}</span> : null}
             </div>
           </div>
           {canEdit ? (
@@ -278,6 +322,127 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
           <h2 className="heading-sm">Documents and checks</h2>
           {checksList}
         </Card>
+      ) : tab === "performance" && reviews ? (
+        <div className="flex flex-col gap-3">
+          {reviews.filter((r) => r.status === "planned").map((r) => (
+            <Card key={r.id} className="flex flex-col gap-3 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="heading-sm flex-1">{REVIEW_KINDS.find(([k]) => k === r.kind)?.[1] ?? r.kind}</h2>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${r.due_on < today ? "bg-danger-soft text-danger" : "bg-warn-soft"}`}>
+                  {r.due_on < today ? "Overdue" : "Due"} {auDay(r.due_on)}
+                </span>
+              </div>
+              {r.reviewer_id ? <p className="text-sm text-muted">Reviewer: {reviewerName.get(r.reviewer_id) ?? (r.reviewer_id === me.id ? "you" : "set")}</p> : null}
+              {canReviewEdit ? <HoldReviewForm id={r.id} userId={id} kind={r.kind} today={today} /> : null}
+            </Card>
+          ))}
+          {canReviewEdit ? (
+            <Card className="flex flex-col gap-2 p-4">
+              <h2 className="heading-sm">Plan a review</h2>
+              <p className="text-sm text-muted">Probation reviews, annual reviews and check-ins. The reviewer is reminded 14 days before and if it&apos;s overdue. {person.name} sees it once it&apos;s held, and acknowledges it.</p>
+              <PlanReviewForm userId={id} me={me.id} reviewers={((reviewerRows ?? []) as { id: string; full_name: string | null; email: string }[]).map((r) => ({ id: r.id, name: r.full_name || r.email }))} />
+            </Card>
+          ) : null}
+          {reviews.filter((r) => r.status !== "planned").length ? (
+            <Card className="p-4">
+              <h2 className="heading-sm mb-2">Held and cancelled</h2>
+              <ul className="flex flex-col divide-y divide-line text-sm">
+                {reviews
+                  .filter((r) => r.status !== "planned")
+                  .map((r) => (
+                    <li key={r.id} className="py-2">
+                      <p className="font-semibold">
+                        {REVIEW_KINDS.find(([k]) => k === r.kind)?.[1] ?? r.kind} · {r.status === "held" ? `held ${auDay(r.held_on)}` : "cancelled"}
+                        {r.outcome ? ` · ${REVIEW_OUTCOMES.find(([k]) => k === r.outcome)?.[1]}` : ""}
+                        {r.status === "held" ? <span className="font-normal text-muted"> · {r.acknowledged_at ? `acknowledged ${auDay(r.acknowledged_at)}` : "not acknowledged yet"}</span> : null}
+                      </p>
+                      {r.summary ? <p className="whitespace-pre-line">{r.summary}</p> : null}
+                      {r.goals ? <p className="mt-1 whitespace-pre-line"><span className="text-muted">Goals: </span>{r.goals}</p> : null}
+                      {r.development ? <p className="mt-1 whitespace-pre-line"><span className="text-muted">Development: </span>{r.development}</p> : null}
+                    </li>
+                  ))}
+              </ul>
+            </Card>
+          ) : null}
+        </div>
+      ) : tab === "offboarding" && offboardings ? (
+        <div className="flex flex-col gap-3">
+          {openOff ? (
+            <Card className="flex flex-col gap-3 p-4">
+              <div>
+                <h2 className="heading-sm">Offboarding: {LEAVING_REASONS.find(([k]) => k === openOff.reason)?.[1] ?? openOff.reason}</h2>
+                <p className="text-sm text-muted">
+                  Last day {auDay(openOff.last_day)} · started {auDay(openOff.started_at)}
+                  {openOff.note ? ` · ${openOff.note}` : ""}
+                </p>
+              </div>
+              <ul className="flex flex-col divide-y divide-line rounded-lg border border-line text-sm">
+                {steps.map((st) => (
+                  <li key={st.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                    <span className={`min-w-48 flex-1 ${st.state !== "todo" ? "text-muted line-through decoration-1" : "font-medium"}`}>{st.title}</span>
+                    <span className="text-xs text-muted">{st.state === "done" ? `Done ${auDay(st.done_at)}` : st.state === "not_needed" ? "Not needed" : ""}</span>
+                    {canOffboardEdit ? (
+                      <span className="flex gap-1">
+                        {(st.state === "todo" ? [["done", "Done"], ["not_needed", "Not needed"]] : [["todo", "Undo"]]).map(([v, l]) => (
+                          <form key={v} action={setOffboardingStep}>
+                            <input type="hidden" name="id" value={st.id} />
+                            <input type="hidden" name="user_id" value={id} />
+                            <input type="hidden" name="state" value={v} />
+                            <button className="rounded-md border border-line px-2 py-1 text-xs font-semibold hover:bg-page">{l}</button>
+                          </form>
+                        ))}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              {canOffboardEdit ? (
+                <>
+                  <AddStepForm offboardingId={openOff.id} userId={id} />
+                  {steps.some((st) => st.state === "todo" && st.title.startsWith("Portal account")) && base.active ? (
+                    <p className="text-xs text-muted">
+                      To deactivate their account, go to{" "}
+                      <Link href={`/settings/staff/${id}?edit=access`} className="font-semibold text-brand underline">
+                        Edit → Role and access
+                      </Link>{" "}
+                      (that step then ticks itself).
+                    </p>
+                  ) : null}
+                  <div className="border-t border-line pt-3">
+                    <OffboardingForm id={openOff.id} userId={id} lastDay={openOff.last_day} exitNotes={openOff.exit_notes} allDone={steps.every((st) => st.state !== "todo")} />
+                  </div>
+                </>
+              ) : null}
+            </Card>
+          ) : canOffboardEdit ? (
+            <Card className="flex flex-col gap-3 p-4">
+              <div>
+                <h2 className="heading-sm">Start offboarding</h2>
+                <p className="text-sm text-muted">When someone is leaving: record why and their last day, then work through the checklist (car, equipment, client keys, handover, exit interview, final pay, account).</p>
+              </div>
+              <StartOffboardingForm userId={id} name={person.name} />
+            </Card>
+          ) : (
+            <Card className="p-4">
+              <p className="text-sm text-muted">No offboarding in progress.</p>
+            </Card>
+          )}
+          {offboardings.filter((o) => o.status !== "open").length ? (
+            <Card className="p-4">
+              <h2 className="heading-sm mb-2">Earlier</h2>
+              <ul className="flex flex-col gap-1 text-sm">
+                {offboardings
+                  .filter((o) => o.status !== "open")
+                  .map((o) => (
+                    <li key={o.id}>
+                      {o.status === "completed" ? "Completed" : "Cancelled"} {auDay(o.closed_at)} · {LEAVING_REASONS.find(([k]) => k === o.reason)?.[1] ?? o.reason} · last day {auDay(o.last_day)}
+                      {o.exit_notes ? <span className="block whitespace-pre-line text-muted">{o.exit_notes}</span> : null}
+                    </li>
+                  ))}
+              </ul>
+            </Card>
+          ) : null}
+        </div>
       ) : tab === "employment" ? (
         <Card className="p-4">
           <Rows
@@ -321,6 +486,30 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
           </Card>
         </div>
       ) : tab === "leave" ? (
+        <div className="flex flex-col gap-3">
+        {balancesReady ? (
+          <Card className="flex flex-col gap-3 p-4">
+            <h2 className="heading-sm">Leave balances</h2>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {balances.map((b) => (
+                <div key={b.key} className="rounded-lg border border-line p-3">
+                  <p className="text-xs text-muted">{b.label}</p>
+                  <p className={`font-display text-xl font-semibold ${b.days !== null && b.days !== undefined && b.days < 0 ? "text-danger" : ""}`}>
+                    {b.days === null || b.days === undefined ? "—" : `${Number(b.days).toFixed(1)} days`}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {canEdit && id !== me.id ? (
+              <details>
+                <summary className="cursor-pointer text-sm font-semibold text-brand">Set a balance</summary>
+                <div className="mt-2">
+                  <LeaveBalanceForm userId={id} today={today} />
+                </div>
+              </details>
+            ) : null}
+          </Card>
+        ) : null}
         <Card className="flex flex-col gap-2 p-4">
           <h2 className="heading-sm">Approved leave</h2>
           {(leave ?? []).length ? (
@@ -339,8 +528,15 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
           ) : (
             <p className="text-sm text-muted">No approved leave recorded.</p>
           )}
-          <p className="text-xs text-muted">Leave comes from approved requests. Balances will come with the leave calendar.</p>
+          <p className="text-xs text-muted">
+            Leave comes from approved requests. See everyone on the{" "}
+            <Link href="/people/leave" className="text-brand underline">
+              leave calendar
+            </Link>
+            .
+          </p>
         </Card>
+        </div>
       ) : tab === "availability" ? (
         <Card className="p-4">
           <h2 className="heading-sm mb-3">Weekly availability</h2>

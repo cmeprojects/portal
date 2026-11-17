@@ -17,7 +17,7 @@ brings any copy up to date in one go. To see what it added:
 
 | Copy | Supabase project | Updates applied |
 |---|---|---|
-| Development (Engaged Care look, Sydney since 11 Nov 2026) | cme-dev (Sydney) | all via the setup SQL up to 59; 60 to 98 run (11 to 17 Nov 2026); 99 to 118 run 17 Nov 2026 |
+| Development (Engaged Care look, Sydney since 11 Nov 2026) | cme-dev (Sydney) | all via the setup SQL up to 59; 60 to 98 run (11 to 17 Nov 2026); 99 to 118 run 17 Nov 2026; 119 to 122 waiting |
 | Demo | the copy made from the fresh install | all (fresh install) |
 
 Add a row for each new client copy. Run newer files in order on each.

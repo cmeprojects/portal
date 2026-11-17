@@ -27,6 +27,12 @@ export default async function NewRequestPage({ searchParams }: PageProps<"/reque
       { first: r.first_approvers, second: r.second_approvers, escalateDays: r.escalate_days, escalateTo: r.escalate_to },
     ]),
   );
+  // cmeprojects (update 120): their own leave balances, shown before they send a leave request.
+  const balances: Record<string, number> = {};
+  for (const k of ["annual", "personal", "long_service"]) {
+    const { data, error } = await supabase.rpc("leave_balance", { p_user: profile.id, p_type: k });
+    if (!error && data !== null && data !== undefined && Number.isFinite(Number(data))) balances[k] = Number(data);
+  }
   return (
     <>
       <p className="text-sm">
@@ -43,6 +49,7 @@ export default async function NewRequestPage({ searchParams }: PageProps<"/reque
             today={todayIn(await getTimeZone())}
             initial={typeof type === "string" ? type : undefined}
             routes={routes}
+            balances={balances}
           />
         ) : (
           <p className="text-sm text-muted">No request types are switched on at the moment.</p>

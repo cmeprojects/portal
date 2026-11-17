@@ -12,9 +12,15 @@ import { canUseCars } from "@/lib/cars";
 import { onboardingOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
-import { anyContractAccess, managesCarsFor, managesStaffFor, seesClientsFor, setsDueDatesFor, managesTeamsFor, seesAllRequestsFor, seesCarReportFor, seesComplianceFor, seesComplianceReportFor, seesTaskReportFor } from "@/lib/module-access";
+import { anyContractAccess, canDo, managesCarsFor, managesStaffFor, seesClientsFor, setsDueDatesFor, managesTeamsFor, seesAllRequestsFor, seesCarReportFor, seesComplianceFor, seesComplianceReportFor, seesTaskReportFor } from "@/lib/module-access";
 
 // cmeprojects (Care block C1): any team or currently assigned clients?
+// Rostering is on once live update 122 has been run.
+async function rosterOn(): Promise<boolean> {
+  const { error } = await (await createClient()).from("shifts").select("id", { head: true, count: "exact" }).limit(1);
+  return !error;
+}
+
 async function hasMyClients(): Promise<boolean> {
   const supabase = await createClient();
   const me = (await supabase.auth.getUser()).data.user?.id;
@@ -54,6 +60,8 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     staff: await managesStaffFor("view"),
     clients: await seesClientsFor(),
     myClients: role !== "new_starter" && role !== "system_admin" && (await hasMyClients()),
+    roster: await canDo("ops.roster", "view"),
+    myShifts: role !== "new_starter" && role !== "system_admin" && (await rosterOn()),
     dueDates: await setsDueDatesFor(),
     adminAreas,
     customFeatures,

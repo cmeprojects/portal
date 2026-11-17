@@ -7,6 +7,8 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABELS } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
+import { acknowledgeReview } from "../settings/staff/[id]/review-actions";
+import { REVIEW_KINDS, REVIEW_OUTCOMES } from "@/lib/hr-lists";
 import { NameForm, PasswordForm, PhotoForm } from "./forms";
 import { BirthdayForm } from "./birthday-form";
 import { photoLinks } from "@/lib/avatars";
@@ -34,6 +36,11 @@ export default async function AccountPage() {
   // cmeprojects: my staff profile (HR Pack → Staff profiles); not for the system admin.
   const showProfile = profile.role !== "system_admin" && features.hr_profiles !== false && (await profilesReady());
   const me = showProfile ? await loadPerson(profile.id) : null;
+  // cmeprojects (update 121): my held reviews, to read and acknowledge (none before the update).
+  type MyReview = { id: string; kind: string; held_on: string | null; summary: string; goals: string; development: string; outcome: string; acknowledged_at: string | null };
+  const myRev = await supabase.from("staff_reviews").select("id, kind, held_on, summary, goals, development, outcome, acknowledged_at").eq("user_id", profile.id).eq("status", "held").order("held_on", { ascending: false }).limit(5);
+  const myReviews = myRev.error ? [] : ((myRev.data ?? []) as MyReview[]);
+  const auDay = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "");
   return (
     <>
       <PageHeader title="My account" intro={`${profile.email} · ${ROLE_LABELS[profile.role]}`} />
@@ -44,6 +51,32 @@ export default async function AccountPage() {
         {mine ? <PhotoForm userId={profile.id} name={profile.full_name || profile.email} src={photo} /> : null}
         <NameForm name={profile.full_name} canEdit={profile.role === "system_admin"} />
       </Card>
+      {myReviews.length ? (
+        <Card className="flex flex-col gap-3 p-5 sm:p-6">
+          <h2 className="heading-sm">My reviews</h2>
+          <ul className="flex flex-col divide-y divide-line text-sm">
+            {myReviews.map((r) => (
+              <li key={r.id} className="flex flex-col gap-1 py-2">
+                <p className="font-semibold">
+                  {REVIEW_KINDS.find(([k]) => k === r.kind)?.[1] ?? "Review"} · {auDay(r.held_on)}
+                  {r.outcome ? <span className="font-normal text-muted"> · {REVIEW_OUTCOMES.find(([k]) => k === r.outcome)?.[1]}</span> : null}
+                </p>
+                <p className="whitespace-pre-line">{r.summary}</p>
+                {r.goals ? <p className="whitespace-pre-line"><span className="text-muted">Goals: </span>{r.goals}</p> : null}
+                {r.development ? <p className="whitespace-pre-line"><span className="text-muted">Development: </span>{r.development}</p> : null}
+                {r.acknowledged_at ? (
+                  <p className="text-xs text-muted">You acknowledged this on {auDay(r.acknowledged_at)}.</p>
+                ) : (
+                  <form action={acknowledgeReview}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button className={buttonClass("outline")}>I&apos;ve read this</button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
       {/* cmeprojects Phase 5: birthday (day and month), shown only if chosen. */}
       {birthday.error ? null : (
         <Card className="p-5 sm:p-6">

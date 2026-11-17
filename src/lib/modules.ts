@@ -55,6 +55,7 @@ export const MODULES: ModuleDef[] = [
 
   // Operations
   { id: "ops.tasks", category: "operations", label: "Tasks", icon: "ListChecks", href: "/tasks", match: ["/tasks", "/my-tasks"], delegable: true },
+  { id: "ops.roster", category: "operations", label: "Rostering", icon: "CalendarClock", href: "/roster", delegable: true },
   { id: "ops.registers", category: "operations", label: "Registers", icon: "FolderKanban", href: "/registers", match: ["/registers", "/records"], delegable: true },
   { id: "ops.cars", category: "apps", label: "Cars", icon: "Car", href: "/cars", match: ["/cars", "/cars/manage", "/cars/install"], delegable: true },
   { id: "ops.cars.use", category: "apps", parent: "ops.cars", label: "Use a car", icon: "Car", href: "/cars" },
@@ -75,6 +76,8 @@ export const MODULES: ModuleDef[] = [
   { id: "hr.onboarding.overview", category: "hr", parent: "hr.onboarding", label: "Overview and checks", icon: "GraduationCap", href: "/compliance" },
   { id: "hr.onboarding.expiry", category: "hr", parent: "hr.onboarding", label: "Expiry list", icon: "CalendarClock", href: "/compliance/expiry" },
   { id: "hr.contracts", category: "hr", label: "Contracts", icon: "FileSignature", href: "/contracts", sensitivity: "sensitive", delegable: true },
+  { id: "hr.offboarding", category: "hr", label: "Offboarding", icon: "UserMinus", href: "", delegable: true },
+  { id: "hr.performance", category: "hr", label: "Performance and development", icon: "TrendingUp", href: "", sensitivity: "sensitive", delegable: true },
   { id: "hr.requests", category: "hr", label: "Staff requests", icon: "Inbox", href: "/people/requests", delegable: true },
 
   // Permission-only modules (no page of their own; never shown in the menu).

@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270304000001_client_fields_and_archive.sql
+-- Built from every migration up to: 20270308000001_rostering.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,10 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and to_regclass('public.shifts') is not null and to_regclass('public.shift_interest') is not null then v_upto := 140; end if;
+  if v_upto = 0 and to_regclass('public.staff_reviews') is not null and to_regclass('public.hr_alerts_sent') is not null then v_upto := 139; end if;
+  if v_upto = 0 and to_regclass('public.leave_balances') is not null then v_upto := 138; end if;
+  if v_upto = 0 and to_regclass('public.offboardings') is not null and to_regclass('public.offboarding_steps') is not null then v_upto := 137; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'car_clients' and column_name = 'title') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'car_clients' and column_name = 'given_name') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'car_clients' and column_name = 'middle_name') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'car_clients' and column_name = 'family_name') then v_upto := 136; end if;
   if v_upto = 0 and to_regclass('public.client_funding') is not null then v_upto := 134; end if;
   if v_upto = 0 and to_regclass('public.client_agreements') is not null then v_upto := 133; end if;
@@ -249,7 +253,11 @@ begin
     (133, '20270301000001_service_agreements.sql'),
     (134, '20270302000001_funding_and_budgets.sql'),
     (135, '20270303000001_new_role_defaults.sql'),
-    (136, '20270304000001_client_fields_and_archive.sql')
+    (136, '20270304000001_client_fields_and_archive.sql'),
+    (137, '20270305000001_offboarding.sql'),
+    (138, '20270306000001_leave_balances.sql'),
+    (139, '20270307000001_staff_reviews.sql'),
+    (140, '20270308000001_rostering.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -23767,5 +23775,770 @@ $$;
 
 $m136$;
   insert into public.install_log (name) values ('20270304000001_client_fields_and_archive.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270305000001_offboarding.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270305000001_offboarding.sql') then
+    return;
+  end if;
+  execute $m137$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 119; HR block step 1, owner's order): offboarding.
+--
+--   * New part "Offboarding" (HR). Managers and staff admins by default (the
+--     same people who manage staff); changeable on the Access page.
+--   * Starting offboarding records why they're leaving and their last day,
+--     and makes a checklist: car keys and fuel card, equipment and ID badge,
+--     client keys and key safe codes, exit interview, final pay to payroll,
+--     deactivate the portal account, and reassign their open tasks and
+--     clients. Steps are ticked (or marked not needed); who and when are kept.
+--   * The "deactivate" step ticks itself when their account is deactivated.
+--   * Exit interview notes stay with the people who manage offboarding (the
+--     person leaving doesn't see the record). Nothing is deleted.
+
+insert into public.app_modules (id, parent_id, category, label, sensitivity, delegable, sort_order, actions) values
+  ('hr.offboarding', null, 'hr', 'Offboarding', 'normal', true, 245, '{view,edit}')
+on conflict (id) do nothing;
+
+create table if not exists public.offboardings (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  user_id uuid not null references public.profiles (id) on delete restrict,
+  reason text not null check (reason in ('resigned', 'contract_ended', 'dismissed', 'retired', 'redundancy', 'other')),
+  last_day date not null,
+  note text not null default '' check (length(note) <= 1000),
+  exit_notes text not null default '' check (length(exit_notes) <= 3000),
+  status text not null default 'open' check (status in ('open', 'completed', 'cancelled')),
+  started_by uuid default auth.uid() references public.profiles (id),
+  started_at timestamptz not null default now(),
+  closed_by uuid references public.profiles (id),
+  closed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists offboardings_one_open on public.offboardings (user_id) where status = 'open';
+
+create table if not exists public.offboarding_steps (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  offboarding_id uuid not null references public.offboardings (id) on delete restrict,
+  step text not null,
+  title text not null check (length(title) between 1 and 120),
+  sort_order int not null default 0,
+  state text not null default 'todo' check (state in ('todo', 'done', 'not_needed')),
+  done_by uuid references public.profiles (id),
+  done_at timestamptz,
+  unique (offboarding_id, step)
+);
+
+alter table public.offboardings enable row level security;
+alter table public.offboarding_steps enable row level security;
+
+drop policy if exists "see offboarding" on public.offboardings;
+create policy "see offboarding" on public.offboardings
+  for select to authenticated using (user_id <> (select auth.uid()) and public.can('hr.offboarding', 'view', user_id));
+drop policy if exists "start offboarding" on public.offboardings;
+create policy "start offboarding" on public.offboardings
+  for insert to authenticated with check (user_id <> (select auth.uid()) and public.can('hr.offboarding', 'edit', user_id));
+drop policy if exists "change offboarding" on public.offboardings;
+create policy "change offboarding" on public.offboardings
+  for update to authenticated
+  using (user_id <> (select auth.uid()) and public.can('hr.offboarding', 'edit', user_id))
+  with check (user_id <> (select auth.uid()) and public.can('hr.offboarding', 'edit', user_id));
+
+drop policy if exists "see offboarding steps" on public.offboarding_steps;
+create policy "see offboarding steps" on public.offboarding_steps
+  for select to authenticated using (offboarding_id in (select o.id from public.offboardings o));
+drop policy if exists "tick offboarding steps" on public.offboarding_steps;
+create policy "tick offboarding steps" on public.offboarding_steps
+  for update to authenticated
+  using (offboarding_id in (select o.id from public.offboardings o where o.status = 'open' and public.can('hr.offboarding', 'edit', o.user_id)))
+  with check (offboarding_id in (select o.id from public.offboardings o where o.status = 'open' and public.can('hr.offboarding', 'edit', o.user_id)));
+drop policy if exists "add offboarding steps" on public.offboarding_steps;
+create policy "add offboarding steps" on public.offboarding_steps
+  for insert to authenticated
+  with check (offboarding_id in (select o.id from public.offboardings o where o.status = 'open' and public.can('hr.offboarding', 'edit', o.user_id)));
+-- No delete rules.
+grant select, insert, update on public.offboardings, public.offboarding_steps to authenticated;
+
+-- Offboarding: who started and closed it; a closed one stays as it was; the
+-- standard checklist is added when it starts.
+create or replace function public.guard_offboarding()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.status := 'open';
+    new.started_by := auth.uid();
+    new.started_at := now();
+    new.closed_by := null;
+    new.closed_at := null;
+    return new;
+  end if;
+  if (new.user_id, new.started_by, new.started_at) is distinct from (old.user_id, old.started_by, old.started_at) then
+    raise exception 'Who is leaving, and who started it, stay as they were.';
+  end if;
+  if old.status <> 'open' and new is distinct from old then
+    raise exception 'This offboarding is closed. Start a new one if needed.';
+  end if;
+  if new.status <> 'open' and old.status = 'open' then
+    new.closed_by := auth.uid();
+    new.closed_at := now();
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+revoke execute on function public.guard_offboarding() from public, anon, authenticated;
+drop trigger if exists guard_offboarding on public.offboardings;
+create trigger guard_offboarding before insert or update on public.offboardings
+  for each row execute function public.guard_offboarding();
+
+create or replace function public.add_offboarding_steps()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  insert into public.offboarding_steps (offboarding_id, step, title, sort_order) values
+    (new.id, 'car', 'Car keys and fuel card returned', 10),
+    (new.id, 'equipment', 'Phone, laptop, ID badge and uniform returned', 20),
+    (new.id, 'client_keys', 'Client keys returned; key safe codes changed', 30),
+    (new.id, 'reassign', 'Open tasks and clients handed to someone else', 40),
+    (new.id, 'exit_interview', 'Exit interview done', 50),
+    (new.id, 'final_pay', 'Final pay and leave payout sent to payroll', 60),
+    (new.id, 'deactivate', 'Portal account deactivated', 70)
+  on conflict (offboarding_id, step) do nothing;
+  return null;
+end;
+$$;
+revoke execute on function public.add_offboarding_steps() from public, anon, authenticated;
+drop trigger if exists add_offboarding_steps on public.offboardings;
+create trigger add_offboarding_steps after insert on public.offboardings
+  for each row execute function public.add_offboarding_steps();
+
+-- A step: who ticked it and when; added steps are "other" ones.
+create or replace function public.guard_offboarding_step()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if tg_op = 'UPDATE' and (new.offboarding_id, new.step, new.title) is distinct from (old.offboarding_id, old.step, old.title) then
+    raise exception 'A step''s wording stays as it was.';
+  end if;
+  -- Steps added by hand (not the standard checklist) are kept as "other" ones.
+  if tg_op = 'INSERT' and pg_trigger_depth() <= 1 then
+    new.step := 'other_' || substr(md5(random()::text), 1, 8);
+  end if;
+  if new.state <> 'todo' and (tg_op = 'INSERT' or old.state is distinct from new.state) then
+    new.done_by := auth.uid();
+    new.done_at := now();
+  elsif new.state = 'todo' then
+    new.done_by := null;
+    new.done_at := null;
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.guard_offboarding_step() from public, anon, authenticated;
+drop trigger if exists guard_offboarding_step on public.offboarding_steps;
+create trigger guard_offboarding_step before insert or update on public.offboarding_steps
+  for each row execute function public.guard_offboarding_step();
+
+-- "Portal account deactivated" ticks itself when they're deactivated.
+create or replace function public.offboarding_on_deactivate()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if old.active and not new.active then
+    update public.offboarding_steps s set state = 'done'
+     where s.step = 'deactivate' and s.state = 'todo'
+       and s.offboarding_id in (select o.id from public.offboardings o where o.user_id = new.id and o.status = 'open');
+  end if;
+  return null;
+end;
+$$;
+revoke execute on function public.offboarding_on_deactivate() from public, anon, authenticated;
+drop trigger if exists offboarding_on_deactivate on public.profiles;
+create trigger offboarding_on_deactivate after update of active on public.profiles
+  for each row execute function public.offboarding_on_deactivate();
+
+-- Switched over from the start: the people who manage staff.
+update public.app_modules set grant_ready = true where id = 'hr.offboarding' and not grant_ready;
+insert into public.access_baselines (access_level, module_id, actions, scope, note)
+select l::public.app_role, 'hr.offboarding', '{}', 'all', 'HR block default: people who manage staff'
+  from unnest(array['manager', 'staff_admin']) l
+ where not exists (select 1 from public.access_baselines b where b.module_id = 'hr.offboarding' and b.revoked_at is null and b.access_level = l::public.app_role);
+
+-- Catalogue: Offboarding sits with the other HR parts (a mapping only; it gives nobody access).
+insert into public.function_group_modules (function_group_id, module_id)
+select g.id, 'hr.offboarding' from public.function_groups g where g.key in ('hr_workforce', 'management_admin')
+on conflict do nothing;
+
+$m137$;
+  insert into public.install_log (name) values ('20270305000001_offboarding.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270306000001_leave_balances.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270306000001_leave_balances.sql') then
+    return;
+  end if;
+  execute $m138$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 120; HR block step 3, owner's order): leave balances.
+--
+--   * For each person and leave type (annual, personal/carer's, long
+--     service): an opening balance in days, how many days build up a year,
+--     and the date that balance was correct ("as at"). Set by people who
+--     manage staff (not for themselves).
+--   * The balance today = opening + what has built up since "as at" − the
+--     weekdays of approved leave of that type since "as at". Worked out by
+--     leave_balance(), which only sees what the person asking may see.
+--   * Each person sees their own; managers and staff admins (Staff), and
+--     people who see everyone's requests, see everyone's. Casual staff simply
+--     have none set. Nothing is deleted.
+
+create table if not exists public.leave_balances (
+  user_id uuid not null references public.profiles (id) on delete restrict,
+  leave_type text not null check (leave_type in ('annual', 'personal', 'long_service')),
+  org_id uuid not null default public.default_org_id(),
+  opening_days numeric(6,2) not null default 0 check (opening_days between -100 and 1000),
+  accrual_days_per_year numeric(5,2) not null default 0 check (accrual_days_per_year between 0 and 60),
+  as_at date not null default current_date,
+  note text not null default '' check (length(note) <= 300),
+  updated_by uuid default auth.uid() references public.profiles (id),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, leave_type)
+);
+alter table public.leave_balances enable row level security;
+
+drop policy if exists "see leave balances" on public.leave_balances;
+create policy "see leave balances" on public.leave_balances
+  for select to authenticated
+  using (user_id = (select auth.uid()) or (select public.can('hr.requests', 'view')) or public.can('people.staff', 'edit', user_id));
+drop policy if exists "set leave balances" on public.leave_balances;
+create policy "set leave balances" on public.leave_balances
+  for insert to authenticated
+  with check (user_id <> (select auth.uid()) and public.can('people.staff', 'edit', user_id));
+drop policy if exists "change leave balances" on public.leave_balances;
+create policy "change leave balances" on public.leave_balances
+  for update to authenticated
+  using (user_id <> (select auth.uid()) and public.can('people.staff', 'edit', user_id))
+  with check (user_id <> (select auth.uid()) and public.can('people.staff', 'edit', user_id));
+grant select, insert, update on public.leave_balances to authenticated;
+
+create or replace function public.touch_leave_balance()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  new.updated_by := auth.uid();
+  new.updated_at := now();
+  return new;
+end;
+$$;
+revoke execute on function public.touch_leave_balance() from public, anon, authenticated;
+drop trigger if exists touch_leave_balance on public.leave_balances;
+create trigger touch_leave_balance before insert or update on public.leave_balances
+  for each row execute function public.touch_leave_balance();
+
+-- The balance in days today (null when none is set, or not visible).
+create or replace function public.leave_balance(p_user uuid, p_type text)
+returns numeric
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select round(b.opening_days
+               + b.accrual_days_per_year * greatest(public.local_today() - b.as_at, 0) / 365.0
+               - coalesce((select count(*)
+                             from public.leave_periods l,
+                                  generate_series(greatest(l.start_date, b.as_at), l.end_date, interval '1 day') d
+                            where l.user_id = b.user_id and l.leave_type = b.leave_type
+                              and l.end_date >= b.as_at and extract(isodow from d) < 6), 0), 2)
+    from public.leave_balances b
+   where b.user_id = p_user and b.leave_type = p_type
+$$;
+grant execute on function public.leave_balance(uuid, text) to authenticated;
+
+$m138$;
+  insert into public.install_log (name) values ('20270306000001_leave_balances.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270307000001_staff_reviews.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270307000001_staff_reviews.sql') then
+    return;
+  end if;
+  execute $m139$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 121; HR block step 5, owner's order): performance and
+-- development.
+--
+--   * New part "Performance and development" (sensitive: a role or a person
+--     only). Managers and staff admins: everyone. Team leaders: their teams'
+--     staff (a team rule, like requests). Each person sees their own reviews
+--     once they're held, and acknowledges them. Nobody runs their own review.
+--   * A review is a probation review, an annual review or a check-in, with a
+--     due date, then held (date, summary, goals, training and development
+--     plan) or cancelled. A held review stays as it was (except the person's
+--     acknowledgement). Nothing is deleted.
+--   * Reminders (from the hourly timer, server only): 14 days before a review
+--     is due and once when overdue, to the reviewer (else the managers); and
+--     the day before a leaving person's last day, to whoever started the
+--     offboarding.
+
+insert into public.app_modules (id, parent_id, category, label, sensitivity, delegable, sort_order, actions) values
+  ('hr.performance', null, 'hr', 'Performance and development', 'sensitive', true, 247, '{view,edit}')
+on conflict (id) do nothing;
+
+create table if not exists public.staff_reviews (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  user_id uuid not null references public.profiles (id) on delete restrict,
+  kind text not null check (kind in ('probation', 'annual', 'check_in')),
+  due_on date not null,
+  reviewer_id uuid references public.profiles (id),
+  status text not null default 'planned' check (status in ('planned', 'held', 'cancelled')),
+  held_on date,
+  summary text not null default '' check (length(summary) <= 5000),
+  goals text not null default '' check (length(goals) <= 3000),
+  development text not null default '' check (length(development) <= 3000),
+  outcome text not null default '' check (outcome in ('', 'passed', 'extended', 'not_passed', 'on_track', 'needs_support')),
+  acknowledged_at timestamptz,
+  created_by uuid default auth.uid() references public.profiles (id),
+  created_at timestamptz not null default now(),
+  closed_by uuid references public.profiles (id),
+  updated_at timestamptz not null default now()
+);
+create index if not exists staff_reviews_user on public.staff_reviews (user_id);
+create index if not exists staff_reviews_due on public.staff_reviews (due_on) where status = 'planned';
+alter table public.staff_reviews enable row level security;
+
+-- Team leaders: their own teams' staff (not themselves).
+create or replace function public.leads_person(p_person uuid)
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select exists (select 1 from public.team_leaders tl join public.team_members tm on tm.team_id = tl.team_id
+                  where tl.user_id = (select auth.uid()) and tm.user_id = p_person and p_person <> (select auth.uid()))
+$$;
+grant execute on function public.leads_person(uuid) to authenticated;
+
+drop policy if exists "see reviews" on public.staff_reviews;
+create policy "see reviews" on public.staff_reviews
+  for select to authenticated
+  using ((user_id = (select auth.uid()) and status = 'held')
+         or (user_id <> (select auth.uid()) and (public.can('hr.performance', 'view', user_id) or public.leads_person(user_id))));
+drop policy if exists "plan reviews" on public.staff_reviews;
+create policy "plan reviews" on public.staff_reviews
+  for insert to authenticated
+  with check (user_id <> (select auth.uid()) and (public.can('hr.performance', 'edit', user_id) or public.leads_person(user_id)));
+drop policy if exists "hold reviews" on public.staff_reviews;
+create policy "hold reviews" on public.staff_reviews
+  for update to authenticated
+  using ((user_id <> (select auth.uid()) and (public.can('hr.performance', 'edit', user_id) or public.leads_person(user_id)))
+         or (user_id = (select auth.uid()) and status = 'held'))
+  with check ((user_id <> (select auth.uid()) and (public.can('hr.performance', 'edit', user_id) or public.leads_person(user_id)))
+              or (user_id = (select auth.uid()) and status = 'held'));
+-- No delete rule.
+grant select, insert, update on public.staff_reviews to authenticated;
+
+create or replace function public.guard_staff_review()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.status := 'planned';
+    new.held_on := null;
+    new.acknowledged_at := null;
+    new.created_by := auth.uid();
+    new.created_at := now();
+    new.reviewer_id := coalesce(new.reviewer_id, auth.uid());
+    if new.reviewer_id = new.user_id then
+      raise exception 'Someone else runs their review.';
+    end if;
+    return new;
+  end if;
+  if (new.user_id, new.kind, new.created_by, new.created_at) is distinct from (old.user_id, old.kind, old.created_by, old.created_at) then
+    raise exception 'A review stays with its person and kind.';
+  end if;
+  -- The person themselves: only their acknowledgement.
+  if old.user_id = auth.uid() then
+    if (new.status, new.due_on, new.reviewer_id, new.held_on, new.summary, new.goals, new.development, new.outcome, new.closed_by)
+       is distinct from (old.status, old.due_on, old.reviewer_id, old.held_on, old.summary, old.goals, old.development, old.outcome, old.closed_by) then
+      raise exception 'You can only acknowledge your review.';
+    end if;
+    new.acknowledged_at := coalesce(old.acknowledged_at, now());
+    new.updated_at := now();
+    return new;
+  end if;
+  if new.acknowledged_at is distinct from old.acknowledged_at then
+    raise exception 'Only the person acknowledges their review.';
+  end if;
+  if old.status <> 'planned' then
+    raise exception 'This review is closed and stays as it was.';
+  end if;
+  if new.reviewer_id = new.user_id then
+    raise exception 'Someone else runs their review.';
+  end if;
+  if new.status = 'held' then
+    if new.held_on is null or length(trim(new.summary)) = 0 then
+      raise exception 'Record when it was held and a summary.';
+    end if;
+    if new.held_on > public.local_today() then
+      raise exception 'A review can''t be held in the future.';
+    end if;
+  end if;
+  if new.status <> 'planned' then
+    new.closed_by := auth.uid();
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+revoke execute on function public.guard_staff_review() from public, anon, authenticated;
+drop trigger if exists guard_staff_review on public.staff_reviews;
+create trigger guard_staff_review before insert or update on public.staff_reviews
+  for each row execute function public.guard_staff_review();
+
+-- Reminders sent (one per review, kind and day). Server only.
+create table if not exists public.hr_alerts_sent (
+  kind text not null,
+  item_id uuid not null,
+  due_on date not null,
+  sent_at timestamptz not null default now(),
+  primary key (kind, item_id, due_on)
+);
+alter table public.hr_alerts_sent enable row level security;
+
+create or replace function public.run_hr_alerts()
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  r record;
+  v_reviews int := 0;
+  v_leaving int := 0;
+  v_today date := public.local_today();
+begin
+  for r in
+    select s.id, s.user_id, s.kind, s.due_on, s.reviewer_id, p.full_name, p.email,
+           case when s.due_on < v_today then 'staff_review_overdue' else 'staff_review_due' end as alert
+      from public.staff_reviews s join public.profiles p on p.id = s.user_id and p.active
+     where s.status = 'planned' and s.due_on <= v_today + 14
+  loop
+    if not exists (select 1 from public.hr_alerts_sent a where a.kind = r.alert and a.item_id = r.id and a.due_on = r.due_on) then
+      insert into public.hr_alerts_sent (kind, item_id, due_on) values (r.alert, r.id, r.due_on);
+      perform public.notify(u.id, r.alert,
+        case r.kind when 'probation' then 'Probation review' when 'annual' then 'Annual review' else 'Check-in' end
+          || case when r.alert = 'staff_review_overdue' then ' is overdue' else ' due ' || to_char(r.due_on, 'DD Mon YYYY') end,
+        coalesce(nullif(r.full_name, ''), r.email), '/settings/staff/' || r.user_id || '?tab=performance', true)
+        from public.profiles u
+       where u.active and u.id <> r.user_id
+         and (u.id = r.reviewer_id or (r.reviewer_id is null and u.role = 'manager'));
+      v_reviews := v_reviews + 1;
+    end if;
+  end loop;
+  for r in
+    select o.id, o.user_id, o.last_day, o.started_by, p.full_name, p.email
+      from public.offboardings o join public.profiles p on p.id = o.user_id
+     where o.status = 'open' and o.last_day = v_today + 1
+  loop
+    if not exists (select 1 from public.hr_alerts_sent a where a.kind = 'last_day_tomorrow' and a.item_id = r.id and a.due_on = r.last_day) then
+      insert into public.hr_alerts_sent (kind, item_id, due_on) values ('last_day_tomorrow', r.id, r.last_day);
+      perform public.notify(r.started_by, 'last_day_tomorrow', 'Last day tomorrow: check the offboarding list',
+        coalesce(nullif(r.full_name, ''), r.email), '/settings/staff/' || r.user_id || '?tab=offboarding', true)
+       where r.started_by is not null;
+      v_leaving := v_leaving + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('staff_reviews', v_reviews, 'last_days', v_leaving);
+end;
+$$;
+revoke execute on function public.run_hr_alerts() from public, anon, authenticated;
+grant execute on function public.run_hr_alerts() to service_role;
+
+-- Switched over from the start: the people who manage staff.
+update public.app_modules set grant_ready = true where id = 'hr.performance' and not grant_ready;
+insert into public.access_baselines (access_level, module_id, actions, scope, note)
+select l::public.app_role, 'hr.performance', '{}', 'all', 'HR block default: people who manage staff'
+  from unnest(array['manager', 'staff_admin']) l
+ where not exists (select 1 from public.access_baselines b where b.module_id = 'hr.performance' and b.revoked_at is null and b.access_level = l::public.app_role);
+insert into public.function_group_modules (function_group_id, module_id)
+select g.id, 'hr.performance' from public.function_groups g where g.key in ('hr_workforce', 'management_admin')
+on conflict do nothing;
+
+$m139$;
+  insert into public.install_log (name) values ('20270307000001_staff_reviews.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270308000001_rostering.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270308000001_rostering.sql') then
+    return;
+  end if;
+  execute $m140$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 122; HR block step 6, owner's order): rostering, first
+-- version.
+--
+--   * New part "Rostering" (normal). Managers, staff admins and the Payroll &
+--     Rostering role: every shift, add and change. Everyone sees their own
+--     published shifts, and open shifts they can put their hand up for.
+--   * A shift: worker (or none: an open shift), start and end (up to 16
+--     hours), unpaid break, notes for the worker, and optionally the client,
+--     the client's service and an approved location of that client (the
+--     service's scheme comes with it). Draft, published or cancelled.
+--   * The database refuses: a worker on approved leave at that time, two
+--     shifts for one worker at the same time, a deactivated worker or one who
+--     hasn't started, and a service or location of another client.
+--   * Warnings the roster screen shows (not refused): outside their weekly
+--     availability, over 38 hours in the week, checks expired.
+--   * Workers are told when a shift is published or changed for them, and the
+--     day before (from the server only). Nothing is deleted: shifts are
+--     cancelled.
+
+insert into public.app_modules (id, parent_id, category, label, sensitivity, delegable, sort_order, actions) values
+  ('ops.roster', null, 'operations', 'Rostering', 'normal', true, 75, '{view,edit}')
+on conflict (id) do nothing;
+
+create table if not exists public.shifts (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  worker_id uuid references public.profiles (id) on delete restrict,
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  break_minutes int not null default 0 check (break_minutes between 0 and 240),
+  client_id uuid references public.car_clients (id) on delete restrict,
+  service_id uuid references public.client_services (id) on delete restrict,
+  location_id uuid references public.client_locations (id) on delete restrict,
+  notes text not null default '' check (length(notes) <= 500),
+  status text not null default 'draft' check (status in ('draft', 'published', 'cancelled')),
+  notified_at timestamptz,
+  reminded_on date,
+  created_by uuid default auth.uid() references public.profiles (id),
+  created_at timestamptz not null default now(),
+  updated_by uuid references public.profiles (id),
+  updated_at timestamptz not null default now(),
+  check (ends_at > starts_at and ends_at - starts_at <= interval '16 hours')
+);
+create index if not exists shifts_worker on public.shifts (worker_id, starts_at) where status <> 'cancelled';
+create index if not exists shifts_starts on public.shifts (starts_at) where status <> 'cancelled';
+create index if not exists shifts_client on public.shifts (client_id, starts_at) where status <> 'cancelled';
+
+create table if not exists public.shift_interest (
+  shift_id uuid not null references public.shifts (id) on delete restrict,
+  user_id uuid not null references public.profiles (id) on delete restrict default auth.uid(),
+  org_id uuid not null default public.default_org_id(),
+  created_at timestamptz not null default now(),
+  primary key (shift_id, user_id)
+);
+
+alter table public.shifts enable row level security;
+alter table public.shift_interest enable row level security;
+
+drop policy if exists "see shifts" on public.shifts;
+create policy "see shifts" on public.shifts
+  for select to authenticated
+  using ((select public.can('ops.roster', 'view'))
+         or (status = 'published' and worker_id = (select auth.uid()))
+         or (status = 'published' and worker_id is null and starts_at > now() and (select public.is_member())));
+drop policy if exists "add shifts" on public.shifts;
+create policy "add shifts" on public.shifts
+  for insert to authenticated with check ((select public.can('ops.roster', 'edit')));
+drop policy if exists "change shifts" on public.shifts;
+create policy "change shifts" on public.shifts
+  for update to authenticated
+  using ((select public.can('ops.roster', 'edit')))
+  with check ((select public.can('ops.roster', 'edit')));
+-- No delete rule.
+grant select, insert, update on public.shifts to authenticated;
+
+drop policy if exists "see shift interest" on public.shift_interest;
+create policy "see shift interest" on public.shift_interest
+  for select to authenticated using (user_id = (select auth.uid()) or (select public.can('ops.roster', 'view')));
+drop policy if exists "put your hand up" on public.shift_interest;
+create policy "put your hand up" on public.shift_interest
+  for insert to authenticated
+  with check (user_id = (select auth.uid())
+              and shift_id in (select s.id from public.shifts s where s.status = 'published' and s.worker_id is null and s.starts_at > now()));
+grant select, insert on public.shift_interest to authenticated;
+
+create or replace function public.guard_shift()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_scheme text;
+begin
+  if tg_op = 'INSERT' then
+    new.created_by := auth.uid();
+    new.created_at := now();
+    new.notified_at := null;
+    new.reminded_on := null;
+  else
+    -- Only the "told them" marks changed (the server's reminders): nothing to check.
+    if (new.worker_id, new.starts_at, new.ends_at, new.break_minutes, new.client_id, new.service_id, new.location_id, new.notes, new.status, new.created_by, new.created_at)
+       is not distinct from (old.worker_id, old.starts_at, old.ends_at, old.break_minutes, old.client_id, old.service_id, old.location_id, old.notes, old.status, old.created_by, old.created_at) then
+      new.updated_by := old.updated_by;
+      new.updated_at := old.updated_at;
+      return new;
+    end if;
+    if (new.created_by, new.created_at) is distinct from (old.created_by, old.created_at) then
+      raise exception 'Who added a shift stays as it was.';
+    end if;
+    if old.status = 'cancelled' and new is distinct from old then
+      raise exception 'A cancelled shift stays cancelled. Add a new one.';
+    end if;
+    -- Changed for the worker: tell them again.
+    if (new.worker_id, new.starts_at, new.ends_at, new.status, new.location_id) is distinct from (old.worker_id, old.starts_at, old.ends_at, old.status, old.location_id) then
+      new.notified_at := null;
+      new.reminded_on := null;
+    end if;
+  end if;
+  new.updated_by := auth.uid();
+  new.updated_at := now();
+  if new.status = 'cancelled' then
+    return new;
+  end if;
+  if new.service_id is not null and not exists (select 1 from public.client_services s where s.id = new.service_id and s.client_id = new.client_id) then
+    raise exception 'That service belongs to another client.';
+  end if;
+  if new.location_id is not null and not exists (select 1 from public.client_locations l where l.id = new.location_id and l.client_id = new.client_id and l.approved) then
+    raise exception 'Choose an approved location of this client.';
+  end if;
+  if new.worker_id is not null then
+    if not exists (select 1 from public.profiles p where p.id = new.worker_id and p.active and p.role not in ('new_starter', 'system_admin', 'external')) then
+      raise exception 'That worker can''t be rostered (not active, or onboarding not finished).';
+    end if;
+    if exists (select 1 from public.leave_periods l
+                where l.user_id = new.worker_id
+                  and l.start_date <= (new.ends_at at time zone 'Australia/Sydney')::date
+                  and l.end_date >= (new.starts_at at time zone 'Australia/Sydney')::date) then
+      raise exception 'That worker is on approved leave then.';
+    end if;
+    if exists (select 1 from public.shifts s
+                where s.worker_id = new.worker_id and s.id <> new.id and s.status <> 'cancelled'
+                  and s.starts_at < new.ends_at and s.ends_at > new.starts_at) then
+      raise exception 'That worker already has a shift at that time.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.guard_shift() from public, anon, authenticated;
+drop trigger if exists guard_shift on public.shifts;
+create trigger guard_shift before insert or update on public.shifts
+  for each row execute function public.guard_shift();
+
+-- People who roster see approved leave dates and types (never the reasons),
+-- so a shift isn't given to someone on leave.
+drop policy if exists "people who roster see leave dates" on public.leave_periods;
+create policy "people who roster see leave dates" on public.leave_periods
+  for select to authenticated using ((select public.can('ops.roster', 'view')));
+
+-- Tell workers about published or changed shifts, and the day before.
+-- Server only (the roster screen calls it after publishing; the hourly timer too).
+create or replace function public.run_roster_alerts()
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  r record;
+  v_new int := 0;
+  v_tomorrow int := 0;
+  v_today date := public.local_today();
+begin
+  for r in
+    select s.id, s.worker_id, s.starts_at, s.ends_at, c.name as client
+      from public.shifts s left join public.car_clients c on c.id = s.client_id
+     where s.status = 'published' and s.worker_id is not null and s.notified_at is null and s.ends_at > now()
+  loop
+    perform public.notify(r.worker_id, 'shift_published',
+      'Shift ' || to_char(r.starts_at at time zone 'Australia/Sydney', 'Dy DD Mon, HH24:MI') || '–' || to_char(r.ends_at at time zone 'Australia/Sydney', 'HH24:MI'),
+      coalesce(r.client, 'See My shifts'), '/my-shifts', true);
+    update public.shifts set notified_at = now() where id = r.id;
+    v_new := v_new + 1;
+  end loop;
+  for r in
+    select s.id, s.worker_id, s.starts_at, c.name as client
+      from public.shifts s left join public.car_clients c on c.id = s.client_id
+     where s.status = 'published' and s.worker_id is not null
+       and (s.starts_at at time zone 'Australia/Sydney')::date = v_today + 1 and s.reminded_on is null
+  loop
+    perform public.notify(r.worker_id, 'shift_tomorrow',
+      'Tomorrow: shift at ' || to_char(r.starts_at at time zone 'Australia/Sydney', 'HH24:MI'), coalesce(r.client, 'See My shifts'), '/my-shifts', false);
+    update public.shifts set reminded_on = v_today where id = r.id;
+    v_tomorrow := v_tomorrow + 1;
+  end loop;
+  return jsonb_build_object('shifts_notified', v_new, 'shift_reminders', v_tomorrow);
+end;
+$$;
+revoke execute on function public.run_roster_alerts() from public, anon, authenticated;
+grant execute on function public.run_roster_alerts() to service_role;
+
+-- Switched over from the start: managers, staff admins and Payroll & Rostering.
+update public.app_modules set grant_ready = true where id = 'ops.roster' and not grant_ready;
+insert into public.access_baselines (access_level, module_id, actions, scope, note)
+select l::public.app_role, 'ops.roster', '{}', 'all', 'Rostering default: people who manage staff'
+  from unnest(array['manager', 'staff_admin']) l
+ where not exists (select 1 from public.access_baselines b where b.module_id = 'ops.roster' and b.revoked_at is null and b.access_level = l::public.app_role);
+insert into public.access_baselines (job_title_id, module_id, actions, scope, note)
+select j.id, 'ops.roster', '{view,edit}', 'all', 'Rostering default: Payroll & Rostering'
+  from public.job_titles j
+ where j.name = 'Payroll & Rostering' and j.active
+   and not exists (select 1 from public.access_baselines b where b.module_id = 'ops.roster' and b.revoked_at is null and b.job_title_id = j.id);
+insert into public.function_group_modules (function_group_id, module_id)
+select g.id, 'ops.roster' from public.function_groups g where g.key in ('hr_workforce', 'management_admin')
+on conflict do nothing;
+
+$m140$;
+  insert into public.install_log (name) values ('20270308000001_rostering.sql');
 end;
 $part$;

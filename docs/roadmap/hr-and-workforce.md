@@ -3,8 +3,9 @@
 Staff Portal · © cmeproject · November 2026
 
 Where the HR Pack could go next, in the order that matters most for an NDIS
-and aged care provider. None of this is built yet. Each item builds on what
-exists today; nothing needs rebuilding.
+and aged care provider. **Status 17 Nov 2026:** 1 done (onboarding items + expired flag), 2 first version
+(update 122), 3 done (update 120), 4 done (HR calendar), 5 done (offboarding, update 119), 6 partly (contracts,
+Read and confirm), 7 done (update 121), 8 not started. See docs/HANDOVER.md.
 
 ## What exists now (the foundations)
 

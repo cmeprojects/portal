@@ -14,6 +14,8 @@ import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { PersonEditor, type PersonRow } from "./forms";
 import { ChecksChip, StaffTable, type StaffRow } from "./staff-table";
 import { InviteDialog } from "./invite-dialog";
+import { canDo } from "@/lib/module-access";
+import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyToday } from "@/lib/sydney-time";
 import { canHelpSignIn, canInvite, getPeopleRules } from "@/lib/settings";
 import { decideChangeRequest } from "./actions";
 import { FormPending } from "@/components/form-pending";
@@ -148,6 +150,24 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
   const statusOf = (p: { active: boolean; role: string; joined_at: string | null; id: string }) =>
     !p.active ? "Deactivated" : p.role !== "new_starter" ? "Active" : p.joined_at ? "Onboarding" : joined?.has(p.id) ? "Not set up yet" : "Invite sent";
   const { data: privRows } = await supabase.from("staff_private").select("user_id, employment_type, start_date");
+  // cmeprojects (update 119): who is leaving (open offboarding), if this person may see it.
+  const { data: leavingRows } = await supabase.from("offboardings").select("user_id, last_day").eq("status", "open");
+  const leaving = new Map(((leavingRows ?? []) as { user_id: string; last_day: string }[]).map((r) => [r.user_id, r.last_day]));
+  // cmeprojects (update 122): rostered hours this week and the next shift (people who see the roster).
+  const seesRoster = await canDo("ops.roster", "view");
+  const weekStart = sydneyInstant(mondayOf(sydneyToday()));
+  const weekEnd = sydneyInstant(addDays(mondayOf(sydneyToday()), 7));
+  const { data: shiftRows, error: shiftError } = seesRoster
+    ? await supabase.from("shifts").select("worker_id, starts_at, ends_at, break_minutes").neq("status", "cancelled").not("worker_id", "is", null).gte("ends_at", weekStart).order("starts_at").limit(5000)
+    : { data: [], error: true };
+  const rosterShown = seesRoster && !shiftError;
+  const weekHours = new Map<string, number>();
+  const nextShift = new Map<string, string>();
+  const nowIso = new Date().toISOString();
+  for (const sh of (shiftRows ?? []) as { worker_id: string; starts_at: string; ends_at: string; break_minutes: number }[]) {
+    if (sh.starts_at < weekEnd) weekHours.set(sh.worker_id, (weekHours.get(sh.worker_id) ?? 0) + shiftHours(sh));
+    if (sh.starts_at > nowIso && !nextShift.has(sh.worker_id)) nextShift.set(sh.worker_id, sh.starts_at);
+  }
   const priv = new Map(((privRows ?? []) as { user_id: string; employment_type: string | null; start_date: string | null }[]).map((r) => [r.user_id, r]));
   const EMPLOYMENT: Record<string, string> = { full_time: "Full-time", part_time: "Part-time", casual: "Casual", contractor: "Contractor", fixed_term: "Fixed term" };
   const employmentText = (v: string | null | undefined) => (v ? (EMPLOYMENT[v] ?? v.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())) : "");
@@ -171,6 +191,9 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
       todo: missingFor.get(p.id)?.length ?? 0,
       conditional: conditionalIds.has(p.id),
       waiting: pending.has(p.id),
+      leaving: leaving.get(p.id) ?? "",
+      hours: rosterShown ? (weekHours.get(p.id) ?? 0) : null,
+      nextShift: nextShift.get(p.id) ?? "",
       tag: [isMe ? "you" : "", ma ? "administrator" : ""].filter(Boolean).join(" · "),
       protectedAdmin: p.role === "system_admin",
     };
@@ -180,7 +203,9 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
     { n: current.filter((p) => p.role !== "new_starter").length, label: "Active staff", tone: "" },
     { n: current.filter((p) => p.role === "new_starter").length + conditionalIds.size, label: "Invited or onboarding (incl. conditional)", tone: "" },
     { n: current.filter((p) => (expiryFor.get(p.id)?.expired.length ?? 0) + (expiryFor.get(p.id)?.expiring.length ?? 0) > 0).length, label: "Staff with checks expiring or expired", tone: "border-l-4 border-l-danger" },
-    { n: (requests ?? []).length, label: "Role changes waiting for approval", tone: (requests ?? []).length ? "border-l-4 border-l-warn" : "" },
+    rosterShown
+      ? { n: Math.round([...weekHours.values()].reduce((a, b) => a + b, 0)), label: "Rostered hours this week", tone: "" }
+      : { n: (requests ?? []).length, label: "Role changes waiting for approval", tone: (requests ?? []).length ? "border-l-4 border-l-warn" : "" },
   ];
   const sel = picked ? (people ?? []).find((p) => p.id === picked)! : null;
   const selRow = sel ? rowsForTable.find((r) => r.id === sel.id)! : null;
@@ -276,7 +301,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
         </Card>
       ) : null}
 
-      <StaffTable rows={rowsForTable} selected={picked} showTeams={showTeams} />
+      <StaffTable rows={rowsForTable} selected={picked} showTeams={showTeams} showRoster={rosterShown} />
 
       <Card className="p-5">
         <h2 className="mb-3 heading-sm">Access levels: the base each role builds on</h2>

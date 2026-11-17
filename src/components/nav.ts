@@ -30,6 +30,9 @@ export type NavAccess = {
   clients?: boolean;
   // Has team or assigned clients (My clients).
   myClients?: boolean;
+  // Rostering (update 122): the roster (Access page), and My shifts once it's on.
+  roster?: boolean;
+  myShifts?: boolean;
   // Sets the due dates (SLA): Access page, update 102.
   dueDates?: boolean;
   // Live features built in the Feature builder that this person uses.
@@ -75,6 +78,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
     account: [{ href: "/account", text: "My account" }],
     tasks: [
       { href: myTasksHref(role), text: "My tasks" },
+      role !== "new_starter" && role !== "system_admin" && Boolean(access.myShifts) && { href: "/my-shifts", text: "My shifts" },
     ],
     cars: cars
       ? [
@@ -90,6 +94,8 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       (admin || (rolesOn(features) && (access.adminAreas ?? []).includes("roles"))) && { href: "/settings/roles", text: "Roles" },
       Boolean(access.clients) && { href: "/settings/clients", text: "Clients" },
       requests && approver && { href: "/people/requests", text: "Staff requests" },
+      requests && approver && { href: "/people/leave", text: "Leave calendar" },
+      (Boolean(access.staff) || approver || Boolean(access.seesCompliance)) && { href: "/people/hr-calendar", text: "HR calendar" },
       access.seesCompliance && { href: "/compliance", text: "Onboarding" },
       (admin || Boolean(access.contracts)) && { href: "/contracts", text: "Contracts" },
       !access.staff && access.canInvite && { href: "/invite", text: "Invite staff" },
@@ -169,6 +175,7 @@ export function navFor(
         { href: "/", label: hasHomeDashboard(role) ? "Dashboard" : "My tasks", match: hasHomeDashboard(role) ? undefined : ["/", "/my-tasks"] },
         ...(hasHomeDashboard(role) ? [{ href: "/tasks", label: "Tasks", match: ["/tasks", "/my-tasks"] }] : []),
         // Who sees Registers is set by the system admin (System settings → Tasks).
+        ...(access.roster ? [{ href: "/roster", label: "Roster" }] : []),
         ...(access.seesRegisters ? [{ href: "/registers", label: "Registers" }] : []),
         ...(access.forms ? [{ href: "/forms", label: "Forms", match: ["/forms"] }] : []),
         ...(access.enquiries ? [{ href: "/enquiries", label: "Enquiries" }] : []),

@@ -5,6 +5,7 @@ import { getNavAccess } from "@/lib/nav-access";
 import { sectionTabs, type Section } from "@/components/nav";
 import {
   Activity,
+  CalendarDays,
   BarChart3,
   Car,
   ClipboardCheck,
@@ -33,6 +34,8 @@ const TAB_ICONS: Record<string, LucideIcon> = {
   Teams: UsersRound,
   Roles: ShieldCheck,
   Clients: HeartHandshake,
+  "Leave calendar": CalendarDays,
+  "HR calendar": CalendarDays,
   "Staff requests": ClipboardCheck,
   Onboarding: GraduationCap,
   Contracts: FileSignature,
