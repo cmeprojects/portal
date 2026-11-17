@@ -400,7 +400,32 @@ export function Sidebar({
                 <ChevronDown aria-hidden="true" className={`size-3.5 transition-transform duration-200 motion-reduce:transition-none ${shut ? "-rotate-90" : ""}`} />
               </button>
             )}
-            {(sectionPanels && cat.id !== "workspace") || (shut && !compact) ? null : cat.items.map((n) => <Item key={n.id} n={n} />)}
+            {sectionPanels && cat.id !== "workspace"
+              ? // cmeprojects: the page that's open stays visible under its section
+                // (and its parent, when it's a sub-page), highlighted.
+                cat.items
+                  .filter((n) => n.id === current || n.children.some((k) => k.id === current))
+                  .map((n) => {
+                    const child = n.children.find((k) => k.id === current && k.href !== n.href);
+                    return (
+                      <div key={n.id} className="flex flex-col gap-0.5">
+                        <Link href={n.href} data-nav aria-current={child ? undefined : "page"} className={itemClass(!child)}>
+                          <ModuleIcon name={n.icon} className="size-[19px] shrink-0" />
+                          <span className="truncate">{n.label}</span>
+                        </Link>
+                        {child ? (
+                          <div className="ml-[22px] border-l border-side-edge pl-3">
+                            <Link href={child.href} data-nav aria-current="page" className={itemClass(true, true)}>
+                              <span className="truncate">{child.label}</span>
+                            </Link>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })
+              : shut && !compact
+                ? null
+                : cat.items.map((n) => <Item key={n.id} n={n} />)}
           </div>
         );
       })}
@@ -506,7 +531,7 @@ export function Sidebar({
                 role="menuitem"
                 onClick={() => closeFly(true)}
                 aria-current={k.id === current ? "page" : undefined}
-                className={`flex items-center gap-3 outline-none hover:bg-page focus-visible:bg-page ${depth ? "py-2 pr-4 pl-12 text-[14px]" : "px-4 py-2.5 text-[15px] font-medium"} ${k.id === current ? "text-brand" : "text-ink"}`}
+                className={`flex items-center gap-3 outline-none hover:bg-page focus-visible:bg-page ${depth ? "py-2 pr-4 pl-12 text-[14px]" : "px-4 py-2.5 text-[15px] font-medium"} ${k.id === current ? "bg-brand-soft font-semibold text-brand" : "text-ink"}`}
               >
                 {depth || !fly.id.startsWith("c:") ? null : <ModuleIcon name={k.icon} className="size-[18px] shrink-0 text-muted" />}
                 <span className="truncate">{label}</span>
