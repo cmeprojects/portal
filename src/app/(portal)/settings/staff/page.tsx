@@ -64,6 +64,15 @@ export default async function StaffPage() {
       .eq("status", "pending")
       .order("requested_at"),
   ]);
+  // cmeprojects (Stage 2 and 5): the function group(s) each role belongs to, shown
+  // in place of the access level (which shows on hover). Hidden before update 93.
+  const [{ data: linkRows }, { data: groupRows }] = await Promise.all([
+    supabase.from("job_title_functions").select("job_title_id, function_group_id"),
+    supabase.from("function_groups").select("id, name").eq("active", true),
+  ]);
+  const groupName = new Map(((groupRows ?? []) as { id: string; name: string }[]).map((g) => [g.id, g.name]));
+  const groupsOfTitle = (titleId: string | null) =>
+    titleId ? ((linkRows ?? []) as { job_title_id: string; function_group_id: string }[]).filter((l) => l.job_title_id === titleId).map((l) => groupName.get(l.function_group_id)).filter(Boolean) as string[] : [];
   // cmeprojects: photos, read on their own so a copy without photos still works.
   const { data: photoRows } = await supabase.from("profiles").select("id, avatar_ref");
   // cmeprojects: the owner's account can only be changed by the owner (update 74).
@@ -224,7 +233,14 @@ export default async function StaffPage() {
                     <span className="block text-sm text-muted">{p.email}</span>
                   </span>
                   {p.job_title_id && titleName.get(p.job_title_id) ? <span className="text-sm">{titleName.get(p.job_title_id)}</span> : null}
-                  <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>
+                  {groupsOfTitle(p.job_title_id).length ? (
+                    <span title={`Access level: ${ROLE_LABELS[row.role]}`} className="flex flex-col items-start leading-tight">
+                      <Badge tone="soft">{groupsOfTitle(p.job_title_id).join(" · ")}</Badge>
+                      <span className="mt-0.5 text-[11px] text-muted">{ROLE_LABELS[row.role]} access</span>
+                    </span>
+                  ) : (
+                    <Badge tone={ROLE_TONE[row.role]}>{ROLE_LABELS[row.role]}</Badge>
+                  )}
                   {p.id === ownerId ? <Badge tone="dark">Owner · protected</Badge> : null}
                   {pending.has(p.id) ? <Badge tone="warn">→ {roleText(pending.get(p.id)!.to_value as RoleValue)} waiting</Badge> : null}
                   {row.missing?.length ? (
