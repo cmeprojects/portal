@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { photoLinks, type PhotoOwner } from "@/lib/avatars";
-import { Avatar } from "@/components/avatar";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { nowMs } from "@/lib/access";
 import { requireSession } from "@/lib/session";
@@ -12,11 +12,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { assignableRoles, inCoreTeam, JOB_TITLE_COLUMNS, ROLE_HELP, ROLE_LABELS, ROLES, type JobTitle, type Role } from "@/lib/roles";
 import { Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { InviteForm, PersonEditor, type PersonRow } from "./forms";
+import { ChecksChip, StaffTable, type StaffRow } from "./staff-table";
 import { canHelpSignIn, canInvite, getPeopleRules } from "@/lib/settings";
 import { decideChangeRequest } from "./actions";
 import { FormPending } from "@/components/form-pending";
 
-export const metadata: Metadata = { title: "Staff & roles" };
+export const metadata: Metadata = { title: "Staff" };
 
 // Who has signed in at least once (from the sign-in system).
 async function joinedIds(): Promise<Set<string> | null> {
@@ -28,7 +29,7 @@ async function joinedIds(): Promise<Set<string> | null> {
   }
 }
 
-export default async function StaffPage() {
+export default async function StaffPage({ searchParams }: PageProps<"/settings/staff">) {
   const { profile: me, features } = await requireSession();
   // Who manages staff: the Access page (update 101).
   if (!(await managesStaffFor("view"))) notFound();
@@ -83,18 +84,23 @@ export default async function StaffPage() {
     exemptRows && !exemptRows.error ? Boolean((exemptRows.data ?? []).find((r) => r.id === id)?.mfa_exempt) : null;
   const titles = showTitles ? ((titleRows ?? []) as JobTitle[]).map((t) => ({ ...t, groups: groupsOfTitle(t.id) })) : [];
   const activeManagers = (people ?? []).filter((p) => p.role === "manager" && p.active).length;
-  // New starters: what's still missing from onboarding.
+  // cmeprojects: who has a conditional role (given before onboarding finished).
+  const { data: condRows } = await supabase.from("people_change_requests").select("user_id").eq("kind", "conditional").eq("status", "approved");
+  const conditionalIds = new Set(((condRows ?? []) as { user_id: string }[]).map((r) => r.user_id).filter((id) => (people ?? []).some((p) => p.id === id && p.role !== "new_starter" && !p.onboarded_at && p.active)));
+  // New starters (and conditional roles): what's still missing from onboarding.
   const missingFor = new Map(
     await Promise.all(
       (people ?? [])
-        .filter((p) => p.role === "new_starter" && p.active)
+        .filter((p) => (p.role === "new_starter" || conditionalIds.has(p.id)) && p.active)
         .map(async (p) => {
           const { data } = await supabase.rpc("onboarding_missing", { p_user: p.id });
           return [p.id, (data ?? []) as string[]] as const;
         }),
     ),
   );
-  // Documents that have expired or expire within 30 days, per person.
+  // Documents that have expired or expire soon, per person (and every check, for the panel).
+  type Check = { item_id: string; kind: string; title: string; state: string; expires_on: string | null; before_work: boolean; category: string | null };
+  const compliance = new Map<string, Check[]>();
   const expiryFor = new Map(
     await Promise.all(
       (people ?? [])
@@ -102,6 +108,7 @@ export default async function StaffPage() {
         .map(async (p) => {
           const { data } = await supabase.rpc("compliance_status", { p_user: p.id });
           const rows = (data ?? []) as { title: string; state: string }[];
+          compliance.set(p.id, (data ?? []) as Check[]);
           return [
             p.id,
             {
@@ -132,12 +139,106 @@ export default async function StaffPage() {
       .filter(Boolean)
       .join(", ");
 
+  // cmeprojects (owner's concept): one row per person; the panel on the right
+  // holds everything about them (Details, Access, Compliance, Tasks).
+  const sp = await searchParams;
+  const picked = typeof sp.p === "string" && (people ?? []).some((p) => p.id === sp.p) ? sp.p : null;
+  const tab = typeof sp.t === "string" && ["details", "access", "compliance", "tasks"].includes(sp.t) ? sp.t : "details";
+  const statusOf = (p: { active: boolean; role: string; joined_at: string | null; id: string }) =>
+    !p.active ? "Deactivated" : p.role !== "new_starter" ? "Active" : p.joined_at ? "Onboarding" : joined?.has(p.id) ? "Not set up yet" : "Invite sent";
+  const { data: privRows } = await supabase.from("staff_private").select("user_id, employment_type, start_date");
+  const priv = new Map(((privRows ?? []) as { user_id: string; employment_type: string | null; start_date: string | null }[]).map((r) => [r.user_id, r]));
+  const EMPLOYMENT: Record<string, string> = { full_time: "Full-time", part_time: "Part-time", casual: "Casual", contractor: "Contractor", fixed_term: "Fixed term" };
+  const employmentText = (v: string | null | undefined) => (v ? (EMPLOYMENT[v] ?? v.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())) : "");
+  const rowsForTable: StaffRow[] = (people ?? []).map((p) => {
+    const ma = p.role === "manager" && maDates.has(p.id);
+    const isMe = p.id === me.id;
+    const team = !showTeams ? "" : inCoreTeam(p.role as Role) ? "Core team" : p.role === "system_admin" || p.role === "new_starter" ? "" : teamsOf(p.id) || "No team";
+    return {
+      id: p.id,
+      name: p.full_name || "(no name yet)",
+      email: p.email,
+      photo: photos[p.id] ?? null,
+      role: (p.job_title_id ? titleName.get(p.job_title_id) : undefined) ?? ROLE_LABELS[p.role as Role],
+      sub: groupsOfTitle(p.job_title_id).join(" · "),
+      team,
+      employment: employmentText(priv.get(p.id)?.employment_type),
+      startDate: priv.get(p.id)?.start_date ?? "",
+      status: statusOf(p),
+      expired: expiryFor.get(p.id)?.expired.length ?? 0,
+      expiring: expiryFor.get(p.id)?.expiring.length ?? 0,
+      todo: missingFor.get(p.id)?.length ?? 0,
+      conditional: conditionalIds.has(p.id),
+      waiting: pending.has(p.id),
+      tag: [isMe ? "you" : "", ma ? "administrator" : ""].filter(Boolean).join(" · "),
+      protectedAdmin: p.role === "system_admin",
+    };
+  });
+  const current = (people ?? []).filter((p) => p.active && p.role !== "system_admin");
+  const tiles = [
+    { n: current.filter((p) => p.role !== "new_starter").length, label: "Active staff", tone: "" },
+    { n: current.filter((p) => p.role === "new_starter").length + conditionalIds.size, label: "Invited or onboarding (incl. conditional)", tone: "" },
+    { n: current.filter((p) => (expiryFor.get(p.id)?.expired.length ?? 0) + (expiryFor.get(p.id)?.expiring.length ?? 0) > 0).length, label: "Staff with checks expiring or expired", tone: "border-l-4 border-l-danger" },
+    { n: (requests ?? []).length, label: "Role changes waiting for approval", tone: (requests ?? []).length ? "border-l-4 border-l-warn" : "" },
+  ];
+  const sel = picked ? (people ?? []).find((p) => p.id === picked)! : null;
+  const selRow = sel ? rowsForTable.find((r) => r.id === sel.id)! : null;
+  const selPerson: PersonRow | null = sel
+    ? {
+        ...sel,
+        role: sel.role as Role,
+        job_title_id: sel.job_title_id,
+        missing: missingFor.get(sel.id) ?? null,
+        lastManager: sel.role === "manager" && sel.active && activeManagers === 1,
+        joined: sel.role !== "new_starter" || Boolean(sel.joined_at),
+        openedLink: joined ? joined.has(sel.id) : false,
+        isMe: sel.id === me.id,
+        hasPhoto: Boolean(photos[sel.id]),
+        editable: roles.includes(sel.role as Role) || sel.id === me.id,
+        teamIds: (memberships ?? []).filter((m) => m.user_id === sel.id).map((m) => m.team_id),
+        mfaExempt: mfaExemptOf(sel.id),
+      }
+    : null;
+  const { data: dirRow } = sel ? await supabase.from("staff_directory").select("work_phone, department, skills").eq("user_id", sel.id).maybeSingle() : { data: null };
+  const { data: selTasks } =
+    sel && tab === "tasks"
+      ? await supabase.from("tasks").select("id, number, title, status, due_date, priority").eq("assigned_to", sel.id).not("status", "in", "(completed,closed)").order("due_date", { ascending: true, nullsFirst: false }).limit(20)
+      : { data: null };
+  const href = (t: string) => `/settings/staff?p=${picked}${t === "details" ? "" : `&t=${t}`}`;
+  const selChecks = sel ? (compliance.get(sel.id) ?? []).filter((c) => c.kind !== "info") : [];
+  const daysTo = (d: string) => Math.round((Date.parse(`${d}T00:00:00Z`) - Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`)) / 86_400_000);
+  const CHECK_STATE: Record<string, [string, string]> = {
+    accepted: ["Current", "bg-good-soft"],
+    done: ["Done", "bg-good-soft"],
+    submitted: ["Waiting for checking", "bg-brand-soft"],
+    todo: ["To do", "bg-page ring-1 ring-line"],
+    rejected: ["Needs redoing", "bg-danger-soft text-danger"],
+    expired: ["Expired", "bg-danger-soft text-danger"],
+    expiring: ["Expiring soon", "bg-warn-soft"],
+  };
+
   return (
     <>
       <PageHeader
-        title="Staff & roles"
-        intro="Invite people, set their role and team, and help them sign in."
+        title="Staff"
+        intro="Your team, their roles and their checks. Click someone to see and manage everything about them."
+        action={
+          canInvite(me.role, rules) ? (
+            <a href="#invite" className={buttonClass("primary")}>
+              Invite staff member
+            </a>
+          ) : undefined
+        }
       />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {tiles.map((t) => (
+          <Card key={t.label} className={`p-4 ${t.n ? t.tone : ""}`}>
+            <p className="font-display text-2xl font-semibold">{t.n}</p>
+            <p className="text-xs text-muted">{t.label}</p>
+          </Card>
+        ))}
+      </div>
 
       {(requests ?? []).length ? (
         <Card className="overflow-hidden border-warn/40">
@@ -178,132 +279,16 @@ export default async function StaffPage() {
         </Card>
       ) : null}
 
-      {canInvite(me.role, rules) ? (
-      <Card className="p-5">
-        <h2 className="mb-4 heading-sm">Invite someone</h2>
-        <InviteForm />
-      </Card>
-      ) : null}
+      <StaffTable rows={rowsForTable} selected={picked} showTeams={showTeams} />
 
-      <div className="flex flex-col gap-3">
-        {(people ?? []).map((p) => {
-          const row: PersonRow = {
-            ...p,
-            role: p.role as Role,
-            job_title_id: p.job_title_id,
-            missing: missingFor.get(p.id) ?? null,
-            lastManager: p.role === "manager" && p.active && activeManagers === 1,
-            // cmeprojects: anyone with a role is set up. A new starter is set up
-            // once they've finished their account (name and password), not just
-            // opened the invite link.
-            joined: p.role !== "new_starter" || Boolean(p.joined_at),
-            openedLink: joined ? joined.has(p.id) : false,
-            isMe: p.id === me.id,
-            hasPhoto: Boolean(photos[p.id]),
-            editable: roles.includes(p.role as Role) || p.id === me.id,
-            teamIds: (memberships ?? []).filter((m) => m.user_id === p.id).map((m) => m.team_id),
-            mfaExempt: mfaExemptOf(p.id),
-          };
-          // cmeprojects: where someone is up to. Anyone with a role is Active.
-          // New starters: Invite sent → Not set up yet (opened the link, no
-          // password) → Account set up (onboarding under way).
-          const status = !p.active
-            ? "Deactivated"
-            : row.role !== "new_starter"
-              ? "Active"
-              : row.joined
-                ? "Account set up"
-                : row.openedLink
-                  ? "Not set up yet"
-                  : "Invite sent";
-          const statusTone = status === "Active" || status === "Account set up" ? "good" : status === "Not set up yet" ? "warn" : status === "Invite sent" ? "soft" : "grey";
-          return (
-            <Card key={p.id} className="p-0">
-              {/* cmeprojects: same name = only one person open at a time. */}
-              <details name="staff-person" className="group">
-                <summary className="flex min-h-16 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-                  <Avatar name={p.full_name || p.email} src={photos[p.id]} size={40} className="bg-brand-soft text-brand" />
-                  <span className="min-w-48 flex-1">
-                    <span className={`block font-semibold ${p.active ? "" : "text-muted"}`}>
-                      {p.full_name || "(no name yet)"}{" "}
-                      {(() => {
-                        // cmeprojects: one bracket: (you), (administrator) or (you · administrator).
-                        const ma = row.role === "manager" && maDates.has(p.id);
-                        if (!row.isMe && !ma) return null;
-                        const d = ma ? maDates.get(p.id)! : null;
-                        return (
-                          <span
-                            className={`font-normal text-muted ${ma ? "cursor-help" : ""}`}
-                            title={d ? `Manager Administrator since ${auDay(d.starts_at)}${d.expires_at ? ` until ${auDay(d.expires_at)}` : " (no end date)"}. Set on the Access page.` : undefined}
-                          >
-                            ({[row.isMe ? "you" : "", ma ? "administrator" : ""].filter(Boolean).join(" · ")})
-                          </span>
-                        );
-                      })()}
-                    </span>
-                    <span className="block text-sm text-muted">{p.email}</span>
-                  </span>
-                  {(() => {
-                    // cmeprojects: one tidy column: the role (or access level), then its group and team.
-                    const title = p.job_title_id ? titleName.get(p.job_title_id) : undefined;
-                    const groups = groupsOfTitle(p.job_title_id);
-                    const team = !showTeams ? "" : inCoreTeam(row.role) ? "Core team" : row.role === "system_admin" || row.role === "new_starter" ? "" : teamsOf(p.id) || "No team";
-                    const sub = [groups.join(" · "), team].filter(Boolean).join(" · ");
-                    return (
-                      <span className="w-60 min-w-0">
-                        {row.role === "system_admin" ? (
-                          <Badge tone="dark">Developer · protected</Badge>
-                        ) : (
-                          <span className="block truncate text-sm font-medium">{title ?? ROLE_LABELS[row.role]}</span>
-                        )}
-                        {sub ? <span className="block truncate text-xs text-muted">{sub}</span> : null}
-                      </span>
-                    );
-                  })()}
-                  <span className="flex w-64 flex-wrap items-center justify-end gap-2">
-                  {(() => {
-                    // Anything that needs attention, in one small chip (details on hover).
-                    const notes: string[] = [];
-                    if (pending.has(p.id)) notes.push(`Role change to ${roleText(pending.get(p.id)!.to_value as RoleValue)} waiting for approval`);
-                    if (row.missing?.length) notes.push(`Onboarding: ${row.missing.length} to do`);
-                    if (expiryFor.get(p.id)?.expired.length) notes.push(`Expired: ${expiryFor.get(p.id)!.expired.join(", ")}`);
-                    if (expiryFor.get(p.id)?.expiring.length) notes.push(`Expiring: ${expiryFor.get(p.id)!.expiring.join(", ")}`);
-                    return notes.length ? (
-                      <span title={notes.join("\n")} className="cursor-help">
-                        <Badge tone="warn">
-                          {notes.length === 1 ? notes[0].split(":")[0].replace(/ to .* waiting.*/, " waiting") : `${notes.length} to check`}
-                        </Badge>
-                      </span>
-                    ) : null;
-                  })()}
-                  {status === "Active" ? null : <Badge tone={statusTone}>{status}</Badge>}
-                  </span>
-                  <span className="text-sm font-semibold text-brand group-open:hidden">{row.editable ? "Edit" : "View"}</span>
-                  <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
-                </summary>
-                <div className="px-5 pb-5">
-                  {row.editable ? (
-                    <PersonEditor
-                      person={row}
-                      roles={roles}
-                      titles={titles}
-                      teams={showTeams ? (teams ?? []) : []}
-                      isManager={me.role === "manager" || me.role === "system_admin"}
-                      canResetMfa={me.role === "system_admin"}
-                      canHelpSignIn={canHelpSignIn(me.role, rules) && (me.role === "system_admin" || p.role !== "system_admin")}
-                      needsApproval={needsApproval(row.role)}
-                    />
-                  ) : (
-                    <p className="border-t border-line pt-4 text-sm text-muted">
-                      Only a system admin can change a system admin.
-                    </p>
-                  )}
-                </div>
-              </details>
-            </Card>
-          );
-        })}
-      </div>
+      {canInvite(me.role, rules) ? (
+        <details id="invite" className="shadow-card scroll-mt-24 rounded-xl border border-line bg-surface target:ring-2 target:ring-brand" open={false}>
+          <summary className="cursor-pointer list-none px-5 py-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">+ Invite staff member</summary>
+          <div className="border-t border-line p-5">
+            <InviteForm />
+          </div>
+        </details>
+      ) : null}
 
       <Card className="p-5">
         <h2 className="mb-3 heading-sm">Access levels: the base each role builds on</h2>
@@ -319,6 +304,187 @@ export default async function StaffPage() {
           ))}
         </dl>
       </Card>
+
+      {sel && selRow && selPerson ? (
+        <>
+          <Link href="/settings/staff" scroll={false} aria-label="Close" className="fixed inset-0 z-40 bg-black/25" />
+          <aside role="dialog" aria-label={selRow.name} className="thin-scroll fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col overflow-y-auto bg-surface shadow-2xl">
+            <div className="flex items-start gap-3 border-b border-line p-5">
+              <div className="min-w-0 flex-1">
+                <h2 className="heading">{selRow.name}</h2>
+                <p className="text-sm text-muted">{selRow.email}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">{selRow.role}</span>
+                  <ChecksChip r={selRow} />
+                  {selRow.status !== "Active" ? <span className="rounded-full bg-page px-2 py-0.5 text-xs font-semibold ring-1 ring-line">{selRow.status}</span> : null}
+                  {selRow.conditional ? <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold">Conditional role</span> : null}
+                </div>
+              </div>
+              <Link href="/settings/staff" scroll={false} className={buttonClass("outline")}>
+                Close
+              </Link>
+            </div>
+            <nav aria-label="Person sections" className="flex gap-1 border-b border-line px-4">
+              {[
+                ["details", "Details"],
+                ["access", "Role and access"],
+                ["compliance", "Compliance"],
+                ["tasks", "Tasks"],
+              ].map(([k, l]) => (
+                <Link key={k} href={href(k)} scroll={false} className={`-mb-px border-b-2 px-3 py-2.5 text-sm font-semibold ${tab === k ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+                  {l}
+                </Link>
+              ))}
+            </nav>
+            <div className="flex flex-col gap-4 p-5 text-sm">
+              {tab === "details" ? (
+                <>
+                  <dl className="grid grid-cols-[9rem_1fr] gap-x-4 gap-y-2">
+                    <dt className="text-muted">Role</dt>
+                    <dd>
+                      {selRow.role}
+                      {selRow.sub ? <span className="text-muted"> · {selRow.sub}</span> : null}
+                    </dd>
+                    <dt className="text-muted">Access level</dt>
+                    <dd>{ROLE_LABELS[sel.role as Role]}</dd>
+                    {showTeams ? (
+                      <>
+                        <dt className="text-muted">Team</dt>
+                        <dd>{selRow.team || "—"}</dd>
+                      </>
+                    ) : null}
+                    <dt className="text-muted">Employment</dt>
+                    <dd>{selRow.employment || "Not recorded"}</dd>
+                    <dt className="text-muted">Start date</dt>
+                    <dd>{selRow.startDate ? auDay(`${selRow.startDate}T00:00:00`) : "Not recorded"}</dd>
+                    <dt className="text-muted">Phone</dt>
+                    <dd>{(dirRow as { work_phone?: string } | null)?.work_phone || "Not recorded"}</dd>
+                    <dt className="text-muted">Email</dt>
+                    <dd>{sel.email}</dd>
+                    <dt className="text-muted">Status</dt>
+                    <dd>{selRow.status}</dd>
+                    {maDates.has(sel.id) ? (
+                      <>
+                        <dt className="text-muted">Administrator</dt>
+                        <dd>
+                          Manager Administrator since {auDay(maDates.get(sel.id)!.starts_at)}
+                          {maDates.get(sel.id)!.expires_at ? ` until ${auDay(maDates.get(sel.id)!.expires_at!)}` : ""}
+                        </dd>
+                      </>
+                    ) : null}
+                  </dl>
+                  {(() => {
+                    const quals = (compliance.get(sel.id) ?? []).filter((c) => c.state === "accepted" && (c.expires_on || c.category === "qualification"));
+                    const skills = ((dirRow as { skills?: string[] | string | null } | null)?.skills ?? []) as string[] | string;
+                    const list = [...quals.map((c) => c.title), ...(Array.isArray(skills) ? skills : skills ? String(skills).split(",") : [])].map((v) => v.trim()).filter(Boolean);
+                    return list.length ? (
+                      <div>
+                        <h3 className="mb-1.5 font-semibold">Qualifications and skills</h3>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[...new Set(list)].map((q) => (
+                            <span key={q} className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">
+                              {q}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+                  {selPerson.missing?.length ? (
+                    <div className="rounded-lg border border-warn/40 bg-warn-soft/40 p-3">
+                      <p className="font-semibold">Onboarding still to do</p>
+                      <ul className="mt-1 list-disc pl-5">
+                        {selPerson.missing.map((m) => (
+                          <li key={m}>{m}</li>
+                        ))}
+                      </ul>
+                      <Link href={href("access")} scroll={false} className="mt-2 inline-block font-semibold text-brand underline">
+                        {selRow.conditional ? "See the conditional role" : "Give a conditional role"}
+                      </Link>
+                    </div>
+                  ) : null}
+                  <p className="text-xs text-muted">
+                    Their own profile, contact and private details are on{" "}
+                    <Link href={`/people?p=${sel.id}`} className="text-brand underline">
+                      their directory card
+                    </Link>
+                    .
+                  </p>
+                </>
+              ) : tab === "access" ? (
+                selPerson.editable ? (
+                  <PersonEditor
+                    person={selPerson}
+                    roles={roles}
+                    titles={titles}
+                    teams={showTeams ? (teams ?? []) : []}
+                    isManager={me.role === "manager" || me.role === "system_admin"}
+                    canResetMfa={me.role === "system_admin"}
+                    canHelpSignIn={canHelpSignIn(me.role, rules) && (me.role === "system_admin" || sel.role !== "system_admin")}
+                    needsApproval={needsApproval(selPerson.role)}
+                  />
+                ) : (
+                  <p className="text-muted">Only a system admin can change a system admin.</p>
+                )
+              ) : tab === "compliance" ? (
+                <>
+                  <p className="text-muted">Checks expiring within 60 days are flagged. Update one when it has expired or is expiring; current ones need nothing.</p>
+                  {selChecks.length ? (
+                    <ul className="flex flex-col gap-2">
+                      {selChecks.map((c) => {
+                        const [txt, tone] = CHECK_STATE[c.state] ?? [c.state, "bg-page ring-1 ring-line"];
+                        const due = c.expires_on ? daysTo(c.expires_on) : null;
+                        const needs = c.state === "expired" || c.state === "expiring";
+                        return (
+                          <li key={c.item_id} className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-3">
+                            <span className="min-w-40 flex-1">
+                              <span className="block font-semibold">{c.title}</span>
+                              {c.expires_on ? <span className="text-xs text-muted">{due !== null && due < 0 ? "Expired" : "Expires"} {auDay(`${c.expires_on}T00:00:00`)}</span> : null}
+                            </span>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${tone}`}>
+                              {c.state === "expired" && due !== null ? `Expired ${-due}d ago` : c.state === "expiring" && due !== null ? `Expires in ${due}d` : txt}
+                            </span>
+                            {needs ? (
+                              <Link href={`/compliance/people/${sel.id}`} className={buttonClass("outline")}>
+                                Update
+                              </Link>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="text-muted">No checks apply to them.</p>
+                  )}
+                  <Link href={`/compliance/people/${sel.id}`} className="w-fit text-sm font-semibold text-brand underline">
+                    Open their full onboarding record
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {(selTasks ?? []).length ? (
+                    <ul className="flex flex-col divide-y divide-line rounded-lg border border-line">
+                      {((selTasks ?? []) as { id: string; number: number | null; title: string; status: string; due_date: string | null; priority: string }[]).map((t) => (
+                        <li key={t.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                          <Link href={`/tasks/${t.id}`} className="min-w-40 flex-1 font-semibold hover:text-brand">
+                            {t.title}
+                          </Link>
+                          <span className="text-xs text-muted">
+                            {t.status.replace(/_/g, " ")}
+                            {t.due_date ? ` · due ${auDay(`${t.due_date}T00:00:00`)}` : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted">No open tasks you can see.</p>
+                  )}
+                </>
+              )}
+            </div>
+          </aside>
+        </>
+      ) : null}
     </>
   );
 }
