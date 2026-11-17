@@ -67,9 +67,9 @@ export type PeopleRules = {
   firstRoleApproval: boolean;
   generalInvitesOnly: boolean;
   newStarterTasks: boolean;
-  // Besides the system admin: who sends invites and who manages Compliance.
+  // Besides the system admin: who sends invites. (Who manages onboarding is
+  // set on the Access page since update 95.)
   inviteRoles: Role[];
-  complianceRoles: Role[];
   scoreboardRoles: Role[];
   reportRoles: Role[];
   complianceReportRoles: Role[];
@@ -77,7 +77,7 @@ export type PeopleRules = {
   accessResetRoles: Role[];
   // Roles that may only raise General tasks and questions.
   limitedTaskRoles: Role[];
-  // With no active staff admin, managers do the staff admin's Compliance work (cmeprojects).
+  // With no active staff admin, managers see the compliance report (cmeprojects).
   hasStaffAdmin: boolean;
 };
 
@@ -87,7 +87,7 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
     supabase
       .from("app_settings")
       .select("key, value")
-      .or("key.like.people.%,key.eq.compliance.manager_roles,key.eq.reports.roles,key.eq.reports.compliance_roles,key.eq.tasks.registers_roles,key.eq.tasks.limited_roles"),
+      .or("key.like.people.%,key.eq.reports.roles,key.eq.reports.compliance_roles,key.eq.tasks.registers_roles,key.eq.tasks.limited_roles"),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "staff_admin").eq("active", true),
   ]);
   // people.access_reset_roles is included by "people.%".
@@ -106,7 +106,6 @@ export const getPeopleRules = cache(async (): Promise<PeopleRules> => {
     generalInvitesOnly: on("people.general_invites_only", false),
     newStarterTasks: on("people.new_starter_tasks", false),
     inviteRoles: roles("people.invite_roles", ["staff_admin", "manager"]),
-    complianceRoles: roles("compliance.manager_roles", ["staff_admin"]),
     scoreboardRoles: roles("people.scoreboard_roles", ["staff_admin", "manager"]),
     reportRoles: roles("reports.roles", ["manager"]),
     complianceReportRoles: roles("reports.compliance_roles", ["staff_admin"]),
@@ -125,8 +124,3 @@ export const canSeeRegisters = (role: Role, rules: PeopleRules) => role === "sys
 export const canSeeComplianceReport = (role: Role, rules: PeopleRules) =>
   role === "system_admin" || rules.complianceReportRoles.includes(role) || (role === "manager" && !rules.hasStaffAdmin);
 export const canSeeScoreboard = (role: Role, rules: PeopleRules) => role === "system_admin" || rules.scoreboardRoles.includes(role);
-export const canManageCompliance = (role: Role, rules: PeopleRules) =>
-  role === "system_admin" || rules.complianceRoles.includes(role) || (role === "manager" && !rules.hasStaffAdmin);
-// Who sees onboarding progress (not the files): Compliance managers, managers and team leaders.
-export const seesCompliance = (role: Role, rules: PeopleRules) =>
-  canManageCompliance(role, rules) || role === "manager" || role === "team_leader";

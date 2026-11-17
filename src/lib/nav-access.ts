@@ -32,7 +32,7 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     newStarterTasks: rules.newStarterTasks,
     canInvite: canInvite(role, rules),
     // Compliance is a premium add-on (on for companies that already use it).
-    seesCompliance: features.compliance !== false && (await seesComplianceFor(role, rules)),
+    seesCompliance: features.compliance !== false && (await seesComplianceFor()),
     seesScoreboard: canSeeScoreboard(role, rules),
     seesReports: await seesTaskReportFor(role, rules),
     complianceReport: features.compliance !== false && (await seesComplianceReportFor(role, rules)),

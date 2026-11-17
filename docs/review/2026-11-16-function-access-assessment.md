@@ -486,3 +486,43 @@ Approved by the owner (D-047; "go further, just give me a briefer").
 - **Next:** Stage 3b: switch over the first module (My onboarding /
   onboarding management) with defaults reproducing today's rules and a
   before/after proof for every role.
+
+## Stage 3b implementation record: Onboarding (17 Nov 2026)
+
+Approved by the owner (D-049, option A). **Built and tested; live update 95
+waiting (run after 94).**
+
+- Files: `supabase/migrations/20270209000001_onboarding_switch_over.sql`,
+  `supabase/live-updates/update-95.sql`, `undo-95.sql`,
+  `supabase/setup/verify-95-after.sql` (read only),
+  `supabase/tests/onboarding_switch.test.sql`; app: `src/lib/module-access.ts`
+  (onboarding checks are `can()` only), `src/lib/settings.ts` (old rule
+  removed), compliance pages, menu, System settings (old control hidden).
+- `hr.onboarding` and its two submodules marked `grant_ready`.
+- Defaults copied once from "Who manages Compliance": each ticked role gets
+  full onboarding; managers too if there's no active staff admin when it
+  runs (the old fallback, settled once); managers see progress (everyone),
+  team leaders see progress (own teams). A fresh install starts with staff
+  admins only (least privilege). Skipped while any live access-level default
+  for onboarding exists, so re-running adds nothing.
+- `can_manage_compliance()` = `can('hr.onboarding', 'approve')` (same
+  function, so every policy and function using it follows). `people_admins()`
+  (who gets onboarding notices) = staff admins plus access levels given
+  onboarding management.
+- Grants added by a database update (no signed-in person) count as the
+  system admin's (guard change).
+- **Behaviour changes, by design:** (1) the "managers while there's no staff
+  admin" rule no longer switches on and off by itself; (2) a person's own
+  block on onboarding now beats their access level; (3) roles and function
+  groups can now be given onboarding. Not changed in this stage:
+  `compliance_status()` / `work_status()` still let managers and team leaders
+  read progress data directly (also used by People); to switch with People.
+- Proof: verify-95-after on the local copy: 313 people, 0 changed. Tests: 28
+  new checks; older tests that relied on the setting or the automatic
+  fallback updated (compliance, round3, manager_admins, access_baselines
+  counts); full suite 1,218 pass; round trip clean; browser 20 of 20 (system
+  admin, staff admin, manager, team leader, support worker: same pages and
+  manage rights as before; System settings no longer offers the old control;
+  Access page shows the copied default); lint, typecheck, build pass.
+- Rollback: `undo-95.sql` (copied defaults kept but inactive).
+- **Next:** Cars (`vehicles.manager_roles`), same pattern.

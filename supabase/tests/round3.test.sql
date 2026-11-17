@@ -78,7 +78,9 @@ set role authenticated;
 select test.ok(not public.can_admin_area('branding'), 'until the manager no longer has it');
 reset role;
 
--- 6. No active staff admin: managers look after Compliance.
+-- 6. No active staff admin: managers looked after Compliance automatically.
+-- Since update 95 (D-049) that was settled once at switch-over; after that
+-- the Access page decides.
 select test.act_as('boss@example.com');
 set role authenticated;
 select test.ok(not public.can_manage_compliance(), 'with a staff admin, a manager doesn''t manage Compliance by default');
@@ -86,7 +88,7 @@ reset role;
 update public.profiles set active = false where email = 'office@example.com';
 select test.act_as('boss@example.com');
 set role authenticated;
-select test.ok(public.can_manage_compliance(), 'with no active staff admin, managers do');
+select test.ok(not public.can_manage_compliance(), 'with no active staff admin: still the Access page that decides (update 95)');
 reset role;
 
 -- 4. The weekly mileage report settings exist.

@@ -156,13 +156,15 @@ select test.ok(test.notes('nico@example.com', 'document_expired') = 1
                              and data ->> 'title' like 'Police check has expired'),
   'an expired document is a bell and an email');
 
--- The system admin lets managers manage Compliance.
-update public.app_settings set value = '["staff_admin", "manager"]' where key = 'compliance.manager_roles';
+-- The system admin lets managers manage Compliance (Access page, update 95).
+select set_config('request.jwt.claims', '', false);
+update public.access_baselines set revoked_at = now() where access_level = 'manager' and module_id = 'hr.onboarding' and revoked_at is null;
+insert into public.access_baselines (access_level, module_id) values ('manager', 'hr.onboarding');
 select test.act_as('boss@example.com');
 set role authenticated;
 insert into public.compliance_items (kind, title) values ('read', 'Privacy policy');
 reset role;
-select test.ok(test.item('Privacy policy') is not null, 'with the setting on, a manager manages Compliance');
+select test.ok(test.item('Privacy policy') is not null, 'given on the Access page, a manager manages Compliance');
 
 -- Uploading for someone.
 select test.act_as('sam@example.com');
@@ -177,7 +179,9 @@ reset role;
 select test.ok((select status = 'accepted' and uploaded_by = test.pid('office@example.com') from public.compliance_records where file_name = 'pc2.pdf'),
   'a staff admin''s upload for someone counts as checked');
 select test.ok(test.notes('nico@example.com', 'uploaded_for_you') = 1, 'the person is told');
-update public.app_settings set value = '["staff_admin"]' where key = 'compliance.manager_roles';
+select set_config('request.jwt.claims', '', false);
+update public.access_baselines set revoked_at = now() where access_level = 'manager' and module_id = 'hr.onboarding' and revoked_at is null;
+insert into public.access_baselines (access_level, module_id, actions) values ('manager', 'hr.onboarding', '{view}');
 select test.act_as('boss@example.com');
 set role authenticated;
 select public.submit_compliance_upload_for(test.pid('nico@example.com'), test.item('Driver''s licence'), test.pid('nico@example.com')::text || '/dl2.jpg', 'dl2.jpg');

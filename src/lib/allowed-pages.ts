@@ -4,7 +4,6 @@ import { cache } from "react";
 import { requireSession } from "@/lib/session";
 import { getNavAccess } from "@/lib/nav-access";
 import { navFor, sectionTabs } from "@/components/nav";
-import { getPeopleRules } from "@/lib/settings";
 import { seesExpiryFor } from "@/lib/module-access";
 
 // cmeprojects: the pages this person can open, from the existing menu and
@@ -24,6 +23,6 @@ export const getAllowedPages = cache(async () => {
   for (const t of sectionTabs("account", profile.role, features, navAccess)) allowed.add(t.href);
   if (allowed.has("/compliance")) allowed.add("/compliance/expiry");
   // cmeprojects step 4: just the Expiry list, given on the Access page.
-  else if (features.compliance !== false && (await seesExpiryFor(profile.role, await getPeopleRules()))) allowed.add("/compliance/expiry");
+  else if (features.compliance !== false && (await seesExpiryFor())) allowed.add("/compliance/expiry");
   return { navAccess, groups, tabPages, searchPages, allowed };
 });

@@ -111,8 +111,8 @@ set role authenticated;
 select test.refused($$update public.access_baselines set actions = '{delete}' where access_level = 'team_leader' and revoked_at is null$$, 'a grant isn''t edited (revoke and add)');
 delete from public.access_baselines;
 reset role;
-select test.ok((select count(*) from public.access_baselines) = 7, 'nothing is deleted');
-select test.ok((select count(*) from public.access_baselines where revoked_at is not null and revoked_by = test.pid('owner@example.com')) = 2, 'revoking records who');
+select test.ok((select count(*) from public.access_baselines where module_id not like 'hr.onboarding%') = 7, 'nothing is deleted');
+select test.ok((select count(*) from public.access_baselines where revoked_at is not null and revoked_by = test.pid('owner@example.com') and module_id not like 'hr.onboarding%') = 2, 'revoking records who');
 
 -- Manager Administrators: only within their own authority (boss is one, above).
 insert into public.job_titles (name, access_level) values ('Driver', 'support_worker');

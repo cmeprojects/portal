@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/roles";
-import { canManageCompliance, canSeeComplianceReport, canSeeReports, seesCompliance, type PeopleRules } from "@/lib/settings";
+import { canSeeComplianceReport, canSeeReports, type PeopleRules } from "@/lib/settings";
 import { canManageCars, canSeeCarReports } from "@/lib/cars";
 import type { CarRules } from "@/lib/car-types";
 
@@ -25,11 +25,13 @@ const given = async (role: Role, module: string, action: string) => MAY_HOLD.inc
 // The same, for other helpers (built features).
 export const givenFor = given;
 
-// Onboarding: see progress / approve uploads and set it up.
-export const seesComplianceFor = async (role: Role, rules: PeopleRules) => seesCompliance(role, rules) || (await given(role, "hr.onboarding", "view"));
-export const managesComplianceFor = async (role: Role, rules: PeopleRules) => canManageCompliance(role, rules) || (await given(role, "hr.onboarding", "approve"));
+// Onboarding (switched over, update 95, D-049): only the one permission check.
+// Who has it is set on the Access page (person, role, function group, access
+// level); the database uses the same check (can_manage_compliance).
+export const seesComplianceFor = async () => canDo("hr.onboarding", "view");
+export const managesComplianceFor = async () => canDo("hr.onboarding", "approve");
 // Just the Expiry list (a submodule can be given on its own).
-export const seesExpiryFor = async (role: Role, rules: PeopleRules) => seesCompliance(role, rules) || (await given(role, "hr.onboarding.expiry", "view"));
+export const seesExpiryFor = async () => canDo("hr.onboarding.expiry", "view");
 
 // Cars: manage the cars (add, change, set up).
 export const managesCarsFor = async (role: Role, rules: CarRules) => canManageCars(role, rules) || (await given(role, "ops.cars.manage", "configure"));

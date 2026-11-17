@@ -23,7 +23,13 @@ Last updated: 17 Nov 2026.
   `can()`; Access page section. Manager Administrators can give groups and roles access within
   what they may pass on; access-level defaults are system admin only (D-048). **Waiting on the owner:** run update 94 on Dev
   (`supabase/live-updates/update-94.sql`, undo-94.sql). No access changes until a module is
-  switched over. Next: Stage 3b, first module switch-over (onboarding).
+  switched over.
+- **Stage 3b, first module: Onboarding switched over (17 Nov 2026, update 95, D-049).** Who manages
+  onboarding and who sees progress now come only from `can()`; the "Who manages Compliance"
+  setting was copied once into access-level defaults (staff admins full; managers see progress;
+  team leaders see their teams; managers full only if no staff admin when it runs). The old setting
+  is hidden and unused. **Waiting on the owner:** run update 94, then 95, then the read-only
+  check `supabase/setup/verify-95-after.sql` (expect changed = 0). Next module: Cars (same pattern).
 - **DECIDED (D-047, 17 Nov 2026): the proper fix, no band-aid.** Every module will use only the
   permission check `can()`. Today's role rules become default grants per access level, so no one's
   access changes when a module switches. Order:

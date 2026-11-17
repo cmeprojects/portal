@@ -138,7 +138,8 @@ const ROWS: Row[] = [
       "compliance_forms",
     ],
     sections: [
-      { title: "Compliance settings", area: "compliance", keys: (k) => (k.startsWith("compliance.") && !["compliance.clearance_started", "compliance.clearance_roles"].includes(k)) || k === "reports.compliance_roles" },
+      // cmeprojects (update 95, D-049): who manages onboarding is set on the Access page now; the old setting is kept but unused.
+      { title: "Compliance settings", intro: "Who manages onboarding is set on Settings → Access (access by role, group or access level).", area: "compliance", keys: (k) => (k.startsWith("compliance.") && !["compliance.clearance_started", "compliance.clearance_roles", "compliance.manager_roles"].includes(k)) || k === "reports.compliance_roles" },
       { title: "Clearance to work", intro: "Managers can always clear people to work and give overrides.", area: "hr", keys: (k) => k === "compliance.clearance_roles" },
     ],
     areas: ["compliance", "hr"],

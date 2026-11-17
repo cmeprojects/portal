@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { getPeopleRules, getTimeZone } from "@/lib/settings";
+import { getTimeZone } from "@/lib/settings";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
 import { todayIn } from "@/lib/tasks";
 import { seesExpiryFor } from "@/lib/module-access";
@@ -18,9 +18,8 @@ type Row = { key: string; person: string; personId: string; what: string; expire
 // manage onboarding; visas only for people with Identity and work rights
 // access (the database decides what each person sees).
 export default async function ExpiryPage({ searchParams }: PageProps<"/compliance/expiry">) {
-  const { profile } = await requireSession();
-  const rules = await getPeopleRules();
-  if (!(await seesExpiryFor(profile.role, rules))) redirect("/");
+  await requireSession();
+  if (!(await seesExpiryFor())) redirect("/");
   const window = [30, 60, 90].includes(Number((await searchParams).days)) ? Number((await searchParams).days) : 60;
   const supabase = await createClient();
   const today = todayIn(await getTimeZone());
