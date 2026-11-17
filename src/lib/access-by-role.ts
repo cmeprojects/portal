@@ -20,7 +20,6 @@ export const UNSUPPORTED_DELEGATION: Record<string, Unsupported> = {
   "people.staff": { kind: "role", badge: "Set by role", note: `Managers, staff admins and the system admin manage staff through their role. It ${ROLE_NOTE}` },
   "people.teams": { kind: "role", badge: "Set by role", note: `Managers, staff admins and the system admin manage teams through their role. It ${ROLE_NOTE}` },
   "clients.list": { kind: "role", badge: "Set by role", note: `Managers, staff admins and the system admin manage clients through their role. It ${ROLE_NOTE}` },
-  "hr.requests": { kind: "role", badge: "Set by role", note: `Managers, staff admins and team leaders see staff requests through their role (who approves follows Request approvals). It ${ROLE_NOTE}` },
   "workflows.sla": {
     kind: "unavailable",
     badge: "Not available",

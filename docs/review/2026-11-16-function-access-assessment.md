@@ -598,3 +598,29 @@ was changed for this addendum.
 **Recommendation:** no need to redo Stage 1. Before switching the hard-coded
 parts, the owner decides (a) ceiling or no ceiling, (b) the external →
 Allied Health default.
+
+## Stage 3b implementation record: Staff requests (17 Nov 2026)
+
+Owner approved the order for the parts that share the built-in people-manager
+rule ("yes go ahead with that order"). **Built and tested; live update 99
+waiting.**
+
+- `hr.requests` switched. In the policies on `requests`, `leave_periods` and
+  `shift_changes`, and in `request_action` (who may comment),
+  `can_manage_people()` is replaced by `can('hr.requests', 'view')` (once per
+  statement). `can_manage_people()` itself is unchanged (still used by Staff,
+  Teams, Clients until they switch).
+- Defaults: managers and staff admins, view, everyone's (today's rule).
+- Unchanged: who approves (Request approvals rules), the person and their
+  swap partner, team leaders seeing their team's requests, leave and shift
+  changes (a team rule, not a module grant).
+- App: the Staff requests page and menu use the check; team leaders keep the
+  page for their team. Access page: Staff requests is grantable (removed from
+  the QA-007 "set by role" list).
+- Files: migration `20270213000001_staff_requests_switch_over.sql`,
+  `update-99.sql`, `undo-99.sql`, `supabase/setup/verify-99-after.sql`,
+  `supabase/tests/staff_requests_switch.test.sql` (12 checks).
+- Proof: verify-99-after on the local copy, 313 people, 0 changed; full suite
+  1,267 pass; round trip clean; browser 14 of 14 (system admin, manager,
+  staff admin see all requests; team leader sees their team's; support
+  worker refused); lint and typecheck pass.

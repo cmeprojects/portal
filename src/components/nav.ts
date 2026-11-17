@@ -20,6 +20,8 @@ export type NavAccess = {
   seesRegisters?: boolean;
   carManager?: boolean;
   carReports?: boolean;
+  // Sees everyone's staff requests (Access page, update 99).
+  allRequests?: boolean;
   // Live features built in the Feature builder that this person uses.
   customFeatures?: { slug: string; label: string }[];
   // Their reports, for those ticked under "Who sees every entry".
@@ -58,7 +60,8 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
   // cmeprojects: HR Pack. Staff requests sit in People; My requests and the
   // directory are menu items under My account.
   const requests = features.hr_requests !== false;
-  const approver = peopleManager || role === "team_leader";
+  // Team leaders always approve their own team's requests (a team rule).
+  const approver = Boolean(access.allRequests) || role === "team_leader";
   const tabs: (Tab | false)[] = {
     account: [{ href: "/account", text: "My account" }],
     tasks: [

@@ -34,6 +34,9 @@ export const seesExpiryFor = async () => canDo("hr.onboarding.expiry", "view");
 // Switched over (update 96, D-049): only the one permission check; set on the Access page.
 export const managesCarsFor = async () => canDo("ops.cars.manage", "configure");
 
+// Staff requests (switched over, update 99): see everyone's requests.
+export const seesAllRequestsFor = async () => canDo("hr.requests", "view");
+
 // Reports (each report on its own; "export" = the Excel download). Switched
 // over (update 98, D-049): only the one permission check, set on the Access
 // page. Car managers also see the car reports.

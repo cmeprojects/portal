@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CircleCheck, CircleHelp, CircleX, Hourglass, Inbox } from "lucide-react";
 import { requireSession } from "@/lib/session";
+import { seesAllRequestsFor } from "@/lib/module-access";
 import { REQUEST_STATUS, REQUEST_TYPES, type RequestStatus } from "@/lib/requests-shared";
 import { PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui";
 import { Tile } from "@/components/dash";
@@ -21,7 +22,8 @@ const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "
 export default async function StaffRequestsPage({ searchParams }: PageProps<"/people/requests">) {
   const { profile, live } = await requireSession();
   if (live.hr_requests === false) notFound();
-  const peopleManager = ["manager", "staff_admin", "system_admin"].includes(profile.role);
+  // Everyone's requests: the Access page (update 99). Team leaders: their team's.
+  const peopleManager = await seesAllRequestsFor();
   if (!peopleManager && profile.role !== "team_leader") notFound();
   const all = await loadRequests();
   if (!all) notFound(); // before live update 56

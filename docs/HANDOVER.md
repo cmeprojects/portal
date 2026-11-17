@@ -39,7 +39,12 @@ Last updated: 17 Nov 2026.
 - **97 and 98 run on Dev (17 Nov 2026).** Owner decided D-050: no per-level ceiling (option A);
   external titles belong to Allied Health (new external roles such as Behavioural Therapist,
   Psychologist go under it).
-- **Next, raised to the owner (17 Nov 2026):** the hard-coded parts share one helper,
+- **Staff requests switched over (17 Nov 2026, update 99).** Owner approved the order ("yes go ahead with
+  that order"). Seeing everyone's staff requests (and leave, shift changes) is now `can('hr.requests',
+  'view')`; defaults managers and staff admins; team leaders keep their team's (team rule); who approves
+  unchanged. **Waiting on the owner:** run 99, then `supabase/setup/verify-99-after.sql` (changed = 0).
+  Next: Teams.
+- **Plan (approved 17 Nov 2026):** the hard-coded parts share one helper,
   `can_manage_people()` (managers, staff admins, system admin), used by 35 policies on 17 tables and 9
   functions, covering Staff, Teams, Staff requests, Clients and car clients. Switching them means
   splitting that helper into one check per part. Proposed order: Staff requests, Teams, Staff, then
