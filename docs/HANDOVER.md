@@ -63,6 +63,9 @@ Last updated: 17 Nov 2026.
   after; gives no access); starting mapping for all six groups; Roles page edits it per group; Access
   page lists a group's (or role's groups') parts first; catalogue test: every part (except My workspace
   and protected ones) belongs to a group, new parts start not switched over with no grants. **104 run on Dev (17 Nov 2026).** Old role code: QA-007 list now holds only Clients (Stage 5).
+- **Menu sections in the side panel (17 Nov 2026, owner screenshot):** on wide screens with the full menu,
+  each section heading opens the side panel listing its pages (sub-pages indented); the section holding
+  this page is marked; My workspace stays inline; phone drawer unchanged (inline).
 - **Deploys (17 Nov 2026):** owner reports Dev still shows the menu without the side panel after a hard
   refresh; local production build passes. Likely Vercel builds after `c569c1d` failed or hit the free
   plan's daily limit (RSK-16). Owner to check cme-dev deployments. Push fewer, larger batches.

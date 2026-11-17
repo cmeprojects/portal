@@ -175,7 +175,7 @@ export function Sidebar({
     if (!el) return;
     const r = el.getBoundingClientRect();
     const edge = asideRef.current?.getBoundingClientRect().right ?? r.right;
-    setFly({ id, top: Math.max(8, Math.min(r.top - 4, window.innerHeight - 280)), left: edge });
+    setFly({ id, top: Math.max(8, Math.min(r.top - 4, window.innerHeight - 360)), left: edge });
   };
   useEffect(() => setFly(null), [path]);
   useEffect(() => {
@@ -185,11 +185,30 @@ export function Sidebar({
     return () => document.removeEventListener("keydown", esc);
   }, [fly]);
   useEffect(() => () => keepFly(), []);
+  // What the panel lists: a whole section (its pages, sub-pages indented) or
+  // one part's sub-pages.
   const flyNode = useMemo(() => {
     if (!fly) return null;
-    for (const c of tree) for (const n of c.items) if (n.id === fly.id) return n;
+    if (fly.id.startsWith("c:")) {
+      const cat = tree.find((c) => `c:${c.id}` === fly.id);
+      if (!cat) return null;
+      const entries: { n: NavNode; depth: number; label: string }[] = [];
+      for (const n of cat.items) {
+        entries.push({ n, depth: 0, label: n.label });
+        for (const k of n.children) if (k.href !== n.href) entries.push({ n: k, depth: 1, label: k.label });
+      }
+      return { label: cat.label, entries };
+    }
+    for (const c of tree)
+      for (const n of c.items)
+        if (n.id === fly.id) {
+          const own = n.children.some((k) => k.href === n.href);
+          return { label: n.label, entries: [...(own ? [] : [{ n, depth: 0, label: "Overview" }]), ...n.children.map((k) => ({ n: k, depth: 0, label: k.label }))] };
+        }
     return null;
   }, [fly, tree]);
+  // Wide screens, full menu: sections open in the panel instead of inline.
+  const sectionPanels = !drawer && !compact;
   const itemClass = (active: boolean, sub = false) =>
     `flex items-center gap-3 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${compact ? "size-11 justify-center" : sub ? "min-h-9 px-3 text-[13px]" : "min-h-11 px-3 text-[14.5px] md:min-h-10"} ${
       active ? "bg-brand font-semibold text-brand-fg shadow-[0_6px_14px_rgba(47,111,228,0.35)]" : "text-side-muted hover:bg-side-hover hover:text-side-fg"
@@ -321,7 +340,27 @@ export function Sidebar({
                   {cat.label.split(/[\s&]+/)[0]}
                 </p>
               )
-            ) : cat.id === "workspace" && !pins.length ? null : (
+            ) : cat.id === "workspace" && !pins.length ? null : sectionPanels && cat.id !== "workspace" ? (
+              <button
+                type="button"
+                data-nav
+                aria-haspopup="menu"
+                aria-expanded={fly?.id === `c:${cat.id}`}
+                aria-current={here ? "true" : undefined}
+                onMouseEnter={(e) => openFly(`c:${cat.id}`, e.currentTarget)}
+                onMouseLeave={() => closeFly()}
+                onClick={(e) => (fly?.id === `c:${cat.id}` ? closeFly(true) : openFly(`c:${cat.id}`, e.currentTarget))}
+                className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-[11px] font-semibold tracking-[0.12em] uppercase transition-colors hover:bg-side-hover hover:text-side-fg ${
+                  fly?.id === `c:${cat.id}` ? "bg-side-hover text-side-fg" : here ? "text-side-fg" : "text-side-muted"
+                } ${cat.id === "system" ? "mt-1 border-t border-side-edge" : ""}`}
+              >
+                <span className="flex items-center gap-2">
+                  {here ? <span aria-hidden="true" className="size-1.5 rounded-full bg-brand" /> : null}
+                  {cat.label}
+                </span>
+                <ChevronRight aria-hidden="true" className="size-3.5" />
+              </button>
+            ) : (
               <button
                 type="button"
                 data-nav
@@ -333,7 +372,7 @@ export function Sidebar({
                 <ChevronDown aria-hidden="true" className={`size-3.5 transition-transform duration-200 motion-reduce:transition-none ${shut ? "-rotate-90" : ""}`} />
               </button>
             )}
-            {shut && !compact ? null : cat.items.map((n) => <Item key={n.id} n={n} />)}
+            {(sectionPanels && cat.id !== "workspace") || (shut && !compact) ? null : cat.items.map((n) => <Item key={n.id} n={n} />)}
           </div>
         );
       })}
@@ -424,20 +463,21 @@ export function Sidebar({
             if (!asideRef.current?.contains(e.relatedTarget as Node | null)) endPeek();
           }}
           style={{ top: fly.top, left: fly.left }}
-          className="fixed z-50 hidden w-60 overflow-hidden rounded-r-xl border border-l-0 border-line bg-surface text-ink shadow-[8px_8px_24px_rgba(15,29,46,0.18)] md:block print:hidden"
+          className="fixed z-50 hidden max-h-[calc(100vh-16px)] w-64 flex-col overflow-hidden rounded-r-xl border border-l-0 border-line bg-surface text-ink shadow-[8px_8px_24px_rgba(15,29,46,0.18)] md:flex print:hidden"
         >
-          <p className="border-b border-line px-4 py-2.5 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">{flyNode.label}</p>
-          <div className="flex flex-col py-1">
-            {[flyNode, ...flyNode.children].filter((k, i) => i > 0 || !flyNode.children.some((c) => c.href === flyNode.href)).map((k, i) => (
+          <p className="shrink-0 border-b border-line px-4 py-2.5 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">{flyNode.label}</p>
+          <div className="flex min-h-0 flex-col overflow-y-auto py-1">
+            {flyNode.entries.map(({ n: k, depth, label }) => (
               <Link
-                key={k.id}
+                key={`${k.id}-${depth}`}
                 href={k.href}
                 role="menuitem"
                 onClick={() => closeFly(true)}
                 aria-current={k.id === current ? "page" : undefined}
-                className={`px-4 py-2.5 text-[15px] font-medium outline-none hover:bg-page focus-visible:bg-page ${k.id === current ? "text-brand" : "text-ink"}`}
+                className={`flex items-center gap-3 outline-none hover:bg-page focus-visible:bg-page ${depth ? "py-2 pr-4 pl-12 text-[14px]" : "px-4 py-2.5 text-[15px] font-medium"} ${k.id === current ? "text-brand" : "text-ink"}`}
               >
-                {i === 0 && k.id === flyNode.id ? "Overview" : k.label}
+                {depth || !fly.id.startsWith("c:") ? null : <ModuleIcon name={k.icon} className="size-[18px] shrink-0 text-muted" />}
+                <span className="truncate">{label}</span>
               </Link>
             ))}
           </div>
