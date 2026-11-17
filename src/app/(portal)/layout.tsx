@@ -27,6 +27,9 @@ import { asChannelMap, channelOn, type ChannelMap } from "@/lib/notification-cat
 
 // Frame for every page after sign-in: the company's sidebar on desktop, a top
 // bar with a drop-down menu on phones.
+// The app version shown in the menu (package.json).
+const APP_VERSION = "0.1.1";
+
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
   const [{ profile, features }, brand, idleMinutes, { data: claims }] = await Promise.all([
     requireSession(),
@@ -70,16 +73,18 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   // (for example a copy still on main) is easy to spot.
   const branch = process.env.VERCEL_GIT_COMMIT_REF;
   const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
+  // cmeprojects: credits, larger and always visible at the foot of the menu.
   const credits = (
-    <div className="mt-2 px-2 text-[11px] text-side-muted">
+    <div className="px-2 text-center text-[15px] leading-relaxed text-side-muted">
       <p>
-        Built by cmeproject ·{" "}
-        <Link href="/about" className="underline hover:text-side-fg">
-          About
+        © {new Date().getFullYear()}{" "}
+        <Link href="/about" className="hover:text-side-fg hover:underline">
+          cmeproject
         </Link>
       </p>
+      <p>Version: {APP_VERSION}</p>
       {profile.role === "system_admin" && commit ? (
-        <p className="mt-0.5 font-mono" title="The branch and version this copy is running">
+        <p className="mt-0.5 font-mono text-[11px]" title="The branch and version this copy is running">
           {branch} · {commit}
         </p>
       ) : null}

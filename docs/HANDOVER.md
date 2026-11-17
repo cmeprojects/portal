@@ -60,6 +60,10 @@ Last updated: 17 Nov 2026.
   once per query; mine / helping / my team's in one go); timeline and files follow the task. Same rows
   for every sampled person; task list 9 to 13 s → about 10 ms on 10,515 tasks locally. Waiting on the
   owner: update 103. Remaining: Clients (Stage 5), Stage 4, Stage 6.
+- **Menu (17 Nov 2026, owner request):** the shrink/expand button moved beside the logo (grid icon, highlights on
+  hover); the menu list scrolls on its own; credits (© year cmeproject, Version 0.1.1, and branch/commit
+  for the system admin) larger and fixed at the foot of the menu. `src/components/sidebar.tsx`,
+  `src/app/(portal)/layout.tsx`. No database change.
 - **Plan (approved 17 Nov 2026):** the hard-coded parts share one helper,
   `can_manage_people()` (managers, staff admins, system admin), used by 35 policies on 17 tables and 9
   functions, covering Staff, Teams, Staff requests, Clients and car clients. Switching them means
