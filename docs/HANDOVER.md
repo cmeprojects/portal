@@ -36,10 +36,16 @@ Last updated: 17 Nov 2026.
   "Who sees reports", "Who sees the compliance report" and "Who sees car reports" copied once into
   access-level defaults; old settings hidden. **Waiting on the owner:** run 97, then 98, then
   `supabase/setup/verify-98-after.sql` (expect changed = 0).
-- **Paused for owner decisions (Stage 1A cross-check addendum in AUD-016):** access level is not a
-  ceiling for switched modules (C3 corrected); external → Allied Health mapping to reconfirm; whether
-  to add a per-level ceiling before the hard-coded modules (Tasks, Staff, Teams, Staff requests, Due
-  dates, Request approvals) are switched.
+- **97 and 98 run on Dev (17 Nov 2026).** Owner decided D-050: no per-level ceiling (option A);
+  external titles belong to Allied Health (new external roles such as Behavioural Therapist,
+  Psychologist go under it).
+- **Next, raised to the owner (17 Nov 2026):** the hard-coded parts share one helper,
+  `can_manage_people()` (managers, staff admins, system admin), used by 35 policies on 17 tables and 9
+  functions, covering Staff, Teams, Staff requests, Clients and car clients. Switching them means
+  splitting that helper into one check per part. Proposed order: Staff requests, Teams, Staff, then
+  SLA and Request approvals (as settings areas), Tasks (needs scoping), Clients with Stage 5.
+  Known for Stage 6: externals inherit nothing today, so Allied Health practitioners on external
+  accounts will need the Stage 6 assignment-based rule.
 - **DECIDED (D-047, 17 Nov 2026): the proper fix, no band-aid.** Every module will use only the
   permission check `can()`. Today's role rules become default grants per access level, so no one's
   access changes when a module switches. Order:
