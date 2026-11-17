@@ -4,7 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
-import { ClientCareForm, ProgramRow, AddProgramForm } from "./care-forms";
+import { ClientCareForm, ProgramRow, AddProgramForm, SchemeRow, type Scheme } from "./care-forms";
+import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { AddClientForm, ClientRow } from "../../cars/manage/forms";
@@ -23,8 +24,14 @@ export default async function ClientsPage() {
   const { data } = care.error ? await supabase.from("car_clients").select("id, name, reference, active").order("active", { ascending: false }).order("name") : care;
   const clients = (data ?? []) as { id: string; name: string; reference: string; active: boolean; client_ref?: string; status?: string; preferred_name?: string }[];
   const toCheck = clients.filter((c) => c.status === "pending");
-  const { data: programs } = care.error ? { data: null } : await supabase.from("client_programs").select("id, name, needs_dob, active").order("sort_order").order("name");
+  const { data: programs } = care.error ? { data: null } : await supabase.from("client_programs").select("id, name, needs_dob, active, scheme").order("sort_order").order("name");
   const isAdmin = profile.role === "system_admin";
+  // cmeprojects (update 110): programs and schemes live in Care settings.
+  const canCare = isAdmin || (await getMyAdminAreas(profile.role)).includes("care");
+  const schemeRes = await supabase.from("client_schemes").select("key, label, person_word, review_label, change_review_label, review_lead_days, needs_dob").order("sort_order");
+  const schemes = schemeRes.error ? [] : ((schemeRes.data ?? []) as Scheme[]);
+  const { data: wordRow } = await supabase.from("app_settings").select("value").eq("key", "wording.client").maybeSingle();
+  const orgWord = typeof wordRow?.value === "string" && wordRow.value ? wordRow.value : "Client";
   // cmeprojects: which team looks after each client (hidden before live update 54).
   const [{ data: teams }, { data: links, error: linkError }] = await Promise.all([
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
@@ -85,18 +92,28 @@ export default async function ClientsPage() {
       ) : null}
       {programs ? (
         <Card className="p-4">
-          <h2 className="heading-sm">Programs</h2>
+          <h2 className="heading-sm">Programs and schemes</h2>
           <p className="mb-2 text-sm text-muted">
-            {isAdmin
-              ? "The programs clients' services come under. Add or rename them, or untick In use; a program is never deleted. Date of birth is required for programs marked Needs date of birth."
-              : "The programs clients' services come under. The system admin looks after this list."}
+            {canCare
+              ? "Every program sits under one scheme (NDIS, Support at Home, Private or Other). The scheme decides the wording and rules, so they never mix. Add or rename programs, or untick In use; a program is never deleted, and its scheme can't change once a service uses it."
+              : "The programs clients' services come under, each under its scheme. Changed in Care settings."}
           </p>
           <ul className="divide-y divide-line">
             {programs.map((p) => (
-              <ProgramRow key={p.id} program={p} canEdit={isAdmin} />
+              <ProgramRow key={p.id} program={p} canEdit={canCare} schemes={schemes} />
             ))}
           </ul>
-          {isAdmin ? <AddProgramForm /> : null}
+          {canCare && schemes.length ? <AddProgramForm schemes={schemes} /> : null}
+          {schemes.length ? (
+            <div className="mt-4 border-t border-line pt-3">
+              <h3 className="text-sm font-semibold">Schemes: wording and rules</h3>
+              <ul className="divide-y divide-line">
+                {schemes.map((sc) => (
+                  <SchemeRow key={sc.key} scheme={sc} canEdit={canCare} orgWord={orgWord} />
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </Card>
       ) : null}
     </>

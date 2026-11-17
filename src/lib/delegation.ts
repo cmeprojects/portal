@@ -3,7 +3,7 @@
 // Areas the system admin can hand to all managers or to chosen managers and
 // staff admins (cmeprojects settings revamp). Security, Features,
 // Notifications, Demo data, General and Delegation always stay with the system admin.
-export const AREAS = ["registers", "register_setup", "roles", "branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit", "hr"] as const;
+export const AREAS = ["registers", "register_setup", "roles", "branding", "messages", "people", "compliance", "tasks", "reports", "vehicles", "website", "audit", "hr", "care"] as const;
 export type Area = (typeof AREAS)[number];
 
 export const AREA_LABELS: Record<Area, string> = {
@@ -20,6 +20,7 @@ export const AREA_LABELS: Record<Area, string> = {
   website: "Website (where the Assistant looks, and its documents)",
   audit: "Read the change log",
   hr: "HR Pack (request approvals, clearing people to work)",
+  care: "Care settings (programs, schemes and their wording)",
 };
 
 // What each area lets the manager do, shown under it on the Delegation tab.
@@ -37,6 +38,7 @@ export const AREA_HINTS: Record<Area, string> = {
   website: "Choose where the website's Assistant looks for answers (documents, listed websites or both), the listed websites, and upload or remove its documents.",
   audit: "Read the change log: who changed what in System settings, and when. They can't change anything with this alone.",
   hr: "Who approves each kind of request (leave, swaps, timesheets and more) and when they escalate, and which roles besides managers can clear people to work and give overrides.",
+  care: "Programs (NDIS, Support at Home and your own), each under its scheme, and each scheme's wording and rules (what the person is called, what its review is called, reminder days). Doesn't give access to client records.",
 };
 
 const MESSAGES = ["brand.support_contact", "brand.announcement", "people.invite_message"];
@@ -56,6 +58,7 @@ export function areaOf(key: string): Area | null {
   if (key.startsWith("website.") || key.startsWith("assistant.")) return "website";
   if (key.startsWith("reports.")) return "reports";
   if (key.startsWith("vehicles.")) return "vehicles";
+  if (key.startsWith("care.")) return "care";
   return null;
 }
 

@@ -151,3 +151,17 @@ New first step **C0: programs and schemes**, before C1:
 Revised order: C0 programs and schemes, C1 My clients, C2 switches and
 preferences, C3 documents, C4 care plans, C5 reviews, C6 agreements, C7
 funding.
+
+## More owner notes (17 Nov 2026)
+
+5. **Adding a client also chooses who manages them:** the Add client form
+   asks for the care manager or support coordinator (one of the staff who can
+   be assigned), and saves it as the first assignment (`client_assignments`,
+   as case manager / support coordinator), so that person sees the client
+   straight away. Add "support coordinator" to the assigned-as choices.
+6. **Client list reference (another product, screenshot; idea only):** Active
+   and Archived tabs, Filters, search, refresh, "Add client" with more options;
+   columns name, gender, age, email, NDIS number, address, COS (continuity of
+   support / plan), assigned manager; sortable columns; an empty state.
+   Fold into the client list concept above: add **Active / Archived tabs** and
+   an **Assigned manager** column (from current assignments).

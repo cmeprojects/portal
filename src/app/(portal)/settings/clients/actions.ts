@@ -2,7 +2,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole, requireSession } from "@/lib/session";
+import { getMyAdminAreas } from "@/lib/settings";
+import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
 
 // Clients: the Access page (update 107); the database checks each client and part.
@@ -51,14 +52,26 @@ export async function saveClientCare(_: FormState, form: FormData): Promise<Form
   return { message: "Saved." };
 }
 
-// Programs (NDIS, Support at Home ...): the system admin adds, renames and
-// deactivates them. They're never deleted.
+const SCHEMES = ["ndis", "support_at_home", "private", "other"];
+
+// Care settings (update 110): the system admin, or whoever has the Care
+// settings area (the database checks too).
+async function requireCareSettings() {
+  const session = await requireSession();
+  if (session.profile.role !== "system_admin" && !(await getMyAdminAreas(session.profile.role)).includes("care")) throw new Error("You can't change Care settings.");
+  return session;
+}
+
+// Programs (NDIS, Support at Home ...): added, renamed and deactivated in Care
+// settings; each sits under one scheme. They're never deleted.
 export async function saveProgram(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(["system_admin"]);
+  await requireCareSettings();
   const id = String(form.get("id") ?? "");
   const name = String(form.get("name") ?? "").trim().slice(0, 80);
   if (!name) return { error: "Enter the program's name." };
-  const values = { name, needs_dob: form.get("needs_dob") === "on", active: id ? form.get("active") === "on" : true };
+  const scheme = String(form.get("scheme") ?? "");
+  if (!SCHEMES.includes(scheme)) return { error: "Choose the program's scheme." };
+  const values = { name, scheme, needs_dob: form.get("needs_dob") === "on", active: id ? form.get("active") === "on" : true };
   const supabase = await createClient();
   let error;
   if (id) {
@@ -71,4 +84,30 @@ export async function saveProgram(_: FormState, form: FormData): Promise<FormSta
   if (error) return { error: error.code === "23505" ? "That program is already on the list." : friendlyError(error) };
   revalidatePath("/settings/clients");
   return { message: id ? "Saved." : `${name} added.` };
+}
+
+// A scheme's wording and rules (Care settings). The list of schemes is fixed.
+export async function saveScheme(_: FormState, form: FormData): Promise<FormState> {
+  await requireCareSettings();
+  const key = String(form.get("key") ?? "");
+  if (!SCHEMES.includes(key)) return { error: "Choose a scheme." };
+  const word = String(form.get("person_word") ?? "").trim().slice(0, 30);
+  const days = String(form.get("review_lead_days") ?? "")
+    .split(/[\s,]+/)
+    .map((d) => Number(d))
+    .filter((d) => Number.isInteger(d) && d > 0 && d <= 365);
+  const values = {
+    label: String(form.get("label") ?? "").trim().slice(0, 60),
+    person_word: word || null,
+    review_label: String(form.get("review_label") ?? "").trim().slice(0, 60),
+    change_review_label: String(form.get("change_review_label") ?? "").trim().slice(0, 60),
+    review_lead_days: [...new Set(days)].sort((a, b) => b - a).slice(0, 5),
+    needs_dob: form.get("needs_dob") === "on",
+  };
+  if (!values.label || !values.review_label || !values.change_review_label) return { error: "Fill in the name and both review names." };
+  if (!values.review_lead_days.length) return { error: "Enter at least one reminder day, for example 30." };
+  const { error } = await (await createClient()).from("client_schemes").update(values).eq("key", key);
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/settings/clients");
+  return { message: "Saved." };
 }

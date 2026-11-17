@@ -7,7 +7,7 @@ import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
 import { CLIENT_STATUS } from "../../cars/manage/forms";
-import { saveClientCare, saveProgram } from "./actions";
+import { saveClientCare, saveProgram, saveScheme } from "./actions";
 
 // cmeprojects (Clients step 1): a client's preferred name and status. Changing
 // the status asks first; the database records who changed it and when.
@@ -59,11 +59,27 @@ export function ClientCareForm({ client }: { client: { id: string; name: string;
   );
 }
 
-type Program = { id: string; name: string; needs_dob: boolean; active: boolean };
+type Program = { id: string; name: string; needs_dob: boolean; active: boolean; scheme?: string };
+export type Scheme = { key: string; label: string; person_word: string | null; review_label: string; change_review_label: string; review_lead_days: number[]; needs_dob: boolean };
+
+function SchemeSelect({ value, schemes, id }: { value?: string; schemes: Scheme[]; id: string }) {
+  return (
+    <select id={id} name="scheme" required defaultValue={value ?? ""} aria-label="Scheme" className={`${inputClass} w-44`}>
+      <option value="" disabled>
+        Scheme…
+      </option>
+      {schemes.map((s) => (
+        <option key={s.key} value={s.key}>
+          {s.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 // One program: the system admin renames it, marks whether it needs a date of
 // birth, or deactivates it. Others see the list only.
-export function ProgramRow({ program, canEdit }: { program: Program; canEdit: boolean }) {
+export function ProgramRow({ program, canEdit, schemes = [] }: { program: Program; canEdit: boolean; schemes?: Scheme[] }) {
   const [state, action, pending] = useActionState(saveProgram, null);
   const { ref, dirty, markClean } = useDirty();
   useAfterSuccess(state, markClean);
@@ -71,6 +87,7 @@ export function ProgramRow({ program, canEdit }: { program: Program; canEdit: bo
     return (
       <li className="flex flex-wrap items-center gap-2 py-2 text-sm">
         <span className={`font-medium ${program.active ? "" : "text-muted line-through"}`}>{program.name}</span>
+        {program.scheme ? <span className="text-xs text-muted">{schemes.find((s) => s.key === program.scheme)?.label ?? program.scheme}</span> : null}
         {program.needs_dob ? <span className="text-xs text-muted">needs date of birth</span> : null}
         {!program.active ? <span className="text-xs text-muted">(not in use)</span> : null}
       </li>
@@ -84,6 +101,7 @@ export function ProgramRow({ program, canEdit }: { program: Program; canEdit: bo
           Program name
         </label>
         <input id={`pg-${program.id}`} name="name" required maxLength={80} defaultValue={program.name} className={`${inputClass} min-w-40 flex-1`} />
+        <SchemeSelect id={`pgs-${program.id}`} value={program.scheme} schemes={schemes} />
         <label className="flex min-h-9 items-center gap-2 text-sm">
           <input type="checkbox" name="needs_dob" defaultChecked={program.needs_dob} className="h-4 w-4 accent-[var(--brand-primary)]" />
           Needs date of birth
@@ -102,7 +120,7 @@ export function ProgramRow({ program, canEdit }: { program: Program; canEdit: bo
   );
 }
 
-export function AddProgramForm() {
+export function AddProgramForm({ schemes = [] }: { schemes?: Scheme[] }) {
   const [state, action, pending] = useActionState(saveProgram, null);
   return (
     <form action={action} className="flex flex-col gap-2 pt-2">
@@ -111,6 +129,7 @@ export function AddProgramForm() {
           New program
         </label>
         <input id="pg-new" name="name" required maxLength={80} placeholder="New program, for example Brokerage" className={`${inputClass} min-w-40 flex-1`} />
+        <SchemeSelect id="pgs-new" schemes={schemes} />
         <label className="flex min-h-9 items-center gap-2 text-sm">
           <input type="checkbox" name="needs_dob" className="h-4 w-4 accent-[var(--brand-primary)]" />
           Needs date of birth
@@ -122,5 +141,65 @@ export function AddProgramForm() {
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
     </form>
+  );
+}
+
+// cmeprojects (update 110): one scheme's wording and rules, in Care settings.
+// The scheme decides what its people and reviews are called and when review
+// reminders start, so NDIS and Support at Home never borrow each other's.
+export function SchemeRow({ scheme, canEdit, orgWord }: { scheme: Scheme; canEdit: boolean; orgWord: string }) {
+  const [state, action, pending] = useActionState(saveScheme, null);
+  const { ref, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
+  if (!canEdit) {
+    return (
+      <li className="py-2 text-sm">
+        <span className="font-medium">{scheme.label}</span>
+        <span className="block text-xs text-muted">
+          {scheme.person_word ?? orgWord} · {scheme.review_label} · {scheme.change_review_label} · reminders {scheme.review_lead_days.join(", ")} days before
+        </span>
+      </li>
+    );
+  }
+  const k = scheme.key;
+  return (
+    <li className="py-3">
+      <form ref={ref} action={action} className="flex flex-col gap-2">
+        <input type="hidden" name="key" value={k} />
+        <div className="grid gap-2 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Scheme name
+            <input name="label" required maxLength={60} defaultValue={scheme.label} className={inputClass} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            The person is called
+            <input name="person_word" maxLength={30} defaultValue={scheme.person_word ?? ""} placeholder={`${orgWord} (your organisation's word)`} className={inputClass} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Reminder days before a review
+            <input name="review_lead_days" defaultValue={scheme.review_lead_days.join(", ")} placeholder="90, 60, 30" className={inputClass} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Scheduled review is called
+            <input name="review_label" required maxLength={60} defaultValue={scheme.review_label} className={inputClass} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Review after a change of situation is called
+            <input name="change_review_label" required maxLength={60} defaultValue={scheme.change_review_label} className={inputClass} />
+          </label>
+          <label className="flex min-h-9 items-center gap-2 self-end text-sm">
+            <input type="checkbox" name="needs_dob" defaultChecked={scheme.needs_dob} className="h-4 w-4 accent-[var(--brand-primary)]" />
+            New programs need date of birth
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" variant="outline" disabled={pending || !dirty}>
+            {pending ? "Saving…" : `Save ${scheme.label}`}
+          </Button>
+          {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+          {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+        </div>
+      </form>
+    </li>
   );
 }
