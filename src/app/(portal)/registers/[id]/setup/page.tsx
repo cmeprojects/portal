@@ -55,7 +55,7 @@ export default async function SetupPage({ params, searchParams }: PageProps<"/re
           <h2 className="mb-1 heading-sm">Who can create tasks here</h2>
           <p className="mb-3 text-sm text-muted">
             Tick the roles that may create tasks in this register (its managers always can). Nothing ticked: everyone who can raise tasks, as
-            before. This is how support workers can use a register besides General.
+            before. This is how standard access staff can use a register besides General.
           </p>
           <CreateRolesForm id={registry.id} current={(await getCreateRoles()).get(registry.id) ?? []} />
         </Card>

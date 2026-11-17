@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270221000001_clients_switch_over.sql
+-- Built from every migration up to: 20270222000001_service_delivery_wording.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -230,7 +230,8 @@ begin
     (122, '20270218000001_function_group_modules.sql'),
     (123, '20270219000001_client_parts_and_roles.sql'),
     (124, '20270220000001_client_assignments.sql'),
-    (125, '20270221000001_clients_switch_over.sql')
+    (125, '20270221000001_clients_switch_over.sql'),
+    (126, '20270222000001_service_delivery_wording.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -22024,5 +22025,30 @@ $function$;
 
 $m125$;
   insert into public.install_log (name) values ('20270221000001_clients_switch_over.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270222000001_service_delivery_wording.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270222000001_service_delivery_wording.sql') then
+    return;
+  end if;
+  execute $m126$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 108): wording only. The base access level is now called
+-- "Standard access" on screen, so the Service Delivery function group's
+-- description no longer names an access level. Changed only if it's still the
+-- original text. Nobody's access changes.
+
+update public.function_groups
+   set description = 'Frontline staff and team leaders delivering services.'
+ where key = 'service_delivery' and description = 'Team leaders and support workers delivering services.';
+
+$m126$;
+  insert into public.install_log (name) values ('20270222000001_service_delivery_wording.sql');
 end;
 $part$;

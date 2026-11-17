@@ -384,7 +384,7 @@ function ConditionalRoleForm({
       </div>
       {teams.length ? (
         <fieldset className="flex flex-col gap-1">
-          <legend className="mb-1 text-sm font-semibold">Teams (support workers and team leaders)</legend>
+          <legend className="mb-1 text-sm font-semibold">Teams (standard access staff and team leaders)</legend>
           <div className="flex flex-wrap gap-x-5">
             {teams.map((t) => (
               <label key={t.id} className="flex min-h-11 items-center gap-2 text-sm">

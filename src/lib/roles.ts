@@ -15,7 +15,8 @@ export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABELS: Record<Role, string> = {
   new_starter: "New starter",
-  support_worker: "Support worker",
+  // cmeprojects (owner request): the base level is "Standard access", not a job.
+  support_worker: "Standard access",
   team_leader: "Team leader",
   manager: "Manager",
   staff_admin: "Staff admin",
@@ -23,9 +24,20 @@ export const ROLE_LABELS: Record<Role, string> = {
   external: "External contractor (allied health)",
 };
 
+// The same, for "all people at this level" in sentences.
+export const ROLE_PLURALS: Record<Role, string> = {
+  new_starter: "New starters",
+  support_worker: "Standard access staff",
+  team_leader: "Team leaders",
+  manager: "Managers",
+  staff_admin: "Staff admins",
+  system_admin: "System admins",
+  external: "External contractors",
+};
+
 export const ROLE_HELP: Record<Role, string> = {
   new_starter: "Joined with a general invite. Does their onboarding (reading, trainings, documents) and gets a role once it's done, or earlier as a conditional role.",
-  support_worker: "Base access: their own tasks (assigned, helping on or created) and their teams' clients' locations and alerts. Most roles use this base and get what the job needs from the role itself, so roles like Case Manager or Intake & Assessment Officer aren't support workers.",
+  support_worker: "Base access: their own tasks (assigned, helping on or created) and their teams' clients' locations and alerts. Most roles use this base and get what the job needs from the role itself (for example Case Manager: their assigned clients).",
   team_leader: "Base access for leading a team: the above, plus their team's tasks, onboarding progress and staff requests.",
   manager: "Base access for running the service: every team's tasks, staff, teams, staff requests, clients, due dates, cars, forms and reports. Approves role and team changes.",
   staff_admin: "Base access for HR and the office: staff, teams, staff requests, onboarding, clients and the compliance report, but not other people's tasks. Their role and team changes go to a manager to approve.",

@@ -6,7 +6,7 @@ import { askConfirm } from "@/components/confirm";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
-import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { ROLE_PLURALS, type Role } from "@/lib/roles";
 import type { Feature, FeatureField, Option } from "@/lib/feature-types";
 import { deleteAlert, saveAlert, type AlertDraft } from "../actions";
 
@@ -60,7 +60,7 @@ export function Alerts({ feature, fields, staff, alerts, dirty }: { feature: Fea
             ? `${a.when_kind === "no_entry_by" ? "Nothing entered" : "A client under target"} by ${hourLabel(a.at_hour ?? 18)}, checked daily`
             : WHEN[a.when_kind];
     const who = [
-      ...a.notify_roles.map((r) => (r in ROLE_LABELS ? ROLE_LABELS[r as Role] + "s" : r)),
+      ...a.notify_roles.map((r) => (r in ROLE_PLURALS ? ROLE_PLURALS[r as Role] : r)),
       a.notify_leader ? "their team leader" : "",
       ...a.notify_people.map((p) => staff.find((s) => s.id === p)?.name ?? ""),
     ].filter(Boolean);
@@ -237,7 +237,7 @@ function AlertEditor({ draft, feature, fields, staff, onClose }: { draft: AlertD
           {ROLES.map((r) => (
             <label key={r} className="flex min-h-10 items-center gap-2 text-sm">
               <input type="checkbox" checked={a.notify_roles.includes(r)} onChange={(e) => set("notify_roles", toggle(a.notify_roles, r, e.target.checked))} className={tick} />
-              {ROLE_LABELS[r]}s
+              {ROLE_PLURALS[r]}
             </label>
           ))}
           <label className={`col-span-2 flex min-h-10 items-center gap-2 text-sm ${TIMED(a.when_kind) ? "hidden" : ""}`}>

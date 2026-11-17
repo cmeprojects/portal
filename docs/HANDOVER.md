@@ -73,6 +73,11 @@ Last updated: 17 Nov 2026.
   Screens: Clients pages and menu use the check; client page "Assigned staff"; Access page "Their
   assigned clients". Check: `supabase/setup/verify-107-after.sql`. **105 to 107 run on Dev (17 Nov 2026).**
   Undo order: 107, then 106, then 105. Test data only until SEC-003.
+- **Wording (17 Nov 2026, owner requests):** the base access level shows as "Standard access" (was
+  "Support worker"; the database value `support_worker` is unchanged); access levels described as the
+  base each role builds on; Staff list shows a role's function group, not its level; role picker grouped
+  by function group. Update 108: Service Delivery description "Frontline staff and team leaders
+  delivering services." (wording only). Waiting on the owner: 108.
 - **Menu sections in the side panel (17 Nov 2026, owner screenshot):** on wide screens with the full menu,
   each section heading opens the side panel listing its pages (sub-pages indented); the section holding
   this page is marked; My workspace stays inline; phone drawer unchanged (inline).
