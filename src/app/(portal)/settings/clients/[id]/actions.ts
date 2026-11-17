@@ -333,3 +333,55 @@ export async function closeClientReview(_: FormState, form: FormData): Promise<F
   revalidatePath(`/settings/clients/${clientId}`);
   return { message: status === "completed" ? "Completed." : "Cancelled." };
 }
+
+// cmeprojects (Care block C6, update 115): service agreements. The database
+// takes the scheme from the service's program, checks who may (Service
+// agreements, for this client) and fixes a signed agreement's dates and
+// signature.
+export async function saveAgreement(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const id = String(form.get("id") ?? "");
+  const serviceId = String(form.get("service_id") ?? "");
+  const documentId = String(form.get("document_id") ?? "");
+  const step = String(form.get("step") ?? "save");
+  if (!isId(clientId) || (id && !isId(id)) || (!id && !isId(serviceId)) || (documentId && !isId(documentId))) return { error: "Choose the service." };
+  const supabase = await createClient();
+  let error;
+  if (step === "sign" && id) {
+    const signedOn = ymd(form.get("signed_on"));
+    const by = String(form.get("signed_by_name") ?? "").trim().slice(0, 120);
+    if (!signedOn || !by) return { error: "Record when it was signed and who signed it." };
+    ({ error } = await supabase
+      .from("client_agreements")
+      .update({ status: "signed", signed_on: signedOn, signed_by_name: by, ...(documentId ? { document_id: documentId } : {}) })
+      .eq("id", id)
+      .eq("client_id", clientId));
+  } else {
+    const startsOn = ymd(form.get("starts_on"));
+    if (!startsOn) return { error: "Choose the start date." };
+    const status = String(form.get("status") ?? "draft");
+    const values = {
+      starts_on: startsOn,
+      ends_on: ymd(form.get("ends_on")),
+      status: ["draft", "sent"].includes(status) ? status : "draft",
+      notes: String(form.get("notes") ?? "").trim().slice(0, 1000),
+      document_id: documentId || null,
+    };
+    ({ error } = id
+      ? await supabase.from("client_agreements").update(values).eq("id", id).eq("client_id", clientId)
+      : await supabase.from("client_agreements").insert({ client_id: clientId, service_id: serviceId, ...values }));
+  }
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: step === "sign" ? "Recorded as signed." : id ? "Saved." : "Agreement added." };
+}
+
+export async function endAgreement(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(id) || !isId(clientId)) return;
+  await (await createClient()).from("client_agreements").update({ status: "ended" }).eq("id", id).eq("client_id", clientId);
+  revalidatePath(`/settings/clients/${clientId}`);
+}

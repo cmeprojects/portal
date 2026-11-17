@@ -13,7 +13,8 @@ import { ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
-import { archiveClientDocument, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { archiveClientDocument, endAgreement, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { AgreementForm, SignAgreementForm, type Agreement } from "./agreement-form";
 import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
@@ -87,6 +88,17 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
     return `${w ? (r.kind === "scheduled" ? w.review_label : w.change_review_label) : "Review"} (${w?.label ?? r.scheme})`;
   };
   const showReviews = reviews !== null && reviewsOn.data?.value !== false && (reviews.length > 0 || canReviews);
+  // cmeprojects (Care block C6): service agreements, one scheme each (from the service's program).
+  const [agreementsRes, agreementsOn, canAgreements] = await Promise.all([
+    supabase.from("client_agreements").select("id, service_id, scheme, status, starts_on, ends_on, signed_on, signed_by_name, document_id, notes").eq("client_id", id).order("status").order("starts_on", { ascending: false }),
+    supabase.from("app_settings").select("value").eq("key", "care.section_agreements").maybeSingle(),
+    canDoFor("clients.agreements", "edit", id),
+  ]);
+  const agreements = agreementsRes.error ? null : ((agreementsRes.data ?? []) as Agreement[]);
+  const schemeLabel = (k: string) => schemeWords.find((w) => w.key === k)?.label ?? k;
+  const agreementServices: [string, string][] = reviewServices.map((v) => [v.id, `${v.label} (${schemeLabel(v.scheme)})`]);
+  const showAgreements = agreements !== null && agreementsOn.data?.value !== false && (agreements.length > 0 || canAgreements);
+  const AGREEMENT_STATUS: Record<string, string> = { draft: "Draft", sent: "Sent for signing", signed: "Signed", ended: "Ended" };
   // cmeprojects (Care block C2): communication preferences, if that section is on.
   const [commsRes, commsOn, canComms] = await Promise.all([
     supabase.from("client_comms").select("preferred_contact, language, interpreter_needed, accessibility_needs, notes").eq("client_id", id).maybeSingle(),
@@ -365,6 +377,65 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
               <Add label="Schedule a review"><ReviewForm clientId={id} kind="scheduled" services={reviewServices} schemes={schemeWords} /></Add>
               <Add label="Raise a change of situation"><ReviewForm clientId={id} kind="change_of_situation" services={reviewServices} schemes={schemeWords} /></Add>
             </>
+          ) : null}
+        </Card>
+      ) : null}
+      {showAgreements && agreements ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Service agreements</h2>
+            <p className="text-sm text-muted">One per service, under that service&apos;s scheme. Once signed, its dates and signature are fixed: add a new agreement for changes.</p>
+          </div>
+          {agreements.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {agreements.map((a) => (
+                <li key={a.id} className={`px-3 py-2 ${a.status === "ended" ? "text-muted" : ""}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="min-w-40 flex-1 font-semibold">
+                      {reviewServices.find((v) => v.id === a.service_id)?.label ?? "Service"} · {schemeLabel(a.scheme)}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${a.status === "signed" ? "bg-good-soft" : a.status === "ended" ? "bg-line" : "bg-warn-soft"}`}>{AGREEMENT_STATUS[a.status] ?? a.status}</span>
+                  </div>
+                  <p className="text-xs text-muted">
+                    From {day(a.starts_on)}
+                    {a.ends_on ? ` to ${day(a.ends_on)}` : ""}
+                    {a.signed_on ? ` · signed ${day(a.signed_on)} by ${a.signed_by_name}` : ""}
+                    {a.document_id ? ` · document: ${label(docChoices, a.document_id) || "archived"}` : ""}
+                  </p>
+                  {a.notes ? <p className="mt-1 whitespace-pre-line">{a.notes}</p> : null}
+                  {canAgreements && a.status !== "ended" ? (
+                    <div className="mt-2 flex flex-col gap-2">
+                      {a.status !== "signed" ? (
+                        <>
+                          <details>
+                            <summary className="cursor-pointer text-xs font-semibold text-brand">Change</summary>
+                            <div className="mt-2"><AgreementForm clientId={id} agreement={a} services={agreementServices} documents={docChoices} /></div>
+                          </details>
+                          <details>
+                            <summary className="cursor-pointer text-xs font-semibold text-brand">Record as signed</summary>
+                            <div className="mt-2"><SignAgreementForm clientId={id} agreementId={a.id} documents={docChoices} /></div>
+                          </details>
+                        </>
+                      ) : null}
+                      <form action={endAgreement}>
+                        <input type="hidden" name="id" value={a.id} />
+                        <input type="hidden" name="client_id" value={id} />
+                        <button className="text-xs font-semibold text-brand underline">End this agreement</button>
+                      </form>
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No service agreements yet.</p>
+          )}
+          {canAgreements ? (
+            agreementServices.length ? (
+              <Add label="Add an agreement"><AgreementForm clientId={id} services={agreementServices} documents={docChoices} /></Add>
+            ) : (
+              <p className="text-sm text-muted">Add a service first.</p>
+            )
           ) : null}
         </Card>
       ) : null}

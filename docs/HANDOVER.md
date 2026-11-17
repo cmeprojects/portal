@@ -90,7 +90,9 @@ Last updated: 17 Nov 2026.
   situation (reason, due today, reminder straight away via the admin client calling run_care_alerts); reminders at
   the scheme's lead days, once each, and once overdue; reminders never include the reason; tests care_reviews.test.sql).
   **Text size (owner 17 Nov):** Tailwind text scale one step smaller in globals.css @theme; menu and small buttons too.
-  Next: C6 agreements, C7 funding. Updates from 115.
+  **C6 update 115** (client_agreements per service, scheme from its program; draft/sent/signed/ended; signing needs
+  date and signer; signed dates fixed; 30-day ending reminder; Intake sets up, Case Manager views; tests
+  care_agreements.test.sql). Next: C7 funding. Updates from 116.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client
