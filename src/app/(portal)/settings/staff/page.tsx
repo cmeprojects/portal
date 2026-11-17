@@ -2,7 +2,9 @@
 import { photoLinks, type PhotoOwner } from "@/lib/avatars";
 import { Avatar } from "@/components/avatar";
 import type { Metadata } from "next";
-import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { notFound } from "next/navigation";
+import { requireSession } from "@/lib/session";
+import { managesStaffFor } from "@/lib/module-access";
 import { rolesOn, teamsOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -36,7 +38,9 @@ async function joinedIds(): Promise<Set<string> | null> {
 }
 
 export default async function StaffPage() {
-  const { profile: me, features } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me, features } = await requireSession();
+  // Who manages staff: the Access page (update 101).
+  if (!(await managesStaffFor("view"))) notFound();
   // Teams or Roles switched off: hidden from everyone but the system admin (cmeprojects).
   const showTeams = me.role === "system_admin" || teamsOn(features);
   const showTitles = me.role === "system_admin" || rolesOn(features);

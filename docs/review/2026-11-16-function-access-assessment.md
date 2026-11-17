@@ -646,3 +646,33 @@ waiting.**
 - Proof: verify-100-after on the local copy, 313 people, 0 changed; full
   suite 1,281 pass; round trip clean; browser 10 of 10; lint and typecheck
   pass.
+
+## Stage 3b implementation record: Staff (17 Nov 2026)
+
+**Built and tested; live update 101 waiting.**
+
+- `people.staff` switched. `can_manage_people()` replaced by
+  `can('people.staff', 'view')` in the read policies (invitations,
+  staff_private, people_change_requests, work_overrides) and
+  `can('people.staff', 'edit')` in the write policies (invitations,
+  profiles) and functions (`log_admin_action`, `give_conditional_role`,
+  `guard_invitation`, `remove_avatar`, `guard_profile_update`).
+  `compliance_status` and `work_status`: "staff managers" = Staff (view);
+  "managers" = Onboarding (view) for that person (finishes update 95; team
+  leaders still their team's).
+- Defaults: managers and staff admins, all actions.
+- Unchanged: `can_manage_role` (which roles someone may give), staff admin
+  approval rules, managers decide change requests, "Who can invite", staff
+  records grants (names need Staff details access), system-admin-only
+  actions. `can_manage_people()` itself kept for Clients and car clients.
+- Note: Staff is a normal (not sensitive) part, so it can be given to a
+  whole function group; that includes private contact details
+  (staff_private). Mark it sensitive later if the owner prefers roles and
+  people only.
+- App: Staff page, actions, menu, invite page and the People panel use the
+  check; Staff grantable on the Access page.
+- Files: migration `20270215000001_staff_switch_over.sql`, `update-101.sql`,
+  `undo-101.sql`, `supabase/setup/verify-101-after.sql`,
+  `supabase/tests/staff_switch.test.sql` (16 checks).
+- Proof: verify-101-after locally, 313 people, 0 changed; full suite 1,297
+  pass; round trip clean; browser 10 of 10; lint and typecheck pass.

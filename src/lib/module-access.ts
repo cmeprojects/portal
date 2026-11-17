@@ -40,6 +40,9 @@ export const seesAllRequestsFor = async () => canDo("hr.requests", "view");
 // Teams (switched over, update 100): see and change teams.
 export const managesTeamsFor = async (action = "edit") => canDo("people.teams", action);
 
+// Staff (switched over, update 101): see and manage staff.
+export const managesStaffFor = async (action = "edit") => canDo("people.staff", action);
+
 // Reports (each report on its own; "export" = the Excel download). Switched
 // over (update 98, D-049): only the one permission check, set on the Access
 // page. Car managers also see the car reports.

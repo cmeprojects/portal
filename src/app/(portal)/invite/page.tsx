@@ -1,7 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { requireSession, PEOPLE_MANAGERS } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { managesStaffFor } from "@/lib/module-access";
 import { canInvite, getPeopleRules } from "@/lib/settings";
 import { Card, PageHeader } from "@/components/ui";
 import { InviteForm } from "../settings/staff/forms";
@@ -12,7 +13,7 @@ export const metadata: Metadata = { title: "Invite staff" };
 // leaders, if the system admin allows it). Invites are always general.
 export default async function InvitePage() {
   const { profile: me } = await requireSession();
-  if (PEOPLE_MANAGERS.includes(me.role)) redirect("/settings/staff");
+  if (await managesStaffFor()) redirect("/settings/staff");
   if (!canInvite(me.role, await getPeopleRules())) redirect("/");
   return (
     <>

@@ -18,12 +18,11 @@ import {
 import { getTimeZone } from "@/lib/settings";
 import { onboardingOn } from "@/lib/feature-parts";
 import type { Role } from "@/lib/roles";
+import { managesStaffFor } from "@/lib/module-access";
 import { ProfileCard } from "@/components/profile-card";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
 import { SensitiveRecords } from "./sensitive-records";
 import { Card } from "@/components/ui";
-
-const PEOPLE_MANAGERS = ["manager", "staff_admin", "system_admin"];
 
 // cmeprojects: one person at a glance: their business card, then their open
 // tasks, requests and compliance beside it. People who manage staff edit in a
@@ -39,7 +38,8 @@ export async function PersonPanel({
 }) {
   const person = await loadPerson(id);
   if (!person) return null;
-  const manager = PEOPLE_MANAGERS.includes(viewer.role);
+  // Manages staff: the Access page (update 101).
+  const manager = await managesStaffFor("view");
   const me = person.id === viewer.id;
   const overseer = manager || viewer.role === "team_leader";
   const supabase = await createClient();

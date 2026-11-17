@@ -24,6 +24,8 @@ export type NavAccess = {
   allRequests?: boolean;
   // Sees and manages Teams (Access page, update 100).
   teams?: boolean;
+  // Sees and manages Staff (Access page, update 101).
+  staff?: boolean;
   // Live features built in the Feature builder that this person uses.
   customFeatures?: { slug: string; label: string }[];
   // Their reports, for those ticked under "Who sees every entry".
@@ -77,7 +79,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
         ]
       : [],
     people: [
-      peopleManager && { href: "/settings/staff", text: "Staff" },
+      Boolean(access.staff) && { href: "/settings/staff", text: "Staff" },
       // Switched off: only the system admin still sees them (cmeprojects).
       Boolean(access.teams) && (admin || teamsOn(features)) && { href: "/settings/teams", text: "Teams" },
       (admin || (rolesOn(features) && (access.adminAreas ?? []).includes("roles"))) && { href: "/settings/roles", text: "Roles" },
@@ -85,7 +87,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       requests && approver && { href: "/people/requests", text: "Staff requests" },
       access.seesCompliance && { href: "/compliance", text: "Onboarding" },
       (admin || Boolean(access.contracts)) && { href: "/contracts", text: "Contracts" },
-      !peopleManager && access.canInvite && { href: "/invite", text: "Invite staff" },
+      !access.staff && access.canInvite && { href: "/invite", text: "Invite staff" },
     ],
     reports: [
       Boolean(access.seesReports) && features.reports !== false && { href: "/reports", text: "Tasks" },

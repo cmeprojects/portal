@@ -17,7 +17,6 @@ export const UNSUPPORTED_DELEGATION: Record<string, Unsupported> = {
     badge: "Set by role",
     note: `Who sees and changes tasks follows their role (managers see every team's tasks; team leaders their team's; staff their own). It ${ROLE_NOTE}`,
   },
-  "people.staff": { kind: "role", badge: "Set by role", note: `Managers, staff admins and the system admin manage staff through their role. It ${ROLE_NOTE}` },
   "clients.list": { kind: "role", badge: "Set by role", note: `Managers, staff admins and the system admin manage clients through their role. It ${ROLE_NOTE}` },
   "workflows.sla": {
     kind: "unavailable",

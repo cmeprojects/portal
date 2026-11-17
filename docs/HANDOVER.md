@@ -46,7 +46,12 @@ Last updated: 17 Nov 2026.
 - **Teams switched over (17 Nov 2026, update 100).** Managing teams is now `can('people.teams', 'edit')`;
   defaults managers and staff admins; staff admins' membership changes still go for approval while that
   People rule is on. Owner will run 99 onwards later ("i will all the sqls later"). Check script:
-  `supabase/setup/verify-100-after.sql`. Next: Staff.
+  `supabase/setup/verify-100-after.sql`.
+- **Staff switched over (17 Nov 2026, update 101).** Staff page, invitations, private details, role and
+  team changes (within `can_manage_role` limits) now `can('people.staff', ...)`; defaults managers and
+  staff admins. Also finishes 95: onboarding status functions follow Onboarding (view) per person.
+  Check: `supabase/setup/verify-101-after.sql`. `can_manage_people()` now only used by Clients and car
+  clients (switch with Stage 5). Next: Due dates (SLA) and Request approvals, then Tasks.
 - **Plan (approved 17 Nov 2026):** the hard-coded parts share one helper,
   `can_manage_people()` (managers, staff admins, system admin), used by 35 policies on 17 tables and 9
   functions, covering Staff, Teams, Staff requests, Clients and car clients. Switching them means

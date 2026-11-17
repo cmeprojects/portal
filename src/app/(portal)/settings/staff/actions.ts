@@ -4,7 +4,15 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireRole, requireSession, PEOPLE_MANAGERS } from "@/lib/session";
+import { requireRole, requireSession } from "@/lib/session";
+import { managesStaffFor } from "@/lib/module-access";
+
+// Who manages staff: the Access page (update 101). The database checks too.
+async function requireStaff() {
+  const session = await requireSession();
+  if (!(await managesStaffFor())) throw new Error("You can't manage staff.");
+  return session;
+}
 import { assignableRoles, parseRoleChoice } from "@/lib/roles";
 import { friendlyError } from "@/lib/db-error";
 import { EMAIL, text, type FormState } from "@/lib/form";
@@ -66,7 +74,7 @@ export async function invitePerson(_: FormState, form: FormData): Promise<FormSt
 }
 
 export async function updatePerson(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me } = await requireStaff();
   const id = text(form, "id");
   if (id === me.id) return { error: "You can't change your own role." };
 
@@ -124,7 +132,7 @@ export async function decideChangeRequest(form: FormData) {
 }
 
 export async function setActive(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireStaff();
   const id = text(form, "id");
   const active = text(form, "active") === "true";
 
@@ -140,7 +148,7 @@ export async function setActive(_: FormState, form: FormData): Promise<FormState
 }
 
 export async function resendInvite(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me } = await requireStaff();
   const id = text(form, "id");
   const supabase = await createClient();
   const { data: person } = await supabase.from("profiles").select("email, full_name").eq("id", id).single();
@@ -156,7 +164,7 @@ export async function resendInvite(_: FormState, form: FormData): Promise<FormSt
 // to keep). Anyone who did set up, or has anything linked to them, is
 // deactivated instead so their records stay.
 export async function deleteUnstarted(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me } = await requireStaff();
   const id = text(form, "id");
   const supabase = await createClient();
   // Seen through the person's own permissions: only people they manage.
@@ -183,7 +191,7 @@ export async function deleteUnstarted(_: FormState, form: FormData): Promise<For
 }
 
 export async function resetTwoFactor(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireStaff();
   const id = text(form, "id");
   const supabase = await createClient();
   // Logged (and permission-checked) by the database before anything changes.
@@ -200,7 +208,7 @@ export async function resetTwoFactor(_: FormState, form: FormData): Promise<Form
 
 // Email them a link to set a new password (the database checks who may).
 export async function sendResetLink(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me } = await requireStaff();
   const id = text(form, "id");
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("can_help_sign_in", { p_user: id });
@@ -215,7 +223,7 @@ export async function sendResetLink(_: FormState, form: FormData): Promise<FormS
 
 // Forget their Cars app PIN, so they choose a new one after signing in.
 export async function clearCarPin(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireStaff();
   const id = text(form, "id");
   const supabase = await createClient();
   const { error } = await supabase.rpc("log_admin_action", { p_action: "pin_cleared", p_user_id: id });
@@ -226,7 +234,7 @@ export async function clearCarPin(_: FormState, form: FormData): Promise<FormSta
 
 // cmeprojects: remove someone's profile photo (people who manage staff).
 export async function removePersonPhoto(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireStaff();
   const { error } = await (await createClient()).rpc("remove_avatar", { p_user: text(form, "id") });
   if (error) return { error: friendlyError(error) };
   revalidatePath("/settings/staff");
@@ -236,7 +244,7 @@ export async function removePersonPhoto(_: FormState, form: FormData): Promise<F
 // A role before onboarding is finished: reason, deadline, and a "Finish
 // onboarding" task. Staff admins send it to a manager; managers give it.
 export async function giveConditionalRole(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireStaff();
   const supabase = await createClient();
   const choice = parseRoleChoice(text(form, "role"), await activeTitles(supabase));
   if (!choice || choice.role === "new_starter") return { error: "Choose the role they'll have." };
@@ -267,7 +275,7 @@ export async function giveConditionalRole(_: FormState, form: FormData): Promise
 
 // Change someone's name (people managers; only a system admin renames a system admin).
 export async function renamePerson(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireStaff();
   const id = text(form, "id");
   const name = text(form, "full_name").slice(0, 120);
   if (name.length < 2) return { error: "Type their full name." };
@@ -282,7 +290,7 @@ export async function renamePerson(_: FormState, form: FormData): Promise<FormSt
 // that changes is saved as it would be on the Teams page (a staff admin's
 // change goes to a manager when the rules say so).
 export async function setPersonTeams(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me } = await requireStaff();
   const id = text(form, "id");
   const wanted = new Set(form.getAll("teams").map(String));
   const supabase = await createClient();
@@ -315,7 +323,7 @@ export async function setPersonTeams(_: FormState, form: FormData): Promise<Form
 // cmeprojects: one Save for a person's row. Saves the name, teams and role
 // that were on the form, each with its own rules, and says what changed.
 export async function savePerson(_: FormState, form: FormData): Promise<FormState> {
-  const { profile: me } = await requireRole(PEOPLE_MANAGERS);
+  const { profile: me } = await requireStaff();
   const id = text(form, "id");
   const supabase = await createClient();
   const { data: current } = await supabase.from("profiles").select("full_name").eq("id", id).single();
