@@ -132,3 +132,10 @@ export const DOC_TYPE_LABELS: [string, string][] = [
   ["identity", "Identity"],
   ["other", "Other"],
 ];
+
+// cmeprojects (Care block C7): how an NDIS plan is managed (NDIS budgets only).
+export const PLAN_MANAGEMENT: [string, string][] = [
+  ["ndia", "NDIA-managed"],
+  ["plan", "Plan-managed"],
+  ["self", "Self-managed"],
+];

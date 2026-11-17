@@ -13,13 +13,14 @@ import { ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
-import { archiveClientDocument, endAgreement, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { archiveClientDocument, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
 import { AgreementForm, SignAgreementForm, type Agreement } from "./agreement-form";
 import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
 import { canDoFor } from "@/lib/module-access";
-import { ALERT_KINDS, ASSIGNED_AS, DOC_TYPE_LABELS, PERSON_KINDS, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
+import { ALERT_KINDS, ASSIGNED_AS, DOC_TYPE_LABELS, PERSON_KINDS, PLAN_MANAGEMENT, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -99,6 +100,15 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
   const agreementServices: [string, string][] = reviewServices.map((v) => [v.id, `${v.label} (${schemeLabel(v.scheme)})`]);
   const showAgreements = agreements !== null && agreementsOn.data?.value !== false && (agreements.length > 0 || canAgreements);
   const AGREEMENT_STATUS: Record<string, string> = { draft: "Draft", sent: "Sent for signing", signed: "Signed", ended: "Ended" };
+  // cmeprojects (Care block C7): funding and budgets, scheme rules kept apart.
+  const [fundingRes, fundingOn, canFunding] = await Promise.all([
+    supabase.from("client_funding").select("id, service_id, scheme, period_start, period_end, total_amount, used_amount, used_as_of, plan_management, classification, status, notes").eq("client_id", id).order("status").order("period_start", { ascending: false }),
+    supabase.from("app_settings").select("value").eq("key", "care.section_funding").maybeSingle(),
+    canDoFor("clients.funding", "edit", id),
+  ]);
+  const funding = fundingRes.error ? null : ((fundingRes.data ?? []) as Funding[]);
+  const showFunding = funding !== null && fundingOn.data?.value !== false && (funding.length > 0 || canFunding);
+  const aud = (n: number) => Number(n).toLocaleString("en-AU", { style: "currency", currency: "AUD" });
   // cmeprojects (Care block C2): communication preferences, if that section is on.
   const [commsRes, commsOn, canComms] = await Promise.all([
     supabase.from("client_comms").select("preferred_contact, language, interpreter_needed, accessibility_needs, notes").eq("client_id", id).maybeSingle(),
@@ -433,6 +443,64 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           {canAgreements ? (
             agreementServices.length ? (
               <Add label="Add an agreement"><AgreementForm clientId={id} services={agreementServices} documents={docChoices} /></Add>
+            ) : (
+              <p className="text-sm text-muted">Add a service first.</p>
+            )
+          ) : null}
+        </Card>
+      ) : null}
+      {showFunding && funding ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Funding and budgets</h2>
+            <p className="text-sm text-muted">One budget per service and period, under that service&apos;s scheme. A record for planning (AUD), not invoicing.</p>
+          </div>
+          {funding.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {funding.map((f) => {
+                const total = Number(f.total_amount);
+                const used = Number(f.used_amount);
+                const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+                return (
+                  <li key={f.id} className={`px-3 py-2 ${f.status === "ended" ? "text-muted" : ""}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="min-w-40 flex-1 font-semibold">
+                        {reviewServices.find((v) => v.id === f.service_id)?.label ?? "Service"} · {schemeLabel(f.scheme)}
+                        {f.plan_management ? ` · ${label(PLAN_MANAGEMENT, f.plan_management)}` : ""}
+                        {f.classification ? ` · classification ${f.classification}` : ""}
+                      </span>
+                      {f.status === "ended" ? <span className="rounded-full bg-line px-2 py-0.5 text-xs font-semibold">Ended</span> : null}
+                    </div>
+                    <p className="text-xs text-muted">
+                      {day(f.period_start)} to {day(f.period_end)} · {aud(used)} of {aud(total)} used ({pct}%){f.used_as_of ? ` as at ${day(f.used_as_of)}` : ""} · {aud(Math.max(0, total - used))} left
+                    </p>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line" aria-hidden="true">
+                      <div className={`h-full ${pct >= 90 ? "bg-danger" : pct >= 75 ? "bg-warn" : "bg-good"}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    {f.notes ? <p className="mt-1 whitespace-pre-line">{f.notes}</p> : null}
+                    {canFunding && f.status !== "ended" ? (
+                      <div className="mt-2 flex flex-col gap-2">
+                        <details>
+                          <summary className="cursor-pointer text-xs font-semibold text-brand">Update what&apos;s been used</summary>
+                          <div className="mt-2"><FundingUsedForm clientId={id} funding={f} /></div>
+                        </details>
+                        <form action={endFunding}>
+                          <input type="hidden" name="id" value={f.id} />
+                          <input type="hidden" name="client_id" value={id} />
+                          <button className="text-xs font-semibold text-brand underline">End this budget</button>
+                        </form>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No budgets yet.</p>
+          )}
+          {canFunding ? (
+            reviewServices.length ? (
+              <Add label="Add a budget"><FundingForm clientId={id} services={reviewServices.map((v) => ({ ...v, schemeLabel: schemeLabel(v.scheme) }))} /></Add>
             ) : (
               <p className="text-sm text-muted">Add a service first.</p>
             )

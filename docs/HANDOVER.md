@@ -92,7 +92,10 @@ Last updated: 17 Nov 2026.
   **Text size (owner 17 Nov):** Tailwind text scale one step smaller in globals.css @theme; menu and small buttons too.
   **C6 update 115** (client_agreements per service, scheme from its program; draft/sent/signed/ended; signing needs
   date and signer; signed dates fixed; 30-day ending reminder; Intake sets up, Case Manager views; tests
-  care_agreements.test.sql). Next: C7 funding. Updates from 116.
+  care_agreements.test.sql). **C7 update 116** (client_funding per service and period, scheme from its program; NDIS
+  needs plan management, Support at Home needs classification 1 to 8, never mixed (trigger); total and used in AUD,
+  no invoicing; Case Manager views; tests care_funding.test.sql). **Care block C0 to C7 built; 109 to 116 waiting
+  for the owner to run on Dev.** Later: client list redesign, more defaults for the new roles, HR block, Stage 6.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

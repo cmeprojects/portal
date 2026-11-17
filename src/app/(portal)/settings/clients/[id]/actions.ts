@@ -385,3 +385,60 @@ export async function endAgreement(form: FormData) {
   await (await createClient()).from("client_agreements").update({ status: "ended" }).eq("id", id).eq("client_id", clientId);
   revalidatePath(`/settings/clients/${clientId}`);
 }
+
+// cmeprojects (Care block C7, update 116): funding and budgets. The database
+// takes the scheme from the service's program and keeps each scheme's rules
+// apart (NDIS: plan management; Support at Home: classification).
+const money = (v: FormDataEntryValue | null) => {
+  const n = Number(String(v ?? "").replace(/[$,\s]/g, ""));
+  return Number.isFinite(n) && n >= 0 && n < 1e10 ? Math.round(n * 100) / 100 : null;
+};
+
+export async function saveFunding(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const id = String(form.get("id") ?? "");
+  const serviceId = String(form.get("service_id") ?? "");
+  if (!isId(clientId) || (id && !isId(id)) || (!id && !isId(serviceId))) return { error: "Choose the service." };
+  const supabase = await createClient();
+  if (id) {
+    const used = money(form.get("used_amount"));
+    if (used === null) return { error: "Enter the amount used, in dollars." };
+    const { error } = await supabase
+      .from("client_funding")
+      .update({ used_amount: used, used_as_of: ymd(form.get("used_as_of")) ?? new Date().toISOString().slice(0, 10), notes: String(form.get("notes") ?? "").trim().slice(0, 1000) })
+      .eq("id", id)
+      .eq("client_id", clientId);
+    if (error) return { error: friendlyError(error) };
+  } else {
+    const start = ymd(form.get("period_start"));
+    const end = ymd(form.get("period_end"));
+    const total = money(form.get("total_amount"));
+    if (!start || !end) return { error: "Choose the period." };
+    if (total === null) return { error: "Enter the total, in dollars." };
+    const pm = String(form.get("plan_management") ?? "");
+    const cls = Number(form.get("classification") ?? "");
+    const { error } = await supabase.from("client_funding").insert({
+      client_id: clientId,
+      service_id: serviceId,
+      period_start: start,
+      period_end: end,
+      total_amount: total,
+      plan_management: ["ndia", "plan", "self"].includes(pm) ? pm : null,
+      classification: Number.isInteger(cls) && cls >= 1 && cls <= 8 ? cls : null,
+      notes: String(form.get("notes") ?? "").trim().slice(0, 1000),
+    });
+    if (error) return { error: friendlyError(error) };
+  }
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: id ? "Saved." : "Budget added." };
+}
+
+export async function endFunding(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(id) || !isId(clientId)) return;
+  await (await createClient()).from("client_funding").update({ status: "ended" }).eq("id", id).eq("client_id", clientId);
+  revalidatePath(`/settings/clients/${clientId}`);
+}
