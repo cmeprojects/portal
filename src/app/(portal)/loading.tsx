@@ -1,13 +1,26 @@
 // Staff Portal · © cmeproject. All rights reserved.
 
+import { getBranding } from "@/lib/branding";
+
 // Shown straight away while a page loads, so a tap never looks ignored.
 // cmeprojects: grey shapes in the page's layout (title, number tiles, a list),
-// gently pulsing, instead of a blank screen.
-export default function Loading() {
+// gently pulsing, under a dimmed layer with the company's logo and a turning
+// ring (owner, 17 Nov 2026).
+export default async function Loading() {
+  const brand = await getBranding();
   const block = "animate-pulse rounded-xl bg-line/60 motion-reduce:animate-none";
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-6">
       <span className="sr-only">Loading…</span>
+      <div aria-hidden="true" className="fixed inset-0 z-40 flex items-center justify-center bg-ink/25 backdrop-blur-[1px]">
+        <span className="relative flex size-24 items-center justify-center">
+          <span className="absolute inset-0 animate-spin rounded-full border-4 border-brand/20 border-t-brand motion-reduce:animate-none" />
+          <span className="flex size-16 items-center justify-center rounded-full bg-white p-2 shadow-lg">
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo address is set per company */}
+            <img src={brand.logoMarkUrl} alt="" className="max-h-full max-w-full object-contain" />
+          </span>
+        </span>
+      </div>
       <div className="flex flex-col gap-2">
         <div className={`${block} h-8 w-48`} />
         <div className={`${block} h-4 w-72 max-w-full`} />

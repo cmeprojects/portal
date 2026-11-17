@@ -2,8 +2,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
 import { inputClass } from "@/components/ui";
 import { ClientCareForm } from "./care-forms";
 import { ClientRow, ClientStatusChip } from "../../cars/manage/forms";
@@ -19,6 +20,9 @@ export type ListClient = {
   active: boolean;
   age: number | null;
   ndisNumber: string;
+  email: string;
+  phone: string;
+  suburb: string;
   schemes: string[];
   services: string[];
   managers: { name: string; as: string }[];
@@ -42,7 +46,9 @@ const isArchived = (c: ListClient) => !c.active || c.status === "discharged";
 // sortable table with Active and Archived tabs; a client opens in a side
 // panel (Overview, Plan budget, Reviews and agreements). Each column only
 // holds what this person may already see (the database decides).
-export function ClientList({ clients, word, schemes, showNdis, showBudget }: { clients: ListClient[]; word: string; schemes: [string, string][]; showNdis: boolean; showBudget: boolean }) {
+export function ClientList({ clients, word, schemes, showNdis, showBudget, showContact }: { clients: ListClient[]; word: string; schemes: [string, string][]; showNdis: boolean; showBudget: boolean; showContact: boolean }) {
+  const router = useRouter();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [q, setQ] = useState("");
   const [scheme, setScheme] = useState("");
@@ -59,7 +65,7 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget }: { c
     const list = clients.filter(
       (c) =>
         (tab === "archived") === isArchived(c) &&
-        (!term || [c.name, c.preferredName, c.ref, c.reference, c.ndisNumber, ...c.services].some((v) => v.toLowerCase().includes(term))) &&
+        (!term || [c.name, c.preferredName, c.ref, c.reference, c.ndisNumber, c.email, c.suburb, ...c.services].some((v) => v.toLowerCase().includes(term))) &&
         (!scheme || c.schemes.includes(scheme)) &&
         (!manager || (manager === "-" ? c.managers.length === 0 : c.managers.some((m) => m.name === manager))) &&
         (!status || c.status === status),
@@ -106,12 +112,20 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget }: { c
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap items-end gap-2 p-3">
+      <div className="flex flex-wrap items-center gap-2 p-3">
+        <button type="button" onClick={() => setFiltersOpen((o) => !o)} aria-expanded={filtersOpen} className={`inline-flex h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold md:h-10 ${filtersOpen || scheme || manager || status ? "border-brand bg-brand-soft text-ink" : "border-field text-muted hover:text-ink"}`}>
+          <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
+        </button>
         <label className="relative min-w-48 flex-1">
           <span className="sr-only">Search</span>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search name, reference${showNdis ? ", NDIS number" : ""} or service`} className={`${inputClass} pl-8`} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search name, reference${showNdis ? ", NDIS number" : ""}${showContact ? ", email, suburb" : ""} or service`} className={`${inputClass} pl-8`} />
         </label>
+        <button type="button" onClick={() => router.refresh()} title="Refresh" aria-label="Refresh" className="inline-flex size-11 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink md:size-10">
+          <RefreshCw aria-hidden="true" className="size-4" />
+        </button>
+      </div>
+      <div className={`${filtersOpen ? "flex" : "hidden"} flex-wrap items-center gap-2 px-3 pb-3`}>
         <select aria-label="Scheme" value={scheme} onChange={(e) => setScheme(e.target.value)} className={`${inputClass.replace("w-full", "")} w-full sm:w-44`}>
           <option value="">All schemes</option>
           {schemes.map(([k, l]) => (
@@ -145,11 +159,14 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget }: { c
               <tr>
                 <HeadCell sort={sort} setSort={setSort} k="name">Name</HeadCell>
                 <HeadCell sort={sort} setSort={setSort} k="age" className="w-16">Age</HeadCell>
+                {showContact ? <HeadCell sort={sort} setSort={setSort}>Email</HeadCell> : null}
                 {showNdis ? <HeadCell sort={sort} setSort={setSort}>NDIS number</HeadCell> : null}
+                {showContact ? <HeadCell sort={sort} setSort={setSort}>Suburb</HeadCell> : null}
                 <HeadCell sort={sort} setSort={setSort}>Services</HeadCell>
                 <HeadCell sort={sort} setSort={setSort} k="manager">Assigned manager</HeadCell>
                 {showBudget ? <HeadCell sort={sort} setSort={setSort} k="used" className="w-36">Funds used</HeadCell> : null}
                 <HeadCell sort={sort} setSort={setSort} k="review">Next review</HeadCell>
+                <HeadCell sort={sort} setSort={setSort} className="w-20 text-right">Actions</HeadCell>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -168,7 +185,9 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget }: { c
                       </span>
                     </td>
                     <td className="px-3 py-2 text-muted">{c.age ?? ""}</td>
+                    {showContact ? <td className="max-w-48 truncate px-3 py-2 text-muted">{c.email}</td> : null}
                     {showNdis ? <td className="px-3 py-2 tabular-nums">{c.ndisNumber}</td> : null}
+                    {showContact ? <td className="px-3 py-2 text-muted">{c.suburb}</td> : null}
                     <td className="px-3 py-2">
                       <span className="flex flex-wrap gap-1">
                         {c.schemes.map((s) => (
@@ -196,6 +215,16 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget }: { c
                     ) : null}
                     <td className={`px-3 py-2 text-xs ${c.reviews[0]?.overdue ? "font-semibold text-danger" : "text-muted"}`}>
                       {c.reviews[0] ? `${c.reviews[0].label} · ${c.reviews[0].overdue ? "overdue" : day(c.reviews[0].due)}` : "—"}
+                    </td>
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <span className="flex justify-end gap-1">
+                        <Link href={`/settings/clients/${c.id}`} title="View" aria-label={`View ${c.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-brand-soft text-brand hover:opacity-80">
+                          <Eye aria-hidden="true" className="size-4" />
+                        </Link>
+                        <Link href={`/settings/clients/${c.id}/edit`} title="Edit" aria-label={`Edit ${c.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-good-soft text-ink hover:opacity-80">
+                          <Pencil aria-hidden="true" className="size-4" />
+                        </Link>
+                      </span>
                     </td>
                   </tr>
                 );
@@ -283,7 +312,7 @@ function Panel({ client: c, onClose, schemes, showBudget }: { client: ListClient
                 <dd>{c.alerts ? `${c.alerts} active` : "None active"}</dd>
               </dl>
               <Link href={`/settings/clients/${c.id}`} className="inline-flex w-fit rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-brand-fg hover:opacity-90">
-                Open full profile
+                View full profile
               </Link>
               <div className="border-t border-line pt-3">
                 <h3 className="mb-1 text-xs font-semibold uppercase text-muted">Status and preferred name</h3>

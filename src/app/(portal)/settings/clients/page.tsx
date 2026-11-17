@@ -15,6 +15,13 @@ import { PLAN_MANAGEMENT } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Clients" };
 
+// "4 Angaston Way, Truganina VIC 3029" -> "Truganina".
+function suburbOf(address: string) {
+  const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+  const part = parts.length > 1 ? parts[1] : "";
+  return part.replace(/\b(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)\b.*$/i, "").replace(/\d{4}$/, "").trim();
+}
+
 // The company's client list, used by Cars and by built features (for example Fluid intake).
 export default async function ClientsPage({ searchParams }: PageProps<"/settings/clients">) {
   // Who sees Clients: the Access page (update 107); which clients, the database.
@@ -52,7 +59,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   const [detailsRes, assignRes, servicesRes, fundingRes, reviewsRes, agreementsRes, alertsRes] = setup
     ? []
     : await Promise.all([
-        supabase.from("client_details").select("client_id, date_of_birth, ndis_number"),
+        supabase.from("client_details").select("client_id, date_of_birth, ndis_number, email, phone, home_address"),
         supabase.from("client_assignments").select("client_id, user_id, assigned_as, starts_on, ends_on").is("ended_at", null).in("assigned_as", ["case_manager", "support_coordinator"]),
         supabase.from("client_services").select("id, client_id, label, status, client_programs(scheme)").neq("status", "ended"),
         supabase.from("client_funding").select("client_id, service_id, scheme, total_amount, used_amount, used_as_of, period_start, period_end, plan_management, classification").eq("status", "active"),
@@ -77,7 +84,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
     const [ty, tm, td] = today.split("-").map(Number);
     return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
   };
-  const details = new Map(((detailsRes?.data ?? []) as { client_id: string; date_of_birth: string | null; ndis_number: string | null }[]).map((d) => [d.client_id, d]));
+  const details = new Map(((detailsRes?.data ?? []) as { client_id: string; date_of_birth: string | null; ndis_number: string | null; email: string | null; phone: string | null; home_address: string | null }[]).map((d) => [d.client_id, d]));
   const listClients: ListClient[] = clients.map((c) => {
     const mine = services.filter((v) => v.client_id === c.id);
     return {
@@ -90,6 +97,10 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       active: c.active,
       age: ageOf(details.get(c.id)?.date_of_birth ?? null),
       ndisNumber: details.get(c.id)?.ndis_number ?? "",
+      email: details.get(c.id)?.email ?? "",
+      phone: details.get(c.id)?.phone ?? "",
+      // The suburb only (the part before the state or postcode), not the full address.
+      suburb: suburbOf(details.get(c.id)?.home_address ?? ""),
       schemes: [...new Set(mine.map((v) => v.client_programs?.scheme ?? "other"))],
       services: mine.map((v) => v.label),
       managers: ((assignRes?.data ?? []) as { client_id: string; user_id: string; assigned_as: string; starts_on: string; ends_on: string | null }[])
@@ -121,6 +132,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       alerts: ((alertsRes?.data ?? []) as { client_id: string }[]).filter((a) => a.client_id === c.id).length,
     };
   });
+  const showContact = !detailsRes?.error && listClients.some((c) => c.email || c.suburb);
   const showNdis = !detailsRes?.error && listClients.some((c) => c.ndisNumber);
   const showBudget = !fundingRes?.error && (await canDo("clients.funding", "view"));
   return (
@@ -151,7 +163,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
               {toCheck.length > 5 ? " and more" : ""}. Open them, check their details and set the status (for example Active).
             </Notice>
           ) : null}
-          <ClientList clients={listClients} word={orgWord} schemes={schemes.map((x) => [x.key, x.label])} showNdis={showNdis} showBudget={showBudget} />
+          <ClientList clients={listClients} word={orgWord} schemes={schemes.map((x) => [x.key, x.label])} showNdis={showNdis} showBudget={showBudget} showContact={showContact} />
         </>
       )}
       {setup && !linkError && clients.some((c) => c.active) ? (
