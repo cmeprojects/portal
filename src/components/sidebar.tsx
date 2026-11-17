@@ -145,11 +145,20 @@ export function Sidebar({
   const startPeek = () => {
     if (!rail || drawer) return;
     if (peekTimer.current) clearTimeout(peekTimer.current);
+    if (peek) return;
     peekTimer.current = setTimeout(() => setPeek(true), 120);
   };
   const endPeek = () => {
     if (peekTimer.current) clearTimeout(peekTimer.current);
     setPeek(false);
+  };
+  // Leaving the menu closes it after a moment (time to reach the floating panel).
+  const leavePeek = () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    peekTimer.current = setTimeout(() => setPeek(false), 200);
+  };
+  const holdPeek = () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
   };
   useEffect(() => () => {
     if (peekTimer.current) clearTimeout(peekTimer.current);
@@ -177,6 +186,25 @@ export function Sidebar({
     const edge = asideRef.current?.getBoundingClientRect().right ?? r.right;
     setFly({ id, top: Math.max(8, Math.min(r.top - 4, window.innerHeight - 360)), left: edge });
   };
+  // Hover intent: while a panel is open, another heading takes over only after a
+  // short pause, so crossing headings on the way to the panel doesn't switch it.
+  const switchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverFly = (id: string, el: HTMLElement) => {
+    if (switchTimer.current) clearTimeout(switchTimer.current);
+    if (!fly || fly.id === id) {
+      openFly(id, el);
+      return;
+    }
+    keepFly();
+    switchTimer.current = setTimeout(() => openFly(id, el), 220);
+  };
+  const leaveHover = () => {
+    if (switchTimer.current) clearTimeout(switchTimer.current);
+    closeFly();
+  };
+  useEffect(() => () => {
+    if (switchTimer.current) clearTimeout(switchTimer.current);
+  }, []);
   useEffect(() => setFly(null), [path]);
   useEffect(() => {
     if (!fly) return;
@@ -227,8 +255,8 @@ export function Sidebar({
       return (
         <div
           className={`flex items-center gap-1 ${compact ? "" : "w-full"}`}
-          onMouseEnter={(e) => openFly(n.id, e.currentTarget)}
-          onMouseLeave={() => closeFly()}
+          onMouseEnter={(e) => hoverFly(n.id, e.currentTarget)}
+          onMouseLeave={leaveHover}
         >
           <Link
             href={n.href}
@@ -347,8 +375,8 @@ export function Sidebar({
                 aria-haspopup="menu"
                 aria-expanded={fly?.id === `c:${cat.id}`}
                 aria-current={here ? "true" : undefined}
-                onMouseEnter={(e) => openFly(`c:${cat.id}`, e.currentTarget)}
-                onMouseLeave={() => closeFly()}
+                onMouseEnter={(e) => hoverFly(`c:${cat.id}`, e.currentTarget)}
+                onMouseLeave={leaveHover}
                 onClick={(e) => (fly?.id === `c:${cat.id}` ? closeFly(true) : openFly(`c:${cat.id}`, e.currentTarget))}
                 className={`flex min-h-10 items-center justify-between rounded-lg px-3 text-[11px] font-semibold tracking-[0.12em] uppercase transition-colors hover:bg-side-hover hover:text-side-fg ${
                   fly?.id === `c:${cat.id}` ? "bg-side-hover text-side-fg" : here ? "text-side-fg" : "text-side-muted"
@@ -416,7 +444,7 @@ export function Sidebar({
         onMouseEnter={startPeek}
         onMouseLeave={(e) => {
           if ((e.relatedTarget as HTMLElement | null)?.closest?.('[role="menu"]')) return;
-          endPeek();
+          leavePeek();
         }}
         onFocus={startPeek}
         onBlur={(e) => {
@@ -457,13 +485,17 @@ export function Sidebar({
         <div
           role="menu"
           aria-label={`${flyNode.label} pages`}
-          onMouseEnter={keepFly}
+          onMouseEnter={() => {
+            if (switchTimer.current) clearTimeout(switchTimer.current);
+            keepFly();
+            holdPeek();
+          }}
           onMouseLeave={(e) => {
             closeFly();
-            if (!asideRef.current?.contains(e.relatedTarget as Node | null)) endPeek();
+            if (!asideRef.current?.contains(e.relatedTarget as Node | null)) leavePeek();
           }}
-          style={{ top: fly.top, left: fly.left }}
-          className="fixed z-50 hidden max-h-[calc(100vh-16px)] w-64 flex-col overflow-hidden rounded-r-xl border border-l-0 border-line bg-surface text-ink shadow-[8px_8px_24px_rgba(15,29,46,0.18)] md:flex print:hidden"
+          style={{ top: fly.top, left: (compact ? 76 : 256) + 10 }}
+          className="fixed z-50 hidden max-h-[calc(100vh-16px)] w-64 flex-col overflow-hidden rounded-xl border border-line bg-surface text-ink shadow-[0_18px_44px_rgba(0,0,0,0.38),0_4px_12px_rgba(0,0,0,0.22)] md:flex print:hidden"
         >
           <p className="shrink-0 border-b border-line px-4 py-2.5 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">{flyNode.label}</p>
           <div className="flex min-h-0 flex-col overflow-y-auto py-1">
