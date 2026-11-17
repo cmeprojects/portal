@@ -23,21 +23,58 @@ function fields(form: FormData) {
   };
 }
 
+// cmeprojects (Stage 2, update 93): the function groups ticked for a role.
+// Only checked when the page showed the choices (after update 93).
+function chosenGroups(form: FormData): { shown: boolean; ids: string[] } {
+  return { shown: form.get("fg_shown") === "1", ids: form.getAll("function_groups").map(String).filter((v) => /^[0-9a-f-]{36}$/.test(v)) };
+}
+
+async function linkGroups(supabase: Awaited<ReturnType<typeof createClient>>, titleId: string, ids: string[], actor: string, name: string): Promise<string | null> {
+  const { data: current, error: readError } = await supabase.from("job_title_functions").select("function_group_id").eq("job_title_id", titleId);
+  if (readError) return friendlyError(readError);
+  const have = new Set((current ?? []).map((r) => r.function_group_id as string));
+  const add = ids.filter((id) => !have.has(id));
+  const remove = [...have].filter((id) => !ids.includes(id));
+  if (add.length) {
+    const { error } = await supabase.from("job_title_functions").insert(add.map((function_group_id) => ({ job_title_id: titleId, function_group_id })));
+    if (error) return friendlyError(error);
+  }
+  if (remove.length) {
+    const { error } = await supabase.from("job_title_functions").delete().eq("job_title_id", titleId).in("function_group_id", remove);
+    if (error) return friendlyError(error);
+  }
+  if (add.length || remove.length) {
+    const { data: names } = await supabase.from("function_groups").select("id, name").in("id", [...add, ...remove]);
+    const nameOf = (id: string) => names?.find((n) => n.id === id)?.name ?? id;
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    await createAdminClient().from("audit_log").insert({ actor_id: actor, action: "role_function_groups_changed", entity: "job_title", entity_id: titleId, details: { role: name, added: add.map(nameOf), removed: remove.map(nameOf) } });
+  }
+  return null;
+}
+
 export async function addJobTitle(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole([...TITLE_EDITORS]);
+  const { profile } = await requireRole([...TITLE_EDITORS]);
+  const groups = chosenGroups(form);
+  if (groups.shown && !groups.ids.length) return { error: "Choose at least one function group." };
   const title = fields(form);
   if (!title.name) return { error: "Give the role a name." };
   if (!isRole(title.access_level) || title.access_level === "system_admin") return { error: "Choose an access level." };
   const supabase = await createClient();
-  const { error } = await supabase.from("job_titles").insert(title);
+  const { data: made, error } = await supabase.from("job_titles").insert(title).select("id").single();
   if (error) return { error: error.code === "23505" ? "There's already a role with that name." : friendlyError(error) };
+  if (groups.shown && made?.id) {
+    const linkError = await linkGroups(supabase, made.id as string, groups.ids, profile.id, title.name);
+    if (linkError) return { error: `Role added, but its function groups didn't save: ${linkError}` };
+  }
   revalidatePath(PAGE);
   return { message: `Role "${title.name}" added.` };
 }
 
 export async function saveJobTitle(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole([...TITLE_EDITORS]);
+  const { profile } = await requireRole([...TITLE_EDITORS]);
   const id = text(form, "id");
+  const groups = chosenGroups(form);
+  if (groups.shown && !groups.ids.length) return { error: "Choose at least one function group." };
   const title = { ...fields(form), active: form.get("active") === "on" };
   if (!title.name) return { error: "Give the role a name." };
   if (!isRole(title.access_level) || title.access_level === "system_admin") return { error: "Choose an access level." };
@@ -45,6 +82,10 @@ export async function saveJobTitle(_: FormState, form: FormData): Promise<FormSt
   const { data, error } = await supabase.from("job_titles").update(title).eq("id", id).select("id");
   if (error) return { error: error.code === "23505" ? "There's already a role with that name." : friendlyError(error) };
   if (!data?.length) return { error: "You don't have permission to change roles." };
+  if (groups.shown) {
+    const linkError = await linkGroups(supabase, id, groups.ids, profile.id, title.name);
+    if (linkError) return { error: linkError };
+  }
   revalidatePath(PAGE);
   revalidatePath("/settings/staff");
   return { message: "Saved." };

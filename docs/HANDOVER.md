@@ -18,7 +18,10 @@ Last updated: 17 Nov 2026.
 - **QA-009 done (16 Nov 2026):** dashboard panel shows each button only to people
   allowed to use it; clear refusal messages; same button style.
 - **Stage 1 (Function Groups) done:** update 92 run on Dev (17 Nov 2026). No SQL waiting.
-- **Next:** Stage 2 plan (job titles linked to function groups) for the owner's approval.
+- **Waiting on the owner:** run live update 93 on Dev (Stage 2: roles linked to function
+  groups): `supabase/live-updates/update-93.sql` (undo-93.sql); check the Roles page.
+- **In progress:** Stage 3 (function-group and job-title grants), approved by the owner
+  ("proceed to next stage", 17 Nov 2026).
 - **Approved (D-046):** AUD-016 clarification and Stage 1; six risk ratings (RSK-001 §3).
 - **Done today:** QA-007 (Access page: seven modules "Set by role"/"Not
   available"); QA-008 A1 (Dev setting Off; Demo not applicable) and A2

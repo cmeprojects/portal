@@ -17,12 +17,16 @@ export default async function RolesPage() {
   const { profile, features } = await requireSession();
   if (profile.role !== "system_admin" && !(rolesOn(features) && (await getMyAdminAreas(profile.role)).includes("roles"))) redirect("/");
   const supabase = await createClient();
-  const [{ data: rows }, { data: people }, groupsRes] = await Promise.all([
+  const [{ data: rows }, { data: people }, groupsRes, linksRes] = await Promise.all([
     supabase.from("job_titles").select(JOB_TITLE_COLUMNS).order("sort_order").order("name"),
     supabase.from("profiles").select("job_title_id").not("job_title_id", "is", null),
     // cmeprojects (Stage 1, update 92): hidden before the update.
     supabase.from("function_groups").select("id, key, name, description, active").order("sort_order").order("name"),
+    // cmeprojects (Stage 2, update 93): which groups each role belongs to (hidden before the update).
+    supabase.from("job_title_functions").select("job_title_id, function_group_id"),
   ]);
+  const links = linksRes.error ? null : ((linksRes.data ?? []) as { job_title_id: string; function_group_id: string }[]);
+  const groupsOf = (titleId: string) => (links ?? []).filter((l) => l.job_title_id === titleId).map((l) => l.function_group_id);
   const groups = groupsRes.error ? null : ((groupsRes.data ?? []) as { id: string; key: string; name: string; description: string; active: boolean }[]);
   const titles = (rows ?? []) as JobTitle[];
   const count = (id: string) => (people ?? []).filter((p) => p.job_title_id === id).length;
@@ -35,7 +39,7 @@ export default async function RolesPage() {
       />
       <Card className="p-5">
         <h2 className="mb-4 heading-sm">Add a role</h2>
-        <NewJobTitleForm />
+        <NewJobTitleForm groups={links && groups ? groups : null} />
       </Card>
 
       {titles.length === 0 ? (
@@ -56,7 +60,7 @@ export default async function RolesPage() {
                   <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>
                 </summary>
                 <div className="border-t border-line px-5 py-5">
-                  <JobTitleForm title={t} inUse={count(t.id)} />
+                  <JobTitleForm title={t} inUse={count(t.id)} groups={links && groups ? groups : null} chosen={groupsOf(t.id)} />
                 </div>
               </details>
             </Card>
@@ -68,7 +72,7 @@ export default async function RolesPage() {
         <Card className="p-5">
           <h2 className="heading-sm">Function groups</h2>
           <p className="mb-3 text-sm text-muted">
-            The business functions roles belong to, for example Care &amp; Coordination. Groups don&apos;t give anyone access yet; roles are linked to them in a later step. A group is never deleted: untick In use instead.
+            The business functions roles belong to, for example Care &amp; Coordination. Each role belongs to at least one group. Groups don&apos;t give anyone access yet. A group is never deleted: untick In use instead.
           </p>
           <ul className="divide-y divide-line rounded-md border border-line">
             {groups.map((g) => (
@@ -76,6 +80,7 @@ export default async function RolesPage() {
                 <details className="group">
                   <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 [&::-webkit-details-marker]:hidden">
                     <span className={`min-w-40 flex-1 font-semibold ${g.active ? "" : "text-muted"}`}>{g.name}</span>
+                    {links ? <span className="text-sm text-muted">{links.filter((l) => l.function_group_id === g.id).length} roles</span> : null}
                     {g.active ? <Badge tone="good">In use</Badge> : <Badge tone="grey">Not in use</Badge>}
                     <span className="text-sm font-semibold text-brand group-open:hidden">Edit</span>
                     <span className="hidden text-sm font-semibold text-brand group-open:inline">Close</span>

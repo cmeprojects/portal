@@ -347,3 +347,30 @@ the owner to review and run on Dev.**
 - Rollback: `undo-92.sql` (removes the list; nothing else uses it).
 
 - **Run on Dev by the owner, 17 Nov 2026** (update 92). Stage 1 complete.
+
+## Stage 2 implementation record (17 Nov 2026)
+
+Approved by the owner ("approve", 17 Nov 2026, with the starting mapping).
+**Built and tested; live update 93 waiting for the owner to run on Dev.**
+
+- Files: `supabase/migrations/20270207000001_job_title_functions.sql`,
+  `supabase/live-updates/update-93.sql`, `undo-93.sql`,
+  `supabase/tests/job_title_functions.test.sql`; Roles page
+  (`page.tsx`, `forms.tsx`, `actions.ts`). Fresh install rebuilt.
+- `job_title_functions` (role ↔ group, ON DELETE RESTRICT both ways):
+  members read; Roles-area holders link and unlink; only active groups can be
+  linked; a group can't be deactivated while an active role uses it;
+  deactivating a role keeps its links. Existing roles linked once by access
+  level (support worker and team leader: Service Delivery; manager:
+  Management & Administration; staff admin: HR & Workforce; external: Allied
+  Health). Roles page: tick groups on add and edit (at least one, checked in
+  the browser before sending and again by the server); groups show role
+  counts; changes logged (`role_function_groups_changed`). No new SECURITY
+  DEFINER. No grants, no change to `can()` or any role check.
+- Tests: 10 new database checks; full suite 1,156 pass; lint, typecheck,
+  unit, build pass; round trip with five test roles locally (mapping exactly
+  as approved; undo matches; re-apply matches); browser: a new role needs a
+  group, saves with it and is logged, edit adds a second group, a role can't
+  be saved with no group (nothing typed is lost), counts shown, phone width,
+  no errors. Local test roles removed afterwards.
+- Rollback: `undo-93.sql` (removes the links, restores the Stage 1 guard).
