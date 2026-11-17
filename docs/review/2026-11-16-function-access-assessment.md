@@ -749,3 +749,42 @@ Owner: "go ahead". **Built and tested; live update 104 waiting.**
   `update-104.sql`, `undo-104.sql`,
   `supabase/tests/function_group_modules.test.sql` (13 checks).
 - Proof: full suite 1,339 pass; round trip clean; lint and typecheck pass.
+
+## Stage 5 implementation record: Clients (17 Nov 2026)
+
+Owner approved the recommendations and asked for no step approvals (D-051).
+**Built and tested; live updates 105, 106, 107 waiting.**
+
+- 105: seven client parts (sensitive: details, contacts, risk notes,
+  services); roles Case Manager and Intake & Assessment Officer (Care &
+  Coordination), Payroll & Rostering (HR & Workforce, Finance & Accounts),
+  support worker level. No access change.
+- 106: `client_assignments` (client, staff member, as what, from, until;
+  ended with who and when, never deleted; no self-assignment except the
+  system admin; active staff only, not new starters). Scope "assigned"
+  added to role, group and access-level grants; in `can()` the person is
+  the client for client parts: "assigned" = a current assignment, "own
+  teams" = the client's team is one of mine. "Assigned" never applies to
+  Assigning staff (directly or inherited), so a case manager can't assign
+  staff to their own clients and the assignments rules can't loop.
+- 107: every client policy (31) and `guard_client_record` use
+  `can('clients.<part>', view/edit, client)`. Fast path: the check once per
+  query for "everyone's clients"; otherwise only the person's own assigned
+  and team clients are checked one by one. `client_teams` uses assignments
+  only (it can't read itself). Defaults: managers and staff admins, every
+  part, everyone's. Case Manager: every part except assigning, assigned
+  only. Intake: every client; details, contacts, locations, alerts change;
+  risk notes, services view; assigning staff. Team staff rules unchanged.
+- App: Clients list and client page, their actions and the menu use the
+  check; "Assigned staff" section (assign with dates, end); Access page
+  scope "Their assigned clients" for client parts. The QA-007 role-only list
+  is now empty: every part follows the Access page.
+- Found and fixed while testing: inherited "assigned" scope gave case
+  managers Assigning staff on their clients (fixed in 106); `client_teams`
+  rule recursion (fixed in 107); re-running 107 after its undo didn't
+  restore role grants (fixed).
+- Proof: verify-107-after locally 311 people, 0 changed; tests 29 new
+  (clients_switch), full suite 1,368 pass; round trips 105, 106 (after
+  undoing 107), 107 clean; browser 8 of 8 (assign, case manager sees only
+  the assigned client, can't assign, ending removes access); lint,
+  typecheck, build pass.

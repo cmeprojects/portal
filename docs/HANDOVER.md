@@ -63,6 +63,16 @@ Last updated: 17 Nov 2026.
   after; gives no access); starting mapping for all six groups; Roles page edits it per group; Access
   page lists a group's (or role's groups') parts first; catalogue test: every part (except My workspace
   and protected ones) belongs to a group, new parts start not switched over with no grants. **104 run on Dev (17 Nov 2026).** Old role code: QA-007 list now holds only Clients (Stage 5).
+- **Stage 5 Clients (17 Nov 2026, updates 105 to 107, D-051).** 105: Clients split into parts (details,
+  contacts, risk notes, services sensitive; locations, alerts, assigning staff normal) and roles Case
+  Manager, Intake & Assessment Officer (Care & Coordination), Payroll & Rostering (HR, Finance), all
+  support worker level. 106: `client_assignments` (dated, ended never deleted, no self-assignment) and
+  scope "assigned clients only" in `can()` (never for Assigning staff). 107: every client rule asks
+  `can('clients.<part>', ..., client)`; defaults managers and staff admins (today's rule); Case Manager
+  all parts assigned only; Intake every client (risk notes and services view only) and assigns staff.
+  Screens: Clients pages and menu use the check; client page "Assigned staff"; Access page "Their
+  assigned clients". Check: `supabase/setup/verify-107-after.sql`. Waiting on the owner: 105, 106, 107.
+  Undo order: 107, then 106, then 105. Test data only until SEC-003.
 - **Menu sections in the side panel (17 Nov 2026, owner screenshot):** on wide screens with the full menu,
   each section heading opens the side panel listing its pages (sub-pages indented); the section holding
   this page is marked; My workspace stays inline; phone drawer unchanged (inline).

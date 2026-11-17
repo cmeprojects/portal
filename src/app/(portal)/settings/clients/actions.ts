@@ -2,14 +2,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { requireRole, requireSession } from "@/lib/session";
+import { seesClientsFor } from "@/lib/module-access";
+
+// Clients: the Access page (update 107); the database checks each client and part.
+async function requireClients() {
+  const session = await requireSession();
+  if (!(await seesClientsFor())) throw new Error("You can't change clients.");
+  return session;
+}
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 
 // cmeprojects: which team(s) look after a client (people who manage staff).
 export async function setClientTeams(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireClients();
   const clientId = String(form.get("client_id") ?? "");
   if (!/^[0-9a-f-]{36}$/.test(clientId)) return { error: "Choose a client." };
   const teamIds = form.getAll("team_ids").map(String).filter((t) => /^[0-9a-f-]{36}$/.test(t));
@@ -30,7 +38,7 @@ const isId = (v: string) => /^[0-9a-f-]{36}$/.test(v);
 // cmeprojects (Clients step 1): preferred name and status. The database keeps
 // who changed the status and when, and writes it to the change log.
 export async function saveClientCare(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireClients();
   const id = String(form.get("id") ?? "");
   const status = String(form.get("status") ?? "");
   if (!isId(id)) return { error: "Choose a client." };

@@ -537,7 +537,7 @@ async function RoleGroupAccessSection({ me, admin }: { me: string; admin: boolea
       }),
     )
   ).filter((m): m is BaselineModule => m !== null);
-  const live: BaselineRow[] = ((rows.data ?? []) as { job_title_id: string | null; function_group_id: string | null; access_level: string | null; module_id: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams"; granted_by: string | null }[]).map((r) => ({
+  const live: BaselineRow[] = ((rows.data ?? []) as { job_title_id: string | null; function_group_id: string | null; access_level: string | null; module_id: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams" | "assigned"; granted_by: string | null }[]).map((r) => ({
     holder: r.function_group_id ? `group:${r.function_group_id}` : r.job_title_id ? `title:${r.job_title_id}` : `level:${r.access_level}`,
     module: r.module_id,
     effect: r.effect,

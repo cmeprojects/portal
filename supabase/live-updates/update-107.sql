@@ -1,0 +1,137 @@
+-- Staff Portal · © cmeproject. All rights reserved.
+-- Update 107: Clients switched over to the one permission check (Stage 5b);
+-- defaults reproduce today's rule; Case Manager and Intake officer access.
+-- Safe to run again. Undo: undo-107.sql. Run update 106 first.
+begin;
+-- cmeprojects (update 107; function-based access, Stage 5b; owner approved
+-- the Stage 5 recommendations): Clients switched over to the one permission
+-- check `can()`.
+--
+--   * Every client rule that used the built-in "managers, staff admins and the
+--     system admin" now asks `can('clients.<part>', 'view' / 'edit', client)`.
+--   * Defaults reproduce today's rule: managers and staff admins, every part,
+--     everyone's clients. Nobody's access changes.
+--   * Unchanged: team staff still see their own teams' clients' approved
+--     current locations and active alerts (a team rule); car managers keep
+--     their car client rules; programs stay with the system admin.
+--   * New roles get their access (owner's decisions):
+--       - Case Manager: every part, view and change, assigned clients only;
+--         can't assign staff;
+--       - Intake & Assessment Officer: every client; details, contacts,
+--         locations and alerts view and change; risk notes and services view
+--         only; can add clients and assign staff;
+--       - Payroll & Rostering: no client access.
+--   * Fast: the check runs once per query for "everyone's clients"; for
+--     assigned and team clients it looks only at the person's own few.
+
+update public.app_modules set grant_ready = true
+ where id in ('clients.list', 'clients.details', 'clients.people', 'clients.locations', 'clients.alerts', 'clients.notes', 'clients.services', 'clients.assign') and not grant_ready;
+
+do $$
+begin
+  if exists (select 1 from public.access_baselines
+              where module_id like 'clients.%' and access_level is not null and revoked_at is null) then
+    return;
+  end if;
+  insert into public.access_baselines (access_level, module_id, actions, scope, note)
+  select l, m, '{}'::text[], 'all', 'Set at switch-over: managers and staff admins managed clients'
+    from unnest(array['manager', 'staff_admin']::public.app_role[]) l,
+         unnest(array['clients.list', 'clients.details', 'clients.people', 'clients.locations', 'clients.alerts', 'clients.notes', 'clients.services', 'clients.assign']) m;
+end $$;
+
+do $$
+declare
+  v_cm uuid := (select id from public.job_titles where name = 'Case Manager' and active limit 1);
+  v_io uuid := (select id from public.job_titles where name = 'Intake & Assessment Officer' and active limit 1);
+begin
+  if v_cm is not null and not exists (select 1 from public.access_baselines where job_title_id = v_cm and module_id like 'clients.%' and revoked_at is null) then
+    insert into public.access_baselines (job_title_id, module_id, actions, scope, note)
+    select v_cm, m, '{view,edit}', 'assigned', 'Case managers: their assigned clients'
+      from unnest(array['clients.list', 'clients.details', 'clients.people', 'clients.locations', 'clients.alerts', 'clients.notes', 'clients.services']) m;
+  end if;
+  if v_io is not null and not exists (select 1 from public.access_baselines where job_title_id = v_io and module_id like 'clients.%' and revoked_at is null) then
+    insert into public.access_baselines (job_title_id, module_id, actions, scope, note)
+    select v_io, x.m, x.a, 'all', 'Intake: every client'
+      from (values ('clients.list', '{view,edit}'::text[]), ('clients.details', '{view,edit}'), ('clients.people', '{view,edit}'),
+                   ('clients.locations', '{view,edit}'), ('clients.alerts', '{view,edit}'), ('clients.notes', '{view}'),
+                   ('clients.services', '{view}'), ('clients.assign', '{view,edit}')) x(m, a);
+  end if;
+end $$;
+
+drop policy if exists "people managers add clients" on public.car_clients;
+create policy "people managers add clients" on public.car_clients as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.list'::text, 'edit'::text, id))));
+drop policy if exists "people managers change clients" on public.car_clients;
+create policy "people managers change clients" on public.car_clients as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.list'::text, 'edit'::text, id)))) with check (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.list'::text, 'edit'::text, id))));
+drop policy if exists "people managers see clients" on public.car_clients;
+create policy "people managers see clients" on public.car_clients as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.list'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.list'::text, 'view'::text, id))));
+drop policy if exists "people managers add client_alert_notes" on public.client_alert_notes;
+create policy "people managers add client_alert_notes" on public.client_alert_notes as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.notes'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.notes'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_alert_notes" on public.client_alert_notes;
+create policy "people managers change client_alert_notes" on public.client_alert_notes as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.notes'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.notes'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.notes'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.notes'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_alert_notes" on public.client_alert_notes;
+create policy "people managers see client_alert_notes" on public.client_alert_notes as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.notes'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.notes'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client_alerts" on public.client_alerts;
+create policy "people managers add client_alerts" on public.client_alerts as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.alerts'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.alerts'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_alerts" on public.client_alerts;
+create policy "people managers change client_alerts" on public.client_alerts as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.alerts'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.alerts'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.alerts'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.alerts'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_alerts" on public.client_alerts;
+create policy "people managers see client_alerts" on public.client_alerts as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.alerts'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.alerts'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client_details" on public.client_details;
+create policy "people managers add client_details" on public.client_details as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.details'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.details'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_details" on public.client_details;
+create policy "people managers change client_details" on public.client_details as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.details'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.details'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.details'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.details'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_details" on public.client_details;
+create policy "people managers see client_details" on public.client_details as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.details'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.details'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client locations" on public.client_locations;
+create policy "people managers add client locations" on public.client_locations as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.locations'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.locations'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client locations" on public.client_locations;
+create policy "people managers change client locations" on public.client_locations as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.locations'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.locations'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.locations'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.locations'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client locations" on public.client_locations;
+create policy "people managers see client locations" on public.client_locations as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.locations'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.locations'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client_people" on public.client_people;
+create policy "people managers add client_people" on public.client_people as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.people'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.people'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_people" on public.client_people;
+create policy "people managers change client_people" on public.client_people as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.people'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.people'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.people'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.people'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_people" on public.client_people;
+create policy "people managers see client_people" on public.client_people as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.people'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.people'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client_services" on public.client_services;
+create policy "people managers add client_services" on public.client_services as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.services'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.services'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_services" on public.client_services;
+create policy "people managers change client_services" on public.client_services as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.services'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.services'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.services'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.services'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_services" on public.client_services;
+create policy "people managers see client_services" on public.client_services as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.services'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.services'::text, 'view'::text, client_id))));
+drop policy if exists "people managers link clients to teams" on public.client_teams;
+create policy "people managers link clients to teams" on public.client_teams as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL) AND public.can('clients.list'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers unlink clients from teams" on public.client_teams;
+create policy "people managers unlink clients from teams" on public.client_teams as PERMISSIVE for DELETE to authenticated using (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL) AND public.can('clients.list'::text, 'edit'::text, client_id))));
+
+CREATE OR REPLACE FUNCTION public.guard_client_record()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if tg_op = 'INSERT' then
+    new.client_ref := public.next_client_ref(); -- always made here, never chosen
+    if new.status <> 'pending' and auth.uid() is not null and not public.can('clients.list', 'edit', new.id) then
+      raise exception 'You can''t set a client''s status. Ask someone who manages clients.';
+    end if;
+    return new;
+  end if;
+  if new.client_ref is distinct from old.client_ref then
+    raise exception 'A client''s reference never changes.';
+  end if;
+  if new.status is distinct from old.status then
+    if auth.uid() is not null and not public.can('clients.list', 'edit', new.id) then
+      raise exception 'You can''t change this client''s status. Ask someone who manages clients.';
+    end if;
+    new.status_changed_at := now();
+    new.status_changed_by := auth.uid();
+    perform public.write_audit('client_status', 'client', new.id::text,
+      jsonb_build_object('client', new.client_ref, 'from', old.status, 'to', new.status));
+  end if;
+  return new;
+end;
+$function$;
+commit;

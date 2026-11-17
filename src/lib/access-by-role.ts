@@ -9,10 +9,8 @@
 // here only when its module really follows the Access page.
 export type Unsupported = { kind: "role" | "unavailable"; badge: string; note: string };
 
-const ROLE_NOTE = "can't be given or removed here.";
-
-export const UNSUPPORTED_DELEGATION: Record<string, Unsupported> = {
-  "clients.list": { kind: "role", badge: "Set by role", note: `Managers, staff admins and the system admin manage clients through their role. It ${ROLE_NOTE}` },
-};
+// cmeprojects (update 107): empty. Every part now follows the Access page; kept
+// for any future part that can't be given yet.
+export const UNSUPPORTED_DELEGATION: Record<string, Unsupported> = {};
 
 export const unsupportedDelegation = (id: string): Unsupported | undefined => UNSUPPORTED_DELEGATION[id];

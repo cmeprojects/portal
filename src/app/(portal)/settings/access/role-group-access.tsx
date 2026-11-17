@@ -8,7 +8,7 @@ import { saveBaselines, type BaselineEntry } from "./baseline-actions";
 // allowed: actions this person may give; everything: may give "all actions".
 export type BaselineModule = { id: string; label: string; actions: string[]; sensitive: boolean; allowed: string[]; everything: boolean };
 // mine: false for a grant someone else gave (a Manager Administrator can't change it).
-export type BaselineRow = { holder: string; module: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams"; mine: boolean };
+export type BaselineRow = { holder: string; module: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams" | "assigned"; mine: boolean };
 type Choice = { value: string; label: string };
 
 // cmeprojects (Stage 3, D-047): give a function group, a job title or an access
@@ -107,9 +107,10 @@ export function RoleGroupAccess({ modules, rows, groups, titles, levels, admin, 
                       <option value="restrict">Block</option>
                     </select>
                     {e ? (
-                      <select aria-label={`${m.label}: whose records`} value={e.scope} onChange={(ev) => set(m.id, { scope: ev.target.value as "all" | "own_teams" })} className={`${inputClass} w-40`}>
+                      <select aria-label={`${m.label}: whose records`} value={e.scope} onChange={(ev) => set(m.id, { scope: ev.target.value as "all" | "own_teams" | "assigned" })} className={`${inputClass} w-44`}>
                         <option value="all">Everyone&apos;s</option>
                         <option value="own_teams">Their own teams&apos;</option>
+                        {m.id.startsWith("clients.") && m.id !== "clients.assign" ? <option value="assigned">Their assigned clients</option> : null}
                       </select>
                     ) : null}
                   </div>

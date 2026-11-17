@@ -1,7 +1,9 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { notFound } from "next/navigation";
+import { requireSession } from "@/lib/session";
+import { seesClientsFor } from "@/lib/module-access";
 import { ClientCareForm, ProgramRow, AddProgramForm } from "./care-forms";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader } from "@/components/ui";
@@ -12,7 +14,9 @@ export const metadata: Metadata = { title: "Clients" };
 
 // The company's client list, used by Cars and by built features (for example Fluid intake).
 export default async function ClientsPage() {
-  const { profile } = await requireRole(PEOPLE_MANAGERS);
+  // Who sees Clients: the Access page (update 107); which clients, the database.
+  const { profile } = await requireSession();
+  if (!(await seesClientsFor())) notFound();
   const supabase = await createClient();
   // cmeprojects (Clients step 1): reference, status and preferred name (after live update 85).
   const care = await supabase.from("car_clients").select("id, name, reference, active, client_ref, status, preferred_name").order("active", { ascending: false }).order("name");

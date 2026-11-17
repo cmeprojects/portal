@@ -46,6 +46,16 @@ export const managesStaffFor = async (action = "edit") => canDo("people.staff", 
 // Due dates (SLA, update 102): a grant (managers by default), or the Tasks settings area.
 export const setsDueDatesFor = async () => canDo("workflows.sla", "configure");
 
+// For one person or client (client parts: the client's id).
+export const canDoFor = cache(async (module: string, action: string, person: string): Promise<boolean> => {
+  const { data, error } = await (await createClient()).rpc("can", { p_module: module, p_action: action, p_person: person });
+  return !error && data === true;
+});
+
+// Clients (switched over, update 107). Which clients is up to the database
+// (everyone's, their teams' or assigned only).
+export const seesClientsFor = async (action = "view") => canDo("clients.list", action);
+
 // Reports (each report on its own; "export" = the Excel download). Switched
 // over (update 98, D-049): only the one permission check, set on the Access
 // page. Car managers also see the car reports.

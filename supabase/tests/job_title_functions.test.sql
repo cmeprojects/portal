@@ -23,17 +23,17 @@ select test.ok((select count(*) from public.job_title_functions where job_title_
 
 select test.act_as('sam@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.job_title_functions) = 3, 'members read the links');
+select test.ok((select count(*) from public.job_title_functions where job_title_id in (test.jt('Care Manager'), test.jt('Speech Pathologist'))) = 3, 'members read the links');
 select test.refused($$insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Speech Pathologist'), test.fg('care_coordination'))$$, 'a support worker can''t link roles');
 delete from public.job_title_functions;
 reset role;
-select test.ok((select count(*) from public.job_title_functions) = 3, 'a support worker can''t unlink roles');
+select test.ok((select count(*) from public.job_title_functions where job_title_id in (test.jt('Care Manager'), test.jt('Speech Pathologist'))) = 3, 'a support worker can''t unlink roles');
 
 select test.act_as('owner@example.com');
 set role authenticated;
 select test.refused($$update public.function_groups set active = false where key = 'allied_health'$$, 'a group used by an active role can''t be deactivated');
-update public.function_groups set active = false where key = 'finance_accounts';
-select test.refused($$insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Care Manager'), test.fg('finance_accounts'))$$, 'only active groups can be linked');
+update public.function_groups set active = false where key = 'service_delivery';
+select test.refused($$insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Care Manager'), test.fg('service_delivery'))$$, 'only active groups can be linked');
 update public.job_titles set active = false where name = 'Speech Pathologist';
 update public.function_groups set active = false where key = 'allied_health';
 reset role;

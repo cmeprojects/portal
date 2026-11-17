@@ -12,7 +12,7 @@ import { canUseCars } from "@/lib/cars";
 import { onboardingOn } from "@/lib/feature-parts";
 import { createClient } from "@/lib/supabase/server";
 import { carsAppOffered, getStaffAppTiles, staffAppOn } from "@/lib/staff-app";
-import { anyContractAccess, managesCarsFor, managesStaffFor, setsDueDatesFor, managesTeamsFor, seesAllRequestsFor, seesCarReportFor, seesComplianceFor, seesComplianceReportFor, seesTaskReportFor } from "@/lib/module-access";
+import { anyContractAccess, managesCarsFor, managesStaffFor, seesClientsFor, setsDueDatesFor, managesTeamsFor, seesAllRequestsFor, seesCarReportFor, seesComplianceFor, seesComplianceReportFor, seesTaskReportFor } from "@/lib/module-access";
 
 // What the menu and the section tabs show this person (worked out once per page).
 export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
@@ -40,6 +40,7 @@ export const getNavAccess = cache(async (role: Role): Promise<NavAccess> => {
     allRequests: await seesAllRequestsFor(),
     teams: await managesTeamsFor("view"),
     staff: await managesStaffFor("view"),
+    clients: await seesClientsFor(),
     dueDates: await setsDueDatesFor(),
     adminAreas,
     customFeatures,

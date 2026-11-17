@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270218000001_function_group_modules.sql
+-- Built from every migration up to: 20270221000001_clients_switch_over.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,7 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and to_regclass('public.client_assignments') is not null then v_upto := 124; end if;
   if v_upto = 0 and to_regclass('public.function_group_modules') is not null then v_upto := 122; end if;
   if v_upto = 0 and to_regclass('public.access_baselines') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'app_modules' and column_name = 'grant_ready') then v_upto := 112; end if;
   if v_upto = 0 and to_regclass('public.job_title_functions') is not null then v_upto := 111; end if;
@@ -226,7 +227,10 @@ begin
     (119, '20270215000001_staff_switch_over.sql'),
     (120, '20270216000001_sla_request_rules_switch_over.sql'),
     (121, '20270217000001_tasks_switch_over.sql'),
-    (122, '20270218000001_function_group_modules.sql')
+    (122, '20270218000001_function_group_modules.sql'),
+    (123, '20270219000001_client_parts_and_roles.sql'),
+    (124, '20270220000001_client_assignments.sql'),
+    (125, '20270221000001_clients_switch_over.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -21525,5 +21529,500 @@ on conflict do nothing;
 
 $m122$;
   insert into public.install_log (name) values ('20270218000001_function_group_modules.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270219000001_client_parts_and_roles.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270219000001_client_parts_and_roles.sql') then
+    return;
+  end if;
+  execute $m123$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 105; function-based access, Stage 5a; D-045, D-047,
+-- D-050, owner approved the Stage 5 recommendations 17 Nov 2026):
+-- the parts of Clients, and three new roles.
+--
+--   * Clients is split into parts so each can be given on its own:
+--     details, contacts, risk notes and services are sensitive (a role or a
+--     person only, never a whole function group); locations, alerts and
+--     assigning staff are normal. Nobody's access changes in this update
+--     (Clients still uses the built-in rule until update 107).
+--   * New roles (job titles), all at the support worker access level; their
+--     extra access comes from grants on the role (update 107):
+--       - Case Manager and Intake & Assessment Officer (Care & Coordination);
+--       - Payroll & Rostering (HR & Workforce, Finance & Accounts).
+--     Existing roles with the same name are left as they are.
+
+insert into public.app_modules (id, parent_id, category, label, sensitivity, delegable, sort_order, actions) values
+  ('clients.details', 'clients.list', 'clients', 'Client details', 'sensitive', true, 251, '{view,edit}'),
+  ('clients.people', 'clients.list', 'clients', 'Contacts and support people', 'sensitive', true, 252, '{view,edit}'),
+  ('clients.locations', 'clients.list', 'clients', 'Locations', 'normal', true, 253, '{view,edit}'),
+  ('clients.alerts', 'clients.list', 'clients', 'Alerts', 'normal', true, 254, '{view,edit}'),
+  ('clients.notes', 'clients.list', 'clients', 'Risk notes', 'sensitive', true, 255, '{view,edit}'),
+  ('clients.services', 'clients.list', 'clients', 'Services', 'sensitive', true, 256, '{view,edit}'),
+  ('clients.assign', 'clients.list', 'clients', 'Assigning staff', 'normal', true, 257, '{view,edit}')
+on conflict (id) do nothing;
+
+insert into public.job_titles (name, access_level, description)
+select x.name, 'support_worker', x.description
+  from (values
+    ('Case Manager', 'Manages the clients assigned to them. Not a centre manager.'),
+    ('Intake & Assessment Officer', 'Takes new clients and referrals, and assigns clients to staff.'),
+    ('Payroll & Rostering', 'Payroll and rosters.')
+  ) x(name, description)
+ where not exists (select 1 from public.job_titles t where lower(t.name) = lower(x.name));
+
+insert into public.job_title_functions (job_title_id, function_group_id)
+select t.id, g.id
+  from (values
+    ('Case Manager', 'care_coordination'),
+    ('Intake & Assessment Officer', 'care_coordination'),
+    ('Payroll & Rostering', 'hr_workforce'),
+    ('Payroll & Rostering', 'finance_accounts')
+  ) x(title, group_key)
+  join public.job_titles t on t.name = x.title
+  join public.function_groups g on g.key = x.group_key and g.active
+on conflict do nothing;
+
+$m123$;
+  insert into public.install_log (name) values ('20270219000001_client_parts_and_roles.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270220000001_client_assignments.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270220000001_client_assignments.sql') then
+    return;
+  end if;
+  execute $m124$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 106; function-based access, Stage 5c; owner approved
+-- the Stage 5 recommendations): client assignments, and "assigned clients
+-- only" in the permission check.
+--
+--   * client_assignments: which staff member is assigned to which client, as
+--     what (case manager, intake, key worker, other), from and to which date.
+--     Never deleted: ending an assignment records when and by whom. Access
+--     stops the moment an assignment ends.
+--   * An assignment gives nothing by itself: the person also needs a grant
+--     for that part of Clients. A grant can be limited to "assigned clients
+--     only" (new scope) or "their own teams' clients".
+--   * Who may assign: whoever has Assigning staff (edit) for that client.
+--     Nobody assigns a client to themselves (the system admin aside).
+--   * Nobody's access changes in this update (Clients still uses the
+--     built-in rule until update 107).
+
+create table if not exists public.client_assignments (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  client_id uuid not null references public.car_clients (id) on delete restrict,
+  user_id uuid not null references public.profiles (id) on delete restrict,
+  assigned_as text not null default 'case_manager' check (assigned_as in ('case_manager', 'intake', 'key_worker', 'other')),
+  starts_on date not null default public.local_today(),
+  ends_on date,
+  note text not null default '' check (length(note) <= 300),
+  assigned_by uuid default auth.uid() references public.profiles (id),
+  created_at timestamptz not null default now(),
+  ended_at timestamptz,
+  ended_by uuid references public.profiles (id),
+  constraint client_assignments_dates check (ends_on is null or ends_on >= starts_on)
+);
+create index if not exists client_assignments_user on public.client_assignments (user_id) where ended_at is null;
+create index if not exists client_assignments_client on public.client_assignments (client_id);
+alter table public.client_assignments enable row level security;
+
+drop policy if exists "people see their own assignments, assigners see the client's" on public.client_assignments;
+create policy "people see their own assignments, assigners see the client's" on public.client_assignments
+  for select to authenticated
+  using (user_id = (select auth.uid()) or public.can('clients.assign', 'view', client_id));
+drop policy if exists "assigners assign staff" on public.client_assignments;
+create policy "assigners assign staff" on public.client_assignments
+  for insert to authenticated
+  with check (public.can('clients.assign', 'edit', client_id));
+drop policy if exists "assigners end assignments" on public.client_assignments;
+create policy "assigners end assignments" on public.client_assignments
+  for update to authenticated
+  using (public.can('clients.assign', 'edit', client_id))
+  with check (public.can('clients.assign', 'edit', client_id));
+-- No delete rule: ended, never deleted.
+grant select, insert, update on public.client_assignments to authenticated;
+
+create or replace function public.guard_client_assignment()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if tg_op = 'UPDATE' then
+    if new.client_id is distinct from old.client_id or new.user_id is distinct from old.user_id
+       or new.assigned_as is distinct from old.assigned_as or new.starts_on is distinct from old.starts_on
+       or new.assigned_by is distinct from old.assigned_by or new.created_at is distinct from old.created_at then
+      raise exception 'An assignment isn''t changed: end it and assign again.';
+    end if;
+    if old.ended_at is not null then
+      raise exception 'That assignment has already ended.';
+    end if;
+    if new.ended_at is not null then
+      new.ended_at := now();
+      new.ended_by := auth.uid();
+      if new.ends_on is null or new.ends_on > public.local_today() then
+        new.ends_on := greatest(new.starts_on, public.local_today());
+      end if;
+    end if;
+    return new;
+  end if;
+  if new.user_id = auth.uid() and not public.is_system_admin() then
+    raise exception 'You can''t assign a client to yourself. Ask someone who assigns clients.';
+  end if;
+  if not exists (select 1 from public.profiles p where p.id = new.user_id and p.active and p.role <> 'new_starter') then
+    raise exception 'Choose an active staff member (not a new starter).';
+  end if;
+  new.assigned_by := auth.uid();
+  new.created_at := now();
+  new.ended_at := null;
+  new.ended_by := null;
+  return new;
+end;
+$$;
+revoke execute on function public.guard_client_assignment() from public, anon, authenticated;
+drop trigger if exists guard_client_assignment on public.client_assignments;
+create trigger guard_client_assignment before insert or update on public.client_assignments
+  for each row execute function public.guard_client_assignment();
+
+-- New scope for role, group and access-level grants.
+alter table public.access_baselines drop constraint if exists access_baselines_scope_check;
+alter table public.access_baselines add constraint access_baselines_scope_check check (scope in ('all', 'own_teams', 'assigned'));
+
+CREATE OR REPLACE FUNCTION public.guard_access_baseline()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare
+  m record;
+begin
+  if tg_op = 'UPDATE' then
+    if (to_jsonb(new) - 'revoked_at' - 'revoked_by') is distinct from (to_jsonb(old) - 'revoked_at' - 'revoked_by') or old.revoked_at is not null then
+      raise exception 'A grant isn''t changed: revoke it and add a new one.';
+    end if;
+    new.revoked_by := auth.uid();
+    return new;
+  end if;
+  select * into m from public.app_modules where id = new.module_id;
+  if not found or m.status <> 'active' or m.sensitivity = 'protected' or m.legacy_kind is not null or not m.grant_ready then
+    raise exception 'That part can''t be given to a role, group or access level (yet).';
+  end if;
+  if new.function_group_id is not null and m.sensitivity <> 'normal' then
+    raise exception 'Sensitive parts are given to a job title or a person, never to a whole function group.';
+  end if;
+  -- cmeprojects (update 106): "assigned clients only" is for client parts
+  -- (not Assigning staff itself, which the check reads to decide it).
+  if new.scope = 'assigned' and (m.category <> 'clients' or m.id = 'clients.assign') then
+    raise exception 'Assigned clients only is for the parts of Clients.';
+  end if;
+  if new.access_level in ('system_admin', 'new_starter', 'external') then
+    raise exception 'That access level can''t hold grants.';
+  end if;
+  new.granted_by := auth.uid();
+  new.by_system_admin := public.is_system_admin() or auth.uid() is null;
+  new.created_at := now();
+  return new;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.can(p_module text, p_action text DEFAULT 'view'::text, p_person uuid DEFAULT NULL::uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO ''
+AS $function$
+declare
+  m record;
+  v_me record;
+  v_effect text;
+  v_groups uuid[];
+begin
+  select * into m from public.app_modules where id = p_module;
+  if not found or m.status <> 'active' then
+    return false;
+  end if;
+  if public.is_system_admin() and public.mfa_ok() then
+    return true;
+  end if;
+  if m.sensitivity = 'protected' or not public.mfa_ok() then
+    return false;
+  end if;
+  -- Today's rules, unchanged.
+  if m.legacy_kind = 'settings' then
+    return public.can_admin_area(m.legacy_area);
+  end if;
+  if m.legacy_kind = 'record' then
+    if p_action = 'reveal_tfn' then
+      return p_person is not null and public.has_tfn_access(p_person);
+    end if;
+    return case when p_person is null then public.holds_area(m.legacy_area) else public.has_access(m.legacy_area, p_person) end;
+  end if;
+  -- 1. Person grants (unchanged): the nearest level (this module, then its
+  -- parents, then its category) decides.
+  with recursive chain(id, depth) as (
+    select m.id, 0
+    union all
+    select a.parent_id, c.depth + 1 from public.app_modules a join chain c on a.id = c.id where a.parent_id is not null
+  ), levels as (
+    select id, depth from chain
+    union all
+    select 'cat_' || m.category, 99
+  )
+  , applicable as (
+    select g.effect, g.actions, l.depth
+      from public.access_grants g
+      join levels l on l.id = g.module_id
+      join public.profiles me on me.id = g.user_id
+      left join public.profiles gb on gb.id = g.granted_by
+     where g.user_id = auth.uid() and g.area is null and g.revoked_at is null
+       and (g.expires_at is null or g.expires_at > now())
+       and (g.starts_at is null or g.starts_at <= now())
+       and me.active and me.role in ('manager', 'staff_admin')
+       and (case when g.parent_id is null then public.is_manager_admin(g.user_id) else (gb.active and gb.role = 'manager' and public.is_manager_admin(g.granted_by)) end)
+       and (l.depth = 0 or (g.include_children and m.sensitivity = 'normal' and m.added_at <= g.created_at))
+       and (p_person is null or g.scope = 'all'
+            or (g.scope = 'people' and p_person = any (g.scope_ids))
+            or (g.scope = 'teams' and exists (select 1 from public.team_members tm where tm.user_id = p_person and tm.team_id = any (g.scope_ids))))
+  )
+  select case
+           when bool_or(a.effect = 'restrict' and (cardinality(a.actions) = 0 or p_action = any (a.actions))) then 'restrict'
+           when bool_or(a.effect = 'allow' and (cardinality(a.actions) = 0 or p_action = any (a.actions))) then 'allow'
+         end into v_effect
+    from applicable a
+   where a.depth = (select min(depth) from applicable);
+  if v_effect is not null then
+    return v_effect = 'allow';
+  end if;
+
+  -- 2 to 4. Inherited (cmeprojects Stage 3, D-047): job title, then function
+  -- groups, then access level. Only for modules switched over to can().
+  if not m.grant_ready then
+    return false;
+  end if;
+  select p.role, p.active, p.job_title_id, coalesce(t.active, false) as title_active
+    into v_me
+    from public.profiles p left join public.job_titles t on t.id = p.job_title_id
+   where p.id = auth.uid();
+  if not found or not v_me.active or v_me.role in ('new_starter', 'external') then
+    return false;
+  end if;
+  select coalesce(array_agg(jf.function_group_id), '{}') into v_groups
+    from public.job_title_functions jf join public.function_groups fg on fg.id = jf.function_group_id
+   where jf.job_title_id = v_me.job_title_id and fg.active and v_me.title_active;
+
+  with recursive chain(id, depth) as (
+    select m.id, 0
+    union all
+    select a.parent_id, c.depth + 1 from public.app_modules a join chain c on a.id = c.id where a.parent_id is not null
+  ), levels as (
+    select id, depth from chain
+    union all
+    select 'cat_' || m.category, 99
+  ), applicable as (
+    select case when b.job_title_id is not null then 1 when b.function_group_id is not null then 2 else 3 end as tier,
+           l.depth, b.effect, b.actions
+      from public.access_baselines b
+      join levels l on l.id = b.module_id
+     where b.revoked_at is null
+       -- Given by the system admin, or by someone who is still an active Manager Administrator.
+       and (b.by_system_admin or public.is_manager_admin(b.granted_by))
+       and ((b.job_title_id is not null and b.job_title_id = v_me.job_title_id and v_me.title_active)
+            or (b.function_group_id is not null and b.function_group_id = any (v_groups) and m.sensitivity = 'normal')
+            or (b.access_level is not null and b.access_level = v_me.role))
+       and (l.depth = 0 or (m.sensitivity = 'normal' and m.added_at <= b.created_at))
+       and (p_person is null or b.scope = 'all'
+            or (b.scope = 'own_teams' and exists (
+                  select 1 from public.team_members t2
+                   where t2.user_id = p_person
+                     and t2.team_id in (select tm.team_id from public.team_members tm where tm.user_id = auth.uid()
+                                        union select tl.team_id from public.team_leaders tl where tl.user_id = auth.uid())))
+            -- cmeprojects (update 106): for client parts the person is the client.
+            or (b.scope = 'own_teams' and m.category = 'clients' and exists (
+                  select 1 from public.client_teams ct
+                   where ct.client_id = p_person
+                     and ct.team_id in (select tm.team_id from public.team_members tm where tm.user_id = auth.uid()
+                                        union select tl.team_id from public.team_leaders tl where tl.user_id = auth.uid())))
+            or (b.scope = 'assigned' and m.category = 'clients' and m.id <> 'clients.assign' and exists (
+                  select 1 from public.client_assignments a
+                   where a.client_id = p_person and a.user_id = auth.uid() and a.ended_at is null
+                     and a.starts_on <= public.local_today() and (a.ends_on is null or a.ends_on >= public.local_today()))))
+  ), best as (
+    select * from applicable where tier = (select min(tier) from applicable)
+  )
+  select case
+           when bool_or(a.effect = 'restrict' and (cardinality(a.actions) = 0 or p_action = any (a.actions))) then 'restrict'
+           when bool_or(a.effect = 'allow' and (cardinality(a.actions) = 0 or p_action = any (a.actions))) then 'allow'
+         end into v_effect
+    from best a
+   where a.depth = (select min(depth) from best);
+  return coalesce(v_effect = 'allow', false);
+end;
+$function$;
+
+$m124$;
+  insert into public.install_log (name) values ('20270220000001_client_assignments.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270221000001_clients_switch_over.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270221000001_clients_switch_over.sql') then
+    return;
+  end if;
+  execute $m125$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 107; function-based access, Stage 5b; owner approved
+-- the Stage 5 recommendations): Clients switched over to the one permission
+-- check `can()`.
+--
+--   * Every client rule that used the built-in "managers, staff admins and the
+--     system admin" now asks `can('clients.<part>', 'view' / 'edit', client)`.
+--   * Defaults reproduce today's rule: managers and staff admins, every part,
+--     everyone's clients. Nobody's access changes.
+--   * Unchanged: team staff still see their own teams' clients' approved
+--     current locations and active alerts (a team rule); car managers keep
+--     their car client rules; programs stay with the system admin.
+--   * New roles get their access (owner's decisions):
+--       - Case Manager: every part, view and change, assigned clients only;
+--         can't assign staff;
+--       - Intake & Assessment Officer: every client; details, contacts,
+--         locations and alerts view and change; risk notes and services view
+--         only; can add clients and assign staff;
+--       - Payroll & Rostering: no client access.
+--   * Fast: the check runs once per query for "everyone's clients"; for
+--     assigned and team clients it looks only at the person's own few.
+
+update public.app_modules set grant_ready = true
+ where id in ('clients.list', 'clients.details', 'clients.people', 'clients.locations', 'clients.alerts', 'clients.notes', 'clients.services', 'clients.assign') and not grant_ready;
+
+do $$
+begin
+  if exists (select 1 from public.access_baselines
+              where module_id like 'clients.%' and access_level is not null and revoked_at is null) then
+    return;
+  end if;
+  insert into public.access_baselines (access_level, module_id, actions, scope, note)
+  select l, m, '{}'::text[], 'all', 'Set at switch-over: managers and staff admins managed clients'
+    from unnest(array['manager', 'staff_admin']::public.app_role[]) l,
+         unnest(array['clients.list', 'clients.details', 'clients.people', 'clients.locations', 'clients.alerts', 'clients.notes', 'clients.services', 'clients.assign']) m;
+end $$;
+
+do $$
+declare
+  v_cm uuid := (select id from public.job_titles where name = 'Case Manager' and active limit 1);
+  v_io uuid := (select id from public.job_titles where name = 'Intake & Assessment Officer' and active limit 1);
+begin
+  if v_cm is not null and not exists (select 1 from public.access_baselines where job_title_id = v_cm and module_id like 'clients.%' and revoked_at is null) then
+    insert into public.access_baselines (job_title_id, module_id, actions, scope, note)
+    select v_cm, m, '{view,edit}', 'assigned', 'Case managers: their assigned clients'
+      from unnest(array['clients.list', 'clients.details', 'clients.people', 'clients.locations', 'clients.alerts', 'clients.notes', 'clients.services']) m;
+  end if;
+  if v_io is not null and not exists (select 1 from public.access_baselines where job_title_id = v_io and module_id like 'clients.%' and revoked_at is null) then
+    insert into public.access_baselines (job_title_id, module_id, actions, scope, note)
+    select v_io, x.m, x.a, 'all', 'Intake: every client'
+      from (values ('clients.list', '{view,edit}'::text[]), ('clients.details', '{view,edit}'), ('clients.people', '{view,edit}'),
+                   ('clients.locations', '{view,edit}'), ('clients.alerts', '{view,edit}'), ('clients.notes', '{view}'),
+                   ('clients.services', '{view}'), ('clients.assign', '{view,edit}')) x(m, a);
+  end if;
+end $$;
+
+drop policy if exists "people managers add clients" on public.car_clients;
+create policy "people managers add clients" on public.car_clients as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.list'::text, 'edit'::text, id))));
+drop policy if exists "people managers change clients" on public.car_clients;
+create policy "people managers change clients" on public.car_clients as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.list'::text, 'edit'::text, id)))) with check (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.list'::text, 'edit'::text, id))));
+drop policy if exists "people managers see clients" on public.car_clients;
+create policy "people managers see clients" on public.car_clients as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.list'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.list'::text, 'view'::text, id))));
+drop policy if exists "people managers add client_alert_notes" on public.client_alert_notes;
+create policy "people managers add client_alert_notes" on public.client_alert_notes as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.notes'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.notes'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_alert_notes" on public.client_alert_notes;
+create policy "people managers change client_alert_notes" on public.client_alert_notes as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.notes'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.notes'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.notes'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.notes'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_alert_notes" on public.client_alert_notes;
+create policy "people managers see client_alert_notes" on public.client_alert_notes as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.notes'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.notes'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client_alerts" on public.client_alerts;
+create policy "people managers add client_alerts" on public.client_alerts as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.alerts'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.alerts'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_alerts" on public.client_alerts;
+create policy "people managers change client_alerts" on public.client_alerts as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.alerts'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.alerts'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.alerts'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.alerts'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_alerts" on public.client_alerts;
+create policy "people managers see client_alerts" on public.client_alerts as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.alerts'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.alerts'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client_details" on public.client_details;
+create policy "people managers add client_details" on public.client_details as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.details'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.details'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_details" on public.client_details;
+create policy "people managers change client_details" on public.client_details as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.details'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.details'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.details'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.details'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_details" on public.client_details;
+create policy "people managers see client_details" on public.client_details as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.details'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.details'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client locations" on public.client_locations;
+create policy "people managers add client locations" on public.client_locations as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.locations'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.locations'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client locations" on public.client_locations;
+create policy "people managers change client locations" on public.client_locations as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.locations'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.locations'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.locations'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.locations'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client locations" on public.client_locations;
+create policy "people managers see client locations" on public.client_locations as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.locations'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.locations'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client_people" on public.client_people;
+create policy "people managers add client_people" on public.client_people as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.people'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.people'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_people" on public.client_people;
+create policy "people managers change client_people" on public.client_people as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.people'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.people'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.people'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.people'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_people" on public.client_people;
+create policy "people managers see client_people" on public.client_people as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.people'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.people'::text, 'view'::text, client_id))));
+drop policy if exists "people managers add client_services" on public.client_services;
+create policy "people managers add client_services" on public.client_services as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.services'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.services'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers change client_services" on public.client_services;
+create policy "people managers change client_services" on public.client_services as PERMISSIVE for UPDATE to authenticated using (((SELECT public.can('clients.services'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.services'::text, 'edit'::text, client_id)))) with check (((SELECT public.can('clients.services'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.services'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers see client_services" on public.client_services;
+create policy "people managers see client_services" on public.client_services as PERMISSIVE for SELECT to authenticated using (((SELECT public.can('clients.services'::text, 'view'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL UNION SELECT ct.client_id FROM public.client_teams ct WHERE ct.team_id IN (SELECT tm.team_id FROM public.team_members tm WHERE tm.user_id = (SELECT auth.uid() AS uid) UNION SELECT tl.team_id FROM public.team_leaders tl WHERE tl.user_id = (SELECT auth.uid() AS uid))) AND public.can('clients.services'::text, 'view'::text, client_id))));
+drop policy if exists "people managers link clients to teams" on public.client_teams;
+create policy "people managers link clients to teams" on public.client_teams as PERMISSIVE for INSERT to authenticated with check (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL) AND public.can('clients.list'::text, 'edit'::text, client_id))));
+drop policy if exists "people managers unlink clients from teams" on public.client_teams;
+create policy "people managers unlink clients from teams" on public.client_teams as PERMISSIVE for DELETE to authenticated using (((SELECT public.can('clients.list'::text, 'edit'::text, '00000000-0000-0000-0000-000000000000'::uuid) AS can) OR (client_id IN (SELECT a.client_id FROM public.client_assignments a WHERE a.user_id = (SELECT auth.uid() AS uid) AND a.ended_at IS NULL) AND public.can('clients.list'::text, 'edit'::text, client_id))));
+
+CREATE OR REPLACE FUNCTION public.guard_client_record()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if tg_op = 'INSERT' then
+    new.client_ref := public.next_client_ref(); -- always made here, never chosen
+    if new.status <> 'pending' and auth.uid() is not null and not public.can('clients.list', 'edit', new.id) then
+      raise exception 'You can''t set a client''s status. Ask someone who manages clients.';
+    end if;
+    return new;
+  end if;
+  if new.client_ref is distinct from old.client_ref then
+    raise exception 'A client''s reference never changes.';
+  end if;
+  if new.status is distinct from old.status then
+    if auth.uid() is not null and not public.can('clients.list', 'edit', new.id) then
+      raise exception 'You can''t change this client''s status. Ask someone who manages clients.';
+    end if;
+    new.status_changed_at := now();
+    new.status_changed_by := auth.uid();
+    perform public.write_audit('client_status', 'client', new.id::text,
+      jsonb_build_object('client', new.client_ref, 'from', old.status, 'to', new.status));
+  end if;
+  return new;
+end;
+$function$;
+
+$m125$;
+  insert into public.install_log (name) values ('20270221000001_clients_switch_over.sql');
 end;
 $part$;

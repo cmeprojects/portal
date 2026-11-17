@@ -111,3 +111,11 @@ export const SECTION_UPDATE: Record<SectionTable, number> = {
   client_alerts: 89,
   client_services: 90,
 };
+
+// cmeprojects (Stage 5): what a staff member is assigned to a client as.
+export const ASSIGNED_AS: [string, string][] = [
+  ["case_manager", "Case manager"],
+  ["intake", "Intake"],
+  ["key_worker", "Key worker"],
+  ["other", "Other"],
+];

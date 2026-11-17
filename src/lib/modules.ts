@@ -84,6 +84,14 @@ export const MODULES: ModuleDef[] = [
 
   // Clients & care
   { id: "clients.list", category: "clients", label: "Clients", icon: "HeartHandshake", href: "/settings/clients", delegable: true },
+  // cmeprojects (update 105): Clients' parts, given on their own (permission-only, no menu item).
+  { id: "clients.details", category: "clients", parent: "clients.list", label: "Client details", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
+  { id: "clients.people", category: "clients", parent: "clients.list", label: "Contacts and support people", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
+  { id: "clients.locations", category: "clients", parent: "clients.list", label: "Locations", icon: "HeartHandshake", href: "", delegable: true },
+  { id: "clients.alerts", category: "clients", parent: "clients.list", label: "Alerts", icon: "HeartHandshake", href: "", delegable: true },
+  { id: "clients.notes", category: "clients", parent: "clients.list", label: "Risk notes", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
+  { id: "clients.services", category: "clients", parent: "clients.list", label: "Services", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
+  { id: "clients.assign", category: "clients", parent: "clients.list", label: "Assigning staff", icon: "HeartHandshake", href: "", delegable: true },
 
   // Forms & workflows
   { id: "workflows.forms", category: "operations", label: "Forms", icon: "ClipboardList", href: "/forms", delegable: true },

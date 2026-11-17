@@ -4,13 +4,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
-import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { seesClientsFor } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { ClientStatusChip } from "../../../cars/manage/forms";
 import { ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
-import { ALERT_KINDS, PERSON_KINDS, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
+import { AssignForm } from "./assign-form";
+import { endAssignment } from "./actions";
+import { canDoFor } from "@/lib/module-access";
+import { ALERT_KINDS, ASSIGNED_AS, PERSON_KINDS, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -23,13 +27,26 @@ const day = (d: unknown) => (typeof d === "string" && d ? new Date(`${d}T00:00:0
 // check rostering will use. People managers and the system admin only; each
 // section appears once its database update has been run.
 export default async function ClientProfilePage({ params }: PageProps<"/settings/clients/[id]">) {
-  await requireRole(PEOPLE_MANAGERS);
+  // Who sees Clients: the Access page (update 107); which clients, the database.
+  await requireSession();
+  if (!(await seesClientsFor())) notFound();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const supabase = await createClient();
   const { data: client } = await supabase.from("car_clients").select("id, name, client_ref, status, preferred_name").eq("id", id).maybeSingle();
   if (!client) notFound();
 
+  // cmeprojects (Stage 5): who is assigned to this client (hidden before update 106).
+  const [assignRes, canAssign, staffRes] = await Promise.all([
+    supabase.from("client_assignments").select("id, user_id, assigned_as, starts_on, ends_on, note, ended_at").eq("client_id", id).order("ended_at", { ascending: true, nullsFirst: true }).order("starts_on", { ascending: false }),
+    canDoFor("clients.assign", "edit", id),
+    supabase.from("profiles").select("id, full_name, email, role, active").eq("active", true).neq("role", "new_starter").order("full_name"),
+  ]);
+  const staffRows = (staffRes.data ?? []) as { id: string; full_name: string | null; email: string; role: string }[];
+  const nameOfStaff = new Map(staffRows.map((p) => [p.id, p.full_name || p.email]));
+  const assignments = assignRes.error ? null : ((assignRes.data ?? []) as { id: string; user_id: string; assigned_as: string; starts_on: string; ends_on: string | null; note: string; ended_at: string | null }[]);
+  const today = new Date().toISOString().slice(0, 10);
+  const isCurrent = (a: { starts_on: string; ends_on: string | null; ended_at: string | null }) => !a.ended_at && a.starts_on <= today && (!a.ends_on || a.ends_on >= today);
   const [locations, details, people, alerts, notes, services, programs, readiness] = await Promise.all([
     supabase.from("client_locations").select("*").eq("client_id", id).order("approved", { ascending: false }).order("label"),
     supabase.from("client_details").select("*").eq("client_id", id).maybeSingle(),
@@ -67,6 +84,39 @@ export default async function ClientProfilePage({ params }: PageProps<"/settings
           )
         ) : null}
       </div>
+      {assignments ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <h2 className="heading-sm">Assigned staff</h2>
+          <p className="text-xs text-muted">An assignment gives a staff member this client only when their role allows it (for example case managers: assigned clients). Ending one stops their access straight away; it&apos;s kept for history.</p>
+          {assignments.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {assignments.map((a) => (
+                <li key={a.id} className={`flex flex-wrap items-center gap-3 px-3 py-2 ${isCurrent(a) ? "" : "text-muted"}`}>
+                  <span className="min-w-40 flex-1">
+                    <span className="font-semibold">{nameOfStaff.get(a.user_id) ?? "Staff member"}</span> · {label(ASSIGNED_AS, a.assigned_as)}
+                    <span className="block text-xs text-muted">
+                      From {day(a.starts_on)}
+                      {a.ends_on ? ` until ${day(a.ends_on)}` : ""}
+                      {a.ended_at ? " · ended" : isCurrent(a) ? "" : " · not started yet"}
+                      {a.note ? ` · ${a.note}` : ""}
+                    </span>
+                  </span>
+                  {canAssign && !a.ended_at ? (
+                    <form action={endAssignment}>
+                      <input type="hidden" name="id" value={a.id} />
+                      <input type="hidden" name="client_id" value={id} />
+                      <button className="text-xs font-semibold text-brand underline">End</button>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">Nobody is assigned yet.</p>
+          )}
+          {canAssign ? <Add label="Assign a staff member"><AssignForm clientId={id} staff={staffRows.map((p) => ({ id: p.id, name: p.full_name || p.email }))} /></Add> : null}
+        </Card>
+      ) : null}
       {ready && !ready.ready && ready.gaps.length ? (
         <Card className="p-4">
           <h2 className="heading-sm">Before services can start</h2>

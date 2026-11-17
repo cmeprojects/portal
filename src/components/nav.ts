@@ -26,6 +26,8 @@ export type NavAccess = {
   teams?: boolean;
   // Sees and manages Staff (Access page, update 101).
   staff?: boolean;
+  // Sees Clients (Access page, update 107).
+  clients?: boolean;
   // Sets the due dates (SLA): Access page, update 102.
   dueDates?: boolean;
   // Live features built in the Feature builder that this person uses.
@@ -58,7 +60,6 @@ export type Tab = { href: string; text: string };
 // The tabs in each section that this person can open, in order.
 export function sectionTabs(section: Section, role: Role, features: Record<string, boolean>, access: NavAccess): Tab[] {
   const admin = role === "system_admin";
-  const peopleManager = role === "manager" || role === "staff_admin" || admin;
   const cars = features.vehicles === true && role !== "new_starter";
   // Areas with settings on the System settings page (registers, roles, the
   // website and the change log have their own pages) (cmeprojects).
@@ -85,7 +86,7 @@ export function sectionTabs(section: Section, role: Role, features: Record<strin
       // Switched off: only the system admin still sees them (cmeprojects).
       Boolean(access.teams) && (admin || teamsOn(features)) && { href: "/settings/teams", text: "Teams" },
       (admin || (rolesOn(features) && (access.adminAreas ?? []).includes("roles"))) && { href: "/settings/roles", text: "Roles" },
-      peopleManager && { href: "/settings/clients", text: "Clients" },
+      Boolean(access.clients) && { href: "/settings/clients", text: "Clients" },
       requests && approver && { href: "/people/requests", text: "Staff requests" },
       access.seesCompliance && { href: "/compliance", text: "Onboarding" },
       (admin || Boolean(access.contracts)) && { href: "/contracts", text: "Contracts" },

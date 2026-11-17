@@ -2,7 +2,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole, PEOPLE_MANAGERS } from "@/lib/session";
+import { requireSession } from "@/lib/session";
+import { seesClientsFor } from "@/lib/module-access";
+
+// Clients: the Access page (update 107); the database checks each client and part.
+async function requireClients() {
+  const session = await requireSession();
+  if (!(await seesClientsFor())) throw new Error("You can't change clients.");
+  return session;
+}
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
@@ -15,7 +23,7 @@ const isId = (v: string) => /^[0-9a-f-]{36}$/.test(v);
 // the fields listed for that section are accepted; the database checks the
 // rest (who may save, approvals, readiness) and logs the change.
 export async function saveClientSection(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireClients();
   const table = String(form.get("table") ?? "") as SectionTable;
   const fields = SECTION_FIELDS[table];
   const clientId = String(form.get("client_id") ?? "");
@@ -60,7 +68,7 @@ export async function saveClientSection(_: FormState, form: FormData): Promise<F
 
 // "No known safety alerts": answers the safety step when there's nothing to record.
 export async function recordNoAlerts(_: FormState, form: FormData): Promise<FormState> {
-  await requireRole(PEOPLE_MANAGERS);
+  await requireClients();
   const clientId = String(form.get("client_id") ?? "");
   if (!isId(clientId)) return { error: "Choose a client." };
   const supabase = await createClient();
@@ -70,4 +78,39 @@ export async function recordNoAlerts(_: FormState, form: FormData): Promise<Form
   if (error) return { error: friendlyError(error) };
   revalidatePath(`/settings/clients/${clientId}`);
   return { message: "Recorded: no known safety alerts." };
+}
+
+// cmeprojects (Stage 5, update 106): assign a staff member to this client, or
+// end an assignment. The database checks who may (Assigning staff), stops
+// self-assignment, and keeps every assignment (ended, never deleted).
+export async function assignStaff(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const userId = String(form.get("user_id") ?? "");
+  const as = String(form.get("assigned_as") ?? "case_manager");
+  const startsOn = String(form.get("starts_on") ?? "");
+  const endsOn = String(form.get("ends_on") ?? "");
+  if (!isId(clientId) || !isId(userId)) return { error: "Choose a staff member." };
+  if (!["case_manager", "intake", "key_worker", "other"].includes(as)) return { error: "Choose what they're assigned as." };
+  const day = /^\d{4}-\d{2}-\d{2}$/;
+  const { error } = await (await createClient()).from("client_assignments").insert({
+    client_id: clientId,
+    user_id: userId,
+    assigned_as: as,
+    ...(day.test(startsOn) ? { starts_on: startsOn } : {}),
+    ...(day.test(endsOn) ? { ends_on: endsOn } : {}),
+    note: String(form.get("note") ?? "").slice(0, 300),
+  });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: "Assigned." };
+}
+
+export async function endAssignment(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(id) || !isId(clientId)) return;
+  await (await createClient()).from("client_assignments").update({ ended_at: new Date().toISOString() }).eq("id", id);
+  revalidatePath(`/settings/clients/${clientId}`);
 }
