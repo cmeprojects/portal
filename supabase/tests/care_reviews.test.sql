@@ -56,7 +56,7 @@ select test.ok((select scheme from public.client_reviews where service_id = test
 -- Who sees them.
 select test.ok(test.n('boss@example.com', '(select count(*) from public.client_reviews)') = 2, 'manager sees them');
 select test.ok(test.n('office@example.com', '(select count(*) from public.client_reviews)') = 0, 'staff admin: none (D-052)');
-select test.ok(test.n('io@example.com', '(select count(*) from public.client_reviews)') = 0, 'intake: none by default');
+select test.ok(test.n('io@example.com', '(select count(*) from public.client_reviews)') = 2, 'intake sees them (update 117)');
 select test.ok(test.n('sam@example.com', '(select count(*) from public.client_reviews)') = 0, 'team staff: none');
 
 -- Reminders: NDIS at 60 days before (passed), Support at Home at 30 (passed); once each.

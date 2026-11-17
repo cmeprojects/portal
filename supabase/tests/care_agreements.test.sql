@@ -67,7 +67,7 @@ select test.act_as('cm@example.com');
 set role authenticated;
 update public.client_agreements set notes = 'x';
 reset role;
-select test.ok((select count(*) from public.client_agreements where notes = 'x') = 0, 'case manager: view only');
+select test.ok((select count(*) from public.client_agreements where notes = 'x') = 2, 'case manager changes them (update 117)');
 
 -- Signing and ending.
 select test.act_as('io@example.com');

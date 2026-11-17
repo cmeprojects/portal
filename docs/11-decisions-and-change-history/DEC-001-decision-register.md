@@ -94,6 +94,7 @@ end with the next number.
 | D-050 | 17 Nov 2026 | **No per-level ceiling (option A).** For parts switched to the one check, a job title or function group grant may give access beyond what the access level gives by default; control is by who can grant (system admin; Manager Administrators within what they hold). Hard limits kept: protected parts, new starters and externals inherit nothing, sensitive never via a group, staff records and settings areas keep their own rules. **External titles belong to Allied Health** (confirmed); new external roles such as Behavioural Therapist or Psychologist are created under it. | Owner (session) |
 | D-051 | 17 Nov 2026 | **Stage 5 (Clients) as recommended, built without step approvals** ("go ahead", "do 5 without approval required"): new roles Case Manager, Intake & Assessment Officer, Payroll & Rostering at support worker level with access from role grants; Intake sees all clients, adds clients and assigns staff; managers and intake officers assign, case managers can't (nor assign themselves); Payroll & Rostering no client access; Case Manager sees and changes only assigned clients; test data only until SEC-003 privacy review. | Owner (session) |
 | D-052 | 17 Nov 2026 | **Staff admins have no default access to client records.** Their access-level defaults for every part of Clients are revoked (update 109, kept for history); a staff admin can still be given client access on the Access page. Managers, the system admin, Case Manager and Intake unchanged. | Owner (session) |
+| D-053 | 17 Nov 2026 | **More default access for the new roles (update 117).** Case Manager (assigned clients): change funding and service agreements, view the compliance report. Intake & Assessment Officer (every client): view and add funding, view reviews, change services. Payroll & Rostering (every client, view only): client list, approved locations, services, safety alerts, funding; never details, notes, documents or care plans. The staff onboarding view the owner also chose for Payroll is held back: it needs a new read rule for other staff's check records (owner to decide, TODO). | Owner (session) |
 
 ## Change history
 
@@ -104,4 +105,4 @@ end with the next number.
 | 0.3 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-039 to D-041 | Not approved |
 | 0.4 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-042 | Not approved |
 | 0.5 | 16 Nov 2026 | Technical Lead (prepared by Claude) | D-043 | Not approved |
-| 0.6 | 17 Nov 2026 | Technical Lead (prepared by Claude) | D-044 to D-052 | Not approved |
+| 0.6 | 17 Nov 2026 | Technical Lead (prepared by Claude) | D-044 to D-053 | Not approved |

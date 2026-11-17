@@ -99,8 +99,9 @@ Last updated: 17 Nov 2026.
   tabs; table with Active/Archived tabs, search, scheme/manager/status filters, sortable columns (name, age, NDIS
   number when readable, services as scheme chips, assigned manager, funds used, next review); side panel (Overview,
   Plan budget, Reviews and agreements; Progress notes and Shifts wait for those features). Every column comes from
-  queries the database already limits. `settings/clients/client-list.tsx`. Next: more default access for the new
-  roles (owner to choose), HR block, Stage 6.
+  queries the database already limits. `settings/clients/client-list.tsx`. **Update 117 (D-053):** more default access for Case Manager,
+  Intake and Payroll & Rostering (owner's choices; Payroll onboarding view held back, TODO). Check:
+  supabase/setup/verify-117-after.sql. Next: HR block, Stage 6.
 - **Care block (17 Nov 2026):** owner chose it next. Plan for approval: `docs/roadmap/care-block-plan.md`
   (C1 My clients, C2 section switches and communication preferences, C3 documents, C4 care plans, C5
   reviews, C6 service agreements, C7 funding). Waiting on the owner's decisions. Owner's concept for the client

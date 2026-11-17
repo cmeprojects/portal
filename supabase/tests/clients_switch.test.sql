@@ -47,7 +47,7 @@ select test.ok(test.n('boss@example.com', '(select count(*) from public.car_clie
 select test.ok(test.n('office@example.com', '(select count(*) from public.car_clients)') = 0 and test.n('office@example.com', '(select count(*) from public.client_alert_notes)') = 0, 'staff admin: no client records by default (update 109)');
 select test.ok(test.n('sam@example.com', '(select count(*) from public.client_alerts)') = 1, 'team staff still see their team''s client alerts (team rule)');
 select test.ok(test.n('sam@example.com', '(select count(*) from public.client_details)') = 0, 'but not details');
-select test.ok(test.n('pay@example.com', '(select count(*) from public.car_clients)') = 0, 'Payroll & Rostering: no client access');
+select test.ok(test.n('pay@example.com', '(select count(*) from public.car_clients)') = 2 and test.n('pay@example.com', '(select count(*) from public.client_details)') = 0, 'Payroll & Rostering: the client list, never details (update 117)');
 
 -- Case managers: assigned clients only.
 select test.ok(test.n('cm1@example.com', '(select count(*) from public.car_clients)') = 0, 'a case manager with no assignment sees no clients');

@@ -123,3 +123,8 @@ Still to do (agreed, not built yet):
   the HR block and the Care block are finished. Set on the Access page (role grants); no code change needed
   unless a new part is involved. Today: Case Manager has assigned clients only; Intake has every client and
   assigning; Payroll & Rostering has nothing extra.
+
+- **Payroll & Rostering: staff onboarding view (owner chose it, 17 Nov 2026; held back).** The expiry list and onboarding
+  overview read other staff's check records, which only people who manage onboarding (`can_manage_compliance`,
+  hr.onboarding approve) may read. Giving Payroll the page needs a new read rule for those records (for example
+  expiring items only, title and date, no files). Owner to decide; then add it as its own update.

@@ -63,13 +63,13 @@ select test.ok((select used_amount from public.client_funding where scheme = 'nd
 -- Who sees them.
 select test.ok(test.n('cm@example.com', '(select count(*) from public.client_funding)') = 2, 'assigned case manager sees them');
 select test.ok(test.n('office@example.com', '(select count(*) from public.client_funding)') = 0, 'staff admin: none (D-052)');
-select test.ok(test.n('io@example.com', '(select count(*) from public.client_funding)') = 0, 'intake: none by default');
+select test.ok(test.n('io@example.com', '(select count(*) from public.client_funding)') = 2, 'intake sees them (update 117)');
 select test.ok(test.n('sam@example.com', '(select count(*) from public.client_funding)') = 0, 'team staff: none');
 select test.act_as('cm@example.com');
 set role authenticated;
 update public.client_funding set used_amount = 1;
 reset role;
-select test.ok((select count(*) from public.client_funding where used_amount = 1) = 0, 'case manager: view only');
+select test.ok((select count(*) from public.client_funding where used_amount = 1) = 2, 'case manager updates them (update 117)');
 
 -- Ending.
 select test.act_as('boss@example.com');
