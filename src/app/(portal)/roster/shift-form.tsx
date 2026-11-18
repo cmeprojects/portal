@@ -5,6 +5,7 @@ import { SHIFT_ALLOWANCES, SHIFT_TYPES } from "@/lib/roster";
 import { useRouter } from "next/navigation";
 import { useEffect, useActionState, useMemo, useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
+import { askConfirm } from "@/components/confirm";
 import { bulkShifts, copyLastWeek, copyToNextWeek, saveShift } from "./actions";
 
 export type ShiftDraft = {
@@ -409,9 +410,17 @@ export function CopyWeekForm({ from, to }: { from: string; to: string }) {
 // The bar under the roster while selecting shifts.
 export function BulkBar({ formId, workers }: { formId: string; workers: Opt[] }) {
   const [state, action, pending] = useActionState(bulkShifts, null);
+  // How many shifts are ticked (the tick boxes sit in the calendar).
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const recount = () => setCount(document.querySelectorAll(`input[form="${formId}"][name="ids"]:checked`).length);
+    recount();
+    document.addEventListener("change", recount);
+    return () => document.removeEventListener("change", recount);
+  }, [formId]);
   return (
-    <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-2 rounded-xl bg-ink px-3 py-2 text-sm text-surface shadow-lg">
-      <b>Selected shifts:</b>
+    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-brand px-3 py-2 text-sm text-brand-fg shadow-lg">
+      <b>{count ? `${count} shift${count === 1 ? "" : "s"} selected` : "Tick the shifts in the calendar, then choose what to do:"}</b>
       {(
         [
           ["copy", "Copy to next week"],
@@ -419,7 +428,28 @@ export function BulkBar({ formId, workers }: { formId: string; workers: Opt[] })
           ["cancel", "Cancel shifts"],
         ] as const
       ).map(([k, l]) => (
-        <button key={k} form={formId} formAction={action} name="bulk" value={k} disabled={pending} className="rounded-md border border-surface/30 px-2 py-1 font-semibold hover:bg-surface/10">
+        <button
+          key={k}
+          form={formId}
+          formAction={action}
+          name="bulk"
+          value={k}
+          disabled={pending || !count}
+          onClick={(e) => {
+            // Cancelling asks first.
+            const b = e.currentTarget;
+            if (k !== "cancel" || b.dataset.confirmed === "1") {
+              delete b.dataset.confirmed;
+              return;
+            }
+            e.preventDefault();
+            void askConfirm(`Cancel ${count} shift${count === 1 ? "" : "s"}? Workers already told will be told again. They stay in the log.`, { action: "Cancel shifts" }).then((ok) => {
+              if (!ok) return;
+              b.dataset.confirmed = "1";
+              b.click();
+            });
+          }}
+          className="rounded-md border border-brand-fg/40 px-2 py-1 font-semibold hover:bg-brand-fg/10 disabled:opacity-50">
           {l}
         </button>
       ))}
@@ -432,7 +462,7 @@ export function BulkBar({ formId, workers }: { formId: string; workers: Opt[] })
             </option>
           ))}
         </select>
-        <button form={formId} formAction={action} name="bulk" value="worker" disabled={pending} className="rounded-md border border-surface/30 px-2 py-1 font-semibold hover:bg-surface/10">
+        <button form={formId} formAction={action} name="bulk" value="worker" disabled={pending || !count} className="rounded-md border border-brand-fg/40 px-2 py-1 font-semibold hover:bg-brand-fg/10 disabled:opacity-50">
           Change worker
         </button>
       </span>

@@ -10,13 +10,15 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
 import { BANDS, availabilitySlot, bandOf, shiftTypeLabel, shortTime } from "@/lib/roster";
-import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, makeOpenShift, switchOffTemplate, voidSignature } from "./actions";
+import { addShiftNote, decideRequest, endRepeat, giveOpenShift, makeOpenShift, switchOffTemplate, voidSignature } from "./actions";
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
 import { PublishControl, type PublishPeriod } from "./publish-control";
 import { Spotlight } from "./spotlight";
 import { RosterDnd } from "./roster-dnd";
 import { SavedNotice } from "./saved-notice";
 import { FitCalendar } from "./fit-calendar";
+import { CloseMenus } from "./close-menus";
+import { CancelShiftButton } from "./cancel-shift-button";
 
 export const metadata: Metadata = { title: "Roster" };
 
@@ -376,6 +378,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <Spotlight id={str("spot")} label={str("spotlabel") === "added" ? "Just added" : str("spotlabel") === "changed" ? "Just changed" : str("spotlabel") === "moved" ? "Just moved" : "You were here"} />
       ) : null}
       {canEdit && !selecting ? <RosterDnd byClient={byClient} base={base} /> : null}
+      <CloseMenus />
       {str("saved") ? <SavedNotice key={str("saved") + str("spot")} text={str("saved")} error={str("saved").startsWith("Not moved")} /> : null}
       {/* cmeprojects (update 128): the week in numbers, from the shifts shown. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
@@ -465,7 +468,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
               {selecting ? "Done selecting" : "Select shifts"}
             </Link>
           ) : null}
-          <details className="relative">
+          <details data-menu className="relative">
             <summary aria-label="More" className="list-none rounded-lg border border-line p-2 hover:bg-page [&::-webkit-details-marker]:hidden">
               <MoreVertical aria-hidden="true" className="size-4" />
             </summary>
@@ -518,9 +521,15 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <span className="ml-auto">{shifts.length ? "" : "No shifts this week"}</span>
       </p>
 
+      {selecting ? (
+        <>
+          <form id="pick" />
+          <BulkBar formId="pick" workers={((people ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => ({ id: p.id, name: p.full_name || p.email }))} />
+        </>
+      ) : null}
       {/* Only the calendar scrolls; the title, figures and toolbar stay put. */}
       <FitCalendar />
-      <Card className="roster-grid thin-scroll min-h-96 overflow-auto p-0">
+      <Card className={`roster-grid thin-scroll min-h-96 overflow-auto p-0 ${selecting ? "ring-2 ring-brand" : ""}`}>
         <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: `${12 + days.length * (view === "day" ? 18 : compact ? 6.5 : 7.5)}rem` }}>
           <thead>
             <tr className="border-b border-line">
@@ -631,12 +640,6 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </table>
         {!shifts.length ? <p className="p-6 text-center text-sm text-muted">No shifts this week yet. Add one, or copy last week from the ⋮ menu.</p> : null}
       </Card>
-      {selecting ? (
-        <>
-          <form id="pick" />
-          <BulkBar formId="pick" workers={((people ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => ({ id: p.id, name: p.full_name || p.email }))} />
-        </>
-      ) : null}
 
       {/* Side panels: view, add/edit, change requests. */}
       {editing || opened || str("requests") === "1" || (canEdit && str("templates") === "1") ? (
@@ -954,10 +957,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                       ) : null}
                       {canEdit ? (
                         <div className="flex flex-wrap gap-2 border-t border-line pt-3">
-                          <form action={cancelShift}>
-                            <input type="hidden" name="id" value={opened.id} />
-                            <button className="text-sm font-semibold text-danger underline">Cancel this shift</button>
-                          </form>
+                          <CancelShiftButton id={opened.id} published={opened.status === "published"} closeHref={close} />
                           {opened.series_id ? (
                             <form action={endRepeat}>
                               <input type="hidden" name="id" value={opened.id} />

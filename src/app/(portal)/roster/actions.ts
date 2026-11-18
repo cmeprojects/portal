@@ -444,3 +444,14 @@ export async function moveShift(id: string, date: string, row: string, byClient:
   revalidatePath("/roster");
   return { message: "Shift moved.", spotlight: id };
 }
+
+// cmeprojects: cancel one shift (asked first on screen); a published shift's worker is told.
+export async function cancelShiftNow(id: string): Promise<FormState> {
+  await requireRoster();
+  if (!isId(id)) return { error: "That didn't save. Please reload the page." };
+  const { error } = await (await createClient()).from("shifts").update({ status: "cancelled" }).eq("id", id);
+  if (error) return { error: friendlyError(error) };
+  await tellWorkers();
+  revalidatePath("/roster");
+  return { message: "Shift cancelled." };
+}
