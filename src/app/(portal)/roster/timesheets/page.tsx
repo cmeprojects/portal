@@ -65,6 +65,7 @@ export default async function TimesheetsPage({ searchParams }: PageProps<"/roste
 
   return (
     <>
+      <span data-wide hidden />
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-56 flex-1">
           <h1 className="heading">Timesheets</h1>

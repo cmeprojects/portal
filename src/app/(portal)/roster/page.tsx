@@ -6,15 +6,18 @@ import { AlertTriangle, ArrowLeftRight, ChevronLeft, ChevronRight, Hand, MoreVer
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
-import { Card, buttonClass } from "@/components/ui";
+import { Card, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
-import { BANDS, availabilitySlot, bandOf, shortTime } from "@/lib/roster";
-import { cancelShift, decideRequest, endRepeat, giveOpenShift, publishWeek } from "./actions";
+import { BANDS, availabilitySlot, bandOf, shiftTypeLabel, shortTime } from "@/lib/roster";
+import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, publishWeek, voidSignature } from "./actions";
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
 
 export const metadata: Metadata = { title: "Roster" };
 
-type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; status: string; series_id: string | null };
+type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; status: string; series_id: string | null;
+  // update 128 (absent before it runs)
+  ref?: string; shift_type?: string; vehicle_id?: string | null; pay_group?: string; allowances?: string[]; needs_worker_signature?: boolean; needs_client_signature?: boolean;
+  created_by?: string | null; created_at?: string; updated_by?: string | null; updated_at?: string; notified_at?: string | null };
 type Req = { id: string; shift_id: string; requested_by: string; kind: string; swap_with: string | null; reason: string; created_at: string };
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const AVAIL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -39,8 +42,8 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const selecting = canEdit && str("select") === "1";
   const base = `/roster?w=${monday}${byClient ? "&by=client" : ""}`;
   const supabase = await createClient();
-  const [shiftsRes, { data: people }, { data: clients }, { data: locations }, { data: services }, { data: leave }, { data: interest }, { data: availRows }, { data: checks }, reqRes] = await Promise.all([
-    supabase.from("shifts").select("id, worker_id, starts_at, ends_at, break_minutes, client_id, service_id, location_id, notes, status, series_id").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to).order("starts_at"),
+  const [shiftsRes, { data: people }, { data: clients }, { data: locations }, { data: services }, { data: leave }, { data: interest }, { data: availRows }, { data: checks }, reqRes, { data: cars }] = await Promise.all([
+    supabase.from("shifts").select("*").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to).order("starts_at"),
     supabase.from("profiles").select("id, full_name, email").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").order("full_name"),
     supabase.from("car_clients").select("id, name, status").neq("status", "discharged").order("name"),
     supabase.from("client_locations").select("id, client_id, label, address").eq("approved", true),
@@ -50,6 +53,8 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("staff_private").select("user_id, availability"),
     supabase.rpc("roster_check_dates"),
     supabase.from("shift_change_requests").select("id, shift_id, requested_by, kind, swap_with, reason, created_at").eq("status", "pending").order("created_at"),
+    // cmeprojects (update 128): company cars from the Cars module (only those this person may see).
+    supabase.from("cars").select("id, name, rego").eq("active", true).order("name"),
   ]);
   if (shiftsRes.error) notFound(); // before live update 122
   const shifts = (shiftsRes.data ?? []) as Shift[];
@@ -69,6 +74,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const hoursOf = new Map<string, number>();
   for (const s of shifts) if (s.worker_id) hoursOf.set(s.worker_id, (hoursOf.get(s.worker_id) ?? 0) + shiftHours(s));
   const onLeave = (who: string, day: string) => ((leave ?? []) as { user_id: string; start_date: string; end_date: string }[]).some((l) => l.user_id === who && l.start_date <= day && l.end_date >= day);
+  // cmeprojects (update 128): which published shifts the worker has answered (empty before it runs).
+  const { data: answerRows } = shifts.length ? await supabase.from("shift_responses").select("shift_id").in("shift_id", shifts.map((x) => x.id)) : { data: [] };
+  const answered = new Set(((answerRows ?? []) as { shift_id: string }[]).map((r) => r.shift_id));
   const warningsFor = (s: Shift): string[] => {
     if (!s.worker_id) return [];
     const w: string[] = [];
@@ -86,9 +94,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     : [...new Set(shifts.map((s) => s.worker_id).filter((v): v is string => !!v))].sort((a, b) => (name.get(a) ?? "").localeCompare(name.get(b) ?? ""));
   const drafts = shifts.filter((s) => s.status === "draft").length;
   const totalHours = shifts.filter((s) => s.worker_id).reduce((n, s) => n + shiftHours(s), 0);
-  const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("id, worker_id, starts_at, ends_at, break_minutes, client_id, service_id, location_id, notes, status, series_id").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
+  const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("*").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
   const editing = canEdit && (str("add") || (opened && str("edit") === "1"));
-  const tab = ["details", "timesheet", "log"].includes(str("tab")) ? str("tab") : "details";
+  const tab = str("tab") === "log" ? "logs" : ["details", "events", "signatures", "trips", "timesheet", "logs"].includes(str("tab")) ? str("tab") : "details";
   const weekLabel = `${auDate(days[0])} – ${auDate(days[6])} ${days[6].slice(0, 4)}`;
   const thisMonday = mondayOf(today);
   const weeksAway = Math.round((new Date(`${monday}T12:00:00Z`).getTime() - new Date(`${thisMonday}T12:00:00Z`).getTime()) / (7 * 86_400_000));
@@ -122,16 +130,34 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         notes: opened.notes,
         status: opened.status,
         series: !!opened.series_id,
+        shift_type: opened.shift_type ?? "standard",
+        vehicle_id: opened.vehicle_id ?? "",
+        pay_group: opened.pay_group ?? "",
+        allowances: opened.allowances ?? [],
+        needs_worker_signature: !!opened.needs_worker_signature,
+        needs_client_signature: !!opened.needs_client_signature,
       }
-    : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", status: "draft", series: false };
+    : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", status: "draft", series: false, shift_type: "standard", vehicle_id: "", pay_group: "", allowances: [], needs_worker_signature: false, needs_client_signature: false };
 
   // The opened shift's timesheet and log.
-  const [{ data: sheet }, { data: events }] = opened && !editing
+  const [{ data: sheet }, { data: events }, { data: sigRows }, { data: tripRows }, { data: noteRows }, { data: response }] = opened && !editing
     ? await Promise.all([
         supabase.from("shift_timesheets").select("actual_start, actual_end, break_minutes, km, expense, allowances, note, status").eq("shift_id", opened.id).maybeSingle(),
-        supabase.from("shift_events").select("id, actor, happened_at, summary").eq("shift_id", opened.id).order("happened_at", { ascending: false }).limit(50),
+        supabase.from("shift_events").select("*").eq("shift_id", opened.id).order("happened_at", { ascending: false }).limit(200),
+        // cmeprojects (update 128): signatures, Cars trips, internal notes and the worker's answer (empty before it runs).
+        supabase.from("shift_signatures").select("id, kind, signer_name, signer_role, signature, captured_by, signed_at, voided_at, voided_by, void_reason").eq("shift_id", opened.id).order("signed_at"),
+        supabase.from("car_trips").select("id, car_id, driver_id, started_at, returned_at, km, went_to, purpose").eq("shift_id", opened.id).order("started_at"),
+        supabase.from("shift_notes").select("id, author_id, body, created_at").eq("shift_id", opened.id).order("created_at"),
+        supabase.from("shift_responses").select("response, note, responded_at").eq("shift_id", opened.id).maybeSingle(),
       ])
-    : [{ data: null }, { data: null }];
+    : [{ data: null }, { data: null }, { data: null }, { data: null }, { data: null }, { data: null }];
+  type Ev = { id: number; actor: string | null; happened_at: string; summary: string; kind?: string; field?: string | null; old_value?: string | null; new_value?: string | null; source?: string; reason?: string | null };
+  const evs = (events ?? []) as Ev[];
+  const sigs = (sigRows ?? []) as { id: string; kind: string; signer_name: string; signer_role: string; signature: string; captured_by: string | null; signed_at: string; voided_at: string | null; voided_by: string | null; void_reason: string | null }[];
+  const trips = (tripRows ?? []) as { id: number; car_id: string; driver_id: string | null; started_at: string; returned_at: string | null; km: number | null; went_to: string | null; purpose: string | null }[];
+  const shiftNotes = (noteRows ?? []) as { id: string; author_id: string | null; body: string; created_at: string }[];
+  const answer = response as { response: string; note: string; responded_at: string } | null;
+  const carName = new Map(((cars ?? []) as { id: string; name: string; rego: string }[]).map((c) => [c.id, `${c.name} (${c.rego})`]));
   // cmeprojects: the opened shift's client: address, alerts and how to support them (only what this person may see).
   type ClientCard = {
     ref: string | null;
@@ -160,12 +186,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       instructions: (wi ?? []) as ClientCard["instructions"],
     };
   }
-  const actorIds = [...new Set(((events ?? []) as { actor: string | null }[]).map((e) => e.actor).filter((v): v is string => !!v && !name.has(v)))];
+  const actorIds = [...new Set([...evs.map((e) => e.actor), ...sigs.map((x) => x.captured_by), ...shiftNotes.map((x) => x.author_id), ...trips.map((t) => t.driver_id), opened?.created_by ?? null, opened?.updated_by ?? null].filter((v): v is string => !!v && !name.has(v)))];
   const { data: actors } = actorIds.length ? await supabase.from("profiles").select("id, full_name, email").in("id", actorIds) : { data: [] };
   for (const a of (actors ?? []) as { id: string; full_name: string | null; email: string }[]) name.set(a.id, a.full_name || a.email);
 
   const chip = (s: Shift) => {
-    const a = sydneyParts(s.starts_at);
     const warn = warningsFor(s);
     const n = hands(s.id).length;
     const asked = requests.some((r) => r.shift_id === s.id);
@@ -174,7 +199,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       <>
         <span className="flex items-center justify-between gap-1 font-semibold">
           <span className="flex items-center gap-1">
-            {a.time.replace(/^0/, "")}–{shortTime(s.ends_at)}
+            {shortTime(s.starts_at)}–{shortTime(s.ends_at)}
             {s.series_id ? <Repeat2 aria-label="Repeats" className="size-3" /> : null}
           </span>
           <span className="flex items-center gap-1">
@@ -208,6 +233,27 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
 
   return (
     <>
+      <span data-wide hidden />
+      {/* cmeprojects (update 128): the week in numbers, from the shifts shown. */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+        {(
+          [
+            ["Shifts", String(shifts.length), ""],
+            ["Rostered hours", totalHours.toFixed(1), ""],
+            ["Filled", String(shifts.filter((x) => x.worker_id).length), ""],
+            ["Vacant", String(vacant.length), vacant.length ? "text-danger" : ""],
+            ["Drafts", String(shifts.filter((x) => x.status === "draft").length), ""],
+            ["Published", String(shifts.filter((x) => x.status === "published").length), ""],
+            ["Waiting for answer", String(shifts.filter((x) => x.status === "published" && x.worker_id && !answered.has(x.id)).length), ""],
+            ["Warnings", String(shifts.filter((x) => warningsFor(x).length).length), shifts.some((x) => warningsFor(x).length) ? "text-warn" : ""],
+          ] as [string, string, string][]
+        ).map(([l, v, c]) => (
+          <div key={l} className="rounded-lg border border-line bg-surface px-3 py-2">
+            <p className="text-xs text-muted">{l}</p>
+            <p className={`text-lg font-semibold ${c}`}>{v}</p>
+          </div>
+        ))}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
           <Link href={`/roster?w=${monday}`} className={`px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand-soft text-brand"}`}>
@@ -220,15 +266,20 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <Link href={`/roster?w=${thisMonday}${byClient ? "&by=client" : ""}`} className={buttonClass("outline")}>
           Today
         </Link>
-        <Link href={`/roster?w=${addDays(monday, -7)}${byClient ? "&by=client" : ""}`} aria-label="Previous week" className="rounded-lg border border-line p-2 hover:bg-page">
-          <ChevronLeft aria-hidden="true" className="size-4" />
-        </Link>
-        <Link href={`/roster?w=${addDays(monday, 7)}${byClient ? "&by=client" : ""}`} aria-label="Next week" className="rounded-lg border border-line p-2 hover:bg-page">
-          <ChevronRight aria-hidden="true" className="size-4" />
-        </Link>
-        <h1 className="heading text-xl">{weekLabel}</h1>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${weeksAway === 0 ? "bg-brand-soft text-brand" : "bg-page ring-1 ring-line"}`}>
-          {weeksAway === 0 ? "This week" : weeksAway > 0 ? `${weeksAway} week${weeksAway === 1 ? "" : "s"} ahead` : `${-weeksAway} week${weeksAway === -1 ? "" : "s"} ago`}
+        {/* The week shown, between its arrows, in one box the height of the buttons. */}
+        <span className="inline-flex min-h-11 items-stretch overflow-hidden rounded-lg border border-line bg-surface md:min-h-10">
+          <Link href={`/roster?w=${addDays(monday, -7)}${byClient ? "&by=client" : ""}`} aria-label="Previous week" className="flex items-center border-r border-line px-2.5 hover:bg-page">
+            <ChevronLeft aria-hidden="true" className="size-4" />
+          </Link>
+          <span className="flex min-w-60 items-center justify-center gap-2 px-3">
+            <h1 className="text-sm font-semibold">{weekLabel}</h1>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${weeksAway === 0 ? "bg-brand-soft text-brand" : "bg-page ring-1 ring-line"}`}>
+              {weeksAway === 0 ? "This week" : weeksAway > 0 ? `${weeksAway} week${weeksAway === 1 ? "" : "s"} ahead` : `${-weeksAway} week${weeksAway === -1 ? "" : "s"} ago`}
+            </span>
+          </span>
+          <Link href={`/roster?w=${addDays(monday, 7)}${byClient ? "&by=client" : ""}`} aria-label="Next week" className="flex items-center border-l border-line px-2.5 hover:bg-page">
+            <ChevronRight aria-hidden="true" className="size-4" />
+          </Link>
         </span>
         <span className="ml-auto flex flex-wrap items-center gap-2">
           {canEdit ? (
@@ -278,9 +329,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <span className={`rounded-full px-2 py-0.5 font-semibold ${BANDS.eve[1]}`}>Evening 6–10pm</span>
         <span className={`rounded-full px-2 py-0.5 font-semibold ${BANDS.night[1]}`}>Night 10pm–6am</span>
         <span>Dashed: draft · ↻ repeats · ✋ hands up · ⇄ change asked</span>
-        <span className="ml-auto">
-          {shifts.length} shifts · {totalHours.toFixed(1)} rostered hours · {vacant.length} vacant
-        </span>
+        <span className="ml-auto">{shifts.length ? "" : "No shifts this week"}</span>
       </p>
 
       <Card className="overflow-x-auto p-0">
@@ -417,7 +466,10 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                   key={opened?.id ?? str("add")}
                   shift={draft}
                   workers={workerFit}
-                  clients={((clients ?? []) as { id: string; name: string }[]).map((c) => ({ id: c.id, name: c.name }))}
+                  clients={((clients ?? []) as { id: string; name: string; status: string }[])
+                    .filter((c) => c.status === "active" || c.id === opened?.client_id)
+                    .map((c) => ({ id: c.id, name: c.status === "active" ? c.name : `${c.name} (not active)` }))}
+                  cars={((cars ?? []) as { id: string; name: string; rego: string }[]).map((c) => ({ id: c.id, name: `${c.name} (${c.rego})` }))}
                   locations={((locations ?? []) as { id: string; client_id: string; label: string; address: string }[]).map((l) => ({ id: l.id, client_id: l.client_id, name: `${l.label}: ${l.address}` }))}
                   services={((services ?? []) as { id: string; client_id: string; label: string }[]).map((v) => ({ id: v.id, client_id: v.client_id, name: v.label }))}
                 />
@@ -449,9 +501,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                     </span>
                   </div>
                   <nav className="mt-2 flex gap-1">
-                    {(["details", "timesheet", "log"] as const).map((t) => (
+                    {(["details", "events", "signatures", "trips", "timesheet", "logs"] as const).map((t) => (
                       <Link key={t} href={`${base}&shift=${opened.id}${t === "details" ? "" : `&tab=${t}`}`} scroll={false} className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${tab === t ? "border-brand" : "border-transparent text-muted"}`}>
-                        {t === "details" ? "Details" : t === "timesheet" ? "Timesheet" : "Log"}
+                        {t[0].toUpperCase() + t.slice(1)}
+                        {t === "signatures" && sigs.length ? ` (${sigs.filter((x) => !x.voided_at).length})` : ""}
+                        {t === "trips" && trips.length ? ` (${trips.length})` : ""}
                       </Link>
                     ))}
                   </nav>
@@ -460,6 +514,14 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                   {tab === "details" ? (
                     <>
                       <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-1.5">
+                        {opened.ref ? (
+                          <>
+                            <dt className="text-muted">Reference</dt>
+                            <dd className="font-mono text-xs">{opened.ref}</dd>
+                            <dt className="text-muted">Shift type</dt>
+                            <dd>{shiftTypeLabel(opened.shift_type ?? "standard")}</dd>
+                          </>
+                        ) : null}
                         <dt className="text-muted">Client</dt>
                         <dd>{opened.client_id ? clientName.get(opened.client_id) : "No client"}</dd>
                         <dt className="text-muted">Service</dt>
@@ -476,9 +538,52 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         </dd>
                         <dt className="text-muted">Worker</dt>
                         <dd>{opened.worker_id ? `${name.get(opened.worker_id)} · ${(hoursOf.get(opened.worker_id) ?? 0).toFixed(1)} of 38 h this week` : "Vacant"}</dd>
-                        <dt className="text-muted">Instructions</dt>
+                        <dt className="text-muted">Worker instructions</dt>
                         <dd className="whitespace-pre-line">{opened.notes || "None"}</dd>
+                        {opened.ref ? (
+                          <>
+                            <dt className="text-muted">Worker&apos;s answer</dt>
+                            <dd>
+                              {!opened.worker_id || opened.status !== "published" ? "Not asked yet" : answer ? (
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${answer.response === "accepted" ? "bg-good-soft" : "bg-danger-soft"}`}>
+                                  {answer.response === "accepted" ? "Accepted" : "Declined"} {new Date(answer.responded_at).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short" })}
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold">Waiting</span>
+                              )}
+                              {answer?.note ? <span className="block text-xs text-muted">{answer.note}</span> : null}
+                            </dd>
+                            <dt className="text-muted">Company car</dt>
+                            <dd>{opened.vehicle_id ? (carName.get(opened.vehicle_id) ?? "Booked car") : "None"}</dd>
+                            <dt className="text-muted">Pay group</dt>
+                            <dd>{opened.pay_group || "Their usual"}</dd>
+                            <dt className="text-muted">Allowances</dt>
+                            <dd>{(opened.allowances ?? []).join(", ") || "None"}</dd>
+                            <dt className="text-muted">Signatures</dt>
+                            <dd>{[opened.needs_worker_signature ? "worker at clock in and out" : "", opened.needs_client_signature ? "client at clock out" : ""].filter(Boolean).join("; ") || "Not needed"}</dd>
+                            <dt className="text-muted">Added</dt>
+                            <dd className="text-xs">{opened.created_at ? `${new Date(opened.created_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} by ${opened.created_by ? (name.get(opened.created_by) ?? "someone") : "the portal"}` : ""}</dd>
+                            <dt className="text-muted">Last changed</dt>
+                            <dd className="text-xs">{opened.updated_at ? `${new Date(opened.updated_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${opened.updated_by ? ` by ${name.get(opened.updated_by) ?? "someone"}` : ""}` : ""}</dd>
+                          </>
+                        ) : null}
                       </dl>
+                      {canEdit && opened.ref ? (
+                        <section className="flex flex-col gap-2 rounded-lg border border-line p-3">
+                          <h3 className="font-semibold">Internal notes <span className="text-xs font-normal text-muted">(people who roster only)</span></h3>
+                          {shiftNotes.map((n) => (
+                            <p key={n.id} className="whitespace-pre-line">
+                              {n.body}
+                              <span className="block text-xs text-muted">{n.author_id ? (name.get(n.author_id) ?? "Someone") : "Someone"} · {new Date(n.created_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>
+                            </p>
+                          ))}
+                          <form action={addShiftNote} className="flex gap-2">
+                            <input type="hidden" name="id" value={opened.id} />
+                            <input name="body" required maxLength={2000} placeholder="Add a note" className={inputClass} />
+                            <button className={buttonClass("outline")}>Add</button>
+                          </form>
+                        </section>
+                      ) : null}
                       {opened.client_id && clientCard ? (
                         <section className="flex flex-col gap-2 rounded-lg border border-line p-3">
                           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -585,15 +690,99 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                     ) : (
                       <p className="text-muted">The worker sends their actual times after the shift. Nothing yet.</p>
                     )
-                  ) : (events ?? []).length ? (
-                    <ol className="flex flex-col gap-2 border-l-2 border-line pl-3">
-                      {((events ?? []) as { id: number; actor: string | null; happened_at: string; summary: string }[]).map((e) => (
-                        <li key={e.id}>
-                          <b>{e.actor ? (name.get(e.actor) ?? "Someone") : "The portal"}</b> {e.summary}.
-                          <span className="block text-xs text-muted">{new Date(e.happened_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>
-                        </li>
-                      ))}
-                    </ol>
+                  ) : tab === "events" ? (
+                    evs.filter((e) => (e.kind ?? "event") === "event").length ? (
+                      <ol className="flex flex-col gap-2 border-l-2 border-line pl-3">
+                        {evs.filter((e) => (e.kind ?? "event") === "event").map((e) => (
+                          <li key={e.id}>
+                            <b>{e.actor ? (name.get(e.actor) ?? "Someone") : "The portal"}</b> {e.summary}.
+                            {e.reason ? <span className="block text-xs">“{e.reason}”</span> : null}
+                            <span className="block text-xs text-muted">{new Date(e.happened_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}{e.source && e.source !== "portal" ? ` · ${e.source === "worker" ? "worker" : "automatic"}` : ""}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className="text-muted">No events yet.</p>
+                    )
+                  ) : tab === "signatures" ? (
+                    <div className="flex flex-col gap-3">
+                      {opened.needs_worker_signature && !sigs.some((x) => !x.voided_at && x.kind === "worker_in") ? <p className="rounded-md bg-warn-soft px-2 py-1">Worker clock-in signature still needed.</p> : null}
+                      {opened.needs_worker_signature && !sigs.some((x) => !x.voided_at && x.kind === "worker_out") ? <p className="rounded-md bg-warn-soft px-2 py-1">Worker clock-out signature still needed.</p> : null}
+                      {opened.needs_client_signature && !sigs.some((x) => !x.voided_at && (x.kind === "client" || x.kind === "representative")) ? <p className="rounded-md bg-warn-soft px-2 py-1">Client (or representative) signature still needed.</p> : null}
+                      {sigs.length ? (
+                        sigs.map((x) => (
+                          <div key={x.id} className={`flex flex-col gap-1 rounded-lg border border-line p-3 ${x.voided_at ? "opacity-60" : ""}`}>
+                            <p className="font-semibold">
+                              {{ worker_in: "Worker, clock in", worker_out: "Worker, clock out", client: "Client", representative: "Client representative" }[x.kind] ?? x.kind}: {x.signer_name}
+                              {x.signer_role ? <span className="font-normal text-muted"> ({x.signer_role})</span> : null}
+                            </p>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={x.signature} alt={`Signature of ${x.signer_name}`} className="h-20 max-w-64 rounded border border-line bg-white object-contain" />
+                            <p className="text-xs text-muted">Signed {new Date(x.signed_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}{x.captured_by ? ` · recorded by ${name.get(x.captured_by) ?? "someone"}` : ""}</p>
+                            {x.voided_at ? (
+                              <p className="text-xs text-danger">Voided {new Date(x.voided_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}: {x.void_reason}</p>
+                            ) : canEdit ? (
+                              <form action={voidSignature} className="flex gap-2">
+                                <input type="hidden" name="id" value={x.id} />
+                                <input name="reason" required maxLength={500} placeholder="Reason to void (it stays on record)" className={inputClass} />
+                                <button className={buttonClass("outline")}>Void</button>
+                              </form>
+                            ) : null}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted">No signatures yet. The worker records them on My shifts.</p>
+                      )}
+                    </div>
+                  ) : tab === "trips" ? (
+                    trips.length ? (
+                      <ul className="divide-y divide-line rounded-md border border-line">
+                        {trips.map((t) => (
+                          <li key={t.id} className="px-3 py-2">
+                            <p className="font-semibold">
+                              {carName.get(t.car_id) ?? "Company car"} · {t.km != null ? `${t.km} km` : "not returned yet"}
+                            </p>
+                            <p className="text-xs text-muted">
+                              {new Date(t.started_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                              {t.returned_at ? ` – ${new Date(t.returned_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })}` : ""}
+                              {t.went_to ? ` · to ${t.went_to}` : ""}
+                              {t.driver_id ? ` · ${name.get(t.driver_id) ?? "driver"}` : ""}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted">No trips linked. Trips are recorded in the Cars app; they show here when linked to this shift.</p>
+                    )
+                  ) : evs.length ? (
+                    <table className="w-full text-left text-xs">
+                      <thead className="text-muted">
+                        <tr className="border-b border-line">
+                          <th className="py-1 pr-2 font-medium">When</th>
+                          <th className="py-1 pr-2 font-medium">Who</th>
+                          <th className="py-1 pr-2 font-medium">Field</th>
+                          <th className="py-1 pr-2 font-medium">Previous</th>
+                          <th className="py-1 pr-2 font-medium">New</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {evs.map((e) => (
+                          <tr key={e.id} className="border-b border-line align-top">
+                            <td className="py-1.5 pr-2 whitespace-nowrap">{new Date(e.happened_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</td>
+                            <td className="py-1.5 pr-2">
+                              {e.actor ? (name.get(e.actor) ?? "Someone") : "The portal"}
+                              {e.source && e.source !== "portal" ? <span className="block text-muted">{e.source === "worker" ? "worker app" : "automatic"}</span> : null}
+                            </td>
+                            <td className="py-1.5 pr-2">{e.field ?? <span className="text-muted">{e.summary}</span>}</td>
+                            <td className="py-1.5 pr-2 whitespace-pre-line">{e.old_value ?? ""}</td>
+                            <td className="py-1.5 pr-2 whitespace-pre-line">
+                              {e.new_value ?? ""}
+                              {e.reason ? <span className="block text-muted">Reason: {e.reason}</span> : null}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   ) : (
                     <p className="text-muted">No changes recorded yet.</p>
                   )}

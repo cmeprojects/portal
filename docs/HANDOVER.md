@@ -140,6 +140,16 @@ Last updated: 17 Nov 2026.
   week label), `/roster/timesheets` (tiles, worker columns split from pay-period columns, expand, edit modal, payroll
   CSV), `/my-shifts` (confirm times, ask to swap). run_roster_alerts also sends request and query notices.
   Next: Stage 6 (Allied Health external access; design for approval first).
+- **Rostering round 3 (update 128, 18 Nov 2026; owner's rostering brief):** shifts get ref (SH-000123), shift_type,
+  vehicle_id (Cars), pay_group, allowances, needs_worker/client_signature; guard_shift_client: only active clients
+  get new shifts, a car can't be double-booked. shift_events gains kind (event/change), field, old_value, new_value,
+  source (portal/worker/system), reason; insert only from triggers (pg_trigger_depth() > 0); workers read their
+  shifts' events (not changes). New: shift_responses (accept/decline; reset when worker/time changes),
+  shift_signatures (data-URL PNG; void with reason, never edit/delete), shift_notes (internal, roster editors only),
+  car_trips.shift_id. App: roster full width (pages opt in with `data-wide`), week summary tiles, week label inside
+  the arrows, form sections (shift type, car and pay, instructions vs internal note, signatures), panel tabs Details
+  / Events / Signatures / Trips / Timesheet / Logs (field table), My shifts Accept/Decline and signature pad.
+  Not yet: day/month views, shift templates, smart matching by distance, linking trips from the Cars app UI, AI tab.
 - **Test data seed (18 Nov 2026):** `supabase/seed/test-data-10-staff-10-clients.sql` (Dev/local only; idempotent;
   fictional; staff employee IDs and client references start TEST-). 10 staff (5 Support Workers, 2 Case Managers,
   Intake & Assessment Officer, Rostering Officer, Team Leader) cleared to work as a recorded test action (audit note

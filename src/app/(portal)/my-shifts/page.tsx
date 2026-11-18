@@ -9,11 +9,13 @@ import { shiftHours, sydneyParts } from "@/lib/sydney-time";
 import { nowMs } from "@/lib/access";
 import { putHandUp, withdrawRequest } from "../roster/actions";
 import { ChangeRequestForm } from "./change-request-form";
+import { answerShift } from "./actions";
+import { SignaturePad } from "./signature-pad";
 import { TimesheetForm } from "../roster/timesheets/timesheet-form";
 
 export const metadata: Metadata = { title: "My shifts" };
 
-type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; location_id: string | null; notes: string };
+type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; location_id: string | null; notes: string; ref?: string; shift_type?: string; needs_worker_signature?: boolean; needs_client_signature?: boolean };
 
 // cmeprojects (update 122): my published shifts, and open shifts I can put my
 // hand up for. Only what the database lets me see.
@@ -22,7 +24,7 @@ export default async function MyShiftsPage() {
   if (profile.role === "new_starter" || profile.role === "system_admin" || features.rostering === false) notFound();
   const supabase = await createClient();
   const now = new Date().toISOString();
-  const res = await supabase.from("shifts").select("id, worker_id, starts_at, ends_at, break_minutes, client_id, location_id, notes").eq("status", "published").gte("ends_at", now).order("starts_at").limit(60);
+  const res = await supabase.from("shifts").select("*").eq("status", "published").gte("ends_at", now).order("starts_at").limit(60);
   if (res.error) notFound(); // before live update 122
   const all = (res.data ?? []) as Shift[];
   const mine = all.filter((s) => s.worker_id === profile.id);
@@ -62,7 +64,7 @@ export default async function MyShiftsPage() {
   };
   // cmeprojects (update 123): my shifts in the last 14 days, to send my times; my change requests.
   const [{ data: pastRows }, reqRes, { data: colleagues }] = await Promise.all([
-    supabase.from("shifts").select("id, worker_id, starts_at, ends_at, break_minutes, client_id, location_id, notes").eq("status", "published").eq("worker_id", profile.id).lt("starts_at", now).gte("starts_at", new Date(nowMs() - 14 * 86_400_000).toISOString()).order("starts_at", { ascending: false }),
+    supabase.from("shifts").select("*").eq("status", "published").eq("worker_id", profile.id).lt("starts_at", now).gte("starts_at", new Date(nowMs() - 14 * 86_400_000).toISOString()).order("starts_at", { ascending: false }),
     supabase.from("shift_change_requests").select("id, shift_id, kind, status, reason").eq("requested_by", profile.id).order("created_at", { ascending: false }).limit(30),
     supabase.from("profiles").select("id, full_name, email").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").neq("id", profile.id).order("full_name"),
   ]);
@@ -72,12 +74,71 @@ export default async function MyShiftsPage() {
   const sheets = new Map(((sheetRows ?? []) as Sheet[]).map((t) => [t.shift_id, t]));
   const requests = reqRes.error ? [] : ((reqRes.data ?? []) as { id: string; shift_id: string; kind: string; status: string; reason: string }[]);
   const people = ((colleagues ?? []) as { id: string; full_name: string | null; email: string }[]).map((c) => ({ id: c.id, name: c.full_name || c.email }));
+  // cmeprojects (update 128): my answers and the signatures recorded (empty before it runs).
+  const shownIds = [...mine, ...past].map((x) => x.id);
+  const [{ data: ansRows }, { data: sigRows }] = shownIds.length
+    ? await Promise.all([
+        supabase.from("shift_responses").select("shift_id, response").in("shift_id", shownIds),
+        supabase.from("shift_signatures").select("shift_id, kind").in("shift_id", shownIds).is("voided_at", null),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const answerOf = new Map(((ansRows ?? []) as { shift_id: string; response: string }[]).map((a) => [a.shift_id, a.response]));
+  const signed = new Set(((sigRows ?? []) as { shift_id: string; kind: string }[]).map((x) => `${x.shift_id}:${x.kind}`));
   const started = (x: Shift) => new Date(x.starts_at).getTime() <= nowMs() + 3_600_000;
   const extra = (x: Shift) => {
     const req = requests.find((r) => r.shift_id === x.id);
     const t = sheets.get(x.id);
     return (
       <div className="flex flex-col gap-2 px-4 pb-3">
+        {x.ref && !started(x) ? (
+          answerOf.get(x.id) ? (
+            <p className="text-sm">
+              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${answerOf.get(x.id) === "accepted" ? "bg-good-soft" : "bg-danger-soft"}`}>
+                You {answerOf.get(x.id)} this shift
+              </span>
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <form action={answerShift}>
+                <input type="hidden" name="id" value={x.id} />
+                <input type="hidden" name="response" value="accepted" />
+                <button className={buttonClass("primary")}>Accept</button>
+              </form>
+              <form action={answerShift}>
+                <input type="hidden" name="id" value={x.id} />
+                <input type="hidden" name="response" value="declined" />
+                <button className={buttonClass("outline")}>Decline</button>
+              </form>
+            </div>
+          )
+        ) : null}
+        {started(x) && (x.needs_worker_signature || x.needs_client_signature)
+          ? (
+              [
+                ...(x.needs_worker_signature ? ["worker_in", "worker_out"] : []),
+                ...(x.needs_client_signature ? ["client"] : []),
+              ] as string[]
+            )
+              .filter((k) => !signed.has(`${x.id}:${k}`) && !(k === "client" && signed.has(`${x.id}:representative`)))
+              .map((k) => (
+                <details key={k}>
+                  <summary className="cursor-pointer text-sm font-semibold text-brand">
+                    {k === "worker_in" ? "Sign in (clock in)" : k === "worker_out" ? "Sign out (clock out)" : "Client signature"}
+                  </summary>
+                  <div className="mt-2 flex flex-col gap-3">
+                    <SignaturePad shiftId={x.id} kind={k} defaultName={k.startsWith("worker") ? (profile.full_name ?? "") : ""} />
+                    {k === "client" ? (
+                      <details>
+                        <summary className="cursor-pointer text-xs font-semibold text-brand">A representative is signing instead</summary>
+                        <div className="mt-2">
+                          <SignaturePad shiftId={x.id} kind="representative" />
+                        </div>
+                      </details>
+                    ) : null}
+                  </div>
+                </details>
+              ))
+          : null}
         {req ? (
           <p className="text-sm">
             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${req.status === "pending" ? "bg-warn-soft" : req.status === "approved" ? "bg-good-soft" : "bg-page ring-1 ring-line"}`}>

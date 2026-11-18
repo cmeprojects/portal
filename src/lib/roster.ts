@@ -64,3 +64,19 @@ export function shortTime(iso: string): string {
   const m = t.slice(3, 5);
   return `${((h + 11) % 12) + 1}${m === "00" ? "" : `:${m}`}${h < 12 ? "am" : "pm"}`;
 }
+
+// cmeprojects (update 128): shift types and allowances (shared by the server and the form).
+export const SHIFT_TYPES: [string, string][] = [
+  ["standard", "Standard"],
+  ["personal_care", "Personal care"],
+  ["domestic", "Domestic assistance"],
+  ["community_access", "Community access"],
+  ["overnight", "Overnight (active)"],
+  ["sleepover", "Sleepover"],
+  ["training", "Training"],
+  ["meeting", "Meeting"],
+  ["admin", "Administration"],
+  ["other", "Other"],
+];
+export const SHIFT_ALLOWANCES = ["Sleepover", "Broken shift", "First aid", "Higher duties", "Vehicle (own car)"];
+export const shiftTypeLabel = (v: string) => SHIFT_TYPES.find(([k]) => k === v)?.[1] ?? v;

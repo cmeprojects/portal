@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { SHIFT_ALLOWANCES, SHIFT_TYPES } from "@/lib/roster";
 import { useActionState, useMemo, useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { bulkShifts, copyLastWeek, copyToNextWeek, saveShift } from "./actions";
@@ -19,6 +20,12 @@ export type ShiftDraft = {
   notes: string;
   status: string;
   series: boolean;
+  shift_type: string;
+  vehicle_id: string;
+  pay_group: string;
+  allowances: string[];
+  needs_worker_signature: boolean;
+  needs_client_signature: boolean;
 };
 type Opt = { id: string; name: string };
 // What the Suggest button weighs, per worker (only what this person may see).
@@ -50,12 +57,14 @@ export function ShiftForm({
   clients,
   locations,
   services,
+  cars = [],
 }: {
   shift: ShiftDraft;
   workers: WorkerFit[];
   clients: Opt[];
   locations: (Opt & { client_id: string })[];
   services: (Opt & { client_id: string })[];
+  cars?: Opt[];
 }) {
   const [state, action, pending] = useActionState(saveShift, null);
   const [client, setClient] = useState(shift.client_id);
@@ -137,6 +146,16 @@ export function ShiftForm({
       </fieldset>
       <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
         <legend className="px-1 text-xs font-semibold text-muted">Time</legend>
+        <label className={`${field} sm:max-w-64`}>
+          Shift type
+          <select name="shift_type" defaultValue={shift.shift_type || "standard"} className={inputClass}>
+            {SHIFT_TYPES.map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="grid gap-2 sm:grid-cols-4">
           <label className={field}>
             Date
@@ -274,10 +293,55 @@ export function ShiftForm({
           )
         ) : null}
       </fieldset>
-      <label className={field}>
-        Instructions for the worker
-        <textarea name="notes" maxLength={500} rows={2} defaultValue={shift.notes} placeholder="What to do on this shift. The client's worker instructions show to them anyway." className={inputClass} />
-      </label>
+      <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+        <legend className="px-1 text-xs font-semibold text-muted">Car and pay</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className={field}>
+            Company car
+            <select name="vehicle_id" defaultValue={shift.vehicle_id} className={inputClass}>
+              <option value="">No company car</option>
+              {cars.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={field}>
+            Pay group (optional)
+            <input name="pay_group" maxLength={60} defaultValue={shift.pay_group} placeholder="e.g. SCHADS level 2" className={inputClass} />
+          </label>
+        </div>
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="mb-1 text-xs font-medium">Allowances</legend>
+          {SHIFT_ALLOWANCES.map((a) => (
+            <label key={a} className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs">
+              <input type="checkbox" name="allowances" value={a} defaultChecked={shift.allowances.includes(a)} /> {a}
+            </label>
+          ))}
+        </fieldset>
+        <p className="text-xs text-muted">Pay amounts aren&apos;t worked out here; payroll uses the approved timesheet.</p>
+      </fieldset>
+      <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+        <legend className="px-1 text-xs font-semibold text-muted">Instructions</legend>
+        <label className={field}>
+          For the worker (shows on their shift)
+          <textarea name="notes" maxLength={500} rows={2} defaultValue={shift.notes} placeholder="What to do on this shift. The client's support instructions show to them anyway." className={inputClass} />
+        </label>
+        <label className={field}>
+          Internal note (people who roster only; never shown to the worker)
+          <textarea name="internal_note" maxLength={2000} rows={2} placeholder="Added to the shift's notes when you save." className={inputClass} />
+        </label>
+      </fieldset>
+      <fieldset className="flex flex-col gap-1 rounded-lg border border-line p-3">
+        <legend className="px-1 text-xs font-semibold text-muted">Signatures</legend>
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" name="needs_worker_signature" defaultChecked={shift.needs_worker_signature} /> Worker signs at clock in and clock out
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" name="needs_client_signature" defaultChecked={shift.needs_client_signature} /> Client (or representative) signs at clock out
+        </label>
+      </fieldset>
       <div className="flex flex-wrap items-center gap-3">
         <select name="status" defaultValue={shift.status === "published" ? "published" : "draft"} aria-label="Save as" className={`${inputClass.replace("w-full", "")} w-auto`}>
           <option value="draft">Save as draft</option>

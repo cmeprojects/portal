@@ -1,6 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
+import { SHIFT_ALLOWANCES, SHIFT_TYPES } from "@/lib/roster";
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
@@ -44,7 +45,15 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     break_minutes: Math.max(0, Math.min(240, Number(form.get("break_minutes") ?? 0) || 0)),
     notes: String(form.get("notes") ?? "").trim().slice(0, 500),
     status: ["draft", "published"].includes(status) ? status : "draft",
+    // cmeprojects (update 128): shift type, car, pay group, allowances and signatures needed.
+    shift_type: SHIFT_TYPES.some(([k]) => k === form.get("shift_type")) ? String(form.get("shift_type")) : "standard",
+    vehicle_id: isId(String(form.get("vehicle_id") ?? "")) ? String(form.get("vehicle_id")) : null,
+    pay_group: String(form.get("pay_group") ?? "").trim().slice(0, 60),
+    allowances: form.getAll("allowances").map(String).filter((a) => SHIFT_ALLOWANCES.includes(a)),
+    needs_worker_signature: form.get("needs_worker_signature") === "on",
+    needs_client_signature: form.get("needs_client_signature") === "on",
   };
+  const internalNote = String(form.get("internal_note") ?? "").trim().slice(0, 2000);
   // One date: start and finish (finishing at or before the start, or ticked: the next day).
   const times = (d: string) => {
     const start = sydney(d, startT)!;
@@ -75,6 +84,7 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     }
     const { error } = await supabase.from("shifts").update({ ...base, ...times(date) }).eq("id", id);
     if (error) return { error: friendlyError(error) };
+    if (internalNote) await supabase.from("shift_notes").insert({ shift_id: id, body: internalNote });
     if (base.status === "published") await tellWorkers();
     revalidatePath("/roster");
     return { message: "Shift saved." };
@@ -102,9 +112,12 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
   let made = 0;
   const refused: string[] = [];
   for (const d of dates) {
-    const { error } = await supabase.from("shifts").insert({ ...base, ...times(d), series_id: seriesId });
+    const { data: added, error } = await supabase.from("shifts").insert({ ...base, ...times(d), series_id: seriesId }).select("id").single();
     if (error) refused.push(`${d}: ${friendlyError(error)}`);
-    else made++;
+    else {
+      made++;
+      if (internalNote && made === 1 && added) await supabase.from("shift_notes").insert({ shift_id: added.id, body: internalNote });
+    }
   }
   if (base.status === "published" && made) await tellWorkers();
   revalidatePath("/roster");
@@ -322,4 +335,24 @@ export async function decideTimesheet(form: FormData) {
   await (await createClient()).from("shift_timesheets").update({ status }).in("shift_id", ids).neq("status", "approved");
   if (status === "queried") await tellWorkers();
   revalidatePath("/roster/timesheets");
+}
+
+// cmeprojects (update 128): an internal rostering note (never shown to the worker).
+export async function addShiftNote(form: FormData) {
+  await requireRoster();
+  const id = String(form.get("id") ?? "");
+  const body = String(form.get("body") ?? "").trim().slice(0, 2000);
+  if (!isId(id) || !body) return;
+  await (await createClient()).from("shift_notes").insert({ shift_id: id, body });
+  revalidatePath("/roster");
+}
+
+// cmeprojects (update 128): void a signature with a reason (it's kept, never replaced).
+export async function voidSignature(form: FormData) {
+  await requireRoster();
+  const id = String(form.get("id") ?? "");
+  const reason = String(form.get("reason") ?? "").trim().slice(0, 500);
+  if (!isId(id) || !reason) return;
+  await (await createClient()).from("shift_signatures").update({ voided_at: new Date().toISOString(), void_reason: reason }).eq("id", id);
+  revalidatePath("/roster");
 }

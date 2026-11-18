@@ -135,7 +135,7 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
         <Bell items={bellItems} tone="light" />
         <UserMenu name={who} role={roleText} avatar={avatar} extra={<ThemeSwitch />} />
       </header>
-      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
+      <main className="mx-auto flex w-full max-w-6xl min-w-0 has-[[data-wide]]:max-w-none flex-col gap-6 px-4 py-6 md:px-8 md:py-8 print:max-w-none print:gap-4 print:p-0">
         {profileNeeded === true ? (
           <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-ink print:hidden">
             <span className="min-w-0 flex-1">
