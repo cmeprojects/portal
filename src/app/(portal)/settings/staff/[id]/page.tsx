@@ -95,6 +95,7 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
       openedLink = false;
     }
   }
+  const extras = await supabase.from("profiles").select("extra_job_title_ids").eq("id", id).maybeSingle();
   const exempt = me.role === "system_admin" ? await supabase.from("profiles").select("mfa_exempt").eq("id", id).maybeSingle() : null;
   const row: PersonRow = {
     id,
@@ -112,6 +113,7 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
     editable: roles.includes(base.role as Role) || id === me.id,
     teamIds: ((memberships ?? []) as { team_id: string }[]).map((m) => m.team_id),
     mfaExempt: exempt && !exempt.error ? Boolean(exempt.data?.mfa_exempt) : null,
+    extraTitleIds: extras.error ? undefined : ((extras.data?.extra_job_title_ids ?? []) as string[]),
   };
   const needsApproval = me.role === "staff_admin" && rules.staffAdminRoleApproval && (base.role !== "new_starter" || rules.firstRoleApproval);
   const canEdit = row.editable && base.role !== "system_admin";

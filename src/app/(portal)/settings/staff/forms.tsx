@@ -124,6 +124,8 @@ export type PersonRow = {
   mfaExempt?: boolean | null;
   // Has a profile photo (cmeprojects; staff photos).
   hasPhoto?: boolean;
+  // Extra job titles at the same access level (cmeprojects, update 137; undefined before it runs).
+  extraTitleIds?: string[];
 };
 
 export function PersonEditor({
@@ -231,6 +233,23 @@ export function PersonEditor({
                   {t.name}
                 </label>
               ))}
+            </div>
+          </fieldset>
+        ) : null}
+        {roleEditable && person.extraTitleIds && titles.some((t) => t.access_level === person.role && t.id !== person.job_title_id) ? (
+          <fieldset className="flex flex-col gap-1">
+            <input type="hidden" name="has_extra_titles" value="1" />
+            <legend className={`${label} mb-1`}>Extra job titles (optional)</legend>
+            <p className="text-xs text-muted">They also get the access of these job titles. Only titles at the same access level as their role.</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {titles
+                .filter((t) => t.access_level === person.role && t.id !== person.job_title_id)
+                .map((t) => (
+                  <label key={t.id} className="flex min-h-9 items-center gap-2 text-sm">
+                    <input type="checkbox" name="extra_titles" value={t.id} defaultChecked={person.extraTitleIds!.includes(t.id)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+                    {t.name}
+                  </label>
+                ))}
             </div>
           </fieldset>
         ) : null}

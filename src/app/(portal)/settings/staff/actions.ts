@@ -320,6 +320,24 @@ export async function setPersonTeams(_: FormState, form: FormData): Promise<Form
   return { message: ask ? "Sent to a manager to approve." : "Teams saved." };
 }
 
+// cmeprojects (update 137): extra job titles, at the same access level. The
+// database checks who may give them and logs the change.
+export async function setExtraTitles(_: FormState, form: FormData): Promise<FormState> {
+  const { profile: me } = await requireStaff();
+  const id = text(form, "id");
+  if (id === me.id) return { error: "You can't give yourself extra job titles." };
+  const wanted = [...new Set(form.getAll("extra_titles").map(String))].filter((v) => /^[0-9a-f-]{36}$/.test(v)).sort();
+  const supabase = await createClient();
+  const { data: current, error: readError } = await supabase.from("profiles").select("extra_job_title_ids").eq("id", id).maybeSingle();
+  if (readError || !current) return { error: "Extra job titles aren't available yet." };
+  const now = [...((current.extra_job_title_ids ?? []) as string[])].sort();
+  if (now.join() === wanted.join()) return { message: "Nothing has changed." };
+  const { error } = await supabase.from("profiles").update({ extra_job_title_ids: wanted }).eq("id", id);
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(PAGE);
+  return { message: "Extra job titles saved." };
+}
+
 // cmeprojects: one Save for a person's row. Saves the name, teams and role
 // that were on the form, each with its own rules, and says what changed.
 export async function savePerson(_: FormState, form: FormData): Promise<FormState> {
@@ -332,6 +350,8 @@ export async function savePerson(_: FormState, form: FormData): Promise<FormStat
   const steps: (() => Promise<FormState>)[] = [];
   if (form.has("full_name") && text(form, "full_name").slice(0, 120) !== (current.full_name ?? "")) steps.push(() => renamePerson(null, form));
   if (form.has("has_teams")) steps.push(() => setPersonTeams(null, form));
+  // Before any role change: a new access level then drops titles that no longer fit.
+  if (form.has("has_extra_titles") && id !== me.id) steps.push(() => setExtraTitles(null, form));
   if (form.has("role") && id !== me.id) steps.push(() => updatePerson(null, form));
 
   const done: string[] = [];

@@ -209,6 +209,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
   ];
   const sel = picked ? (people ?? []).find((p) => p.id === picked)! : null;
   const selRow = sel ? rowsForTable.find((r) => r.id === sel.id)! : null;
+  const extras = sel ? await supabase.from("profiles").select("extra_job_title_ids").eq("id", sel.id).maybeSingle() : null;
   const selPerson: PersonRow | null = sel
     ? {
         ...sel,
@@ -223,6 +224,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
         editable: roles.includes(sel.role as Role) || sel.id === me.id,
         teamIds: (memberships ?? []).filter((m) => m.user_id === sel.id).map((m) => m.team_id),
         mfaExempt: mfaExemptOf(sel.id),
+        extraTitleIds: !extras || extras.error ? undefined : ((extras.data?.extra_job_title_ids ?? []) as string[]),
       }
     : null;
   const { data: dirRow } = sel ? await supabase.from("staff_directory").select("work_phone, department, skills").eq("user_id", sel.id).maybeSingle() : { data: null };

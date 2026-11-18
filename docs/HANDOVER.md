@@ -13,7 +13,17 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 18 Nov 2026.
 
-- **AUD-016 Stage 5 defaults (18 Nov 2026, update 136, waiting):** Client Services Coordinator, every client:
+- **AUD-016 Stage 6 (18 Nov 2026, update 137, waiting): more than one job title per person.**
+  `profiles.extra_job_title_ids` (up to 5, each active and at the person's own access level, so the level stays
+  the ceiling; never their main title). `can()` uses the defaults of every title held and their function groups;
+  a restriction from any of them still wins. The baseline read rule now covers extra titles. Checked and logged
+  (`extra_job_titles_changed`) by the existing profile guard: only people who manage staff, never yourself; a new
+  access level drops titles that no longer fit. Staff page Role and access: "Extra job titles". Kept on the
+  profile, not a table, so the permission check never loops through a table rule that calls itself.
+  Test: extra_job_titles.test.sql. Allied Health (the third Stage 6 item) was update 124. **Program scope** (staff
+  limited to clients in their programs) needs one small read-only security definer function: waiting for the
+  owner's approval.
+- **AUD-016 Stage 5 defaults (18 Nov 2026, update 136):** Client Services Coordinator, every client:
   view and change details, contacts, locations, agreements, comms; view only the client list, services, alerts,
   reviews, funding; never notes, documents, care plans, Allied Health access, assigning staff or adding clients
   (the list stays view only, because "edit" on the list also gives Assigning staff). Staff Administrator and
