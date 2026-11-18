@@ -95,7 +95,11 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
       openedLink = false;
     }
   }
-  const extras = await supabase.from("profiles").select("extra_job_title_ids").eq("id", id).maybeSingle();
+  const [extras, progs, { data: programList }] = await Promise.all([
+    supabase.from("profiles").select("extra_job_title_ids").eq("id", id).maybeSingle(),
+    supabase.from("profiles").select("program_ids").eq("id", id).maybeSingle(),
+    supabase.from("client_programs").select("id, name").eq("active", true).order("sort_order"),
+  ]);
   const exempt = me.role === "system_admin" ? await supabase.from("profiles").select("mfa_exempt").eq("id", id).maybeSingle() : null;
   const row: PersonRow = {
     id,
@@ -114,6 +118,7 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
     teamIds: ((memberships ?? []) as { team_id: string }[]).map((m) => m.team_id),
     mfaExempt: exempt && !exempt.error ? Boolean(exempt.data?.mfa_exempt) : null,
     extraTitleIds: extras.error ? undefined : ((extras.data?.extra_job_title_ids ?? []) as string[]),
+    programIds: progs.error ? undefined : ((progs.data?.program_ids ?? []) as string[]),
   };
   const needsApproval = me.role === "staff_admin" && rules.staffAdminRoleApproval && (base.role !== "new_starter" || rules.firstRoleApproval);
   const canEdit = row.editable && base.role !== "system_admin";
@@ -307,6 +312,7 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
           {row.editable ? (
             <PersonEditor
               person={row}
+              programs={(programList ?? []) as { id: string; name: string }[]}
               roles={roles}
               titles={titles}
               teams={showTeams ? ((teams ?? []) as { id: string; name: string }[]) : []}

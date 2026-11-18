@@ -14,7 +14,7 @@ import type { FormState } from "@/lib/form";
 // changes only the grants they gave. A changed grant is revoked and given
 // again (history kept). The database checks every rule
 // (switched-over modules only, sensitive never to a group, and so on).
-export type BaselineEntry = { module: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams" | "assigned" };
+export type BaselineEntry = { module: string; effect: "allow" | "restrict"; actions: string[]; scope: "all" | "own_teams" | "assigned" | "programs" };
 type Holder = { kind: "group" | "title" | "level"; id: string };
 
 const UUID = /^[0-9a-f-]{36}$/;
@@ -27,7 +27,7 @@ export async function saveBaselines(holder: Holder, entries: BaselineEntry[]): P
   if (!["group", "title", "level"].includes(holder.kind) || (holder.kind === "level" ? !LEVELS.includes(holder.id) : !UUID.test(holder.id))) return { error: "Choose who it's for." };
   if (!Array.isArray(entries) || entries.length > 100) return { error: "Something went wrong. Please refresh and try again." };
   for (const e of entries) {
-    if (!/^[a-z_]+(\.[a-z_]+)*$/.test(e.module) || !["allow", "restrict"].includes(e.effect) || !["all", "own_teams", "assigned"].includes(e.scope) || (e.scope === "assigned" && (!e.module.startsWith("clients.") || e.module === "clients.assign")) || !Array.isArray(e.actions) || e.actions.some((a) => !/^[a-z_]+$/.test(a))) {
+    if (!/^[a-z_]+(\.[a-z_]+)*$/.test(e.module) || !["allow", "restrict"].includes(e.effect) || !["all", "own_teams", "assigned", "programs"].includes(e.scope) || ((e.scope === "assigned" || e.scope === "programs") && (!e.module.startsWith("clients.") || e.module === "clients.assign")) || !Array.isArray(e.actions) || e.actions.some((a) => !/^[a-z_]+$/.test(a))) {
       return { error: "Something went wrong. Please refresh and try again." };
     }
   }
@@ -62,7 +62,7 @@ export async function saveBaselines(holder: Holder, entries: BaselineEntry[]): P
     action: "role_group_access_changed",
     entity: holder.kind === "group" ? "function_group" : holder.kind === "title" ? "job_title" : "access_level",
     entity_id: holder.id,
-    details: { given: toAdd.map((e) => `${e.module} (${e.effect}${e.actions.length ? ": " + e.actions.join(", ") : ""}${e.scope === "own_teams" ? ", own teams" : ""})`), removed: toRevoke.filter((r) => !want.has(r.module_id)).map((r) => r.module_id) },
+    details: { given: toAdd.map((e) => `${e.module} (${e.effect}${e.actions.length ? ": " + e.actions.join(", ") : ""}${e.scope === "own_teams" ? ", own teams" : e.scope === "programs" ? ", their programs" : e.scope === "assigned" ? ", assigned clients" : ""})`), removed: toRevoke.filter((r) => !want.has(r.module_id)).map((r) => r.module_id) },
   });
   revalidatePath("/settings/access");
   return { message: "Saved." };

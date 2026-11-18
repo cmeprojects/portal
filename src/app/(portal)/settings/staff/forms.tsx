@@ -126,6 +126,8 @@ export type PersonRow = {
   hasPhoto?: boolean;
   // Extra job titles at the same access level (cmeprojects, update 137; undefined before it runs).
   extraTitleIds?: string[];
+  // Programs they work in (cmeprojects, update 138; undefined before it runs).
+  programIds?: string[];
 };
 
 export function PersonEditor({
@@ -137,7 +139,9 @@ export function PersonEditor({
   canHelpSignIn = false,
   needsApproval,
   isManager,
+  programs = [],
 }: {
+  programs?: { id: string; name: string }[];
   person: PersonRow;
   roles: Role[];
   titles: JobTitle[];
@@ -250,6 +254,21 @@ export function PersonEditor({
                     {t.name}
                   </label>
                 ))}
+            </div>
+          </fieldset>
+        ) : null}
+        {!person.isMe && person.programIds && programs.length ? (
+          <fieldset className="flex flex-col gap-1">
+            <input type="hidden" name="has_programs" value="1" />
+            <legend className={`${label} mb-1`}>Programs they work in (optional)</legend>
+            <p className="text-xs text-muted">Used where their access is set to &ldquo;Clients in their programs&rdquo; on the Access page.</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {programs.map((g) => (
+                <label key={g.id} className="flex min-h-9 items-center gap-2 text-sm">
+                  <input type="checkbox" name="programs" value={g.id} defaultChecked={person.programIds!.includes(g.id)} className="h-5 w-5 accent-[var(--brand-primary)]" />
+                  {g.name}
+                </label>
+              ))}
             </div>
           </fieldset>
         ) : null}

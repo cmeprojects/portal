@@ -209,7 +209,13 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
   ];
   const sel = picked ? (people ?? []).find((p) => p.id === picked)! : null;
   const selRow = sel ? rowsForTable.find((r) => r.id === sel.id)! : null;
-  const extras = sel ? await supabase.from("profiles").select("extra_job_title_ids").eq("id", sel.id).maybeSingle() : null;
+  const [extras, progs, programList] = sel
+    ? await Promise.all([
+        supabase.from("profiles").select("extra_job_title_ids").eq("id", sel.id).maybeSingle(),
+        supabase.from("profiles").select("program_ids").eq("id", sel.id).maybeSingle(),
+        supabase.from("client_programs").select("id, name").eq("active", true).order("sort_order").then((r) => r.data ?? []),
+      ])
+    : [null, null, []];
   const selPerson: PersonRow | null = sel
     ? {
         ...sel,
@@ -225,6 +231,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
         teamIds: (memberships ?? []).filter((m) => m.user_id === sel.id).map((m) => m.team_id),
         mfaExempt: mfaExemptOf(sel.id),
         extraTitleIds: !extras || extras.error ? undefined : ((extras.data?.extra_job_title_ids ?? []) as string[]),
+        programIds: !progs || progs.error ? undefined : ((progs.data?.program_ids ?? []) as string[]),
       }
     : null;
   const { data: dirRow } = sel ? await supabase.from("staff_directory").select("work_phone, department, skills").eq("user_id", sel.id).maybeSingle() : { data: null };
@@ -435,6 +442,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
                 selPerson.editable ? (
                   <PersonEditor
                     person={selPerson}
+                    programs={programList as { id: string; name: string }[]}
                     roles={roles}
                     titles={titles}
                     teams={showTeams ? (teams ?? []) : []}

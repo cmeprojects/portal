@@ -338,6 +338,23 @@ export async function setExtraTitles(_: FormState, form: FormData): Promise<Form
   return { message: "Extra job titles saved." };
 }
 
+// cmeprojects (update 138): the programs someone works in. The database checks
+// who may set them and logs the change.
+export async function setPrograms(_: FormState, form: FormData): Promise<FormState> {
+  const { profile: me } = await requireStaff();
+  const id = text(form, "id");
+  if (id === me.id) return { error: "You can't set your own programs." };
+  const wanted = [...new Set(form.getAll("programs").map(String))].filter((v) => /^[0-9a-f-]{36}$/.test(v)).sort();
+  const supabase = await createClient();
+  const { data: current, error: readError } = await supabase.from("profiles").select("program_ids").eq("id", id).maybeSingle();
+  if (readError || !current) return { error: "Programs aren't available yet." };
+  if ([...((current.program_ids ?? []) as string[])].sort().join() === wanted.join()) return { message: "Nothing has changed." };
+  const { error } = await supabase.from("profiles").update({ program_ids: wanted }).eq("id", id);
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(PAGE);
+  return { message: "Programs saved." };
+}
+
 // cmeprojects: one Save for a person's row. Saves the name, teams and role
 // that were on the form, each with its own rules, and says what changed.
 export async function savePerson(_: FormState, form: FormData): Promise<FormState> {
@@ -352,6 +369,7 @@ export async function savePerson(_: FormState, form: FormData): Promise<FormStat
   if (form.has("has_teams")) steps.push(() => setPersonTeams(null, form));
   // Before any role change: a new access level then drops titles that no longer fit.
   if (form.has("has_extra_titles") && id !== me.id) steps.push(() => setExtraTitles(null, form));
+  if (form.has("has_programs") && id !== me.id) steps.push(() => setPrograms(null, form));
   if (form.has("role") && id !== me.id) steps.push(() => updatePerson(null, form));
 
   const done: string[] = [];
