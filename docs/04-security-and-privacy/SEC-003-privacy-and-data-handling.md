@@ -88,25 +88,16 @@ Reading it:
 Tests: `supabase/tests/shift_notes_privacy.test.sql`, and
 `shift_service_records.test.sql` still passes.
 
-## 4. Points for the owner to decide (not changed)
+## 4. Owner's decisions (18 Nov 2026, update 140)
 
-1. **Communication preferences** (`client_comms`) are readable by Rostering
-   and Payroll Officers, Team Leaders and Support Workers (team clients),
-   because they follow the client list unless set separately, and the
-   "team sees comms" switch is on. Probably wanted for workers; Payroll
-   likely doesn't need it.
-2. **Who looks after a client** (`client_assignments`) is readable by anyone
-   who can see the client list, for the same reason. Low sensitivity
-   (staff names), but Payroll doesn't need it.
-3. **Opening a client's page isn't logged for staff.** Practitioners' opens
-   are logged (`client_external_views`); changes are logged for everyone.
-   A view log for staff is recommended before real data.
-4. **Client names appear in notices and emails** (documents expiring,
-   reviews, agreements ending, incidents). No care details are included.
-5. **Retention:** a records retention setting exists (`records.retention_years`);
-   how client and care records are removed when it's reached is SEC-004 (to write).
-6. **Payroll Officer and staff bank, super and TFN details**: still on the
-   old rule; owner to decide (from Stage 5).
+1. **Communication preferences:** Payroll Officers no longer see them (restriction on the job title). Workers and coordinators keep them.
+2. **Who looks after a client:** Payroll Officers no longer see it. Rostering keeps it.
+3. **Opening a client's page is logged** (`client_staff_views`, at most once an hour per person). People who assign staff to that client see "Who opened this page" on the Assigned staff tab. Nobody can change or delete the log.
+4. **Client names in notices and emails:** kept; never care details.
+5. **Retention:** SEC-004 drafted for approval (nothing removed until built and approved).
+6. **Payroll Officers see staff bank and super details, view only** (new part "Payroll details (view only)", on the Access page). Revealing an account number is logged. Changing or checking them, files and TFN forms stay with the people given full access.
+
+Tests: `supabase/tests/privacy_decisions.test.sql`.
 
 ## 5. Where the data is
 
@@ -119,7 +110,7 @@ Tests: `supabase/tests/shift_notes_privacy.test.sql`, and
 
 ## 6. Before real client data
 
-1. Owner decides the points in §4.
+1. ~~Owner decides the points in §4~~ (done 18 Nov 2026).
 2. Independent privacy adviser reviews this document and SEC-002.
 3. SEC-004 (retention and removal) written and approved.
 4. Re-run `supabase/setup/privacy-matrix.sql` on the copy that will hold

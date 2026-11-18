@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import type { ReactNode } from "react";
 import { ArrowLeft, Mail, MapPin, Pencil, Phone } from "lucide-react";
 import { requireSession } from "@/lib/session";
@@ -46,6 +47,20 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     data: { id: string; name: string; client_ref: string; status: string; preferred_name: string | null; title?: string; given_name?: string; middle_name?: string; family_name?: string; archive_reason?: string | null; archive_note?: string; archived_at?: string | null } | null;
   };
   if (!client) notFound();
+  // cmeprojects (update 140, owner's privacy decision): staff opening a client's
+  // page is recorded (at most once an hour each), after the page is sent.
+  after(async () => {
+    const db = await createClient();
+    const { data: recent, error } = await db.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", (await db.auth.getUser()).data.user?.id ?? "").gte("viewed_at", new Date(Date.parse(new Date().toISOString()) - 3_600_000).toISOString()).limit(1);
+    if (!error && !recent?.length) await db.from("client_staff_views").insert({ client_id: id });
+  });
+  const viewsRes = await supabase.from("client_staff_views").select("user_id, viewed_at").eq("client_id", id).gte("viewed_at", new Date(Date.parse(new Date().toISOString()) - 30 * 86_400_000).toISOString()).order("viewed_at", { ascending: false }).limit(200);
+  const canSeeViews = !viewsRes.error && (await canDoFor("clients.assign", "edit", id));
+  const lastOpened = new Map<string, { at: string; times: number }>();
+  for (const v of canSeeViews ? ((viewsRes.data ?? []) as { user_id: string; viewed_at: string }[]) : []) {
+    const was = lastOpened.get(v.user_id);
+    lastOpened.set(v.user_id, { at: was?.at ?? v.viewed_at, times: (was?.times ?? 0) + 1 });
+  }
   const sp = await searchParams;
   // cmeprojects (owner's concept): View shows one tab at a time; Edit walks
   // through the sections in steps (Basic details, Support needs, Documents,
@@ -1001,6 +1016,26 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               ) : null}
             </dl>
           ) : null}
+        </Card>
+      ) : null}
+      {inView("staff") && canSeeViews ? (
+        <Card className="flex flex-col gap-2 p-4">
+          <h2 className="heading-sm">Who opened this page (last 30 days)</h2>
+          <p className="text-xs text-muted">Recorded at most once an hour for each person. Only people who assign staff to this client see this.</p>
+          {lastOpened.size ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {[...lastOpened].map(([u, v]) => (
+                <li key={u} className="flex flex-wrap justify-between gap-2 px-3 py-1.5">
+                  <span className="font-semibold">{nameOfStaff.get(u) ?? "Staff member"}</span>
+                  <span className="text-muted">
+                    last {new Date(v.at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · {v.times} time{v.times === 1 ? "" : "s"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">Nobody yet.</p>
+          )}
         </Card>
       ) : null}
       {inView("staff") && assignments ? (

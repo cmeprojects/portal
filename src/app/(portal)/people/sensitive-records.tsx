@@ -18,17 +18,22 @@ function Checked({ at, subject, table, what, canCheck }: { at: string | null; su
 export async function SensitiveRecords({ subject, viewer }: { subject: string; viewer: string }) {
   if (subject === viewer) return null;
   const supabase = await createClient();
-  const [{ data: pay }, { data: ids }, { data: tfn }] = await Promise.all([
+  const [{ data: full }, { data: ids }, { data: tfn }, { data: viewOnly }] = await Promise.all([
     supabase.rpc("has_access", { p_area: "payroll_tax", p_person: subject }),
     supabase.rpc("has_access", { p_area: "identity_docs", p_person: subject }),
     supabase.rpc("has_tfn_access", { p_person: subject }),
+    // cmeprojects (update 140): "Payroll details (view only)", Payroll Officers by default.
+    supabase.rpc("can", { p_module: "hr.payroll_view", p_action: "view" }),
   ]);
-  if (pay !== true && ids !== true && tfn !== true) return null;
+  // Full access checks records and opens files; view-only sees bank and super (masked, reveal recorded).
+  const pay = full === true || viewOnly === true;
+  const canCheck = full === true;
+  if (!pay && ids !== true && tfn !== true) return null;
   const { data: taxRow } = tfn === true ? await supabase.from("staff_tax").select("*").eq("user_id", subject).maybeSingle() : { data: null };
   const tax = taxRow as Tax | null;
   const [bank, sup, wr] = await Promise.all([
-    pay === true ? supabase.from("staff_bank").select("*").eq("user_id", subject).maybeSingle() : Promise.resolve({ data: null }),
-    pay === true ? supabase.from("staff_super").select("*").eq("user_id", subject).maybeSingle() : Promise.resolve({ data: null }),
+    pay ? supabase.from("staff_bank").select("*").eq("user_id", subject).maybeSingle() : Promise.resolve({ data: null }),
+    pay ? supabase.from("staff_super").select("*").eq("user_id", subject).maybeSingle() : Promise.resolve({ data: null }),
     ids === true ? supabase.from("staff_work_rights").select("*").eq("user_id", subject).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const b = bank.data as Bank | null;
@@ -36,7 +41,7 @@ export async function SensitiveRecords({ subject, viewer }: { subject: string; v
   const w = wr.data as WorkRights | null;
   // Recorded before anything is shown.
   const log = [
-    ...(pay === true && (b || s) ? [{ subject_id: subject, area: "payroll_tax", action: "view", detail: "Bank and super (masked)" }] : []),
+    ...(pay && (b || s) ? [{ subject_id: subject, area: "payroll_tax", action: "view", detail: "Bank and super (masked)" }] : []),
     ...(ids === true && w ? [{ subject_id: subject, area: "identity_docs", action: "view", detail: "Work rights" }] : []),
     ...(tfn === true && tax ? [{ subject_id: subject, area: "payroll_tax", action: "view", detail: "TFN declaration (details)" }] : []),
   ];
@@ -48,12 +53,12 @@ export async function SensitiveRecords({ subject, viewer }: { subject: string; v
         <h2 className="heading-sm">Private records</h2>
         <p className="text-xs text-muted">Only people with access see this. Opening, revealing and downloading are recorded.</p>
       </div>
-      {pay === true ? (
+      {pay ? (
         <div className="flex flex-col gap-3 text-sm">
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
               <p className="font-semibold">Bank account</p>
-              {b ? <Checked at={b.verified_at} subject={subject} table="staff_bank" what="bank details" canCheck /> : null}
+              {b ? <Checked at={b.verified_at} subject={subject} table="staff_bank" what="bank details" canCheck={canCheck} /> : null}
             </div>
             {b && b.account_number ? (
               <p>
@@ -66,7 +71,7 @@ export async function SensitiveRecords({ subject, viewer }: { subject: string; v
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
               <p className="font-semibold">Super</p>
-              {s ? <Checked at={s.verified_at} subject={subject} table="staff_super" what="super details" canCheck /> : null}
+              {s ? <Checked at={s.verified_at} subject={subject} table="staff_super" what="super details" canCheck={canCheck} /> : null}
             </div>
             {s && s.fund_name ? (
               <p>
@@ -78,7 +83,7 @@ export async function SensitiveRecords({ subject, viewer }: { subject: string; v
             ) : (
               <p className="text-muted">Not given yet.</p>
             )}
-            {s?.choice_doc ? <OpenFile subject={subject} which="choice" label="Open choice of fund form" /> : null}
+            {s?.choice_doc && canCheck ? <OpenFile subject={subject} which="choice" label="Open choice of fund form" /> : null}
           </div>
         </div>
       ) : null}

@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270325000001_shift_notes_privacy.sql
+-- Built from every migration up to: 20270326000001_privacy_decisions.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,7 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and to_regclass('public.client_staff_views') is not null then v_upto := 158; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shift_service_records' and column_name = 'client_id') then v_upto := 157; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'program_ids') then v_upto := 156; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'extra_job_title_ids') then v_upto := 155; end if;
@@ -282,7 +283,8 @@ begin
     (154, '20270322000001_client_services_coordinator_defaults.sql'),
     (155, '20270323000001_extra_job_titles.sql'),
     (156, '20270324000001_program_scope.sql'),
-    (157, '20270325000001_shift_notes_privacy.sql')
+    (157, '20270325000001_shift_notes_privacy.sql'),
+    (158, '20270326000001_privacy_decisions.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -27781,5 +27783,89 @@ $function$;
 
 $m157$;
   insert into public.install_log (name) values ('20270325000001_shift_notes_privacy.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270326000001_privacy_decisions.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270326000001_privacy_decisions.sql') then
+    return;
+  end if;
+  execute $m158$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 140): the owner's privacy decisions (SEC-003 §4, 18 Nov 2026).
+-- 1. Payroll Officers no longer see clients' communication preferences.
+-- 2. Payroll Officers no longer see who looks after each client.
+-- 3. Staff opening a client's page is logged (who and when), read by the
+--    people who assign staff to that client (managers, intake by default).
+-- 6. Payroll Officers see staff bank and super details, view only, through a
+--    new part "Payroll details (view only)". Opening them is logged as before;
+--    changing them, checking them, files and TFN forms stay with the people
+--    given full access. Safe to run again.
+
+-- 1 and 2: restrictions on the Payroll Officer job title (a restriction wins).
+do $$
+declare
+  v_id uuid := (select id from public.job_titles where name = 'Payroll Officer');
+begin
+  if v_id is null then return; end if;
+  insert into public.access_baselines (job_title_id, module_id, effect, actions, scope, note, by_system_admin)
+  select v_id, x.m, 'restrict', '{}', 'all', 'Privacy decision 18 Nov 2026: Payroll Officer', true
+    from (values ('clients.comms'), ('clients.assign')) as x(m)
+   where not exists (select 1 from public.access_baselines b where b.job_title_id = v_id and b.module_id = x.m and b.revoked_at is null);
+end $$;
+
+-- 6: Payroll details (view only).
+insert into public.app_modules (id, category, label, sensitivity, delegable, sort_order, actions, grant_ready)
+values ('hr.payroll_view', 'hr', 'Payroll details (view only)', 'sensitive', true, 1035, '{view}', true)
+on conflict (id) do nothing;
+update public.app_modules set status = 'active' where id = 'hr.payroll_view' and status = 'retired'; -- run again after an undo
+insert into public.function_group_modules (function_group_id, module_id)
+select g.id, 'hr.payroll_view' from public.function_groups g where g.key = 'finance_accounts'
+on conflict do nothing;
+do $$
+declare
+  v_id uuid := (select id from public.job_titles where name = 'Payroll Officer');
+begin
+  if v_id is not null and not exists (select 1 from public.access_baselines where job_title_id = v_id and module_id = 'hr.payroll_view' and revoked_at is null) then
+    insert into public.access_baselines (job_title_id, module_id, actions, scope, note, by_system_admin)
+    values (v_id, 'hr.payroll_view', '{view}', 'all', 'Privacy decision 18 Nov 2026: Payroll Officer', true);
+  end if;
+end $$;
+drop policy if exists "payroll view: read bank details" on public.staff_bank;
+create policy "payroll view: read bank details" on public.staff_bank
+  for select to authenticated using ((select public.can('hr.payroll_view', 'view')));
+drop policy if exists "payroll view: read super details" on public.staff_super;
+create policy "payroll view: read super details" on public.staff_super
+  for select to authenticated using ((select public.can('hr.payroll_view', 'view')));
+
+-- 3: who opened a client's page.
+create table if not exists public.client_staff_views (
+  id bigint generated always as identity primary key,
+  org_id uuid not null default public.default_org_id(),
+  client_id uuid not null references public.car_clients (id) on delete cascade,
+  user_id uuid not null default auth.uid() references public.profiles (id),
+  viewed_at timestamptz not null default now()
+);
+create index if not exists client_staff_views_client on public.client_staff_views (client_id, viewed_at desc);
+alter table public.client_staff_views enable row level security;
+drop policy if exists "staff record their own opening" on public.client_staff_views;
+create policy "staff record their own opening" on public.client_staff_views
+  for insert to authenticated
+  with check (user_id = (select auth.uid()) and public.can('clients.list', 'view', client_id));
+drop policy if exists "people who assign staff read who opened" on public.client_staff_views;
+create policy "people who assign staff read who opened" on public.client_staff_views
+  for select to authenticated
+  using (user_id = (select auth.uid()) or public.can('clients.assign', 'edit', client_id));
+-- No change or delete: the log stays as recorded.
+grant select, insert on public.client_staff_views to authenticated;
+revoke all on public.client_staff_views from anon;
+
+$m158$;
+  insert into public.install_log (name) values ('20270326000001_privacy_decisions.sql');
 end;
 $part$;

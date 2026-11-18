@@ -84,6 +84,7 @@ export const MODULES: ModuleDef[] = [
   { id: "hr.records", category: "hr", label: "Staff records", icon: "Users", href: "", delegable: true },
   { id: "hr.records.details", category: "hr", parent: "hr.records", label: "Staff details", icon: "Users", href: "", delegable: true },
   { id: "hr.records.payroll", category: "hr", parent: "hr.records", label: "Payroll and tax (bank, super, TFN)", icon: "Landmark", href: "", sensitivity: "sensitive", delegable: true },
+  { id: "hr.payroll_view", category: "hr", label: "Payroll details (view only)", icon: "Landmark", href: "", sensitivity: "sensitive", delegable: true },
   { id: "hr.records.identity", category: "hr", parent: "hr.records", label: "Identity and work rights", icon: "ShieldCheck", href: "", sensitivity: "sensitive", delegable: true },
 
   // Clients & care
