@@ -10,14 +10,13 @@ export function SavedNotice({ text, error }: { text: string; error: boolean }) {
     if (error) return;
     const t = window.setTimeout(() => {
       setShown(false);
-      // Let the calendar grow into the space the bar leaves.
-      window.setTimeout(() => window.dispatchEvent(new Event("resize")), 50);
     }, 3000);
     return () => window.clearTimeout(t);
   }, [text, error]);
   if (!shown) return null;
   return (
-    <p role="status" className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${error ? "bg-danger-soft text-danger" : "bg-good-soft"}`}>
+    // Floats over the page, so nothing moves when it shows or hides.
+    <p role="status" className={`fixed top-20 right-6 z-[65] flex max-w-md items-center justify-between gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-xl ring-1 ${error ? "bg-danger-soft text-danger ring-danger/30" : "bg-good-soft text-ink ring-good/30"}`}>
       {text}
       {error ? (
         <button type="button" onClick={() => setShown(false)} className="text-xs underline">

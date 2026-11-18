@@ -171,6 +171,30 @@ const ROWS: Row[] = [
     ],
     areas: ["vehicles"],
   },
+  // cmeprojects (updates 122 to 132): one premium package.
+  {
+    id: "rostering",
+    label: "Rostering and timesheets",
+    intro: "The roster, open shifts, My shifts, timesheets, shift change requests, shift templates, signatures and staff hours. Who can roster is set on Settings → Access (Rostering).",
+    switches: ["rostering"],
+    sections: [],
+    areas: [],
+    links: [
+      { href: "/roster", text: "Rostering" },
+      { href: "/roster/timesheets", text: "Timesheets" },
+      { href: "/my-shifts", text: "My shifts" },
+    ],
+  },
+  // cmeprojects (updates 124 and 131): premium.
+  {
+    id: "allied_health",
+    label: "Allied Health access",
+    intro: "Outside practitioners (psychologists, OTs, speech pathologists and others) see only the clients they are given, upload reports and write notes. Access is given on each client's Practitioners tab.",
+    switches: ["allied_health"],
+    sections: [],
+    areas: [],
+    links: [{ href: "/settings/clients", text: "Clients" }],
+  },
   {
     // cmeprojects (Care block C2, update 111): which client sections are on, and what team staff see.
     id: "care",

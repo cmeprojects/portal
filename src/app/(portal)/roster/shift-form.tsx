@@ -306,7 +306,7 @@ export function ShiftForm({
         ) : null}
         {chosenFit ? (
           chosenFit.refuse.length ? (
-            <Notice tone="error">Can&apos;t give it to {chosen!.name}: {chosenFit.refuse.join(", ")}.</Notice>
+            <Notice tone="error">Can&apos;t assign {chosen!.name}: {chosenFit.refuse.join(", ")}.</Notice>
           ) : chosenFit.warn.length ? (
             <Notice tone="info">Warning: {chosenFit.warn.join(", ")}.</Notice>
           ) : (

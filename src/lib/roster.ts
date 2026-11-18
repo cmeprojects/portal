@@ -80,3 +80,33 @@ export const SHIFT_TYPES: [string, string][] = [
 ];
 export const SHIFT_ALLOWANCES = ["Sleepover", "Broken shift", "First aid", "Higher duties", "Vehicle (own car)"];
 export const shiftTypeLabel = (v: string) => SHIFT_TYPES.find(([k]) => k === v)?.[1] ?? v;
+
+// cmeprojects: shift log lines in plain words. Older lines (written before
+// update 132) are reworded here too, so the whole history reads the same way.
+export function eventWords(summary: string, automatic: boolean): string {
+  let s = summary
+    .replace(/^added the shift and published it/, "added and published this shift")
+    .replace(/^added the shift \(repeating\) and published it/, "added and published this shift (repeating)")
+    .replace(/^added the shift \(repeating\) as a draft/, "added this shift as a draft (repeating)")
+    .replace(/^added the shift as a draft/, "added this shift as a draft")
+    .replace(/^published it \(the worker is told\)/, "published this shift")
+    .replace(/^cancelled the shift/, "cancelled this shift")
+    .replace(/^moved it back to draft/, "moved this shift back to draft")
+    .replace(/^made it an open shift$/, "made this an open shift, so staff can put their hand up")
+    .replace(/^(gave|assigned) the shift to /, "assigned this shift to ")
+    .replace(/^re-assigned the shift from /, "re-assigned this shift from ")
+    .replace(/^moved it from /, "moved this shift from ")
+    .replace(/^accepted the shift/, "accepted this shift")
+    .replace(/^declined the shift/, "declined this shift")
+    .replace(/^recorded a signature \(worker in, (.+)\)$/, "recorded $1's clock-in signature")
+    .replace(/^recorded a signature \(worker out, (.+)\)$/, "recorded $1's clock-out signature")
+    .replace(/^recorded a signature \(client, (.+)\)$/, "recorded $1's signature (client)")
+    .replace(/^recorded a signature \(representative, (.+)\)$/, "recorded $1's signature (client's representative)")
+    .replace(/ 0(\d) ([A-Z][a-z]{2})/g, " $1 $2");
+  if (automatic) {
+    if (s === "told the worker") return "The worker was sent a notice about this shift.";
+    s = s.charAt(0).toUpperCase() + s.slice(1);
+    return `${s} (automatically).`;
+  }
+  return `${s}.`;
+}

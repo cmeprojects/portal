@@ -82,9 +82,19 @@ export function RosterMenu({ byClient, base }: { byClient: boolean; base: string
     };
   }, [menu]);
 
-  if (!menu) return copied ? <p className="sr-only" role="status">Shift copied. Right-click a cell and choose Paste here.</p> : null;
+  const copiedNote = copied ? (
+    <p role="status" className="fixed right-6 bottom-6 z-[65] flex items-center gap-3 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-surface shadow-xl">
+      Shift copied. Right-click a cell and choose Paste here.
+      <button type="button" onClick={() => setCopied("")} className="text-xs underline">
+        Clear
+      </button>
+    </p>
+  ) : null;
+  if (!menu) return copiedNote;
   const item = "block w-full px-3 py-1.5 text-left text-sm hover:bg-page disabled:cursor-not-allowed disabled:opacity-50";
   return (
+    <>
+    {copiedNote}
     <div role="menu" style={{ left: Math.min(menu.x, window.innerWidth - 220), top: Math.min(menu.y, window.innerHeight - 220) }} className="fixed z-[70] w-52 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-xl">
       {menu.shift ? (
         <>
@@ -116,11 +126,12 @@ export function RosterMenu({ byClient, base }: { byClient: boolean; base: string
           </button>
         </>
       ) : null}
-      {menu.date && menu.row ? (
-        <button role="menuitem" className={`${item} ${menu.shift ? "border-t border-line" : ""}`} disabled={!copied} onClick={() => paste(copied, menu.date!, menu.row!)}>
-          {copied ? "Paste here (as a draft)" : "Paste here (copy a shift first)"}
+      {copied && menu.date && menu.row ? (
+        <button role="menuitem" className={`${item} ${menu.shift ? "border-t border-line" : ""}`} onClick={() => paste(copied, menu.date!, menu.row!)}>
+          Paste here
         </button>
       ) : null}
     </div>
+    </>
   );
 }

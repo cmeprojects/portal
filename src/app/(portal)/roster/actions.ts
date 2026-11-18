@@ -436,9 +436,9 @@ export async function moveShift(id: string, date: string, row: string, byClient:
     if (s.worker_id && s.notified_at) {
       const when = new Date(s.starts_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
       const was = s.worker_id;
-      after(() => createAdminClient().rpc("notify", { p_user: was, p_kind: "shift_changed", p_title: `Your shift on ${when} has been given to someone else`, p_body: "See My shifts", p_href: "/my-shifts", p_email: true }));
+      after(() => createAdminClient().rpc("notify", { p_user: was, p_kind: "shift_changed", p_title: `Your shift on ${when} has been re-assigned to someone else`, p_body: "See My shifts", p_href: "/my-shifts", p_email: true }));
     }
-    return { message: "Shift moved to a new worker and set back to draft. Publish it when ready.", spotlight: id };
+    return { message: "Shift re-assigned and set back to draft. Publish it when ready.", spotlight: id };
   }
   // Notices go out just after the move, so nobody waits for them.
   if (s.status === "published") after(() => tellWorkers());
@@ -476,7 +476,15 @@ export async function pasteShift(id: string, date: string, row: string, byClient
   } else {
     copy.worker_id = row === "vacant" ? null : isId(row) ? row : s.worker_id;
   }
+  // An older client shift without a service or location: use the client's service (and its location) if there's just one.
+  if (copy.client_id && (!copy.service_id || !copy.location_id)) {
+    const { data: svc } = await supabase.from("client_services").select("id, location_id").eq("client_id", String(copy.client_id)).neq("status", "ended");
+    const list = (svc ?? []) as { id: string; location_id: string }[];
+    if (list.length !== 1) return { error: "The copied shift has no service or location. Open it, choose them, then copy it again." };
+    copy.service_id = copy.service_id || list[0].id;
+    copy.location_id = copy.location_id || list[0].location_id;
+  }
   const { data: added, error } = await supabase.from("shifts").insert(copy).select("id").single();
   if (error) return { error: friendlyError(error) };
-  return { message: "Shift pasted as a draft.", spotlight: added.id };
+  return { message: "Shift pasted.", spotlight: added.id };
 }

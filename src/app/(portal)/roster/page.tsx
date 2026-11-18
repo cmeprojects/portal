@@ -9,7 +9,7 @@ import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
-import { BANDS, availabilitySlot, bandOf, shiftTypeLabel, shortTime } from "@/lib/roster";
+import { BANDS, availabilitySlot, bandOf, eventWords, shiftTypeLabel, shortTime } from "@/lib/roster";
 import { addShiftNote, decideRequest, endRepeat, giveOpenShift, makeOpenShift, switchOffTemplate, voidSignature } from "./actions";
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
 import { PublishControl, type PublishPeriod } from "./publish-control";
@@ -860,7 +860,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                                     <button className={buttonClass("outline")}>Make it an open shift</button>
                                   </form>
                                   <Link href={`${base}&shift=${opened.id}&edit=1`} scroll={false} className={buttonClass("primary")}>
-                                    Give to someone else
+                                    Re-assign
                                   </Link>
                                 </span>
                               ) : null}
@@ -874,7 +874,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                             <dt className="text-muted">Signatures</dt>
                             <dd>{[opened.needs_worker_signature ? "worker at clock in and out" : "", opened.needs_client_signature ? "client at clock out" : ""].filter(Boolean).join("; ") || "Not needed"}</dd>
                             <dt className="text-muted">Added</dt>
-                            <dd className="text-xs">{opened.created_at ? `${new Date(opened.created_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} by ${opened.created_by ? (name.get(opened.created_by) ?? "someone") : "the portal"}` : ""}</dd>
+                            <dd className="text-xs">{opened.created_at ? `${new Date(opened.created_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${opened.created_by ? ` by ${name.get(opened.created_by) ?? "someone"}` : " (automatically)"}` : ""}</dd>
                             <dt className="text-muted">Last changed</dt>
                             <dd className="text-xs">{opened.updated_at ? `${new Date(opened.updated_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${opened.updated_by ? ` by ${name.get(opened.updated_by) ?? "someone"}` : ""}` : ""}</dd>
                           </>
@@ -955,7 +955,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                               <input type="hidden" name="id" value={opened.id} />
                               <input type="hidden" name="worker_id" value={h.user_id} />
                               <span className="flex-1">{name.get(h.user_id) ?? "Staff member"}</span>
-                              {canEdit ? <button className={buttonClass("outline")}>Give it to them</button> : null}
+                              {canEdit ? <button className={buttonClass("outline")}>Assign to them</button> : null}
                             </form>
                           ))}
                         </div>
@@ -1004,9 +1004,15 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                       <ol className="flex flex-col gap-2 border-l-2 border-line pl-3">
                         {evs.filter((e) => (e.kind ?? "event") === "event").map((e) => (
                           <li key={e.id}>
-                            <b>{e.actor ? (name.get(e.actor) ?? "Someone") : "The portal"}</b> {e.summary}.
+                            {e.actor ? (
+                              <>
+                                <b>{name.get(e.actor) ?? "Someone"}</b> {eventWords(e.summary, false)}
+                              </>
+                            ) : (
+                              <>{eventWords(e.summary, true)}</>
+                            )}
                             {e.reason ? <span className="block text-xs">“{e.reason}”</span> : null}
-                            <span className="block text-xs text-muted">{new Date(e.happened_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}{e.source && e.source !== "portal" ? ` · ${e.source === "worker" ? "worker" : "automatic"}` : ""}</span>
+                            <span className="block text-xs text-muted">{new Date(e.happened_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}{e.actor && e.source === "worker" ? " · from the worker's My shifts" : ""}</span>
                           </li>
                         ))}
                       </ol>
@@ -1063,7 +1069,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                     ) : (
                       <p className="text-muted">No trips linked. Trips are recorded in the Cars app; they show here when linked to this shift.</p>
                     )
-                  ) : evs.length ? (
+                  ) : evs.some((e) => e.field) ? (
                     <table className="w-full text-left text-xs">
                       <thead className="text-muted">
                         <tr className="border-b border-line">
@@ -1075,14 +1081,14 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         </tr>
                       </thead>
                       <tbody>
-                        {evs.map((e) => (
+                        {evs.filter((e) => e.field).map((e) => (
                           <tr key={e.id} className="border-b border-line align-top">
                             <td className="py-1.5 pr-2 whitespace-nowrap">{new Date(e.happened_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</td>
                             <td className="py-1.5 pr-2">
-                              {e.actor ? (name.get(e.actor) ?? "Someone") : "The portal"}
-                              {e.source && e.source !== "portal" ? <span className="block text-muted">{e.source === "worker" ? "worker app" : "automatic"}</span> : null}
+                              {e.actor ? (name.get(e.actor) ?? "Someone") : "Automatic"}
+                              {e.actor && e.source === "worker" ? <span className="block text-muted">worker app</span> : null}
                             </td>
-                            <td className="py-1.5 pr-2">{e.field ?? <span className="text-muted">{e.summary}</span>}</td>
+                            <td className="py-1.5 pr-2">{e.field}</td>
                             <td className="py-1.5 pr-2 whitespace-pre-line">{e.old_value ?? ""}</td>
                             <td className="py-1.5 pr-2 whitespace-pre-line">
                               {e.new_value ?? ""}
