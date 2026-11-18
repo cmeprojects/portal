@@ -44,7 +44,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const today = sydneyToday();
   // cmeprojects (update 129): Day, Week or Month, around one date.
-  const view: "day" | "week" | "month" = str("v") === "day" ? "day" : str("v") === "month" ? "month" : "week";
+  const view: "day" | "week" | "fortnight" | "month" = str("v") === "day" ? "day" : str("v") === "fortnight" ? "fortnight" : str("v") === "month" ? "month" : "week";
   const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
   const anchor = isDate(str("d")) ? str("d") : isDate(str("w")) ? str("w") : today;
   const monday = mondayOf(anchor);
@@ -57,10 +57,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     const [y, m] = anchor.slice(0, 7).split("-").map(Number);
     return m === 1 ? `${y - 1}-12-01` : `${y}-${String(m - 1).padStart(2, "0")}-01`;
   })();
-  const gridStart = view === "day" ? anchor : view === "month" ? mondayOf(monthStart) : monday;
-  const gridEnd = view === "day" ? addDays(anchor, 1) : view === "month" ? addDays(mondayOf(addDays(nextMonthStart, -1)), 7) : addDays(monday, 7);
-  const days = view === "day" ? [anchor] : Array.from({ length: 7 }, (_, i) => addDays(monday, i));
-  const monthDays = view === "month" ? Array.from({ length: Math.round((Date.parse(`${gridEnd}T12:00:00Z`) - Date.parse(`${gridStart}T12:00:00Z`)) / 86_400_000) }, (_, i) => addDays(gridStart, i)) : [];
+  const gridStart = view === "day" ? anchor : view === "month" ? monthStart : monday;
+  const gridEnd = view === "day" ? addDays(anchor, 1) : view === "month" ? nextMonthStart : addDays(monday, view === "fortnight" ? 14 : 7);
+  // Every day shown, as columns (workers or clients stay on the left in every view).
+  const days = Array.from({ length: Math.round((Date.parse(`${gridEnd}T12:00:00Z`) - Date.parse(`${gridStart}T12:00:00Z`)) / 86_400_000) }, (_, i) => addDays(gridStart, i));
+  const compact = days.length > 7;
   const from = sydneyInstant(gridStart);
   const to = sydneyInstant(gridEnd);
   const byClient = str("by") === "client";
@@ -142,7 +143,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       ? new Date(`${anchor}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
       : view === "month"
         ? new Date(`${monthStart}T12:00:00Z`).toLocaleDateString("en-AU", { month: "long", year: "numeric", timeZone: "UTC" })
-        : `${auDate(days[0])} – ${auDate(days[6])} ${days[6].slice(0, 4)}`;
+        : `${auDate(days[0])} – ${auDate(days[days.length - 1])} ${days[days.length - 1].slice(0, 4)}`;
   const thisMonday = mondayOf(today);
   const weeksAway = Math.round((new Date(`${monday}T12:00:00Z`).getTime() - new Date(`${thisMonday}T12:00:00Z`).getTime()) / (7 * 86_400_000));
 
@@ -246,7 +247,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       <>
         <span className="flex items-center justify-between gap-1 font-semibold">
           <span className="flex items-center gap-1">
-            {shortTime(s.starts_at)}–{shortTime(s.ends_at)}
+            {compact ? shortTime(s.starts_at) : `${shortTime(s.starts_at)}–${shortTime(s.ends_at)}`}
             {band !== "day" ? <span className="rounded bg-ink/10 px-1 text-[9px] font-semibold">{band === "night" ? "Night" : "Eve"}</span> : null}
             {s.series_id ? <Repeat2 aria-label="Repeats" className="size-3" /> : null}
           </span>
@@ -262,10 +263,10 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           </span>
         </span>
         <span className="block truncate">{byClient ? (s.worker_id ? name.get(s.worker_id) : "No worker yet") : s.client_id ? clientName.get(s.client_id) : s.notes || "Shift"}</span>
-        {s.service_id ? <span className="block truncate opacity-75">{serviceName.get(s.service_id)}</span> : null}
+        {s.service_id && !compact ? <span className="block truncate opacity-75">{serviceName.get(s.service_id)}</span> : null}
       </>
     );
-    const cls = `block w-full rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] leading-tight ${STATUS_STYLE[statusOf(s)][1]}`;
+    const cls = `block w-full rounded-md border-l-[3px] px-1.5 py-1 text-left ${compact ? "text-[10px]" : "text-[11px]"} leading-tight ${STATUS_STYLE[statusOf(s)][1]}`;
     return selecting ? (
       <label key={s.id} className={`${cls} cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-brand`}>
         <input type="checkbox" form="pick" name="ids" value={s.id} className="mr-1 size-3 align-middle" />
@@ -313,7 +314,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           </Link>
         </span>
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
-          {(["day", "week", "month"] as const).map((v) => (
+          {(["day", "week", "fortnight", "month"] as const).map((v) => (
             <Link key={v} href={go(anchor, v)} className={`px-3 py-1.5 ${view === v ? "bg-brand-soft text-brand" : "text-muted hover:bg-page"}`}>
               {v[0].toUpperCase() + v.slice(1)}
             </Link>
@@ -324,7 +325,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </Link>
         {/* The week shown, between its arrows, in one box the height of the buttons. */}
         <span className="inline-flex min-h-11 items-stretch overflow-hidden rounded-lg border border-line bg-surface md:min-h-10">
-          <Link href={go(view === "day" ? addDays(anchor, -1) : view === "month" ? prevMonthStart : addDays(monday, -7))} aria-label={`Previous ${view}`} className="flex items-center border-r border-line px-2.5 hover:bg-page">
+          <Link href={go(view === "day" ? addDays(anchor, -1) : view === "month" ? prevMonthStart : addDays(monday, view === "fortnight" ? -14 : -7))} aria-label={`Previous ${view}`} className="flex items-center border-r border-line px-2.5 hover:bg-page">
             <ChevronLeft aria-hidden="true" className="size-4" />
           </Link>
           <span className="flex min-w-60 items-center justify-center gap-2 px-3">
@@ -337,7 +338,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
               <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">{view === "day" ? "Today" : "This month"}</span>
             ) : null}
           </span>
-          <Link href={go(view === "day" ? addDays(anchor, 1) : view === "month" ? nextMonthStart : addDays(monday, 7))} aria-label={`Next ${view}`} className="flex items-center border-l border-line px-2.5 hover:bg-page">
+          <Link href={go(view === "day" ? addDays(anchor, 1) : view === "month" ? nextMonthStart : addDays(monday, view === "fortnight" ? 14 : 7))} aria-label={`Next ${view}`} className="flex items-center border-l border-line px-2.5 hover:bg-page">
             <ChevronRight aria-hidden="true" className="size-4" />
           </Link>
         </span>
@@ -353,7 +354,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                   <input type="hidden" name="from" value={from} />
                   <input type="hidden" name="to" value={to} />
                   <button disabled={!drafts} className="block w-full px-3 py-2 text-left text-sm font-semibold hover:bg-page disabled:cursor-not-allowed disabled:opacity-50">
-                    Publish {view === "day" ? "this day" : view === "month" ? "this month" : "this week"} ({drafts} draft{drafts === 1 ? "" : "s"})
+                    Publish {view === "day" ? "this day" : view === "month" ? "this month" : view === "fortnight" ? "this fortnight" : "this week"} ({drafts} draft{drafts === 1 ? "" : "s"})
                     <span className="block text-xs font-normal text-muted">{weekLabel}</span>
                   </button>
                 </form>
@@ -421,62 +422,16 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <span className="ml-auto">{shifts.length ? "" : "No shifts this week"}</span>
       </p>
 
-      {view === "month" ? (
-        <Card className="overflow-x-auto p-0">
-          <div className="grid min-w-[60rem] grid-cols-7 border-b border-line text-center text-xs font-semibold text-muted">
-            {DAY_NAMES.map((n) => (
-              <div key={n} className="border-r border-line py-2 last:border-r-0">
-                {n.toUpperCase()}
-              </div>
-            ))}
-          </div>
-          <div className="grid min-w-[60rem] grid-cols-7">
-            {monthDays.map((d) => {
-              const list = shifts.filter((x) => sydneyParts(x.starts_at).date === d);
-              const inMonth = d.slice(0, 7) === monthStart.slice(0, 7);
-              const open = list.filter((x) => !x.worker_id).length;
-              return (
-                <div key={d} className={`flex min-h-32 flex-col gap-1 border-r border-b border-line p-1.5 [&:nth-child(7n)]:border-r-0 ${inMonth ? "" : "bg-page/60 opacity-60"}`}>
-                  <Link href={go(d, "day")} className="flex items-center justify-between text-xs font-semibold hover:text-brand">
-                    <span className={`rounded-full px-1.5 ${d === today ? "bg-brand text-brand-fg" : ""}`}>{Number(d.slice(8))}</span>
-                    {list.length ? (
-                      <span className="font-normal text-muted">
-                        {list.length} shift{list.length === 1 ? "" : "s"}
-                        {open ? <span className="text-danger"> · {open} vacant</span> : null}
-                      </span>
-                    ) : null}
-                  </Link>
-                  {list.slice(0, 3).map((x) => (
-                    <Link key={x.id} href={`${base}&shift=${x.id}`} scroll={false} className={`block truncate rounded border-l-[3px] px-1 py-0.5 text-[11px] ${STATUS_STYLE[statusOf(x)][1]}`}>
-                      {shortTime(x.starts_at)} {x.worker_id ? (name.get(x.worker_id) ?? "") : "Vacant"}
-                    </Link>
-                  ))}
-                  {list.length > 3 ? (
-                    <Link href={go(d, "day")} className="text-[11px] font-semibold text-brand">
-                      +{list.length - 3} more
-                    </Link>
-                  ) : null}
-                  {canEdit && inMonth ? (
-                    <Link href={`${base}&add=${d}`} scroll={false} aria-label="Add a shift" className="mt-auto rounded text-center text-xs text-muted hover:bg-page hover:text-brand">
-                      +
-                    </Link>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      ) : (
       <Card className="overflow-x-auto p-0">
-        <table className={`w-full ${view === "day" ? "min-w-[30rem]" : "min-w-[60rem]"} table-fixed border-collapse text-sm`}>
+        <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: `${12 + days.length * (view === "day" ? 18 : compact ? 6.5 : 7.5)}rem` }}>
           <thead>
             <tr className="border-b border-line">
               <th scope="col" className="sticky left-0 z-10 w-48 border-r-[3px] border-line bg-page px-3 py-2 text-left text-xs font-semibold text-muted">
                 {byClient ? "Client" : "Worker"}
               </th>
               {days.map((d) => (
-                <th key={d} scope="col" className="border-r border-line px-1 py-2 text-center text-xs font-semibold text-muted">
-                  {DAY_NAMES[(new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7].toUpperCase()}
+                <th key={d} scope="col" className={`border-r border-line px-1 py-2 text-center text-xs font-semibold text-muted ${compact && (new Date(`${d}T12:00:00Z`).getUTCDay() % 6 === 0) ? "bg-page" : ""}`}>
+                  {compact ? DAY_NAMES[(new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7].slice(0, 2) : DAY_NAMES[(new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7].toUpperCase()}
                   <span className={`mx-auto mt-0.5 block w-fit rounded-full px-1.5 font-display text-sm ${d === today ? "bg-brand text-brand-fg" : "text-ink"}`}>{Number(d.slice(8))}</span>
                 </th>
               ))}
@@ -529,7 +484,6 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </table>
         {!shifts.length ? <p className="p-6 text-center text-sm text-muted">No shifts this week yet. Add one, or copy last week from the ⋮ menu.</p> : null}
       </Card>
-      )}
       {selecting ? (
         <>
           <form id="pick" />
