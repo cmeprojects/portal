@@ -238,6 +238,32 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
 
   // What Suggest weighs for each worker, around the shift being added or changed.
   const fitDay = opened ? sydneyParts(opened.starts_at).date : /^\d{4}-\d{2}-\d{2}$/.test(str("add")) ? str("add") : today;
+  // Who already knows each client: case manager or other assignment, the client's team, and recent shifts.
+  const knows = new Map<string, Record<string, string[]>>();
+  if (editing) {
+    const since = sydneyInstant(addDays(today, -90));
+    const [{ data: asg }, { data: ct }, { data: tm }, { data: past }] = await Promise.all([
+      supabase.from("client_assignments").select("client_id, user_id, assigned_as").is("ended_at", null),
+      supabase.from("client_teams").select("client_id, team_id"),
+      supabase.from("team_members").select("team_id, user_id"),
+      supabase.from("shifts").select("client_id, worker_id").gte("starts_at", since).lt("starts_at", sydneyInstant(today)).neq("status", "cancelled").not("client_id", "is", null).not("worker_id", "is", null).limit(5000),
+    ]);
+    const add = (u: string, c: string, why: string) => {
+      const m = knows.get(u) ?? {};
+      if (!(m[c] ??= []).includes(why)) m[c].push(why);
+      knows.set(u, m);
+    };
+    for (const a of asg ?? []) add(a.user_id, a.client_id, a.assigned_as === "case_manager" ? "their case manager" : "assigned to them");
+    const teamsOf = new Map<string, string[]>();
+    for (const t of ct ?? []) teamsOf.set(t.team_id, [...(teamsOf.get(t.team_id) ?? []), t.client_id]);
+    for (const m of tm ?? []) for (const c of teamsOf.get(m.team_id) ?? []) add(m.user_id, c, "in the client's team");
+    const count = new Map<string, number>();
+    for (const r of past ?? []) count.set(`${r.worker_id}|${r.client_id}`, (count.get(`${r.worker_id}|${r.client_id}`) ?? 0) + 1);
+    for (const [k, n] of count) {
+      const [u, c] = k.split("|");
+      add(u, c, `worked with them ${n} time${n === 1 ? "" : "s"} lately`);
+    }
+  }
   const workerFit: WorkerFit[] = editing
     ? ((people ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => ({
         id: p.id,
@@ -248,6 +274,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         expiredBeforeWork: (expired.get(p.id)?.before ?? []).join(", "),
         expiredOther: (expired.get(p.id)?.other ?? []).join(", "),
         avail: avail.get(p.id) ?? null,
+        knows: knows.get(p.id) ?? {},
       }))
     : [];
   const draft: ShiftDraft = opened
@@ -330,6 +357,32 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const { data: actors } = actorIds.length ? await supabase.from("profiles").select("id, full_name, email").in("id", actorIds) : { data: [] };
   for (const a of (actors ?? []) as { id: string; full_name: string | null; email: string }[]) name.set(a.id, a.full_name || a.email);
 
+  // cmeprojects: Day view is a timeline. Each shift sits at its hours; shifts that overlap stack in lanes.
+  const minuteOf = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const timeline = (here: Shift[], d: string) => {
+    const lanes: number[] = [];
+    const placed = [...here]
+      .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+      .map((s) => {
+        const a = minuteOf(sydneyParts(s.starts_at).time);
+        const e = sydneyParts(s.ends_at);
+        const b = e.date === d ? Math.max(minuteOf(e.time), a + 30) : 1440;
+        let lane = lanes.findIndex((end) => end <= a);
+        if (lane < 0) lane = lanes.length;
+        lanes[lane] = b;
+        return { s, a, b, lane };
+      });
+    return (
+      <div className="relative" style={{ height: `${Math.max(1, lanes.length) * 2.75}rem` }}>
+        {placed.map(({ s, a, b, lane }) => (
+          <div key={s.id} className="absolute" style={{ left: `${(a / 1440) * 100}%`, width: `${((b - a) / 1440) * 100}%`, top: `${lane * 2.75}rem`, minWidth: "4.5rem" }}>
+            {chip(s)}
+          </div>
+        ))}
+      </div>
+    );
+  };
+  const hourLines = view === "day" ? { backgroundImage: "linear-gradient(to right, var(--line) 1px, transparent 1px)", backgroundSize: `${100 / 24}% 100%` } : undefined;
   const chip = (s: Shift) => {
     const warn = warningsFor(s);
     const n = hands(s.id).length;
@@ -532,7 +585,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       {/* Only the calendar scrolls; the title, figures and toolbar stay put. */}
       <FitCalendar />
       <Card className={`roster-grid thin-scroll min-h-96 overflow-auto p-0 ${selecting ? "ring-2 ring-brand" : ""}`}>
-        <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: `${12 + days.length * (view === "day" ? 18 : compact ? 6.5 : 7.5)}rem` }}>
+        <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: `${12 + days.length * (view === "day" ? 72 : compact ? 6.5 : 7.5)}rem` }}>
           <thead>
             <tr className="border-b border-line">
               <th scope="col" className="sticky top-0 left-0 z-30 w-48 border-r-[3px] border-b border-line bg-page px-3 py-2 text-left text-xs font-semibold text-muted">
@@ -542,6 +595,15 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                 <th key={d} scope="col" className={`sticky top-0 z-20 border-r border-b border-line px-1 py-2 text-center text-xs font-semibold text-muted ${compact && (new Date(`${d}T12:00:00Z`).getUTCDay() % 6 === 0) ? "bg-page" : "bg-surface"}`}>
                   {compact ? DAY_NAMES[(new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7].slice(0, 2) : DAY_NAMES[(new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7].toUpperCase()}
                   <span className={`mx-auto mt-0.5 block w-fit rounded-full px-1.5 font-display text-sm ${d === today ? "bg-brand text-brand-fg" : "text-ink"}`}>{Number(d.slice(8))}</span>
+                  {view === "day" ? (
+                    <span aria-hidden="true" className="mt-1 flex text-[10px] font-normal text-muted">
+                      {Array.from({ length: 24 }, (_, h) => (
+                        <span key={h} className="flex-1 border-l border-line pl-0.5 text-left">
+                          {h % 2 ? "" : h === 0 ? "12am" : h === 12 ? "12pm" : h > 12 ? `${h - 12}pm` : `${h}am`}
+                        </span>
+                      ))}
+                    </span>
+                  ) : null}
                 </th>
               ))}
             </tr>
@@ -558,8 +620,8 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                     const here = vacant.filter((s) => sydneyParts(s.starts_at).date === d);
                     const canAdd = canEdit && !selecting && !byClient;
                     return (
-                      <div className="relative flex min-h-14 flex-col gap-1">
-                        {here.map(chip)}
+                      <div className="relative flex min-h-14 flex-col gap-1" style={hourLines}>
+                        {view === "day" && here.length ? timeline(here, d) : here.map(chip)}
                         {canAdd && !here.length ? (
                           <Link href={`${base}&add=${d}`} scroll={false} aria-label={`Add an open shift on ${auDate(d)}`} title="Add an open shift (no worker yet)" className="flex flex-1 items-center justify-center gap-1 rounded-md border border-dashed border-transparent text-xs font-semibold text-muted transition group-hover:border-danger group-hover:bg-danger-soft group-hover:text-danger focus-visible:border-danger [@media(hover:none)]:border-line">
                             <Plus aria-hidden="true" className="size-3.5" />
@@ -614,9 +676,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         const addLabel = `Add a shift for ${byClient ? (clientName.get(k) ?? "this client") : (name.get(k) ?? "this worker")} on ${auDate(d)}`;
                         const canAdd = canEdit && !off && !selecting;
                         return (
-                          <div className="relative flex min-h-14 flex-col gap-1">
+                          <div className="relative flex min-h-14 flex-col gap-1" style={hourLines}>
                             {off ? <span className="text-[11px] font-semibold text-muted">On leave</span> : null}
-                            {here.map(chip)}
+                            {view === "day" && here.length ? timeline(here, d) : here.map(chip)}
                             {canAdd && !here.length ? (
                               // Empty cell: the whole cell adds a shift.
                               <Link href={addHref} scroll={false} aria-label={addLabel} title="Add a shift" className="flex flex-1 items-center justify-center gap-1 rounded-md border border-dashed border-transparent text-xs font-semibold text-muted transition group-hover:border-brand group-hover:bg-brand-soft group-hover:text-brand focus-visible:border-brand [@media(hover:none)]:border-line">

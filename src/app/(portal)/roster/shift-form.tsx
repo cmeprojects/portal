@@ -40,6 +40,8 @@ export type WorkerFit = {
   expiredBeforeWork: string;
   expiredOther: string;
   avail: Record<string, string[]> | null;
+  // Why they already know a client, by client id.
+  knows: Record<string, string[]>;
 };
 const field = "flex flex-col gap-1 text-xs font-medium";
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -96,7 +98,8 @@ export function ShiftForm({
     if (total > 38) warn.push(`${total.toFixed(1)} h this week`);
     if (w.avail && Object.values(w.avail).some((v) => v?.length) && !(w.avail[AVAIL_DAYS[dowOf(date)]] ?? []).includes(slot(start))) warn.push("outside their availability");
     if (w.expiredOther) warn.push(`expired: ${w.expiredOther}`);
-    return { refuse, warn, total };
+    const known = client ? (w.knows[client] ?? []) : [];
+    return { refuse, warn, total, known };
   };
   const chosen = workers.find((w) => w.id === worker);
   const chosenFit = chosen ? fit(chosen) : null;
@@ -104,10 +107,10 @@ export function ShiftForm({
     () =>
       workers
         .map((w) => ({ w, f: fit(w) }))
-        .sort((a, b) => a.f.refuse.length - b.f.refuse.length || a.f.warn.length - b.f.warn.length || a.w.hours - b.w.hours)
+        .sort((a, b) => a.f.refuse.length - b.f.refuse.length || Number(b.f.known.length > 0) - Number(a.f.known.length > 0) || a.f.warn.length - b.f.warn.length || b.f.known.length - a.f.known.length || a.w.hours - b.w.hours)
         .slice(0, 8),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [workers, date, start, end, worker],
+    [workers, date, start, end, worker, client],
   );
   return (
     <form action={action} className="flex flex-col gap-3">
@@ -295,6 +298,7 @@ export function ShiftForm({
                 >
                   <span>
                     <b>{w.name}</b> <span className="text-xs text-muted">{w.hours.toFixed(0)}/38 h</span>
+                    {f.known.length ? <span className="block text-xs text-good">Knows the client: {f.known.join(", ")}</span> : null}
                   </span>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${f.refuse.length ? "bg-danger-soft text-danger" : f.warn.length ? "bg-warn-soft" : "bg-good-soft"}`}>
                     {f.refuse.length ? f.refuse.join(", ") : f.warn.length ? f.warn.join(", ") : "Good match"}
