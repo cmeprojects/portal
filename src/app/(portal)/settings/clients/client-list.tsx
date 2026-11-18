@@ -3,8 +3,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
+import { loadClientNotes, type ClientNotes } from "./notes-actions";
 import { inputClass } from "@/components/ui";
 import { ClientCareForm } from "./care-forms";
 import { ClientRow, ClientStatusChip } from "../../cars/manage/forms";
@@ -49,6 +50,162 @@ const usedPct = (c: ListClient) => {
   return total > 0 ? Math.round((c.budgets.reduce((s, b) => s + b.used, 0) / total) * 100) : null;
 };
 const isArchived = (c: ListClient) => !c.active || c.status === "discharged";
+const in30 = new Date(Date.parse(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`) + 30 * 86_400_000).toISOString().slice(0, 10);
+type NotesTab = "alerts" | "shift" | "practitioner" | "comms" | "log" | "reviews";
+const CONTACT_WORDS: Record<string, string> = { phone: "Phone call", sms: "Text message", email: "Email", post: "Post" };
+
+// cmeprojects: one client's notes in a pop-up, loaded when opened. Each part is
+// what the database lets this person see; parts they can't see are left out.
+function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; tab: NotesTab; onClose: () => void }) {
+  const [tab, setTab] = useState<NotesTab>(firstTab);
+  const [data, setData] = useState<ClientNotes | null>(null);
+  const [error, setError] = useState("");
+  const [loading, start] = useTransition();
+  useEffect(() => {
+    start(async () => {
+      const r = await loadClientNotes(client.id);
+      if ("error" in r) setError(r.error);
+      else setData(r);
+    });
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [client.id, onClose]);
+  const tabs: [NotesTab, string, number | null][] = [
+    ["alerts", "Safety alerts", data?.alerts?.length ?? null],
+    ["shift", "Shift and progress notes", data?.shiftNotes?.length ?? null],
+    ["practitioner", "Practitioner notes", data?.practitionerNotes?.length ?? null],
+    ["comms", "Communications", null],
+    ["log", "Activity log", data?.log?.length ?? null],
+    ["reviews", "Reviews", data?.reviews?.filter((r) => r.status === "open").length ?? null],
+  ];
+  const empty = (t: string) => <p className="text-sm text-muted">{t}</p>;
+  const hidden = empty("You don't have access to this part.");
+  return (
+    <>
+      <button type="button" aria-label="Close" onClick={onClose} className="fixed inset-0 z-40 bg-black/30" />
+      <div role="dialog" aria-modal="true" aria-label={`${client.name}: notes`} className="fixed inset-x-4 top-[8vh] z-50 mx-auto flex max-h-[84vh] max-w-2xl flex-col overflow-hidden rounded-xl bg-surface shadow-2xl">
+        <div className="flex items-start gap-2 border-b border-line p-4">
+          <div className="min-w-0 flex-1">
+            <h2 className="heading-sm">{client.name}</h2>
+            <p className="text-xs text-muted">{client.ref}</p>
+          </div>
+          <Link href={`/settings/clients/${client.id}`} className="text-xs font-semibold text-brand underline">
+            Open profile
+          </Link>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-page hover:text-ink">
+            <X aria-hidden="true" className="size-5" />
+          </button>
+        </div>
+        <div className="thin-scroll flex gap-1 overflow-x-auto border-b border-line px-3" role="tablist">
+          {tabs.map(([k, l, n]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px shrink-0 border-b-2 px-2 py-2 text-xs font-semibold ${tab === k ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+              {l}
+              {n ? <span className="ml-1 rounded-full bg-page px-1.5 text-[10px]">{n}</span> : null}
+            </button>
+          ))}
+        </div>
+        <div className="thin-scroll flex-1 overflow-y-auto p-4 text-sm">
+          {error ? (
+            empty(error)
+          ) : loading || !data ? (
+            <p className="flex items-center gap-2 text-muted">
+              <Loader2 aria-hidden="true" className="size-4 animate-spin" /> Loading…
+            </p>
+          ) : tab === "alerts" ? (
+            data.alerts === null ? hidden : data.alerts.length ? (
+              <ul className="flex flex-col gap-2">
+                {data.alerts.map((a, i) => (
+                  <li key={i} className={`rounded-lg border p-3 ${a.severity === "high" ? "border-danger" : "border-line"}`}>
+                    <p className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{a.title}</span>
+                      <span className="rounded-full bg-page px-2 py-0.5 text-xs">{a.kind}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${a.severity === "high" ? "bg-danger-soft text-danger" : a.severity === "medium" ? "bg-warn-soft" : "bg-good-soft"}`}>{a.severity}</span>
+                    </p>
+                    {a.instructions ? <p className="mt-1 whitespace-pre-wrap"><span className="text-muted">What workers do: </span>{a.instructions}</p> : null}
+                    {a.escalation ? <p className="mt-1 whitespace-pre-wrap"><span className="text-muted">If it happens: </span>{a.escalation}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : empty("No active safety alerts.")
+          ) : tab === "shift" ? (
+            data.shiftNotes === null ? hidden : data.shiftNotes.length ? (
+              <ul className="flex flex-col gap-2">
+                {data.shiftNotes.map((n, i) => (
+                  <li key={i} className={`rounded-lg border p-3 ${n.concern ? "border-danger" : "border-line"}`}>
+                    <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                      <span className="font-semibold text-ink">{n.worker}</span> {n.when}
+                      {WELLBEING[n.wellbeing] ? <span className={`rounded-full px-2 py-0.5 font-semibold ${WELLBEING[n.wellbeing][1]}`}>{WELLBEING[n.wellbeing][0]}</span> : null}
+                      {n.concern ? <span className="rounded-full bg-danger-soft px-2 py-0.5 font-semibold text-danger">Incident or issue</span> : null}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap">{n.text}</p>
+                    {n.concern && n.concernNote ? <p className="mt-1 whitespace-pre-wrap text-danger">{n.concernNote}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : empty("No shift notes in the last 90 days.")
+          ) : tab === "practitioner" ? (
+            data.practitionerNotes === null ? hidden : data.practitionerNotes.length ? (
+              <ul className="flex flex-col gap-2">
+                {data.practitionerNotes.map((n, i) => (
+                  <li key={i} className="rounded-lg border border-line p-3">
+                    <p className="text-xs text-muted"><span className="font-semibold text-ink">{n.who}</span> {n.when}</p>
+                    <p className="mt-1 whitespace-pre-wrap">{n.text}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : empty("No practitioner notes.")
+          ) : tab === "comms" ? (
+            <div className="flex flex-col gap-3">
+              {data.comms ? (
+                <dl className="grid grid-cols-[10rem_1fr] gap-y-1">
+                  <dt className="text-muted">Preferred contact</dt>
+                  <dd>{CONTACT_WORDS[data.comms.contact] ?? (data.comms.contact || "Not set")}</dd>
+                  <dt className="text-muted">Language</dt>
+                  <dd>{data.comms.language || "Not set"}{data.comms.interpreter ? " (needs an interpreter)" : ""}</dd>
+                  {data.comms.needs ? (<><dt className="text-muted">Accessibility needs</dt><dd className="whitespace-pre-wrap">{data.comms.needs}</dd></>) : null}
+                  {data.comms.notes ? (<><dt className="text-muted">Notes</dt><dd className="whitespace-pre-wrap">{data.comms.notes}</dd></>) : null}
+                </dl>
+              ) : empty("No communication preferences recorded, or you don't have access to them.")}
+              <p className="rounded-lg bg-page px-3 py-2 text-xs text-muted">A log of calls, emails and meetings with the client isn&apos;t set up yet.</p>
+            </div>
+          ) : tab === "log" ? (
+            data.log === null ? hidden : data.log.length ? (
+              <ul className="flex flex-col divide-y divide-line">
+                {data.log.map((l, i) => (
+                  <li key={i} className="flex flex-wrap gap-x-3 py-1.5">
+                    <span className="flex-1">{l.what}</span>
+                    <span className="text-xs text-muted">{l.who} · {l.when}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : empty("Nothing logged yet.")
+          ) : data.reviews === null ? (
+            hidden
+          ) : data.reviews.length ? (
+            <ul className="flex flex-col gap-2">
+              {data.reviews.map((r, i) => {
+                const overdue = r.status === "open" && r.due < new Date().toISOString().slice(0, 10);
+                const soon = r.status === "open" && !overdue && r.due <= in30;
+                return (
+                  <li key={i} className={`flex flex-wrap items-center gap-2 rounded-lg border p-3 ${overdue ? "border-danger" : soon ? "border-warn" : "border-line"} ${r.status === "open" ? "" : "text-muted"}`}>
+                    <span className="min-w-40 flex-1 font-semibold">{r.label}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${overdue ? "bg-danger-soft text-danger" : soon ? "bg-warn-soft" : r.status === "open" ? "bg-page" : "bg-line"}`}>
+                      {r.status === "open" ? (overdue ? `Overdue (due ${day(r.due)})` : `Due ${day(r.due)}`) : r.status === "completed" ? "Completed" : "Cancelled"}
+                    </span>
+                    {r.reason ? <p className="w-full text-xs text-muted">What changed: {r.reason}</p> : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            empty("No reviews or re-assessments set up.")
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
 
 // cmeprojects (owner's client list concept, 17 Nov 2026): a searchable,
 // sortable table with Active and Archived tabs; a client opens in a side
@@ -56,6 +213,8 @@ const isArchived = (c: ListClient) => !c.active || c.status === "discharged";
 // holds what this person may already see (the database decides).
 export function ClientList({ clients, word, schemes, showNdis, showBudget, showContact }: { clients: ListClient[]; word: string; schemes: [string, string][]; showNdis: boolean; showBudget: boolean; showContact: boolean }) {
   const router = useRouter();
+  // The notes pop-up (shift notes, practitioner notes, communications, log, reviews).
+  const [notesFor, setNotesFor] = useState<{ client: ListClient; tab: NotesTab } | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [q, setQ] = useState("");
@@ -189,7 +348,19 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                       <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
                         {c.ref}
                         {c.status !== "active" ? <ClientStatusChip status={c.status} /> : null}
-                        {c.alerts ? <span className="rounded-full bg-warn-soft px-1.5 text-ink">{c.alerts} alert{c.alerts === 1 ? "" : "s"}</span> : null}
+                        {c.alerts ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotesFor({ client: c, tab: "alerts" });
+                            }}
+                            title="See the safety alerts"
+                            className="rounded-full bg-danger px-1.5 font-semibold text-white hover:opacity-90"
+                          >
+                            {c.alerts} alert{c.alerts === 1 ? "" : "s"}
+                          </button>
+                        ) : null}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-muted">{c.age ?? ""}</td>
@@ -226,6 +397,22 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                     </td>
                     <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                       <span className="flex justify-end gap-1">
+                        {(() => {
+                          // Reviews and re-assessments: red when overdue, amber when due within 30 days.
+                          const soon = c.reviews.filter((r) => !r.overdue && r.due <= in30).length;
+                          const late = c.reviews.filter((r) => r.overdue).length;
+                          const tone = late ? "bg-danger-soft text-danger" : soon ? "bg-warn-soft text-ink" : "bg-page text-muted";
+                          const tip = late ? `${late} overdue` : soon ? `${soon} due within 30 days` : c.reviews.length ? `Next due ${day(c.reviews[0].due)}` : "No open reviews";
+                          return (
+                            <button type="button" onClick={() => setNotesFor({ client: c, tab: "reviews" })} title={`Reviews and re-assessments: ${tip}`} aria-label={`Reviews for ${c.name}: ${tip}`} className={`relative inline-flex size-8 items-center justify-center rounded-full hover:opacity-80 ${tone}`}>
+                              <Bell aria-hidden="true" className="size-4" />
+                              {late || soon ? <span className={`absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white ${late ? "bg-danger" : "bg-warn"}`}>{late || soon}</span> : null}
+                            </button>
+                          );
+                        })()}
+                        <button type="button" onClick={() => setNotesFor({ client: c, tab: "shift" })} title="Notes, communications and log" aria-label={`Notes for ${c.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-yellow-soft text-ink hover:opacity-80">
+                          <NotebookText aria-hidden="true" className="size-4" />
+                        </button>
                         <Link href={`/settings/clients/${c.id}`} title="View" aria-label={`View ${c.name}`} className="inline-flex size-8 items-center justify-center rounded-full bg-brand-soft text-brand hover:opacity-80">
                           <Eye aria-hidden="true" className="size-4" />
                         </Link>
@@ -246,6 +433,7 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
         </p>
       )}
       {picked ? <Panel client={picked} onClose={() => setOpen(null)} schemes={schemes} showBudget={showBudget} /> : null}
+      {notesFor ? <NotesPopup key={notesFor.client.id} client={notesFor.client} tab={notesFor.tab} onClose={() => setNotesFor(null)} /> : null}
     </div>
   );
 }

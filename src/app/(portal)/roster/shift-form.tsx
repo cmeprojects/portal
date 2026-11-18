@@ -5,7 +5,7 @@ import { REPEAT_MAX_DAYS, SHIFT_ALLOWANCES, repeatDates, repeatSummary, type Rep
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useActionState, useMemo, useRef, useState, type ReactNode } from "react";
-import { Briefcase, CalendarClock, ChevronDown, FileText, Loader2, MapPin, PenLine, Save, Settings2, Sparkles, UserRound, X } from "lucide-react";
+import { AlertTriangle, Check, XCircle, Briefcase, CalendarClock, ChevronDown, FileText, Loader2, MapPin, PenLine, Save, Settings2, Sparkles, UserRound, X } from "lucide-react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { TimeField, niceTime } from "./time-field";
@@ -251,7 +251,20 @@ export function ShiftForm({
     if (w.avail && Object.values(w.avail).some((v) => v?.length) && !(w.avail[AVAIL_DAYS[dowOf(date)]] ?? []).includes(slot(start))) warn.push("outside their availability");
     if (w.expiredOther) warn.push(`expired: ${w.expiredOther}`);
     const known = client ? (w.knows[client] ?? []) : [];
-    return { refuse, warn, total, known };
+    // The same checks, one line each, for the chosen worker (ok, warning or refused).
+    const needs = shiftTypes.find((t) => t.key === shiftType)?.needs ?? [];
+    const hasAvail = Boolean(w.avail && Object.values(w.avail).some((v) => v?.length));
+    const inAvail = hasAvail && (w.avail![AVAIL_DAYS[dowOf(date)]] ?? []).includes(slot(start));
+    const checks: { state: "ok" | "warn" | "no"; text: string }[] = [
+      w.leave.includes(date) ? { state: "no", text: "On leave that day" } : { state: "ok", text: "Not on leave" },
+      refuse.includes("already busy then") ? { state: "no", text: "Already has a shift then" } : { state: "ok", text: "No clash with other shifts" },
+      !hasAvail ? { state: "warn", text: "No availability given" } : inAvail ? { state: "ok", text: "Available then" } : { state: "warn", text: "Outside their availability" },
+      w.expiredBeforeWork ? { state: "no", text: `Expired before-work check: ${w.expiredBeforeWork}` } : w.expiredOther ? { state: "warn", text: `Expired: ${w.expiredOther}` } : { state: "ok", text: "Checks current" },
+      ...(needs.length ? [missing.length ? { state: "no" as const, text: `Doesn't hold: ${missing.map((n) => n.title).join(", ")}` } : { state: "ok" as const, text: `Holds: ${needs.map((n) => n.title).join(", ")}` }] : []),
+      ...(client ? [known.length ? { state: "ok" as const, text: `Knows the client: ${known.join(", ")}` } : { state: "warn" as const, text: "Hasn't worked with this client lately" }] : []),
+      total > 38 ? { state: "warn", text: `${total.toFixed(1)} of 38 hours this week` } : { state: "ok", text: `${total.toFixed(1)} of 38 hours this week` },
+    ];
+    return { refuse, warn, total, known, checks };
   };
   const chosen = workers.find((w) => w.id === worker);
   const chosenFit = chosen ? fit(chosen) : null;
@@ -652,13 +665,19 @@ export function ShiftForm({
           </ul>
         ) : null}
         {chosenFit ? (
-          chosenFit.refuse.length ? (
-            <p className={fieldError}>Can&apos;t assign {chosen!.name}: {chosenFit.refuse.join(", ")}.</p>
-          ) : chosenFit.warn.length ? (
-            <p className="text-xs font-medium text-warn">Warning: {chosenFit.warn.join(", ")}.</p>
-          ) : (
-            <p className="text-xs text-good">Available, checks current, {chosenFit.total.toFixed(1)} of 38 hours this week.</p>
-          )
+          <div className={`rounded-lg border px-3 py-2 ${chosenFit.refuse.length ? "border-danger/40 bg-danger-soft/40" : chosenFit.warn.length ? "border-warn/40" : "border-good/40"}`}>
+            <p className={`text-xs font-semibold ${chosenFit.refuse.length ? "text-danger" : "text-ink"}`}>
+              {chosenFit.refuse.length ? `${chosen!.name} can't be given this shift` : chosenFit.warn.length ? `${chosen!.name} can work it, with warnings` : `${chosen!.name} is a good fit`}
+            </p>
+            <ul className="mt-1 grid gap-x-4 gap-y-0.5 sm:grid-cols-2">
+              {chosenFit.checks.map((c) => (
+                <li key={c.text} className={`flex items-start gap-1.5 text-xs ${c.state === "no" ? "font-medium text-danger" : c.state === "warn" ? "text-warn" : "text-muted"}`}>
+                  {c.state === "ok" ? <Check aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-good" /> : c.state === "warn" ? <AlertTriangle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" /> : <XCircle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />}
+                  {c.text}
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
         <div className="grid gap-3 sm:grid-cols-2">
           <label className={field}>
