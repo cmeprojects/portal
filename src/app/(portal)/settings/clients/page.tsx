@@ -43,6 +43,8 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   const orgWord = typeof wordRow?.value === "string" && wordRow.value ? wordRow.value : "Client";
   // Who can manage a new client (when this person may assign staff).
   const canAssign = await canDo("clients.assign", "edit");
+  // cmeprojects (update 127): people who only view clients (support workers, team leaders) don't see Add.
+  const canAddClient = await canDo("clients.list", "edit");
   const { data: staffRows } = canAssign ? await supabase.from("profiles").select("id, full_name, email").eq("active", true).not("role", "in", "(new_starter,system_admin)").order("full_name") : { data: null };
   const staff = staffRows ? (staffRows as { id: string; full_name: string | null; email: string }[]).map((p) => ({ id: p.id, name: p.full_name || p.email })) : null;
   // cmeprojects: which team looks after each client (hidden before live update 54).
@@ -151,12 +153,14 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       </nav>
       {setup ? null : (
         <>
-          <details className="shadow-card group rounded-xl border border-line bg-surface">
-            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">+ Add {orgWord.toLowerCase()}</summary>
-            <div className="border-t border-line p-4">
-              <AddCareClientForm staff={staff} word={orgWord} />
-            </div>
-          </details>
+          {canAddClient ? (
+            <details className="shadow-card group rounded-xl border border-line bg-surface">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">+ Add {orgWord.toLowerCase()}</summary>
+              <div className="border-t border-line p-4">
+                <AddCareClientForm staff={staff} word={orgWord} />
+              </div>
+            </details>
+          ) : null}
           {toCheck.length ? (
             <Notice tone="info">
               {toCheck.length === 1 ? `1 ${orgWord.toLowerCase()} is` : `${toCheck.length} ${(orgWord.endsWith("s") ? orgWord : `${orgWord}s`).toLowerCase()} are`} <strong>to check</strong>: {toCheck.slice(0, 5).map((c) => c.name).join(", ")}

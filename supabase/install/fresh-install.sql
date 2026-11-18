@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270312000001_roles_for_every_level.sql
+-- Built from every migration up to: 20270313000001_client_scope_service_delivery.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -263,7 +263,8 @@ begin
     (141, '20270309000001_rostering_round_2.sql'),
     (142, '20270310000001_allied_health.sql'),
     (143, '20270311000001_support_worker_role.sql'),
-    (144, '20270312000001_roles_for_every_level.sql')
+    (144, '20270312000001_roles_for_every_level.sql'),
+    (145, '20270313000001_client_scope_service_delivery.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -25706,5 +25707,43 @@ grant execute on function public.run_roster_alerts() to service_role;
 
 $m144$;
   insert into public.install_log (name) values ('20270312000001_roles_for_every_level.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270313000001_client_scope_service_delivery.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270313000001_client_scope_service_delivery.sql') then
+    return;
+  end if;
+  execute $m145$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 127, AUD-016 Stage 5, owner instruction §6.4 and §12):
+-- Service Delivery staff see the client list entry (name, preferred name,
+-- reference, status) of the clients they work with, through the existing
+-- permission engine. Nothing else is added: client details, care plans,
+-- funding, agreements and documents stay as they were.
+--   * Support Worker: clients they're assigned to (scope "assigned").
+--   * Team Leader: their team's clients (scope "own_teams").
+-- Safe to run again.
+do $$
+declare
+  v_sw uuid := (select id from public.job_titles where name = 'Support Worker' and access_level = 'support_worker' and active limit 1);
+  v_tl uuid := (select id from public.job_titles where name = 'Team Leader' and access_level = 'team_leader' and active limit 1);
+begin
+  if v_sw is not null and not exists (select 1 from public.access_baselines where job_title_id = v_sw and module_id = 'clients.list' and revoked_at is null) then
+    insert into public.access_baselines (job_title_id, module_id, actions, scope, note)
+    values (v_sw, 'clients.list', '{view}', 'assigned', 'AUD-016 Stage 5: support workers, their assigned clients (list entry only)');
+  end if;
+  if v_tl is not null and not exists (select 1 from public.access_baselines where job_title_id = v_tl and module_id = 'clients.list' and revoked_at is null) then
+    insert into public.access_baselines (job_title_id, module_id, actions, scope, note)
+    values (v_tl, 'clients.list', '{view}', 'own_teams', 'AUD-016 Stage 5: team leaders, their team''s clients (list entry only)');
+  end if;
+end $$;
+
+$m145$;
+  insert into public.install_log (name) values ('20270313000001_client_scope_service_delivery.sql');
 end;
 $part$;
