@@ -9,8 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
 import { BANDS, availabilitySlot, bandOf, shiftTypeLabel, shortTime } from "@/lib/roster";
-import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, makeOpenShift, publishWeek, switchOffTemplate, voidSignature } from "./actions";
+import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, makeOpenShift, switchOffTemplate, voidSignature } from "./actions";
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
+import { PublishControl, type PublishPeriod } from "./publish-control";
 
 export const metadata: Metadata = { title: "Roster" };
 
@@ -88,10 +89,27 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   // cmeprojects (update 129): shift templates (people who roster; empty before it runs).
   const templates = canEdit ? (((await supabase.from("shift_templates").select("*").eq("active", true).order("name")).data ?? []) as Tpl[]) : [];
   const tpl = templates.find((t) => t.id === str("tpl"));
-  const { count: nextDraftCount } = canEdit && view === "week"
-    ? await supabase.from("shifts").select("id", { count: "exact", head: true }).eq("status", "draft").gte("starts_at", to).lt("starts_at", sydneyInstant(addDays(monday, 14)))
-    : { count: 0 };
-  const nextDrafts = nextDraftCount ?? 0;
+  // cmeprojects: periods that can be published (the view on screen first), with their drafts and workers told.
+  const span = (a: string, b: string) => `${auDate(a)} – ${auDate(addDays(b, -1))} ${addDays(b, -1).slice(0, 4)}`;
+  const periodDefs: [string, string, string, string][] = [
+    ["current", view === "day" ? "This day" : view === "month" ? "This month" : view === "fortnight" ? "This fortnight" : "This week", gridStart, gridEnd],
+    ["next_week", "Next week", addDays(monday, 7), addDays(monday, 14)],
+    ["next_fortnight", "Next fortnight", addDays(monday, 7), addDays(monday, 21)],
+    ["this_month", "This month", monthStart, nextMonthStart],
+    ["next_month", "Next month", nextMonthStart, (() => { const [y, m] = nextMonthStart.split("-").map(Number); return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`; })()],
+  ];
+  const rangeFrom = periodDefs.map((d) => d[2]).sort()[0];
+  const rangeTo = periodDefs.map((d) => d[3]).sort().slice(-1)[0];
+  const { data: draftRows } = canEdit
+    ? await supabase.from("shifts").select("starts_at, worker_id").eq("status", "draft").gte("starts_at", sydneyInstant(rangeFrom)).lt("starts_at", sydneyInstant(rangeTo))
+    : { data: [] };
+  const draftList = (draftRows ?? []) as { starts_at: string; worker_id: string | null }[];
+  const publishPeriods: PublishPeriod[] = periodDefs
+    .filter(([k, , a, b], i) => k === "current" || !(a === gridStart && b === gridEnd) || i === 0)
+    .map(([key, label, a, b]) => {
+      const inside = draftList.filter((x) => { const d = sydneyParts(x.starts_at).date; return d >= a && d < b; });
+      return { key, label, dates: span(a, b), from: sydneyInstant(a), to: sydneyInstant(b), drafts: inside.length, workers: new Set(inside.map((x) => x.worker_id).filter(Boolean)).size };
+    });
   if (shiftsRes.error) notFound(); // before live update 122
   const shifts = (shiftsRes.data ?? []) as Shift[];
   const requests = reqRes.error ? [] : ((reqRes.data ?? []) as Req[]);
@@ -133,7 +151,6 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const rowIds = byClient
     ? [...new Set(shifts.map((s) => s.client_id ?? "none"))].sort((a, b) => (clientName.get(a) ?? "~").localeCompare(clientName.get(b) ?? "~"))
     : [...new Set(shifts.map((s) => s.worker_id).filter((v): v is string => !!v))].sort((a, b) => (name.get(a) ?? "").localeCompare(name.get(b) ?? ""));
-  const drafts = shifts.filter((s) => s.status === "draft").length;
   const totalHours = shifts.filter((s) => s.worker_id).reduce((n, s) => n + shiftHours(s), 0);
   const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("*").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
   const editing = canEdit && (str("add") || (opened && str("edit") === "1"));
@@ -344,35 +361,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </span>
         <span className="ml-auto flex flex-wrap items-center gap-2">
           {canEdit ? (
-            // Publish only the period chosen: the one on screen, or (Week view) the next week, e.g. after copying to it.
-            <details className="relative">
-              <summary className={`${buttonClass("outline")} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                Publish shifts{drafts ? ` (${drafts})` : ""}
-              </summary>
-              <div className="absolute right-0 z-30 mt-1 w-72 overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
-                <form action={publishWeek}>
-                  <input type="hidden" name="from" value={from} />
-                  <input type="hidden" name="to" value={to} />
-                  <button disabled={!drafts} className="block w-full px-3 py-2 text-left text-sm font-semibold hover:bg-page disabled:cursor-not-allowed disabled:opacity-50">
-                    Publish {view === "day" ? "this day" : view === "month" ? "this month" : view === "fortnight" ? "this fortnight" : "this week"} ({drafts} draft{drafts === 1 ? "" : "s"})
-                    <span className="block text-xs font-normal text-muted">{weekLabel}</span>
-                  </button>
-                </form>
-                {view === "week" ? (
-                  <form action={publishWeek}>
-                    <input type="hidden" name="from" value={to} />
-                    <input type="hidden" name="to" value={sydneyInstant(addDays(monday, 14))} />
-                    <button disabled={!nextDrafts} className="block w-full border-t border-line px-3 py-2 text-left text-sm font-semibold hover:bg-page disabled:cursor-not-allowed disabled:opacity-50">
-                      Publish next week ({nextDrafts} draft{nextDrafts === 1 ? "" : "s"})
-                      <span className="block text-xs font-normal text-muted">
-                        {auDate(addDays(monday, 7))} – {auDate(addDays(monday, 13))} {addDays(monday, 13).slice(0, 4)}
-                      </span>
-                    </button>
-                  </form>
-                ) : null}
-                <p className="border-t border-line px-3 py-2 text-xs text-muted">Workers are told when their shifts are published.</p>
-              </div>
-            </details>
+            <PublishControl periods={publishPeriods} />
           ) : null}
           {canEdit ? (
             <Link href={`${base}&add=${today >= gridStart && today < gridEnd ? today : view === "month" ? monthStart : days[0]}`} scroll={false} className={buttonClass("primary")}>
