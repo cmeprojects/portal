@@ -28,17 +28,20 @@ update public.profiles set job_title_id = (select id from public.job_titles wher
 insert into public.car_clients (name, status) values ('Zara North', 'active'), ('Alex South', 'active');
 insert into public.client_locations (client_id, label, address, approved) select id, 'Home', '1 Test St', true from public.car_clients where name = 'Zara North';
 insert into public.client_locations (client_id, label, address, approved) select id, 'Home', '2 Other St', true from public.car_clients where name = 'Alex South';
+-- Update 130: client shifts need a service and a location.
+insert into public.client_services (client_id, program_id, label, status, start_date, location_id)
+select c.id, (select id from public.client_programs where name = 'Private'), 'Support', 'planned', current_date, l.id from public.car_clients c join public.client_locations l on l.client_id = c.id;
 insert into public.leave_periods (user_id, leave_type, start_date, end_date) values (test.pid('kim@example.com'), 'annual', current_date + 3, current_date + 4);
 
 -- Payroll & Rostering rosters Sam.
 select test.act_as('pay@example.com');
 set role authenticated;
-insert into public.shifts (worker_id, starts_at, ends_at, client_id, location_id, status)
-select test.pid('sam@example.com'), test.at(2, 9), test.at(2, 15), c.id, l.id, 'published' from public.car_clients c join public.client_locations l on l.client_id = c.id where c.name = 'Zara North';
+insert into public.shifts (worker_id, starts_at, ends_at, client_id, location_id, service_id, status)
+select test.pid('sam@example.com'), test.at(2, 9), test.at(2, 15), c.id, l.id, (select v.id from public.client_services v where v.client_id = c.id), 'published' from public.car_clients c join public.client_locations l on l.client_id = c.id where c.name = 'Zara North';
 select test.refused($$insert into public.shifts (worker_id, starts_at, ends_at) values (test.pid('sam@example.com'), test.at(2, 14), test.at(2, 18))$$, 'no two shifts at once for one worker');
 select test.refused($$insert into public.shifts (worker_id, starts_at, ends_at) values (test.pid('kim@example.com'), test.at(3, 9), test.at(3, 12))$$, 'not while they''re on approved leave');
 select test.refused($$insert into public.shifts (worker_id, starts_at, ends_at) values (test.pid('newbie@example.com'), test.at(5, 9), test.at(5, 12))$$, 'not someone still onboarding');
-select test.refused($$insert into public.shifts (starts_at, ends_at, client_id, location_id) select test.at(6, 9), test.at(6, 12), (select id from public.car_clients where name = 'Zara North'), l.id from public.client_locations l where l.address = '2 Other St'$$, 'not another client''s location');
+select test.refused($$insert into public.shifts (starts_at, ends_at, client_id, location_id, service_id) select test.at(6, 9), test.at(6, 12), (select id from public.car_clients where name = 'Zara North'), l.id, (select v.id from public.client_services v join public.car_clients c on c.id = v.client_id where c.name = 'Zara North') from public.client_locations l where l.address = '2 Other St'$$, 'not another client''s location');
 select test.refused($$insert into public.shifts (starts_at, ends_at) values (test.at(6, 9), test.at(7, 9))$$, 'no shift over 16 hours');
 insert into public.shifts (starts_at, ends_at, status, notes) values (test.at(6, 9), test.at(6, 13), 'published', 'Open shift');
 insert into public.shifts (worker_id, starts_at, ends_at, status) values (test.pid('kim@example.com'), test.at(8, 9), test.at(8, 13), 'draft');

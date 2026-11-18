@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270315000001_rostering_round_4.sql
+-- Built from every migration up to: 20270316000001_shift_service_location.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -268,7 +268,8 @@ begin
     (144, '20270312000001_roles_for_every_level.sql'),
     (145, '20270313000001_client_scope_service_delivery.sql'),
     (146, '20270314000001_rostering_round_3.sql'),
-    (147, '20270315000001_rostering_round_4.sql')
+    (147, '20270315000001_rostering_round_4.sql'),
+    (148, '20270316000001_shift_service_location.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -26357,5 +26358,58 @@ grant execute on function public.run_roster_alerts() to service_role;
 
 $m147$;
   insert into public.install_log (name) values ('20270315000001_rostering_round_4.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270316000001_shift_service_location.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270316000001_shift_service_location.sql') then
+    return;
+  end if;
+  execute $m148$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 130): a client shift needs its service and location
+-- (shifts with no client, such as training or meetings, don't). Existing
+-- shifts are left as they are; the rule applies when a client shift is added
+-- or its client, service or location changes. Safe to run again.
+create or replace function public.guard_shift_client()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if new.status = 'cancelled' then
+    return new;
+  end if;
+  if new.client_id is not null and (tg_op = 'INSERT' or new.client_id is distinct from old.client_id)
+     and coalesce((select c.status from public.car_clients c where c.id = new.client_id), '') <> 'active' then
+    raise exception 'That client isn''t active yet, so they can''t be rostered. Finish their set-up first.';
+  end if;
+  -- cmeprojects (update 130): a client shift needs its service and location.
+  if new.client_id is not null and (new.service_id is null or new.location_id is null)
+     and (tg_op = 'INSERT' or new.client_id is distinct from old.client_id or new.service_id is distinct from old.service_id or new.location_id is distinct from old.location_id) then
+    raise exception 'Choose the client''s service and location for this shift.';
+  end if;
+  if new.vehicle_id is not null and (tg_op = 'INSERT' or new.vehicle_id is distinct from old.vehicle_id
+                                     or new.starts_at is distinct from old.starts_at or new.ends_at is distinct from old.ends_at) then
+    if not exists (select 1 from public.cars c where c.id = new.vehicle_id and c.active) then
+      raise exception 'Choose an active company car.';
+    end if;
+    if exists (select 1 from public.shifts s where s.vehicle_id = new.vehicle_id and s.id <> new.id and s.status <> 'cancelled'
+                and s.starts_at < new.ends_at and s.ends_at > new.starts_at) then
+      raise exception 'That car is already booked for another shift at that time.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.guard_shift_client() from public, anon, authenticated;
+
+$m148$;
+  insert into public.install_log (name) values ('20270316000001_shift_service_location.sql');
 end;
 $part$;

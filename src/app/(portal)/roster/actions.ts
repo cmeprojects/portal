@@ -53,6 +53,8 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     needs_worker_signature: form.get("needs_worker_signature") === "on",
     needs_client_signature: form.get("needs_client_signature") === "on",
   };
+  // A client shift needs its service and location (training, meetings and admin shifts have no client).
+  if (base.client_id && (!base.service_id || !base.location_id)) return { error: "Choose the client's service and location for this shift." };
   const internalNote = String(form.get("internal_note") ?? "").trim().slice(0, 2000);
   // cmeprojects (update 129): also keep these details as a named template.
   const templateName = String(form.get("save_template") ?? "").trim().slice(0, 80);
@@ -409,7 +411,7 @@ export async function moveShift(id: string, date: string, row: string, byClient:
   await requireRoster();
   if (!isId(id) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "That didn't move. Please reload the page." };
   const supabase = await createClient();
-  const { data: s } = await supabase.from("shifts").select("id, worker_id, client_id, starts_at, ends_at, status").eq("id", id).maybeSingle();
+  const { data: s } = await supabase.from("shifts").select("id, worker_id, client_id, starts_at, ends_at, status, notified_at").eq("id", id).maybeSingle();
   if (!s) return { error: "That shift isn't there any more. Please reload the page." };
   if (s.status === "cancelled") return { error: "A cancelled shift can't be moved." };
   const fromDate = sydneyParts(s.starts_at).date;
@@ -423,10 +425,21 @@ export async function moveShift(id: string, date: string, row: string, byClient:
     if ((s.client_id ?? "none") !== row) return { error: "In Client view a shift can only move to another day for the same client." };
   } else {
     patch.worker_id = row === "vacant" ? null : isId(row) ? row : s.worker_id;
+    // Given to someone else: it goes back to draft, to be published again for them.
+    if (patch.worker_id !== s.worker_id && s.status === "published") patch.status = "draft";
   }
   if (days === 0 && patch.worker_id === s.worker_id) return { message: "" };
   const { error } = await supabase.from("shifts").update(patch).eq("id", id);
   if (error) return { error: friendlyError(error) };
+  if (patch.status === "draft") {
+    // The worker who had it is told it's no longer theirs.
+    if (s.worker_id && s.notified_at) {
+      const when = new Date(s.starts_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+      await createAdminClient().rpc("notify", { p_user: s.worker_id, p_kind: "shift_changed", p_title: `Your shift on ${when} has been given to someone else`, p_body: "See My shifts", p_href: "/my-shifts", p_email: true });
+    }
+    revalidatePath("/roster");
+    return { message: "Shift moved to a new worker and set back to draft. Publish it when ready.", spotlight: id };
+  }
   if (s.status === "published") await tellWorkers();
   revalidatePath("/roster");
   return { message: "Shift moved.", spotlight: id };

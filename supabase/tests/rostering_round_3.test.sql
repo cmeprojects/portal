@@ -16,12 +16,16 @@ create function test.sid() returns uuid language sql security definer as $$ sele
 grant execute on all functions in schema test to authenticated;
 insert into public.car_clients (name, status) values ('Ready Client', 'active'), ('Pending Client', 'pending');
 insert into public.cars (name, rego) values ('Corolla', 'TEST01');
+-- Update 130: client shifts need a service and a location.
+insert into public.client_locations (client_id, label, address, approved) select id, 'Home', '1 Test St', true from public.car_clients where name = 'Ready Client';
+insert into public.client_services (client_id, program_id, label, status, start_date, location_id)
+select c.id, (select id from public.client_programs where name = 'Private'), 'Support', 'planned', current_date, l.id from public.car_clients c join public.client_locations l on l.client_id = c.id;
 
 select test.act_as('boss@example.com');
 set role authenticated;
 select test.refused($$insert into public.shifts (worker_id, starts_at, ends_at, client_id, status) select test.pid('sam@example.com'), test.at(2, 9), test.at(2, 12), id, 'draft' from public.car_clients where name = 'Pending Client'$$, 'a client who isn''t active can''t be rostered');
-insert into public.shifts (worker_id, starts_at, ends_at, client_id, status, shift_type, vehicle_id, allowances)
-select test.pid('sam@example.com'), test.at(2, 9), test.at(2, 12), c.id, 'draft', 'personal_care', (select id from public.cars where rego = 'TEST01'), '{Sleepover}' from public.car_clients c where c.name = 'Ready Client';
+insert into public.shifts (worker_id, starts_at, ends_at, client_id, service_id, location_id, status, shift_type, vehicle_id, allowances)
+select test.pid('sam@example.com'), test.at(2, 9), test.at(2, 12), c.id, v.id, v.location_id, 'draft', 'personal_care', (select id from public.cars where rego = 'TEST01'), '{Sleepover}' from public.car_clients c join public.client_services v on v.client_id = c.id where c.name = 'Ready Client';
 select test.refused($$insert into public.shifts (worker_id, starts_at, ends_at, status, vehicle_id) values (test.pid('kim@example.com'), test.at(2, 10), test.at(2, 11), 'draft', (select id from public.cars where rego = 'TEST01'))$$, 'a car can''t be double-booked');
 update public.shifts set starts_at = test.at(2, 10), worker_id = test.pid('kim@example.com'), shift_type = 'domestic', status = 'published' where id = test.sid();
 update public.shifts set worker_id = test.pid('sam@example.com') where id = test.sid();

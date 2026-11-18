@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeftRight, ChevronLeft, ChevronRight, Hand, MoreVertical, Plus, Repeat2 } from "lucide-react";
@@ -79,7 +80,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   type Tpl = { id: string; name: string; shift_type: string; start_time: string; end_time: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; allowances: string[]; pay_group: string; needs_worker_signature: boolean; needs_client_signature: boolean };
   const [shiftsRes, { data: people }, { data: clients }, { data: locations }, { data: services }, { data: leave }, { data: interest }, { data: availRows }, { data: checks }, reqRes, { data: cars }] = await Promise.all([
     supabase.from("shifts").select("*").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to).order("starts_at"),
-    supabase.from("profiles").select("id, full_name, email").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").order("full_name"),
+    supabase.from("profiles").select("id, full_name, email, role, job_title_id").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").order("full_name"),
     supabase.from("car_clients").select("id, name, status").neq("status", "discharged").order("name"),
     supabase.from("client_locations").select("id, client_id, label, address").eq("approved", true),
     supabase.from("client_services").select("id, client_id, label").neq("status", "ended"),
@@ -175,6 +176,22 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   };
   const hands = (id: string) => ((interest ?? []) as { shift_id: string; user_id: string }[]).filter((i) => i.shift_id === id);
   const vacant = shifts.filter((s) => !s.worker_id);
+  // cmeprojects: staff are grouped by role (Support Workers first, then Team Leaders, then the rest).
+  const { data: titleRows } = await supabase.from("job_titles").select("id, name");
+  const titleName = new Map(((titleRows ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
+  const personOf = new Map(((people ?? []) as { id: string; role: string; job_title_id: string | null }[]).map((p) => [p.id, p]));
+  const groupOf = (id: string) => {
+    const p = personOf.get(id);
+    return (p?.job_title_id && titleName.get(p.job_title_id)) || "No role";
+  };
+  // Short role after the name: Support Worker → SW, Case Manager → CM, Manager → MAN.
+  const roleShort = (id: string) => {
+    const g = groupOf(id);
+    if (g === "No role") return "";
+    const words = g.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w) && !["and", "of"].includes(w.toLowerCase()));
+    return words.length > 1 ? words.map((w) => w[0].toUpperCase()).join("") : g.slice(0, 3).toUpperCase();
+  };
+  const groupRank = (id: string) => ({ "Support Worker": 0, "Team Leader": 1, "No role": 3 })[groupOf(id)] ?? 2;
   // cmeprojects: every rosterable staff member (or every active client) gets a row, shifts or not.
   const rowIds = byClient
     ? [
@@ -188,7 +205,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           ...((people ?? []) as { id: string }[]).map((p) => p.id),
           ...shifts.map((s) => s.worker_id).filter((v): v is string => !!v),
         ]),
-      ].sort((a, b) => (name.get(a) ?? "").localeCompare(name.get(b) ?? ""));
+      ].sort((a, b) => groupRank(a) - groupRank(b) || groupOf(a).localeCompare(groupOf(b)) || (name.get(a) ?? "").localeCompare(name.get(b) ?? ""));
   const totalHours = shifts.filter((s) => s.worker_id).reduce((n, s) => n + shiftHours(s), 0);
   const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("*").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
   const editing = canEdit && (str("add") || (opened && str("edit") === "1"));
@@ -368,16 +385,16 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
-          <Link href={`/roster?${viewQ}`} className={`px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand-soft text-brand"}`}>
+          <Link href={`/roster?${viewQ}`} className={`px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand text-brand-fg"}`}>
             Staff
           </Link>
-          <Link href={`/roster?${viewQ}&by=client`} className={`px-3 py-1.5 ${byClient ? "bg-brand-soft text-brand" : "text-muted hover:bg-page"}`}>
+          <Link href={`/roster?${viewQ}&by=client`} className={`px-3 py-1.5 ${byClient ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>
             Client
           </Link>
         </span>
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
           {(["day", "week", "fortnight", "month"] as const).map((v) => (
-            <Link key={v} href={go(anchor, v)} className={`px-3 py-1.5 ${view === v ? "bg-brand-soft text-brand" : "text-muted hover:bg-page"}`}>
+            <Link key={v} href={go(anchor, v)} aria-current={view === v ? "page" : undefined} className={`px-3 py-1.5 ${view === v ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>
               {v[0].toUpperCase() + v.slice(1)}
             </Link>
           ))}
@@ -522,14 +539,29 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                 </td>
               ))}
             </tr>
-            {rowIds.map((k) => (
-              <tr key={k} className="border-b border-line">
+            {rowIds.map((k, idx) => (
+              <Fragment key={k}>
+                {!byClient && (idx === 0 || groupOf(rowIds[idx - 1]) !== groupOf(k)) ? (
+                  <tr className="border-b border-line bg-page">
+                    <th colSpan={days.length + 1} scope="rowgroup" className="sticky left-0 px-3 py-1.5 text-left text-xs font-semibold tracking-wide text-muted uppercase">
+                      {groupOf(k)} <span className="font-normal normal-case">({rowIds.filter((x) => groupOf(x) === groupOf(k)).length})</span>
+                    </th>
+                  </tr>
+                ) : null}
+              <tr className="border-b border-line">
                 <th scope="row" className="sticky left-0 z-10 border-r-[3px] border-line bg-page px-3 py-2 text-left align-top">
                   {byClient ? (
                     <span className="block text-sm font-semibold">{clientName.get(k) ?? "No client"}</span>
                   ) : (
                     <>
-                      <span className="block text-sm font-semibold">{name.get(k) ?? "Staff member"}</span>
+                      <span className="block text-sm font-semibold">
+                        {name.get(k) ?? "Staff member"}
+                        {roleShort(k) ? (
+                          <span title={groupOf(k)} className="ml-1 font-normal text-muted">
+                            ({roleShort(k)})
+                          </span>
+                        ) : null}
+                      </span>
                       <span className={`text-xs ${(hoursOf.get(k) ?? 0) > 38 ? "font-semibold text-warn" : "text-muted"}`}>{(hoursOf.get(k) ?? 0).toFixed(1)} hours</span>
                       {expired.get(k)?.before.length ? <span className="mt-0.5 block w-fit rounded-full bg-danger-soft px-1.5 text-[10px] font-semibold text-danger">Check expired</span> : null}
                     </>
@@ -567,6 +599,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                   );
                 })}
               </tr>
+              </Fragment>
             ))}
           </tbody>
         </table>

@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { buttonClass } from "@/components/ui";
 import { publishWeek } from "./actions";
@@ -14,8 +14,25 @@ export function PublishControl({ periods }: { periods: PublishPeriod[] }) {
   const [menu, setMenu] = useState(false);
   const [chosen, setChosen] = useState<PublishPeriod | null>(null);
   const current = periods[0];
+  const box = useRef<HTMLSpanElement>(null);
+  // Close the menu on a click elsewhere or Esc.
+  useEffect(() => {
+    if (!menu) return;
+    const away = (e: MouseEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) setMenu(false);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenu(false);
+    };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [menu]);
   return (
-    <span className="relative inline-flex">
+    <span ref={box} className="relative inline-flex">
       <button type="button" onClick={() => setChosen(current)} disabled={!current.drafts} className={`${buttonClass("outline")} rounded-r-none`}>
         Publish shifts{current.drafts ? ` (${current.drafts})` : ""}
       </button>

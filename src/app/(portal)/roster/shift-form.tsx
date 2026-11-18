@@ -129,8 +129,10 @@ export function ShiftForm({
             <>
               <label className={field}>
                 Service
-                <select name="service_id" defaultValue={shift.service_id} className={inputClass}>
-                  <option value="">Not set</option>
+                <select name="service_id" required defaultValue={shift.service_id} className={inputClass}>
+                  <option value="" disabled>
+                    Choose the service
+                  </option>
                   {services.filter((v) => v.client_id === client).map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name}
@@ -140,8 +142,10 @@ export function ShiftForm({
               </label>
               <label className={field}>
                 Location
-                <select name="location_id" defaultValue={shift.location_id} className={inputClass}>
-                  <option value="">Not set</option>
+                <select name="location_id" required defaultValue={shift.location_id} className={inputClass}>
+                  <option value="" disabled>
+                    Choose the location
+                  </option>
                   {locations.filter((l) => l.client_id === client).map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}
@@ -149,6 +153,13 @@ export function ShiftForm({
                   ))}
                 </select>
               </label>
+              {!services.some((v) => v.client_id === client) || !locations.some((l) => l.client_id === client) ? (
+                <p className="text-xs text-danger sm:col-span-2">
+                  This client needs {!services.some((v) => v.client_id === client) ? "an active service" : ""}
+                  {!services.some((v) => v.client_id === client) && !locations.some((l) => l.client_id === client) ? " and " : ""}
+                  {!locations.some((l) => l.client_id === client) ? "an approved location" : ""} before they can be rostered. Add it on the client&apos;s page.
+                </p>
+              ) : null}
             </>
           ) : null}
         </div>
