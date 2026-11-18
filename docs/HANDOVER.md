@@ -13,7 +13,13 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 18 Nov 2026.
 
-- **Rostering (18 Nov 2026):** updates 129 to 134 run on Dev. **Waiting: 135** (a car trip
+- **AUD-016 Stage 5 defaults (18 Nov 2026, update 136, waiting):** Client Services Coordinator, every client:
+  view and change details, contacts, locations, agreements, comms; view only the client list, services, alerts,
+  reviews, funding; never notes, documents, care plans, Allied Health access, assigning staff or adding clients
+  (the list stays view only, because "edit" on the list also gives Assigning staff). Staff Administrator and
+  Payroll Officer: no change (they already have the staff-admin defaults and the update 117 / 126 access).
+  Payroll's bank, super and TFN records stay on the old rule: owner to decide. Test: client_services_coordinator.test.sql.
+- **Rostering (18 Nov 2026):** updates 129 to 135 run on Dev. Update 135 (a car trip
   links itself to the driver's published shift, within an hour either side; a trigger, not a
   definer function). Built: "Finish this shift" on My shifts (times, shift notes, incident or
   issue alerting managers and care contacts, own-car mileage); drag and drop follows the mouse,
