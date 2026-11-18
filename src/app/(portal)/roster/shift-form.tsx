@@ -692,6 +692,14 @@ export function BulkBar({ formId }: { formId: string; workers?: Opt[] }) {
   const [state, action, pending] = useActionState(bulkShifts, null);
   // How many shifts are ticked (the tick boxes sit in the calendar).
   const [count, setCount] = useState(0);
+  const router = useRouter();
+  // Done: the floating message, as for a saved shift (errors stay in the bar).
+  useEffect(() => {
+    if (!state?.message) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("saved", state.message);
+    router.push(`${url.pathname}?${url.searchParams.toString()}`, { scroll: false });
+  }, [state, router]);
   useEffect(() => {
     const recount = () => setCount(document.querySelectorAll(`input[form="${formId}"][name="ids"]:checked`).length);
     recount();
@@ -754,7 +762,6 @@ export function BulkBar({ formId }: { formId: string; workers?: Opt[] }) {
         Clear
       </button>
       {state?.error ? <span className="rounded-md bg-danger-soft px-2 py-1 text-danger">{state.error}</span> : null}
-      {state?.message ? <span className="rounded-md bg-good-soft px-2 py-1 text-ink">{state.message}</span> : null}
     </div>
   );
 }

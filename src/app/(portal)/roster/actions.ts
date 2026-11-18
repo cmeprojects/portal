@@ -4,6 +4,7 @@
 import { SHIFT_ALLOWANCES, repeatDates, type RepeatFreq } from "@/lib/roster";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
@@ -191,9 +192,19 @@ export async function publishWeek(form: FormData) {
   const from = String(form.get("from") ?? "");
   const to = String(form.get("to") ?? "");
   if (!from || !to) return;
-  await (await createClient()).from("shifts").update({ status: "published" }).eq("status", "draft").gte("starts_at", from).lt("starts_at", to);
+  const { data: done, error } = await (await createClient()).from("shifts").update({ status: "published" }).eq("status", "draft").gte("starts_at", from).lt("starts_at", to).select("id");
   await tellWorkers();
   revalidatePath("/roster");
+  // cmeprojects: back to the roster with a floating "published" message.
+  const back = String(form.get("back") ?? "");
+  const n = done?.length ?? 0;
+  const text = error ? `Not published: ${friendlyError(error)}` : n ? `${n} shift${n === 1 ? "" : "s"} published successfully. The workers have been told.` : "Nothing to publish: no drafts in those dates.";
+  if (back.startsWith("/roster")) {
+    const url = new URL(back, "http://x");
+    url.searchParams.delete("saved");
+    url.searchParams.set("saved", text);
+    redirect(`${url.pathname}?${url.searchParams.toString()}`);
+  }
 }
 
 // Copy last week's shifts into this week as drafts (anything that would clash
@@ -277,11 +288,12 @@ export async function bulkShifts(_: FormState, form: FormData): Promise<FormStat
     return { message: await copyRows(supabase, (data ?? []) as Row[], "the next week") };
   }
   if (what === "publish") {
-    const { error } = await supabase.from("shifts").update({ status: "published" }).in("id", ids).eq("status", "draft");
+    const { data: done, error } = await supabase.from("shifts").update({ status: "published" }).in("id", ids).eq("status", "draft").select("id");
     if (error) return { error: friendlyError(error) };
     await tellWorkers();
     revalidatePath("/roster");
-    return { message: "Published. The workers have been told." };
+    const n = done?.length ?? 0;
+    return { message: n ? `${n} shift${n === 1 ? "" : "s"} published successfully. The workers have been told.` : "Nothing to publish: those shifts were already published." };
   }
   if (what === "cancel") {
     const { error } = await supabase.from("shifts").update({ status: "cancelled" }).in("id", ids);

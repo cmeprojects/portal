@@ -76,7 +76,17 @@ export function PublishControl({ periods }: { periods: PublishPeriod[] }) {
               <dd className="font-semibold">{chosen.workers}</dd>
             </dl>
             <p className="mt-2 text-xs text-muted">Only drafts in these dates are published. Shifts outside them stay as they are. Vacant shifts become open shifts staff can put their hand up for.</p>
-            <form action={publishWeek} onSubmit={() => setChosen(null)} className="mt-4 flex justify-end gap-2">
+            <form
+              action={publishWeek}
+              onSubmit={(e) => {
+                // Come back to this same view, with the floating message.
+                const back = e.currentTarget.elements.namedItem("back") as HTMLInputElement | null;
+                if (back) back.value = window.location.pathname + window.location.search;
+                setChosen(null);
+              }}
+              className="mt-4 flex justify-end gap-2"
+            >
+              <input type="hidden" name="back" value="" />
               <input type="hidden" name="from" value={chosen.from} />
               <input type="hidden" name="to" value={chosen.to} />
               <button type="button" onClick={() => setChosen(null)} className={buttonClass("outline")}>
