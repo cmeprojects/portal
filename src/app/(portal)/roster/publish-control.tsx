@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Send } from "lucide-react";
 import { buttonClass } from "@/components/ui";
 import { publishWeek } from "./actions";
 
@@ -34,6 +34,7 @@ export function PublishControl({ periods }: { periods: PublishPeriod[] }) {
   return (
     <span ref={box} className="relative inline-flex">
       <button type="button" onClick={() => setChosen(current)} disabled={!current.drafts} className={`${buttonClass("outline")} rounded-r-none`}>
+        <Send aria-hidden="true" className="size-4" />
         Publish shifts{current.drafts ? ` (${current.drafts})` : ""}
       </button>
       <button type="button" aria-label="Choose what to publish" aria-expanded={menu} onClick={() => setMenu(!menu)} className={`${buttonClass("outline")} -ml-px rounded-l-none px-2`}>

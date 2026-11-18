@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeftRight, ChevronLeft, ChevronRight, Hand, MoreVertical, Plus, Repeat2 } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, Calendar, CalendarCheck, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, Columns2, FilePen, Hand, HeartHandshake, Hourglass, MoreVertical, Plus, Repeat2, Send, SquareCheck, UserCheck, Users, UserX } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
@@ -367,39 +367,49 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
         {(
           [
-            ["Shifts", String(shifts.length), ""],
-            ["Rostered hours", totalHours.toFixed(1), ""],
-            ["Filled", String(shifts.filter((x) => x.worker_id).length), ""],
-            ["Vacant", String(vacant.length), vacant.length ? "text-danger" : ""],
-            ["Drafts", String(shifts.filter((x) => x.status === "draft").length), ""],
-            ["Published", String(shifts.filter((x) => x.status === "published").length), ""],
-            ["Waiting for answer", String(shifts.filter((x) => x.status === "published" && x.worker_id && !answered.has(x.id)).length), ""],
-            ["Warnings", String(shifts.filter((x) => warningsFor(x).length).length), shifts.some((x) => warningsFor(x).length) ? "text-warn" : ""],
-          ] as [string, string, string][]
-        ).map(([l, v, c]) => (
+            ["Shifts", String(shifts.length), "", CalendarRange],
+            ["Rostered hours", totalHours.toFixed(1), "", Clock],
+            ["Filled", String(shifts.filter((x) => x.worker_id).length), "", UserCheck],
+            ["Vacant", String(vacant.length), vacant.length ? "text-danger" : "", UserX],
+            ["Drafts", String(shifts.filter((x) => x.status === "draft").length), "", FilePen],
+            ["Published", String(shifts.filter((x) => x.status === "published").length), "", Send],
+            ["Waiting for answer", String(shifts.filter((x) => x.status === "published" && x.worker_id && !answered.has(x.id)).length), "", Hourglass],
+            ["Warnings", String(shifts.filter((x) => warningsFor(x).length).length), shifts.some((x) => warningsFor(x).length) ? "text-warn" : "", AlertTriangle],
+          ] as [string, string, string, typeof Clock][]
+        ).map(([l, v, c, Icon]) => (
           <div key={l} className="rounded-lg border border-line bg-surface px-3 py-2">
-            <p className="text-xs text-muted">{l}</p>
+            <p className="flex items-center gap-1.5 text-xs text-muted">
+              <Icon aria-hidden="true" className="size-3.5" />
+              {l}
+            </p>
             <p className={`text-lg font-semibold ${c}`}>{v}</p>
           </div>
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
-          <Link href={`/roster?${viewQ}`} className={`px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand text-brand-fg"}`}>
+          <Link href={`/roster?${viewQ}`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand text-brand-fg"}`}>
+            <Users aria-hidden="true" className="size-4" />
             Staff
           </Link>
-          <Link href={`/roster?${viewQ}&by=client`} className={`px-3 py-1.5 ${byClient ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>
+          <Link href={`/roster?${viewQ}&by=client`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${byClient ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>
+            <HeartHandshake aria-hidden="true" className="size-4" />
             Client
           </Link>
         </span>
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
           {(["day", "week", "fortnight", "month"] as const).map((v) => (
-            <Link key={v} href={go(anchor, v)} aria-current={view === v ? "page" : undefined} className={`px-3 py-1.5 ${view === v ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>
+            <Link key={v} href={go(anchor, v)} aria-current={view === v ? "page" : undefined} className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${view === v ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>
+              {(() => {
+                const VIcon = { day: CalendarDays, week: CalendarRange, fortnight: Columns2, month: Calendar }[v];
+                return <VIcon aria-hidden="true" className="size-4" />;
+              })()}
               {v[0].toUpperCase() + v.slice(1)}
             </Link>
           ))}
         </span>
         <Link href={go(today)} className={buttonClass("outline")}>
+          <CalendarCheck aria-hidden="true" className="size-4" />
           Today
         </Link>
         {/* The week shown, between its arrows, in one box the height of the buttons. */}
@@ -427,7 +437,8 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           ) : null}
           {canEdit ? (
             <Link href={`${base}&add=${today >= gridStart && today < gridEnd ? today : view === "month" ? monthStart : days[0]}`} scroll={false} className={buttonClass("primary")}>
-              + Add shift
+              <Plus aria-hidden="true" className="size-4" />
+              Add shift
             </Link>
           ) : null}
           <Link href={`${base}&requests=1`} scroll={false} title="Shift change requests" aria-label={`Shift change requests${requests.length ? `: ${requests.length} waiting` : ""}`} className="relative rounded-lg border border-line p-2 hover:bg-page">
@@ -436,6 +447,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           </Link>
           {canEdit ? (
             <Link href={selecting ? base : `${base}&select=1`} className={buttonClass(selecting ? "primary" : "outline")}>
+              {selecting ? <Check aria-hidden="true" className="size-4" /> : <SquareCheck aria-hidden="true" className="size-4" />}
               {selecting ? "Done selecting" : "Select shifts"}
             </Link>
           ) : null}
