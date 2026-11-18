@@ -31,6 +31,14 @@ export type ListClient = {
   reviews: { label: string; due: string; overdue: boolean }[];
   agreements: { label: string; status: string; ends: string | null }[];
   alerts: number;
+  // Next shifts and recent shift notes (null when this person can't see them).
+  shifts: { id: string; when: string; worker: string; draft: boolean; day: string }[] | null;
+  notes: { when: string; worker: string; wellbeing: string; concern: boolean; text: string }[] | null;
+};
+const WELLBEING: Record<string, [string, string]> = {
+  settled: ["Settled", "bg-good-soft"],
+  some_concerns: ["Some concerns", "bg-warn-soft"],
+  unwell_or_distressed: ["Unwell or distressed", "bg-danger-soft text-danger"],
 };
 
 type SortKey = "name" | "age" | "manager" | "used" | "review";
@@ -258,8 +266,13 @@ function HeadCell({ k, children, className = "", sort, setSort }: { k?: SortKey;
 }
 
 function Panel({ client: c, onClose, schemes, showBudget }: { client: ListClient; onClose: () => void; schemes: [string, string][]; showBudget: boolean }) {
-  const [tab, setTab] = useState<"overview" | "budget" | "reviews">("overview");
-  const tabs: [typeof tab, string][] = [["overview", "Overview"], ...(showBudget ? [["budget", "Plan budget"] as [typeof tab, string]] : []), ["reviews", "Reviews and agreements"]];
+  const [tab, setTab] = useState<"overview" | "budget" | "reviews" | "shifts">("overview");
+  const tabs: [typeof tab, string][] = [
+    ["overview", "Overview"],
+    ...(showBudget ? [["budget", "Plan budget"] as [typeof tab, string]] : []),
+    ["reviews", "Reviews and agreements"],
+    ...(c.shifts || c.notes ? [["shifts", "Shifts and notes"] as [typeof tab, string]] : []),
+  ];
   return (
     <>
       <button type="button" aria-label="Close" onClick={onClose} className="fixed inset-0 z-40 bg-black/20" />
@@ -321,6 +334,53 @@ function Panel({ client: c, onClose, schemes, showBudget }: { client: ListClient
               <ul className="border-t border-line pt-1">
                 <ClientRow client={{ id: c.id, name: c.name, reference: c.reference, active: c.active, client_ref: c.ref, status: c.status }} />
               </ul>
+            </>
+          ) : tab === "shifts" ? (
+            <>
+              {c.shifts ? (
+                <div>
+                  <h3 className="mb-1 text-xs font-semibold uppercase text-muted">Next two weeks</h3>
+                  {c.shifts.length ? (
+                    <ul className="flex flex-col gap-1">
+                      {c.shifts.map((x) => (
+                        <li key={x.id}>
+                          <Link href={`/roster?by=client&d=${x.day}&shift=${x.id}`} className="font-semibold hover:text-brand">
+                            {x.when}
+                          </Link>{" "}
+                          · {x.worker || <span className="font-semibold text-danger">not filled</span>}
+                          {x.draft ? <span className="ml-1 rounded-full bg-brand-soft px-1.5 text-xs font-semibold">Draft</span> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted">No shifts booked.</p>
+                  )}
+                </div>
+              ) : null}
+              {c.notes ? (
+                <div>
+                  <h3 className="mb-1 text-xs font-semibold uppercase text-muted">Recent shift notes</h3>
+                  {c.notes.length ? (
+                    <ul className="flex flex-col gap-2">
+                      {c.notes.map((n, i) => (
+                        <li key={i} className={`rounded-lg border p-2 ${n.concern ? "border-danger" : "border-line"}`}>
+                          <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                            <span className="font-semibold text-ink">{n.worker}</span> {n.when}
+                            {WELLBEING[n.wellbeing] ? <span className={`rounded-full px-1.5 font-semibold ${WELLBEING[n.wellbeing][1]}`}>{WELLBEING[n.wellbeing][0]}</span> : null}
+                            {n.concern ? <span className="rounded-full bg-danger-soft px-1.5 font-semibold text-danger">Incident or issue</span> : null}
+                          </p>
+                          <p className="mt-1 line-clamp-3">{n.text}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted">No shift notes in the last two weeks.</p>
+                  )}
+                </div>
+              ) : null}
+              <Link href={`/settings/clients/${c.id}?tab=shifts`} className="text-xs font-semibold text-brand underline">
+                See all shifts and notes
+              </Link>
             </>
           ) : tab === "budget" ? (
             c.budgets.length ? (

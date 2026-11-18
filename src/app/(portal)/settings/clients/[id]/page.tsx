@@ -191,6 +191,26 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             .order("starts_at")
         ).data as { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; status: string; service_id: string | null }[] | null)
       : null;
+  // cmeprojects (update 134): shift notes for this client, last 60 days. Shown to
+  // people who roster or who see the client's care plans (the database decides).
+  const canNotes = feats.rostering !== false && (!!clientShifts || (await canDoFor("clients.care_plans", "view", id)));
+  type ShiftNote = { shift_id: string; worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; concern_note: string; created_at: string };
+  const notesRes = canNotes
+    ? await supabase
+        .from("shift_service_records")
+        .select("shift_id, worker_id, delivered, client_wellbeing, concern, concern_note, created_at, shifts!inner(client_id)")
+        .eq("shifts.client_id", id)
+        .gte("created_at", new Date(Date.parse(new Date().toISOString()) - 60 * 86_400_000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(60)
+    : null;
+  const shiftNotes = notesRes && !notesRes.error ? ((notesRes.data ?? []) as unknown as ShiftNote[]) : null;
+  const shiftNoteOf = new Map((shiftNotes ?? []).map((n) => [n.shift_id, n]));
+  const WELLBEING: Record<string, [string, string]> = {
+    settled: ["Settled", "bg-good-soft"],
+    some_concerns: ["Some concerns", "bg-warn-soft"],
+    unwell_or_distressed: ["Unwell or distressed", "bg-danger-soft text-danger"],
+  };
   // cmeprojects (update 124, Stage 6; premium): Allied Health practitioners for this client.
   const seesPractitioners = feats.allied_health !== false && (await canDoFor("clients.external", "view", id));
   type PAccess = { id: string; user_id: string; sections: string[]; starts_on: string; ends_on: string; consent_on: string; reason: string; ended_at: string | null; created_at: string };
@@ -227,7 +247,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["agreements", "Agreements", showAgreements],
     ["funding", "Funding", showFunding],
     ["staff", "Assigned staff", !!assignments],
-    ["shifts", "Shifts", !!clientShifts],
+    ["shifts", "Shifts and notes", !!clientShifts || !!shiftNotes],
     ["practitioners", "Practitioners", !!practitionerAccess],
   ];
   const canEditClient = await canDoFor("clients.list", "edit", id);
@@ -422,6 +442,29 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           </div>
         </Card>
       ) : null}
+      {inView("shifts") && shiftNotes ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <h2 className="heading-sm">Shift notes (last 60 days)</h2>
+          {shiftNotes.length ? (
+            <ul className="flex flex-col gap-2 text-sm">
+              {shiftNotes.map((n) => (
+                <li key={n.shift_id} className={`rounded-lg border p-3 ${n.concern ? "border-danger" : "border-line"}`}>
+                  <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <span className="font-semibold text-ink">{nameOfStaff.get(n.worker_id) ?? "Staff member"}</span>
+                    <span>{new Date(n.created_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>
+                    {WELLBEING[n.client_wellbeing] ? <span className={`rounded-full px-2 py-0.5 font-semibold ${WELLBEING[n.client_wellbeing][1]}`}>{WELLBEING[n.client_wellbeing][0]}</span> : null}
+                    {n.concern ? <span className="rounded-full bg-danger-soft px-2 py-0.5 font-semibold text-danger">Incident or issue</span> : null}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap">{n.delivered}</p>
+                  {n.concern && n.concern_note ? <p className="mt-1 whitespace-pre-wrap text-danger">{n.concern_note}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No shift notes in that time.</p>
+          )}
+        </Card>
+      ) : null}
       {inView("shifts") && clientShifts ? (
         <Card className="flex flex-col gap-3 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -434,11 +477,12 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             <ul className="divide-y divide-line rounded-md border border-line text-sm">
               {clientShifts.map((sh) => (
                 <li key={sh.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
-                  <Link href={`/roster?by=client&w=${sh.starts_at.slice(0, 10)}&shift=${sh.id}`} className="min-w-48 flex-1 font-semibold hover:text-brand">
+                  <Link href={`/roster?by=client&d=${new Date(sh.starts_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })}&shift=${sh.id}`} className="min-w-48 flex-1 font-semibold hover:text-brand">
                     {new Date(sh.starts_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} – {new Date(sh.ends_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })}
                   </Link>
                   <span>{sh.worker_id ? (nameOfStaff.get(sh.worker_id) ?? "Staff member") : <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">Not filled</span>}</span>
                   {sh.status === "draft" ? <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">Draft</span> : null}
+                  {shiftNoteOf.get(sh.id)?.concern ? <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">Incident or issue</span> : shiftNoteOf.has(sh.id) ? <span className="rounded-full bg-good-soft px-2 py-0.5 text-xs font-semibold">Notes in</span> : null}
                 </li>
               ))}
             </ul>

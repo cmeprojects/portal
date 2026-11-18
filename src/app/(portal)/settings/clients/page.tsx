@@ -69,8 +69,29 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         supabase.from("client_agreements").select("client_id, service_id, scheme, status, ends_on").neq("status", "ended"),
         supabase.from("client_alerts").select("client_id").eq("active", true).neq("kind", "no_known_alerts"),
       ]);
+  // cmeprojects: next shifts (two weeks) and recent shift notes (two weeks) for the side panel.
+  // The database limits both to what this person may see; either is left out when it can't be read.
+  const roster = setup ? null : await canDo("ops.roster", "view");
+  const [shiftsRes, notesRes] = setup
+    ? [null, null]
+    : await Promise.all([
+        roster ? supabase.from("shifts").select("id, client_id, worker_id, starts_at, ends_at, status").not("client_id", "is", null).neq("status", "cancelled").gte("starts_at", new Date().toISOString()).lte("starts_at", new Date(Date.parse(new Date().toISOString()) + 14 * 86_400_000).toISOString()).order("starts_at").limit(2000) : null,
+        supabase.from("shift_service_records").select("shift_id, worker_id, delivered, client_wellbeing, concern, created_at, shifts!inner(client_id)").gte("created_at", new Date(Date.parse(new Date().toISOString()) - 14 * 86_400_000).toISOString()).order("created_at", { ascending: false }).limit(2000),
+      ]);
+  type UpShift = { id: string; client_id: string; worker_id: string | null; starts_at: string; ends_at: string; status: string };
+  type RecentNote = { shift_id: string; worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; created_at: string; shifts: { client_id: string } };
+  const upShifts = shiftsRes && !shiftsRes.error ? ((shiftsRes.data ?? []) as UpShift[]) : null;
+  const recentNotes = notesRes && !notesRes.error ? ((notesRes.data ?? []) as unknown as RecentNote[]) : null;
   const schemeLabel = (k: string) => schemes.find((x) => x.key === k)?.label ?? k;
   const staffName = new Map<string, string>();
+  {
+    const ids = [...new Set([...(upShifts ?? []).map((x) => x.worker_id), ...(recentNotes ?? []).map((x) => x.worker_id)].filter((v): v is string => !!v))];
+    if (ids.length) {
+      const { data: people } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
+      for (const p of (people ?? []) as { id: string; full_name: string | null; email: string }[]) staffName.set(p.id, p.full_name || p.email);
+    }
+  }
+  const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
   if (assignRes?.data?.length) {
     const ids = [...new Set((assignRes.data as { user_id: string }[]).map((a) => a.user_id))];
     const { data: people } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
@@ -132,6 +153,18 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         .filter((a) => a.client_id === c.id)
         .map((a) => ({ label: `${svcLabel.get(a.service_id) ?? "Service"} (${schemeLabel(a.scheme)})`, status: a.status === "sent" ? "sent for signing" : a.status, ends: a.ends_on })),
       alerts: ((alertsRes?.data ?? []) as { client_id: string }[]).filter((a) => a.client_id === c.id).length,
+      shifts: upShifts
+        ? upShifts
+            .filter((x) => x.client_id === c.id)
+            .slice(0, 5)
+            .map((x) => ({ id: x.id, when: `${when(x.starts_at)} – ${new Date(x.ends_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })}`, worker: x.worker_id ? (staffName.get(x.worker_id) ?? "Staff member") : "", draft: x.status === "draft", day: new Date(x.starts_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) }))
+        : null,
+      notes: recentNotes
+        ? recentNotes
+            .filter((n) => n.shifts?.client_id === c.id)
+            .slice(0, 5)
+            .map((n) => ({ when: when(n.created_at), worker: staffName.get(n.worker_id) ?? "Staff member", wellbeing: n.client_wellbeing, concern: n.concern, text: n.delivered }))
+        : null,
     };
   });
   const showContact = !detailsRes?.error && listClients.some((c) => c.email || c.suburb);
