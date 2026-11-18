@@ -86,7 +86,7 @@
 |---|---|---|---|---|---|---|---|---|
 | SEC-001 | Security Policy | Security principles and rules for the platform | TL / SR / PO | No | Before live | — | To write | SEC-002, IAM-001 |
 | SEC-002 ★ | Current RLS Policy Register | Every current policy (175 table, 24 storage), tables without policies, SECURITY DEFINER functions, concerns | TL / SR / PO | Yes (+ generated appendix A); Stage 1 register kept as evidence (AUD-007a) | Now | Draft 0.1 (needs independent review) | docs/04-security-and-privacy/SEC-002-rls-policy-register.md | DB-001, MOD-001, RSK-001 |
-| SEC-003 ★ | Privacy and Data Handling | What personal and client data is held, why, who sees it, where it's stored | TL (facts) / PL / PO | Partial: CUS-ENG-07 (customer-facing overview), HR and client review documents | Now (facts) / Before live (approved) | — | To write (facts first, adviser review needed) | ARC-003, SEC-004 |
+| SEC-003 ★ | Privacy and Data Handling | What personal and client data is held, why, who sees it, where it's stored | TL (facts) / PL / PO | Yes (clients, care, rostering): docs/04-security-and-privacy/SEC-003-privacy-and-data-handling.md | Now (facts) / Before live (approved) | — | Draft 0.1 (18 Nov 2026): facts, who-sees-what, update 139 fixes; owner decisions and adviser review needed | ARC-003, SEC-004 |
 | SEC-004 | Data Retention and Disposal | How long data is kept and how it's removed (a retention setting exists) | PO / PL / PO | No | Before live | — | To write | SEC-003 |
 | SEC-005 | Data Breach Response Plan | What to do if data is exposed | PO / PL / PO | No | Before live | — | To write (adviser input needed) | OPS-002 |
 | SEC-006 | Security Risk Register | Merged into RSK-001 | — | — | — | Not used (see RSK-001) | — | RSK-001 |

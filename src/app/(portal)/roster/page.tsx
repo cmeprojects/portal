@@ -1104,7 +1104,14 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         </p>
                       </div>
                     ) : (
-                      <p className="text-muted">The worker writes what they did after the shift, on My shifts. Nothing yet.</p>
+                      evs.some((e) => (e.summary ?? "").startsWith("recorded the service delivered")) ? (
+                        // cmeprojects (update 139): notes are care information; only people who see the client's care plans read them.
+                        <p className="text-muted">
+                          Shift notes are in{evs.some((e) => (e.summary ?? "").includes("flagged a concern")) ? ", with an incident or issue (managers and the case manager were told)" : ""}. Only people who can see this client&apos;s care plans can read them.
+                        </p>
+                      ) : (
+                        <p className="text-muted">The worker writes what they did after the shift, on My shifts. Nothing yet.</p>
+                      )
                     )
                   ) : tab === "signatures" ? (
                     <div className="flex flex-col gap-3">

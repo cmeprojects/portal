@@ -76,10 +76,10 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
     ? [null, null]
     : await Promise.all([
         roster ? supabase.from("shifts").select("id, client_id, worker_id, starts_at, ends_at, status").not("client_id", "is", null).neq("status", "cancelled").gte("starts_at", new Date().toISOString()).lte("starts_at", new Date(Date.parse(new Date().toISOString()) + 14 * 86_400_000).toISOString()).order("starts_at").limit(2000) : null,
-        supabase.from("shift_service_records").select("shift_id, worker_id, delivered, client_wellbeing, concern, created_at, shifts!inner(client_id)").gte("created_at", new Date(Date.parse(new Date().toISOString()) - 14 * 86_400_000).toISOString()).order("created_at", { ascending: false }).limit(2000),
+        supabase.from("shift_service_records").select("shift_id, client_id, worker_id, delivered, client_wellbeing, concern, created_at").gte("created_at", new Date(Date.parse(new Date().toISOString()) - 14 * 86_400_000).toISOString()).order("created_at", { ascending: false }).limit(2000),
       ]);
   type UpShift = { id: string; client_id: string; worker_id: string | null; starts_at: string; ends_at: string; status: string };
-  type RecentNote = { shift_id: string; worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; created_at: string; shifts: { client_id: string } };
+  type RecentNote = { shift_id: string; worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; created_at: string; client_id: string | null };
   const upShifts = shiftsRes && !shiftsRes.error ? ((shiftsRes.data ?? []) as UpShift[]) : null;
   const recentNotes = notesRes && !notesRes.error ? ((notesRes.data ?? []) as unknown as RecentNote[]) : null;
   const schemeLabel = (k: string) => schemes.find((x) => x.key === k)?.label ?? k;
@@ -161,7 +161,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         : null,
       notes: recentNotes
         ? recentNotes
-            .filter((n) => n.shifts?.client_id === c.id)
+            .filter((n) => n.client_id === c.id)
             .slice(0, 5)
             .map((n) => ({ when: when(n.created_at), worker: staffName.get(n.worker_id) ?? "Staff member", wellbeing: n.client_wellbeing, concern: n.concern, text: n.delivered }))
         : null,

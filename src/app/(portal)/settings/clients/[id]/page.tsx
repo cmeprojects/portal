@@ -193,13 +193,13 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       : null;
   // cmeprojects (update 134): shift notes for this client, last 60 days. Shown to
   // people who roster or who see the client's care plans (the database decides).
-  const canNotes = feats.rostering !== false && (!!clientShifts || (await canDoFor("clients.care_plans", "view", id)));
+  const canNotes = feats.rostering !== false && (await canDoFor("clients.care_plans", "view", id));
   type ShiftNote = { shift_id: string; worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; concern_note: string; created_at: string };
   const notesRes = canNotes
     ? await supabase
         .from("shift_service_records")
-        .select("shift_id, worker_id, delivered, client_wellbeing, concern, concern_note, created_at, shifts!inner(client_id)")
-        .eq("shifts.client_id", id)
+        .select("shift_id, worker_id, delivered, client_wellbeing, concern, concern_note, created_at")
+        .eq("client_id", id)
         .gte("created_at", new Date(Date.parse(new Date().toISOString()) - 60 * 86_400_000).toISOString())
         .order("created_at", { ascending: false })
         .limit(60)
