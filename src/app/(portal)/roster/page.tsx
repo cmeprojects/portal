@@ -43,10 +43,10 @@ const auDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-
 // roster by worker or by client; open (vacant) shifts; a panel to view, add or
 // change a shift; change requests behind the ⇄ icon; select mode for bulk work.
 export default async function RosterPage({ searchParams }: PageProps<"/roster">) {
-  const { features } = await requireSession();
+  // cmeprojects (speed): the session and both permission checks at once.
+  const [{ features }, canView, canEdit] = await Promise.all([requireSession(), canDo("ops.roster", "view"), canDo("ops.roster", "edit")]);
   if (features.rostering === false) notFound();
-  if (!(await canDo("ops.roster", "view"))) notFound();
-  const canEdit = await canDo("ops.roster", "edit");
+  if (!canView) notFound();
   const sp = await searchParams;
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const today = sydneyToday();
@@ -78,6 +78,22 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const go = (d: string, v: string = view) => `/roster?${v === "week" ? "" : `v=${v}&`}d=${d}${byClient ? "&by=client" : ""}`;
   const supabase = await createClient();
   type Tpl = { id: string; name: string; shift_type: string; start_time: string; end_time: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; allowances: string[]; pay_group: string; needs_worker_signature: boolean; needs_client_signature: boolean };
+  // cmeprojects (speed): queries that don't need the shifts start now, alongside the main batch.
+  const startNow = <T,>(q: PromiseLike<T>) => Promise.resolve(q);
+  const periodDefs: [string, string, string, string][] = [
+    ["current", view === "day" ? "This day" : view === "month" ? "This month" : view === "fortnight" ? "This fortnight" : "This week", gridStart, gridEnd],
+    ["next_week", "Next week", addDays(monday, 7), addDays(monday, 14)],
+    ["next_fortnight", "Next fortnight", addDays(monday, 7), addDays(monday, 21)],
+    ["this_month", "This month", monthStart, nextMonthStart],
+    ["next_month", "Next month", nextMonthStart, (() => { const [y, m] = nextMonthStart.split("-").map(Number); return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`; })()],
+  ];
+  const rangeFrom = periodDefs.map((d) => d[2]).sort()[0];
+  const rangeTo = periodDefs.map((d) => d[3]).sort().slice(-1)[0];
+  const templatesP = canEdit ? startNow(supabase.from("shift_templates").select("*").eq("active", true).order("name")) : Promise.resolve({ data: [] });
+  const draftsP = canEdit
+    ? startNow(supabase.from("shifts").select("starts_at, worker_id").eq("status", "draft").gte("starts_at", sydneyInstant(rangeFrom)).lt("starts_at", sydneyInstant(rangeTo)))
+    : Promise.resolve({ data: [] });
+  const titlesP = startNow(supabase.from("job_titles").select("id, name"));
   const [shiftsRes, { data: people }, { data: clients }, { data: locations }, { data: services }, { data: leave }, { data: interest }, { data: availRows }, { data: checks }, reqRes, { data: cars }] = await Promise.all([
     supabase.from("shifts").select("*").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to).order("starts_at"),
     supabase.from("profiles").select("id, full_name, email, role, job_title_id").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").order("full_name"),
@@ -93,22 +109,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("cars").select("id, name, rego").eq("active", true).order("name"),
   ]);
   // cmeprojects (update 129): shift templates (people who roster; empty before it runs).
-  const templates = canEdit ? (((await supabase.from("shift_templates").select("*").eq("active", true).order("name")).data ?? []) as Tpl[]) : [];
+  const [{ data: templateRows }, { data: draftRows }, { data: titleRows }] = await Promise.all([templatesP, draftsP, titlesP]);
+  const templates = ((templateRows ?? []) as Tpl[]);
   const tpl = templates.find((t) => t.id === str("tpl"));
   // cmeprojects: periods that can be published (the view on screen first), with their drafts and workers told.
   const span = (a: string, b: string) => `${auDate(a)} – ${auDate(addDays(b, -1))} ${addDays(b, -1).slice(0, 4)}`;
-  const periodDefs: [string, string, string, string][] = [
-    ["current", view === "day" ? "This day" : view === "month" ? "This month" : view === "fortnight" ? "This fortnight" : "This week", gridStart, gridEnd],
-    ["next_week", "Next week", addDays(monday, 7), addDays(monday, 14)],
-    ["next_fortnight", "Next fortnight", addDays(monday, 7), addDays(monday, 21)],
-    ["this_month", "This month", monthStart, nextMonthStart],
-    ["next_month", "Next month", nextMonthStart, (() => { const [y, m] = nextMonthStart.split("-").map(Number); return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`; })()],
-  ];
-  const rangeFrom = periodDefs.map((d) => d[2]).sort()[0];
-  const rangeTo = periodDefs.map((d) => d[3]).sort().slice(-1)[0];
-  const { data: draftRows } = canEdit
-    ? await supabase.from("shifts").select("starts_at, worker_id").eq("status", "draft").gte("starts_at", sydneyInstant(rangeFrom)).lt("starts_at", sydneyInstant(rangeTo))
-    : { data: [] };
   const draftList = (draftRows ?? []) as { starts_at: string; worker_id: string | null }[];
   const publishPeriods: PublishPeriod[] = periodDefs
     .filter(([k, , a, b], i) => k === "current" || !(a === gridStart && b === gridEnd) || i === 0)
@@ -135,18 +140,19 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   for (const s of shifts) if (s.worker_id) hoursOf.set(s.worker_id, (hoursOf.get(s.worker_id) ?? 0) + shiftHours(s));
   const onLeave = (who: string, day: string) => ((leave ?? []) as { user_id: string; start_date: string; end_date: string }[]).some((l) => l.user_id === who && l.start_date <= day && l.end_date >= day);
   // cmeprojects (update 128): which published shifts the worker has answered (empty before it runs).
-  const { data: answerRows } = shifts.length ? await supabase.from("shift_responses").select("shift_id, response").in("shift_id", shifts.map((x) => x.id)) : { data: [] };
+  const shiftIds = shifts.map((x) => x.id);
+  const [{ data: answerRows }, { data: sentRows }, { data: inRows }] = shiftIds.length
+    ? await Promise.all([
+        supabase.from("shift_responses").select("shift_id, response").in("shift_id", shiftIds),
+        supabase.from("shift_timesheets").select("shift_id").in("shift_id", shiftIds),
+        supabase.from("shift_signatures").select("shift_id").eq("kind", "worker_in").is("voided_at", null).in("shift_id", shiftIds),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
   const answerOf = new Map(((answerRows ?? []) as { shift_id: string; response: string }[]).map((r) => [r.shift_id, r.response]));
   const answered = new Set(answerOf.keys());
   // cmeprojects: one status per shift, for its colour.
   const nowAt = Date.parse(new Date().toISOString());
   // Times sent (a timesheet) or a clock-in signature mean the shift happened.
-  const [{ data: sentRows }, { data: inRows }] = shifts.length
-    ? await Promise.all([
-        supabase.from("shift_timesheets").select("shift_id").in("shift_id", shifts.map((x) => x.id)),
-        supabase.from("shift_signatures").select("shift_id").eq("kind", "worker_in").is("voided_at", null).in("shift_id", shifts.map((x) => x.id)),
-      ])
-    : [{ data: [] }, { data: [] }];
   const happened = new Set([...((sentRows ?? []) as { shift_id: string }[]), ...((inRows ?? []) as { shift_id: string }[])].map((r) => r.shift_id));
   const statusOf = (x: Shift): keyof typeof STATUS_STYLE =>
     !x.worker_id
@@ -164,7 +170,16 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
             : answerOf.get(x.id) === "accepted"
               ? "accepted"
               : "waiting";
+  // Worked out once per shift and reused (cmeprojects, speed).
+  const warnCache = new Map<string, string[]>();
   const warningsFor = (s: Shift): string[] => {
+    const hit = warnCache.get(s.id);
+    if (hit) return hit;
+    const w = warningsCalc(s);
+    warnCache.set(s.id, w);
+    return w;
+  };
+  const warningsCalc = (s: Shift): string[] => {
     if (!s.worker_id) return [];
     const w: string[] = [];
     const p = sydneyParts(s.starts_at);
@@ -177,7 +192,6 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const hands = (id: string) => ((interest ?? []) as { shift_id: string; user_id: string }[]).filter((i) => i.shift_id === id);
   const vacant = shifts.filter((s) => !s.worker_id);
   // cmeprojects: staff are grouped by role (Support Workers first, then Team Leaders, then the rest).
-  const { data: titleRows } = await supabase.from("job_titles").select("id, name");
   const titleName = new Map(((titleRows ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
   const personOf = new Map(((people ?? []) as { id: string; role: string; job_title_id: string | null }[]).map((p) => [p.id, p]));
   const groupOf = (id: string) => {
