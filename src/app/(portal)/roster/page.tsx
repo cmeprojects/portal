@@ -9,7 +9,7 @@ import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
-import { BANDS, availabilitySlot, bandOf, eventWords, shiftTypeLabel, shortTime } from "@/lib/roster";
+import { BANDS, SHIFT_TYPES, availabilitySlot, bandOf, eventWords, shiftTypeLabel, shortTime } from "@/lib/roster";
 import { addShiftNote, decideRequest, endRepeat, giveOpenShift, makeOpenShift, switchOffTemplate, voidSignature } from "./actions";
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
 import { PublishControl, type PublishPeriod } from "./publish-control";
@@ -26,6 +26,8 @@ export const metadata: Metadata = { title: "Roster" };
 type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; status: string; series_id: string | null;
   // update 128 (absent before it runs)
   ref?: string; shift_type?: string; vehicle_id?: string | null; pay_group?: string; allowances?: string[]; needs_worker_signature?: boolean; needs_client_signature?: boolean;
+  // update 141
+  extra_notes?: string; pay_class?: string | null; signatures_needed?: string[]; notify_worker?: boolean;
   created_by?: string | null; created_at?: string; updated_by?: string | null; updated_at?: string; notified_at?: string | null };
 type Req = { id: string; shift_id: string; requested_by: string; kind: string; swap_with: string | null; reason: string; created_at: string };
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -80,7 +82,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const base = `/roster?${viewQ}${byClient ? "&by=client" : ""}`;
   const go = (d: string, v: string = view) => `/roster?${v === "week" ? "" : `v=${v}&`}d=${d}${byClient ? "&by=client" : ""}`;
   const supabase = await createClient();
-  type Tpl = { id: string; name: string; shift_type: string; start_time: string; end_time: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; allowances: string[]; pay_group: string; needs_worker_signature: boolean; needs_client_signature: boolean };
+  type Tpl = { id: string; name: string; shift_type: string; start_time: string; end_time: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; allowances: string[]; pay_group: string; needs_worker_signature: boolean; needs_client_signature: boolean; extra_notes?: string; signatures_needed?: string[] };
   // cmeprojects (speed): queries that don't need the shifts start now, alongside the main batch.
   const startNow = <T,>(q: PromiseLike<T>) => Promise.resolve(q);
   const periodDefs: [string, string, string, string][] = [
@@ -101,7 +103,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("shifts").select("*").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to).order("starts_at"),
     supabase.from("profiles").select("id, full_name, email, role, job_title_id").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").order("full_name"),
     supabase.from("car_clients").select("id, name, status").neq("status", "discharged").order("name"),
-    supabase.from("client_locations").select("id, client_id, label, address").eq("approved", true),
+    supabase.from("client_locations").select("id, client_id, label, address, suburb, state, postcode, access_notes").eq("approved", true),
     supabase.from("client_services").select("id, client_id, label").neq("status", "ended"),
     supabase.from("leave_periods").select("user_id, start_date, end_date").lte("start_date", addDays(gridEnd, 6)).gte("end_date", gridStart),
     supabase.from("shift_interest").select("shift_id, user_id"),
@@ -112,7 +114,14 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("cars").select("id, name, rego").eq("active", true).order("name"),
   ]);
   // cmeprojects (update 129): shift templates (people who roster; empty before it runs).
-  const [{ data: templateRows }, { data: draftRows }, { data: titleRows }] = await Promise.all([templatesP, draftsP, titlesP]);
+  const [{ data: templateRows }, { data: draftRows }, { data: titleRows }, typesRes] = await Promise.all([templatesP, draftsP, titlesP, supabase.from("shift_types").select("key, label, active").order("sort_order").order("label")]);
+  // cmeprojects (update 141): shift types are a managed list; before it runs, the fixed list.
+  const shiftTypes = typesRes.error ? SHIFT_TYPES.map(([key, label]) => ({ key, label, active: true })) : ((typesRes.data ?? []) as { key: string; label: string; active: boolean }[]);
+  const typeName = new Map(shiftTypes.map((t) => [t.key, t.label]));
+  const typeLabel = (k: string) => typeName.get(k) ?? shiftTypeLabel(k);
+  // cmeprojects (update 141): which signatures a shift needs, and the signature kind that fills each.
+  const SIG_WORDS: Record<string, string> = { worker_in: "worker at clock in", worker_out: "worker at clock out", client_out: "client at clock out", representative_out: "authorised representative at clock out" };
+  const SIG_KIND: Record<string, string> = { worker_in: "worker_in", worker_out: "worker_out", client_out: "client", representative_out: "representative" };
   const templates = ((templateRows ?? []) as Tpl[]);
   const tpl = templates.find((t) => t.id === str("tpl"));
   // cmeprojects: periods that can be published (the view on screen first), with their drafts and workers told.
@@ -225,6 +234,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       ].sort((a, b) => groupRank(a) - groupRank(b) || groupOf(a).localeCompare(groupOf(b)) || (name.get(a) ?? "").localeCompare(name.get(b) ?? ""));
   const totalHours = shifts.filter((s) => s.worker_id).reduce((n, s) => n + shiftHours(s), 0);
   const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("*").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
+  const sigNeeded: string[] = opened ? (opened.signatures_needed ?? [...(opened.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(opened.needs_client_signature ? ["client_out"] : [])]) : [];
   const editing = canEdit && (str("add") || (opened && str("edit") === "1"));
   const tab = str("tab") === "log" ? "logs" : ["details", "events", "service", "signatures", "trips", "timesheet", "logs"].includes(str("tab")) ? str("tab") : "details";
   const weekLabel =
@@ -268,6 +278,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     ? ((people ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => ({
         id: p.id,
         name: p.full_name || p.email,
+        role: groupOf(p.id),
         hours: hoursOf.get(p.id) ?? 0,
         leave: Array.from({ length: 14 }, (_, i) => addDays(fitDay, i - 7)).filter((d) => onLeave(p.id, d)),
         busy: shifts.filter((s) => s.worker_id === p.id && s.id !== opened?.id).map((s) => ({ date: sydneyParts(s.starts_at).date, start: sydneyParts(s.starts_at).time, end: sydneyParts(s.ends_at).time })),
@@ -283,7 +294,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         date: sydneyParts(opened.starts_at).date,
         start: sydneyParts(opened.starts_at).time,
         end: sydneyParts(opened.ends_at).time,
-        nextDay: sydneyParts(opened.ends_at).date !== sydneyParts(opened.starts_at).date && sydneyParts(opened.ends_at).time > sydneyParts(opened.starts_at).time,
+        nextDay: sydneyParts(opened.ends_at).date !== sydneyParts(opened.starts_at).date,
         break_minutes: opened.break_minutes,
         worker_id: opened.worker_id ?? "",
         client_id: opened.client_id ?? "",
@@ -296,12 +307,14 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         vehicle_id: opened.vehicle_id ?? "",
         pay_group: opened.pay_group ?? "",
         allowances: opened.allowances ?? [],
-        needs_worker_signature: !!opened.needs_worker_signature,
-        needs_client_signature: !!opened.needs_client_signature,
+        extra_notes: opened.extra_notes ?? "",
+        pay_class: opened.pay_class ?? "",
+        notify_worker: opened.notify_worker ?? true,
+        signatures_needed: opened.signatures_needed ?? [...(opened.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(opened.needs_client_signature ? ["client_out"] : [])],
       }
     : tpl
-      ? { date: fitDay, start: tpl.start_time.slice(0, 5), end: tpl.end_time.slice(0, 5), nextDay: tpl.end_time <= tpl.start_time, break_minutes: tpl.break_minutes, worker_id: str("worker"), client_id: tpl.client_id ?? str("client"), location_id: tpl.location_id ?? "", service_id: tpl.service_id ?? "", notes: tpl.notes, status: "draft", series: false, shift_type: tpl.shift_type, vehicle_id: "", pay_group: tpl.pay_group, allowances: tpl.allowances, needs_worker_signature: tpl.needs_worker_signature, needs_client_signature: tpl.needs_client_signature }
-      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", status: "draft", series: false, shift_type: "standard", vehicle_id: "", pay_group: "", allowances: [], needs_worker_signature: false, needs_client_signature: false };
+      ? { date: fitDay, start: tpl.start_time.slice(0, 5), end: tpl.end_time.slice(0, 5), nextDay: tpl.end_time <= tpl.start_time, break_minutes: tpl.break_minutes, worker_id: str("worker"), client_id: tpl.client_id ?? str("client"), location_id: tpl.location_id ?? "", service_id: tpl.service_id ?? "", notes: tpl.notes, extra_notes: tpl.extra_notes ?? "", status: "draft", series: false, shift_type: tpl.shift_type, vehicle_id: "", pay_group: tpl.pay_group, pay_class: "", notify_worker: true, allowances: tpl.allowances, signatures_needed: tpl.signatures_needed ?? [...(tpl.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(tpl.needs_client_signature ? ["client_out"] : [])] }
+      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", extra_notes: "", status: "draft", series: false, shift_type: "standard", vehicle_id: "", pay_group: "", pay_class: "", notify_worker: true, allowances: [], signatures_needed: [] };
 
   // The opened shift's timesheet and log.
   const [{ data: sheet }, { data: events }, { data: sigRows }, { data: tripRows }, { data: noteRows }, { data: response }, { data: serviceRow }] = opened && !editing
@@ -538,6 +551,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
               <Link href="/roster/timesheets" className="block px-3 py-2 text-sm font-semibold hover:bg-page">
                 Timesheets
               </Link>
+              <Link href="/roster/shift-types" className="block px-3 py-2 text-sm font-semibold hover:bg-page">
+                Shift types
+              </Link>
               {canEdit ? (
                 <Link href={`${base}&templates=1`} scroll={false} className="block px-3 py-2 text-sm font-semibold hover:bg-page">
                   Shift templates
@@ -732,7 +748,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         <span className="flex-1">
                           <span className="font-semibold">{t.name}</span>
                           <span className="block text-xs text-muted">
-                            {shiftTypeLabel(t.shift_type)} · {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
+                            {typeLabel(t.shift_type)} · {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
                             {t.client_id ? ` · ${clientName.get(t.client_id) ?? "a client"}` : ""}
                           </span>
                         </span>
@@ -792,51 +808,21 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                 )}
               </div>
             ) : editing ? (
-              <div className="flex flex-col gap-3 p-5">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="heading-sm">{opened ? "Change shift" : "Add shift"}</h2>
-                  <span className="flex gap-2">
-                    {opened ? (
-                      <Link href={`${base}&shift=${opened.id}`} scroll={false} className={buttonClass("outline")}>
-                        Back
-                      </Link>
-                    ) : null}
-                    <Link href={closePanel} scroll={false} className={buttonClass("outline")}>
-                      Close
-                    </Link>
-                  </span>
-                </div>
-                {!opened && templates.length ? (
-                  <form method="get" action="/roster" className="flex flex-wrap items-end gap-2 rounded-lg border border-line bg-page p-3">
-                    {view !== "week" ? <input type="hidden" name="v" value={view} /> : null}
-                    <input type="hidden" name="d" value={anchor} />
-                    {byClient ? <input type="hidden" name="by" value="client" /> : null}
-                    <input type="hidden" name="add" value={str("add")} />
-                    {str("worker") ? <input type="hidden" name="worker" value={str("worker")} /> : null}
-                    <label className="flex flex-1 flex-col gap-1 text-xs font-medium">
-                      Start from a template
-                      <select name="tpl" defaultValue={str("tpl")} className={inputClass}>
-                        <option value="">No template</option>
-                        {templates.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name} ({t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button className={buttonClass("outline")}>Use</button>
-                  </form>
-                ) : null}
+              <div className="flex min-h-full flex-col">
                 <ShiftForm
                   key={`${opened?.id ?? str("add")}-${str("tpl")}`}
-                  closeHref={close}
+                  closeHref={closePanel}
+                  backHref={opened ? `${base}&shift=${opened.id}` : undefined}
+                  shiftTypes={shiftTypes}
+                  templates={templates.map((t) => ({ id: t.id, name: t.name, start: t.start_time.slice(0, 5), end: t.end_time.slice(0, 5) }))}
+                  templateHref={`${base}&add=${str("add")}${str("worker") ? `&worker=${str("worker")}` : ""}${str("client") ? `&client=${str("client")}` : ""}`}
                   shift={draft}
                   workers={workerFit}
                   clients={((clients ?? []) as { id: string; name: string; status: string }[])
                     .filter((c) => c.status === "active" || c.id === opened?.client_id)
                     .map((c) => ({ id: c.id, name: c.status === "active" ? c.name : `${c.name} (not active)` }))}
                   cars={((cars ?? []) as { id: string; name: string; rego: string }[]).map((c) => ({ id: c.id, name: `${c.name} (${c.rego})` }))}
-                  locations={((locations ?? []) as { id: string; client_id: string; label: string; address: string }[]).map((l) => ({ id: l.id, client_id: l.client_id, name: `${l.label}: ${l.address}` }))}
+                  locations={((locations ?? []) as { id: string; client_id: string; label: string; address: string; suburb?: string | null; state?: string | null; postcode?: string | null; access_notes?: string | null }[]).map((l) => ({ id: l.id, client_id: l.client_id, name: `${l.label}: ${l.address}`, address: l.address, suburb: l.suburb ?? "", state: l.state ?? "", postcode: l.postcode ?? "", access_notes: l.access_notes ?? "" }))}
                   services={((services ?? []) as { id: string; client_id: string; label: string }[]).map((v) => ({ id: v.id, client_id: v.client_id, name: v.label }))}
                 />
               </div>
@@ -885,7 +871,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                             <dt className="text-muted">Reference</dt>
                             <dd className="font-mono text-xs">{opened.ref}</dd>
                             <dt className="text-muted">Shift type</dt>
-                            <dd>{shiftTypeLabel(opened.shift_type ?? "standard")}</dd>
+                            <dd>{typeLabel(opened.shift_type ?? "standard")}</dd>
                           </>
                         ) : null}
                         <dt className="text-muted">Client</dt>
@@ -906,6 +892,18 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         <dd>{opened.worker_id ? `${name.get(opened.worker_id)} · ${(hoursOf.get(opened.worker_id) ?? 0).toFixed(1)} of 38 h this week` : "Vacant"}</dd>
                         <dt className="text-muted">Worker instructions</dt>
                         <dd className="whitespace-pre-line">{opened.notes || "None"}</dd>
+                        {opened.extra_notes ? (
+                          <>
+                            <dt className="text-muted">Additional notes</dt>
+                            <dd className="whitespace-pre-line">{opened.extra_notes}</dd>
+                          </>
+                        ) : null}
+                        {opened.pay_class ? (
+                          <>
+                            <dt className="text-muted">Pay classification</dt>
+                            <dd>{opened.pay_class === "casual" ? "Casual" : "Regular"}</dd>
+                          </>
+                        ) : null}
                         {opened.ref ? (
                           <>
                             <dt className="text-muted">Worker&apos;s answer</dt>
@@ -937,7 +935,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                             <dt className="text-muted">Allowances</dt>
                             <dd>{(opened.allowances ?? []).join(", ") || "None"}</dd>
                             <dt className="text-muted">Signatures</dt>
-                            <dd>{[opened.needs_worker_signature ? "worker at clock in and out" : "", opened.needs_client_signature ? "client at clock out" : ""].filter(Boolean).join("; ") || "Not needed"}</dd>
+                            <dd>{sigNeeded.map((k) => SIG_WORDS[k]).join("; ") || "Not needed"}</dd>
                             <dt className="text-muted">Added</dt>
                             <dd className="text-xs">{opened.created_at ? `${new Date(opened.created_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}${opened.created_by ? ` by ${name.get(opened.created_by) ?? "someone"}` : " (automatically)"}` : ""}</dd>
                             <dt className="text-muted">Last changed</dt>
@@ -1115,9 +1113,13 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                     )
                   ) : tab === "signatures" ? (
                     <div className="flex flex-col gap-3">
-                      {opened.needs_worker_signature && !sigs.some((x) => !x.voided_at && x.kind === "worker_in") ? <p className="rounded-md bg-warn-soft px-2 py-1">Worker clock-in signature still needed.</p> : null}
-                      {opened.needs_worker_signature && !sigs.some((x) => !x.voided_at && x.kind === "worker_out") ? <p className="rounded-md bg-warn-soft px-2 py-1">Worker clock-out signature still needed.</p> : null}
-                      {opened.needs_client_signature && !sigs.some((x) => !x.voided_at && (x.kind === "client" || x.kind === "representative")) ? <p className="rounded-md bg-warn-soft px-2 py-1">Client (or representative) signature still needed.</p> : null}
+                      {sigNeeded
+                        .filter((k) => !sigs.some((x) => !x.voided_at && x.kind === SIG_KIND[k]))
+                        .map((k) => (
+                          <p key={k} className="rounded-md bg-warn-soft px-2 py-1">
+                            Still needed: {SIG_WORDS[k]}.
+                          </p>
+                        ))}
                       {sigs.length ? (
                         sigs.map((x) => (
                           <div key={x.id} className={`flex flex-col gap-1 rounded-lg border border-line p-3 ${x.voided_at ? "opacity-60" : ""}`}>

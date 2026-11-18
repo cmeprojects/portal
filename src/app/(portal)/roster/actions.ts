@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use server";
 
-import { SHIFT_ALLOWANCES, SHIFT_TYPES } from "@/lib/roster";
+import { SHIFT_ALLOWANCES, repeatDates, type RepeatFreq } from "@/lib/roster";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { requireSession } from "@/lib/session";
@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
-import { addDays, mondayOf, sydneyInstant, sydneyParts } from "@/lib/sydney-time";
+import { addDays, sydneyInstant, sydneyParts } from "@/lib/sydney-time";
 
 // cmeprojects (update 122): rostering. The database checks who may
 // (Rostering, change), refuses leave and double-booking, and never deletes.
@@ -33,26 +33,40 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
   const startT = String(form.get("start") ?? "");
   const endT = String(form.get("end") ?? "");
   if (!sydney(date, startT) || !sydney(date, endT)) return { error: "Choose the date, start and finish." };
+  const nextDay = form.get("next_day") === "on";
+  // cmeprojects (update 141): the finish is on the next day only when ticked.
+  const span = Number(endT.slice(0, 2)) * 60 + Number(endT.slice(3, 5)) - (Number(startT.slice(0, 2)) * 60 + Number(startT.slice(3, 5))) + (nextDay ? 1440 : 0);
+  if (span <= 0) return { error: "The finish is at or before the start. Tick “Finishes the next day” for an overnight shift." };
+  if (span > 16 * 60) return { error: "A shift can be 16 hours at most." };
   const worker = String(form.get("worker_id") ?? "");
   const client = String(form.get("client_id") ?? "");
   const location = String(form.get("location_id") ?? "");
   const service = String(form.get("service_id") ?? "");
-  const status = String(form.get("status") ?? "draft");
+  const breakMinutes = Math.max(0, Math.min(240, Number(form.get("break_minutes") ?? 0) || 0));
+  if (breakMinutes >= span) return { error: "The break is as long as the shift." };
+  const supabase = await createClient();
+  // Shift types are the managed list (update 141); a switched-off type stays only on shifts that already have it.
+  const wantType = String(form.get("shift_type") ?? "standard");
+  const { data: typeRow } = await supabase.from("shift_types").select("key, active").eq("key", wantType).maybeSingle();
+  const { data: current } = id && isId(id) ? await supabase.from("shifts").select("shift_type, status").eq("id", id).maybeSingle() : { data: null };
+  if (!typeRow || (!typeRow.active && current?.shift_type !== wantType)) return { error: "Choose a shift type from the list." };
+  const signatures = form.getAll("signatures_needed").map(String).filter((k) => ["worker_in", "worker_out", "client_out", "representative_out"].includes(k));
+  const payClass = String(form.get("pay_class") ?? "");
   const base = {
     worker_id: isId(worker) ? worker : null,
     client_id: isId(client) ? client : null,
     location_id: isId(client) && isId(location) ? location : null,
     service_id: isId(client) && isId(service) ? service : null,
-    break_minutes: Math.max(0, Math.min(240, Number(form.get("break_minutes") ?? 0) || 0)),
+    break_minutes: breakMinutes,
     notes: String(form.get("notes") ?? "").trim().slice(0, 500),
-    status: ["draft", "published"].includes(status) ? status : "draft",
-    // cmeprojects (update 128): shift type, car, pay group, allowances and signatures needed.
-    shift_type: SHIFT_TYPES.some(([k]) => k === form.get("shift_type")) ? String(form.get("shift_type")) : "standard",
+    extra_notes: String(form.get("extra_notes") ?? "").trim().slice(0, 1000),
+    shift_type: wantType,
     vehicle_id: isId(String(form.get("vehicle_id") ?? "")) ? String(form.get("vehicle_id")) : null,
     pay_group: String(form.get("pay_group") ?? "").trim().slice(0, 60),
-    allowances: form.getAll("allowances").map(String).filter((a) => SHIFT_ALLOWANCES.includes(a)),
-    needs_worker_signature: form.get("needs_worker_signature") === "on",
-    needs_client_signature: form.get("needs_client_signature") === "on",
+    pay_class: ["regular", "casual"].includes(payClass) ? payClass : null,
+    allowances: [...new Set(form.getAll("allowances").map(String).filter((a) => SHIFT_ALLOWANCES.includes(a)))],
+    signatures_needed: signatures,
+    notify_worker: form.get("notify_worker") === "on",
   };
   // A client shift needs its service and location (training, meetings and admin shifts have no client).
   if (base.client_id && (!base.service_id || !base.location_id)) return { error: "Choose the client's service and location for this shift." };
@@ -61,7 +75,7 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
   const templateName = String(form.get("save_template") ?? "").trim().slice(0, 80);
   const saveTemplate = async () => {
     if (!templateName) return;
-    await (await createClient()).from("shift_templates").insert({
+    await supabase.from("shift_templates").insert({
       name: templateName,
       shift_type: base.shift_type,
       start_time: startT,
@@ -71,27 +85,27 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
       service_id: base.service_id,
       location_id: base.location_id,
       notes: base.notes,
+      extra_notes: base.extra_notes,
       allowances: base.allowances,
       pay_group: base.pay_group,
-      needs_worker_signature: base.needs_worker_signature,
-      needs_client_signature: base.needs_client_signature,
+      signatures_needed: base.signatures_needed,
     });
   };
-  // One date: start and finish (finishing at or before the start, or ticked: the next day).
   const times = (d: string) => {
     const start = sydney(d, startT)!;
-    let end = sydney(d, endT)!;
-    if (end <= start || form.get("next_day") === "on") end = new Date(new Date(end).getTime() + 86_400_000).toISOString();
+    const end = sydney(nextDay ? addDays(d, 1) : d, endT)!;
     return { starts_at: start, ends_at: end };
   };
-  const supabase = await createClient();
 
   if (id && isId(id)) {
-    // Changing a repeating shift: just this one, or this and the later ones in its series.
+    // Changing keeps the shift's status (publishing stays on the roster). A published shift's worker is told, unless unticked.
+    if (!current) return { error: "That shift isn't there any more. Please reload the page." };
+    const tell = current.status === "published" && base.notify_worker;
     const scope = String(form.get("scope") ?? "one");
     const { data: me } = await supabase.from("shifts").select("id, series_id, starts_at").eq("id", id).maybeSingle();
     if (!me) return { error: "That shift isn't there any more. Please reload the page." };
     if (scope === "future" && me.series_id) {
+      // This and the later shifts in its series; earlier ones are never changed.
       const { data: later } = await supabase.from("shifts").select("id, starts_at").eq("series_id", me.series_id).neq("status", "cancelled").gte("starts_at", me.starts_at);
       let done = 0;
       const refused: string[] = [];
@@ -101,43 +115,39 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
         if (error) refused.push(`${d}: ${friendlyError(error)}`);
         else done++;
       }
-      if (base.status === "published") after(() => tellWorkers());
-      // Success closes the panel by moving to a new address (one refresh); a part-failure stays and refreshes here.
+      if (internalNote && done) await supabase.from("shift_notes").insert({ shift_id: id, body: internalNote });
+      if (done) await saveTemplate();
+      if (tell) after(() => tellWorkers());
       if (refused.length) revalidatePath("/roster");
-      return refused.length ? { error: `${done} changed; not changed: ${refused.join("; ")}` } : { message: `${done} shifts changed.` };
+      return refused.length ? { error: `${done} changed; not changed: ${refused.join("; ")}` } : { message: `${done} shifts changed.`, spotlight: id };
     }
     const { error } = await supabase.from("shifts").update({ ...base, ...times(date) }).eq("id", id);
     if (error) return { error: friendlyError(error) };
     if (internalNote) await supabase.from("shift_notes").insert({ shift_id: id, body: internalNote });
     await saveTemplate();
-    if (base.status === "published") after(() => tellWorkers());
+    if (tell) after(() => tellWorkers());
     return { message: "Shift saved.", spotlight: id };
   }
 
-  // New: once, or repeating (every day / week / fortnight on chosen days) until a date or a number of shifts, at most 12 weeks.
-  const repeat = String(form.get("repeat") ?? "none");
-  let dates = [date];
-  if (["daily", "weekly", "fortnightly"].includes(repeat)) {
-    const days = form.getAll("repeat_days").map(Number).filter((n) => n >= 0 && n <= 6);
-    const until = String(form.get("repeat_until") ?? "");
-    const count = Math.max(1, Math.min(100, Number(form.get("repeat_count") ?? 0) || 0));
-    const byCount = form.get("repeat_end") === "count";
-    const last = byCount ? addDays(date, 84) : /^\d{4}-\d{2}-\d{2}$/.test(until) && until <= addDays(date, 84) ? until : addDays(date, 84);
-    const monday = mondayOf(date);
-    dates = [];
-    for (let d = date; d <= last && dates.length < (byCount ? count : 200); d = addDays(d, 1)) {
-      const dow = (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7;
-      const weekNo = Math.floor((new Date(`${mondayOf(d)}T12:00:00Z`).getTime() - new Date(`${monday}T12:00:00Z`).getTime()) / (7 * 86_400_000));
-      if (repeat === "daily" || (days.includes(dow) && (repeat === "weekly" || weekNo % 2 === 0))) dates.push(d);
-    }
-    if (!dates.length) return { error: "Choose at least one day for it to repeat on." };
-  }
+  // New: always a draft (published from the roster). Once, or repeating by the same rule the panel previews.
+  const freq = String(form.get("repeat") ?? "");
+  const dates = ["daily", "weekly", "fortnightly", "monthly"].includes(freq)
+    ? repeatDates(date, {
+        freq: freq as RepeatFreq,
+        every: Number(form.get("repeat_every") ?? 1),
+        days: form.getAll("repeat_days").map(Number),
+        until: String(form.get("repeat_until") ?? ""),
+        count: Number(form.get("repeat_count") ?? 0),
+        byCount: form.get("repeat_end") === "count",
+      })
+    : [date];
+  if (!dates.length) return { error: "No dates match the repeat: choose at least one day and an end date." };
   const seriesId = dates.length > 1 ? crypto.randomUUID() : null;
   let made = 0;
   let firstId = "";
   const refused: string[] = [];
   for (const d of dates) {
-    const { data: added, error } = await supabase.from("shifts").insert({ ...base, ...times(d), series_id: seriesId }).select("id").single();
+    const { data: added, error } = await supabase.from("shifts").insert({ ...base, ...times(d), status: "draft", series_id: seriesId }).select("id").single();
     if (error) refused.push(`${d}: ${friendlyError(error)}`);
     else {
       made++;
@@ -146,9 +156,8 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     }
   }
   if (made) await saveTemplate();
-  if (base.status === "published" && made) after(() => tellWorkers());
   if (!made) return { error: refused[0]?.replace(/^\d{4}-\d{2}-\d{2}: /, "") ?? "That didn't save." };
-  return { spotlight: firstId, message: `${made} shift${made === 1 ? "" : "s"} added${refused.length ? `; skipped ${refused.length}: ${refused.slice(0, 3).join("; ")}${refused.length > 3 ? "…" : ""}` : ""}.` };
+  return { spotlight: firstId, message: `${made} shift${made === 1 ? "" : "s"} added as draft${made === 1 ? "" : "s"}${refused.length ? `; skipped ${refused.length}: ${refused.slice(0, 3).join("; ")}${refused.length > 3 ? "…" : ""}` : ""}.` };
 }
 
 export async function cancelShift(form: FormData) {
@@ -234,7 +243,7 @@ export async function copyToNextWeek(_: FormState, form: FormData): Promise<Form
 
 type Row = { worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string };
 // cmeprojects (update 129): what a copy keeps (the update 128 fields too, when present; never the reference, status or car).
-const COPY_KEYS = ["worker_id", "break_minutes", "client_id", "service_id", "location_id", "notes", "shift_type", "pay_group", "allowances", "needs_worker_signature", "needs_client_signature"];
+const COPY_KEYS = ["worker_id", "break_minutes", "client_id", "service_id", "location_id", "notes", "shift_type", "pay_group", "allowances", "needs_worker_signature", "needs_client_signature", "signatures_needed", "extra_notes", "pay_class", "notify_worker"];
 const copyable = (r: Record<string, unknown>) => Object.fromEntries(COPY_KEYS.filter((k) => k in r).map((k) => [k, r[k]]));
 async function copyRows(supabase: Awaited<ReturnType<typeof createClient>>, rows: Row[], where: string) {
   let added = 0;

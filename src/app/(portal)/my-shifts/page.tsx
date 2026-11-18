@@ -15,7 +15,7 @@ import { EndShiftForm } from "./end-shift-form";
 
 export const metadata: Metadata = { title: "My shifts" };
 
-type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; location_id: string | null; notes: string; ref?: string; shift_type?: string; needs_worker_signature?: boolean; needs_client_signature?: boolean };
+type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; location_id: string | null; notes: string; ref?: string; shift_type?: string; needs_worker_signature?: boolean; needs_client_signature?: boolean; signatures_needed?: string[]; extra_notes?: string };
 
 // cmeprojects (update 122): my published shifts, and open shifts I can put my
 // hand up for. Only what the database lets me see.
@@ -120,17 +120,19 @@ export default async function MyShiftsPage() {
           )
         ) : null}
         {started(x) && (x.needs_worker_signature || x.needs_client_signature)
-          ? (
-              [
-                ...(x.needs_worker_signature ? ["worker_in", "worker_out"] : []),
-                ...(x.needs_client_signature ? ["client"] : []),
-              ] as string[]
-            )
-              .filter((k) => !signed.has(`${x.id}:${k}`) && !(k === "client" && signed.has(`${x.id}:representative`)))
+          ? // cmeprojects (update 141): the signatures this shift needs (client = client or representative).
+            [
+              ...new Set(
+                (x.signatures_needed ?? [...(x.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(x.needs_client_signature ? ["client_out"] : [])]).map((k) =>
+                  k === "client_out" ? "client" : k === "representative_out" ? "representative" : k,
+                ),
+              ),
+            ]
+              .filter((k) => !signed.has(`${x.id}:${k}`) && !(k === "client" && signed.has(`${x.id}:representative`)) && !(k === "representative" && signed.has(`${x.id}:client`)))
               .map((k) => (
                 <details key={k}>
                   <summary className="cursor-pointer text-sm font-semibold text-brand">
-                    {k === "worker_in" ? "Sign in (clock in)" : k === "worker_out" ? "Sign out (clock out)" : "Client signature"}
+                    {k === "worker_in" ? "Sign in (clock in)" : k === "worker_out" ? "Sign out (clock out)" : k === "representative" ? "Representative signature" : "Client signature"}
                   </summary>
                   <div className="mt-2 flex flex-col gap-3">
                     <SignaturePad shiftId={x.id} kind={k} defaultName={k.startsWith("worker") ? (profile.full_name ?? "") : ""} />
@@ -268,6 +270,7 @@ function ShiftCard({ s, when, client, loc: l, isOpen, raised, care }: { s: Shift
           </p>
         ) : null}
         {s.notes ? <p className="mt-0.5 whitespace-pre-line text-sm">{s.notes}</p> : null}
+        {s.extra_notes ? <p className="mt-0.5 whitespace-pre-line text-sm text-muted">{s.extra_notes}</p> : null}
         {care?.alerts.length ? (
           <div className="mt-1 flex flex-col gap-1">
             {care.alerts.map((a) => (

@@ -110,3 +110,59 @@ export function eventWords(summary: string, automatic: boolean): string {
   }
   return `${s}.`;
 }
+
+// cmeprojects (update 141): repeating shifts. The same calculation feeds the
+// panel's preview and the save, so what's shown is what's made. Dates are
+// plain YYYY-MM-DD (Sydney calendar days).
+export type RepeatFreq = "daily" | "weekly" | "fortnightly" | "monthly";
+export type RepeatRule = { freq: RepeatFreq; every: number; days: number[]; until: string; count: number; byCount: boolean };
+export const REPEAT_MAX_DAYS = 183;
+export const REPEAT_MAX_SHIFTS = 100;
+const DAY_NAMES_LONG = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const plusDays = (d: string, n: number) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+const weekday = (d: string) => (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7;
+const isDate = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(`${d}T12:00:00Z`));
+
+export function repeatDates(start: string, r: RepeatRule): string[] {
+  if (!isDate(start)) return [];
+  const every = Math.max(1, Math.min(12, Math.floor(r.every) || 1));
+  const cap = plusDays(start, REPEAT_MAX_DAYS);
+  const last = r.byCount ? cap : isDate(r.until) && r.until >= start ? (r.until < cap ? r.until : cap) : start;
+  const limit = r.byCount ? Math.max(1, Math.min(REPEAT_MAX_SHIFTS, Math.floor(r.count) || 1)) : REPEAT_MAX_SHIFTS;
+  const out: string[] = [];
+  if (r.freq === "monthly") {
+    const [y, m, dd] = start.split("-").map(Number);
+    for (let i = 0; out.length < limit; i += every) {
+      const t = new Date(Date.UTC(y, m - 1 + i, dd, 12));
+      if (t.getUTCDate() !== dd) continue; // no 31st (or 29th to 30th) that month
+      const d = t.toISOString().slice(0, 10);
+      if (d > last) break;
+      out.push(d);
+    }
+    return out;
+  }
+  const weeks = r.freq === "fortnightly" ? 2 * every : every;
+  const days = [...new Set(r.days.filter((n) => n >= 0 && n <= 6))];
+  const startMonday = plusDays(start, -weekday(start));
+  for (let d = start; d <= last && out.length < limit; d = plusDays(d, 1)) {
+    if (r.freq === "daily") {
+      if (Math.round((Date.parse(`${d}T12:00:00Z`) - Date.parse(`${start}T12:00:00Z`)) / 86_400_000) % every === 0) out.push(d);
+      continue;
+    }
+    const weekNo = Math.floor((Date.parse(`${d}T12:00:00Z`) - Date.parse(`${startMonday}T12:00:00Z`)) / (7 * 86_400_000));
+    if (days.includes(weekday(d)) && weekNo % weeks === 0) out.push(d);
+  }
+  return out;
+}
+
+// "Repeats every week on Tuesday and Thursday until 19 December 2026 (5 shifts)."
+export function repeatSummary(start: string, r: RepeatRule, dates: string[]): string {
+  if (!dates.length) return r.freq === "daily" || r.freq === "monthly" ? "No dates: check the end date." : "No dates: choose at least one day.";
+  const every = Math.max(1, Math.floor(r.every) || 1);
+  const unit = r.freq === "daily" ? "day" : r.freq === "monthly" ? "month" : r.freq === "fortnightly" ? "fortnight" : "week";
+  const head = every === 1 ? `every ${unit}` : `every ${every} ${unit}s`;
+  const names = [...new Set(r.days)].sort().map((n) => DAY_NAMES_LONG[n]);
+  const on = r.freq === "weekly" || r.freq === "fortnightly" ? ` on ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0] ?? ""}` : r.freq === "monthly" ? ` on day ${Number(start.slice(8))}` : "";
+  const lastDay = new Date(`${dates[dates.length - 1]}T12:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  return `Repeats ${head}${on} until ${lastDay} (${dates.length} shift${dates.length === 1 ? "" : "s"}).`;
+}
