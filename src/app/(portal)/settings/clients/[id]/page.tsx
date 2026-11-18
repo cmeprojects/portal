@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import type { ReactNode } from "react";
-import { ArrowLeft, Mail, MapPin, Pencil, Phone } from "lucide-react";
+import { ArrowLeft, Mail, MapPin, Pencil, Phone, X } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
@@ -229,6 +229,27 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     some_concerns: ["Some concerns", "bg-warn-soft"],
     unwell_or_distressed: ["Unwell or distressed", "bg-danger-soft text-danger"],
   };
+  // cmeprojects: one shift opened in a pop-up (people who can see the roster).
+  const shiftParam = typeof sp.shift === "string" && /^[0-9a-f-]{36}$/.test(sp.shift) ? sp.shift : "";
+  type ShiftView = { id: string; ref?: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; status: string; service_id: string | null; location_id: string | null; shift_type?: string; shift_type_other?: string; notes: string; extra_notes?: string; signatures_needed?: string[]; notified_at?: string | null };
+  const [viewRes, viewTypes, viewResidents, viewAnswer] = shiftParam && clientShifts
+    ? await Promise.all([
+        supabase.from("shifts").select("*").eq("id", shiftParam).maybeSingle(),
+        supabase.from("shift_types").select("key, label"),
+        supabase.from("shift_residents").select("client_id").eq("shift_id", shiftParam),
+        supabase.from("shift_responses").select("response").eq("shift_id", shiftParam).maybeSingle(),
+      ])
+    : [null, null, null, null];
+  const viewShift = (viewRes?.data ?? null) as ShiftView | null;
+  const viewNote = viewShift ? shiftNoteOf.get(viewShift.id) : undefined;
+  const [{ data: viewSvc }, { data: viewLoc }, { data: viewWho }] = viewShift
+    ? await Promise.all([
+        viewShift.service_id ? supabase.from("client_services").select("label").eq("id", viewShift.service_id).maybeSingle() : Promise.resolve({ data: null }),
+        viewShift.location_id ? supabase.from("client_locations").select("label, address, suburb").eq("id", viewShift.location_id).maybeSingle() : Promise.resolve({ data: null }),
+        supabase.from("car_clients").select("id, name").in("id", ((viewResidents?.data ?? []) as { client_id: string }[]).map((r) => r.client_id).concat(["00000000-0000-0000-0000-000000000000"])),
+      ])
+    : [{ data: null }, { data: null }, { data: [] }];
+  const SIG_LABEL: Record<string, string> = { worker_in: "worker at clock in", worker_out: "worker at clock out", client_out: "client at clock out", representative_out: "representative at clock out" };
   // cmeprojects (update 124, Stage 6; premium): Allied Health practitioners for this client.
   const seesPractitioners = feats.allied_health !== false && (await canDoFor("clients.external", "view", id));
   type PAccess = { id: string; user_id: string; sections: string[]; starts_on: string; ends_on: string; consent_on: string; reason: string; ended_at: string | null; created_at: string };
@@ -509,7 +530,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             <ul className="divide-y divide-line rounded-md border border-line text-sm">
               {clientShifts.map((sh) => (
                 <li key={sh.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
-                  <Link href={`/roster?by=client&d=${new Date(sh.starts_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })}&shift=${sh.id}`} className="min-w-48 flex-1 font-semibold hover:text-brand">
+                  <Link href={`/settings/clients/${id}?tab=shifts&shift=${sh.id}`} scroll={false} className="min-w-48 flex-1 font-semibold hover:text-brand">
                     {new Date(sh.starts_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} – {new Date(sh.ends_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })}
                   </Link>
                   <span>{sh.worker_id ? (nameOfStaff.get(sh.worker_id) ?? "Staff member") : <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">Not filled</span>}</span>
@@ -1310,6 +1331,83 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             )}
           </span>
         </div>
+      ) : null}
+      {viewShift ? (
+        <>
+          <Link href={`/settings/clients/${id}?tab=shifts`} scroll={false} aria-label="Close" className="fixed inset-0 z-40 bg-black/20" />
+          <aside role="dialog" aria-label="Shift" className="thin-scroll fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col overflow-y-auto bg-surface shadow-2xl">
+            <div className="sticky top-0 flex items-start gap-2 border-b border-line bg-surface p-4">
+              <div className="min-w-0 flex-1">
+                <h2 className="heading-sm">
+                  {new Date(viewShift.starts_at).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", weekday: "long", day: "numeric", month: "long" })}
+                </h2>
+                <p className="text-sm text-muted">
+                  {new Date(viewShift.starts_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })} – {new Date(viewShift.ends_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })}
+                  {" · "}
+                  {((Date.parse(viewShift.ends_at) - Date.parse(viewShift.starts_at)) / 3_600_000).toFixed(1)} h{viewShift.break_minutes ? ` (${viewShift.break_minutes} min unpaid break)` : ""}
+                  {viewShift.ref ? ` · ${viewShift.ref}` : ""}
+                </p>
+                <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${viewShift.status === "published" ? "bg-good-soft text-good" : "bg-brand-soft text-brand"}`}>
+                  {viewShift.status === "published" ? (viewAnswer?.data?.response === "accepted" ? "Published · accepted" : viewAnswer?.data?.response === "declined" ? "Published · declined" : "Published · waiting for answer") : "Draft"}
+                </span>
+              </div>
+              <Link href={`/settings/clients/${id}?tab=shifts`} scroll={false} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-page hover:text-ink">
+                <X aria-hidden="true" className="size-5" />
+              </Link>
+            </div>
+            <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-2 p-4 text-sm">
+              <dt className="text-muted">Worker</dt>
+              <dd>{viewShift.worker_id ? (nameOfStaff.get(viewShift.worker_id) ?? "Staff member") : <span className="font-semibold text-danger">Not filled</span>}</dd>
+              <dt className="text-muted">Shift type</dt>
+              <dd>
+                {((viewTypes?.data ?? []) as { key: string; label: string }[]).find((t) => t.key === viewShift.shift_type)?.label ?? viewShift.shift_type ?? "Standard"}
+                {viewShift.shift_type === "other" && viewShift.shift_type_other ? `: ${viewShift.shift_type_other}` : ""}
+              </dd>
+              <dt className="text-muted">Approved service</dt>
+              <dd>{(viewSvc as { label: string } | null)?.label ?? "—"}</dd>
+              <dt className="text-muted">Location</dt>
+              <dd>{viewLoc ? `${(viewLoc as { label: string }).label}: ${(viewLoc as { address: string }).address}` : "—"}</dd>
+              {((viewWho ?? []) as { id: string; name: string }[]).length ? (
+                <>
+                  <dt className="text-muted">Also supporting</dt>
+                  <dd>{((viewWho ?? []) as { id: string; name: string }[]).map((c) => c.name).join(", ")}</dd>
+                </>
+              ) : null}
+              <dt className="text-muted">Instructions</dt>
+              <dd className="whitespace-pre-line">{viewShift.notes || "None"}</dd>
+              {viewShift.extra_notes ? (
+                <>
+                  <dt className="text-muted">Additional notes</dt>
+                  <dd className="whitespace-pre-line">{viewShift.extra_notes}</dd>
+                </>
+              ) : null}
+              <dt className="text-muted">Signatures</dt>
+              <dd>{(viewShift.signatures_needed ?? []).map((k) => SIG_LABEL[k] ?? k).join("; ") || "Not needed"}</dd>
+            </dl>
+            {shiftNotes ? (
+              <div className="border-t border-line p-4">
+                <h3 className="mb-1 text-xs font-semibold uppercase text-muted">Shift notes</h3>
+                {viewNote ? (
+                  <div className={`rounded-lg border p-3 text-sm ${viewNote.concern ? "border-danger" : "border-line"}`}>
+                    <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                      {WELLBEING[viewNote.client_wellbeing] ? <span className={`rounded-full px-2 py-0.5 font-semibold ${WELLBEING[viewNote.client_wellbeing][1]}`}>{WELLBEING[viewNote.client_wellbeing][0]}</span> : null}
+                      {viewNote.concern ? <span className="rounded-full bg-danger-soft px-2 py-0.5 font-semibold text-danger">Incident or issue</span> : null}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap">{viewNote.delivered}</p>
+                    {viewNote.concern && viewNote.concern_note ? <p className="mt-1 whitespace-pre-wrap text-danger">{viewNote.concern_note}</p> : null}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted">{Date.parse(viewShift.ends_at) < Date.parse(new Date().toISOString()) ? "No notes from the worker yet." : "Notes come in after the shift."}</p>
+                )}
+              </div>
+            ) : null}
+            <div className="mt-auto border-t border-line p-4">
+              <Link href={`/roster?by=client&d=${new Date(viewShift.starts_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })}&shift=${viewShift.id}`} className="text-sm font-semibold text-brand underline">
+                Open in the roster to change it
+              </Link>
+            </div>
+          </aside>
+        </>
       ) : null}
     </>
   );
