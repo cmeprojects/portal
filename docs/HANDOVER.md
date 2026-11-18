@@ -140,6 +140,13 @@ Last updated: 17 Nov 2026.
   week label), `/roster/timesheets` (tiles, worker columns split from pay-period columns, expand, edit modal, payroll
   CSV), `/my-shifts` (confirm times, ask to swap). run_roster_alerts also sends request and query notices.
   Next: Stage 6 (Allied Health external access; design for approval first).
+- **Test data seed (18 Nov 2026):** `supabase/seed/test-data-10-staff-10-clients.sql` (Dev/local only; idempotent;
+  fictional; staff employee IDs and client references start TEST-). 10 staff (5 Support Workers, 2 Case Managers,
+  Intake & Assessment Officer, Rostering Officer, Team Leader) cleared to work as a recorded test action (audit note
+  "Test data seed"); 10 clients (7 active and service-ready, checked with client_readiness; 3 pending). Teams: Test
+  Team North (led by the Team Leader) and Test Team South (no leader: one team per leader). No shifts. Notices it
+  would create are deleted in the same transaction. Pay items (TFN, bank, super) and photo stay outstanding by
+  design. Known gap for AUD-016 Stage 5: support workers and team leaders can't read car_clients (client names).
 - **Job titles per AUD-016 owner instruction (update 126, 18 Nov 2026):** Care & Coordination (Case Manager, Intake &
   Assessment Officer, Client Services Coordinator); HR & Workforce (Staff Administrator, Rostering Officer); Finance &
   Accounts (Payroll Officer = renamed Payroll & Rostering, same access); Service Delivery (Support Worker, Team Leader);
