@@ -333,7 +333,7 @@ body {
 }
 
 /* cmeprojects: roster drag and drop. */
-.roster-grid [data-shift-id][draggable="true"] {
+.roster-grid [data-shift-id][data-can-drag] {
   cursor: grab;
 }
 .roster-grid[data-dragging] [data-drop-date] {

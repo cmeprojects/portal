@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270318000001_reassign_wording.sql
+-- Built from every migration up to: 20270320000001_shift_service_records.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,7 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and to_regclass('public.shift_service_records') is not null then v_upto := 152; end if;
   if v_upto = 0 and to_regclass('public.shift_templates') is not null then v_upto := 147; end if;
   if v_upto = 0 and to_regclass('public.shift_responses') is not null and to_regclass('public.shift_signatures') is not null and to_regclass('public.shift_notes') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shifts' and column_name = 'ref') then v_upto := 146; end if;
   if v_upto = 0 and to_regclass('public.client_external_access') is not null and to_regclass('public.client_practitioner_notes') is not null and to_regclass('public.client_external_views') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'client_documents' and column_name = 'shared_with_practitioners') then v_upto := 142; end if;
@@ -271,7 +272,9 @@ begin
     (147, '20270315000001_rostering_round_4.sql'),
     (148, '20270316000001_shift_service_location.sql'),
     (149, '20270317000001_practitioner_rules_speed.sql'),
-    (150, '20270318000001_reassign_wording.sql')
+    (150, '20270318000001_reassign_wording.sql'),
+    (151, '20270319000001_workers_see_shift_clients.sql'),
+    (152, '20270320000001_shift_service_records.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -26712,5 +26715,177 @@ revoke execute on function public.guard_shift_signature() from public, anon, aut
 
 $m150$;
   insert into public.install_log (name) values ('20270318000001_reassign_wording.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270319000001_workers_see_shift_clients.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270319000001_workers_see_shift_clients.sql') then
+    return;
+  end if;
+  execute $m151$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 133, AUD-016 §12): a worker sees what they need for
+-- their own published shifts (from two weeks ago on): the client's name and
+-- status, the shift's location and service, and the client's active alerts
+-- and support instructions. Nothing else about the client, and nothing about
+-- clients they aren't rostered with. Safe to run again.
+
+drop policy if exists "workers see clients of their shifts" on public.car_clients;
+create policy "workers see clients of their shifts" on public.car_clients
+  for select to authenticated
+  using (id in (select s.client_id from public.shifts s where s.worker_id = (select auth.uid()) and s.status = 'published' and s.ends_at > now() - interval '14 days' and s.client_id is not null));
+drop policy if exists "workers see their shift locations" on public.client_locations;
+create policy "workers see their shift locations" on public.client_locations
+  for select to authenticated
+  using (id in (select s.location_id from public.shifts s where s.worker_id = (select auth.uid()) and s.status = 'published' and s.ends_at > now() - interval '14 days' and s.location_id is not null));
+drop policy if exists "workers see their shift services" on public.client_services;
+create policy "workers see their shift services" on public.client_services
+  for select to authenticated
+  using (id in (select s.service_id from public.shifts s where s.worker_id = (select auth.uid()) and s.status = 'published' and s.ends_at > now() - interval '14 days' and s.service_id is not null));
+drop policy if exists "workers see alerts for their shift clients" on public.client_alerts;
+create policy "workers see alerts for their shift clients" on public.client_alerts
+  for select to authenticated
+  using (active and client_id in (select s.client_id from public.shifts s where s.worker_id = (select auth.uid()) and s.status = 'published' and s.ends_at > now() - interval '14 days' and s.client_id is not null));
+drop policy if exists "workers see instructions for their shift clients" on public.client_worker_instructions;
+create policy "workers see instructions for their shift clients" on public.client_worker_instructions
+  for select to authenticated
+  using (active and client_id in (select s.client_id from public.shifts s where s.worker_id = (select auth.uid()) and s.status = 'published' and s.ends_at > now() - interval '14 days' and s.client_id is not null));
+
+$m151$;
+  insert into public.install_log (name) values ('20270319000001_workers_see_shift_clients.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270320000001_shift_service_records.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270320000001_shift_service_records.sql') then
+    return;
+  end if;
+  execute $m152$
+-- Staff Portal · © cmeproject. All rights reserved.
+-- cmeprojects (update 134, rostering brief §7): a service record for each
+-- shift: what was delivered, as the worker records it after the shift. Kept
+-- apart from the timesheet (hours) and the roster (the plan).
+--   * The rostered worker writes it once the shift has started, and can change
+--     it for 24 hours; then it's kept as written.
+--   * People who roster and people who see the client's care plans read it.
+--   * An incident or issue flagged tells the managers and the client's case
+--     manager straight away (and the hourly reminders catch any missed).
+-- Safe to run again.
+
+create table if not exists public.shift_service_records (
+  shift_id uuid primary key references public.shifts (id) on delete restrict,
+  worker_id uuid not null references public.profiles (id) on delete restrict default auth.uid(),
+  delivered text not null check (length(trim(delivered)) between 1 and 4000),
+  client_wellbeing text not null default 'settled' check (client_wellbeing in ('settled', 'some_concerns', 'unwell_or_distressed')),
+  concern boolean not null default false,
+  concern_note text not null default '' check (length(concern_note) <= 2000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  told_at timestamptz
+);
+alter table public.shift_service_records enable row level security;
+
+drop policy if exists "see service records" on public.shift_service_records;
+create policy "see service records" on public.shift_service_records
+  for select to authenticated
+  using (worker_id = (select auth.uid())
+         or (select public.can('ops.roster', 'view'))
+         or exists (select 1 from public.shifts s where s.id = shift_id and s.client_id is not null and public.can('clients.care_plans', 'view', s.client_id)));
+drop policy if exists "workers write their service record" on public.shift_service_records;
+create policy "workers write their service record" on public.shift_service_records
+  for insert to authenticated
+  with check (worker_id = (select auth.uid())
+              and shift_id in (select s.id from public.shifts s where s.worker_id = (select auth.uid()) and s.status = 'published' and s.starts_at <= now() + interval '1 hour'));
+drop policy if exists "workers change their service record" on public.shift_service_records;
+create policy "workers change their service record" on public.shift_service_records
+  for update to authenticated
+  using (worker_id = (select auth.uid()))
+  with check (worker_id = (select auth.uid()));
+-- No delete rule.
+grant select, insert, update on public.shift_service_records to authenticated;
+
+create or replace function public.guard_service_record()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if tg_op = 'UPDATE' and new.told_at is distinct from old.told_at
+     and (to_jsonb(new) - 'told_at') = (to_jsonb(old) - 'told_at') then
+    return new; -- the server marking a reminder as sent
+  end if;
+  if tg_op = 'INSERT' then
+    new.worker_id := auth.uid();
+    new.created_at := now();
+    new.told_at := null;
+  else
+    if new.worker_id is distinct from old.worker_id or new.shift_id is distinct from old.shift_id or new.created_at is distinct from old.created_at then
+      raise exception 'A service record stays with its shift and worker.';
+    end if;
+    if old.created_at < now() - interval '24 hours' then
+      raise exception 'A service record can only be changed within 24 hours. Tell the roster team if something needs correcting.';
+    end if;
+    -- A concern added later is told again.
+    if new.concern and not old.concern then new.told_at := null; else new.told_at := old.told_at; end if;
+  end if;
+  new.updated_at := now();
+  if not new.concern then new.concern_note := ''; end if;
+  insert into public.shift_events (shift_id, actor, kind, summary, source)
+  values (new.shift_id, auth.uid(), 'event',
+          case when tg_op = 'INSERT' then 'recorded the service delivered' else 'updated the service record' end
+          || case when new.concern then ' and flagged a concern' else '' end, 'worker');
+  return new;
+end;
+$$;
+revoke execute on function public.guard_service_record() from public, anon, authenticated;
+drop trigger if exists guard_service_record on public.shift_service_records;
+create trigger guard_service_record before insert or update on public.shift_service_records
+  for each row execute function public.guard_service_record();
+
+-- Concerns: the client's case manager (or the managers) are told, once.
+create or replace function public.run_service_record_alerts()
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  r record;
+  v int := 0;
+begin
+  for r in
+    select q.shift_id, s.client_id, c.name, c.client_ref, coalesce(nullif(p.full_name, ''), p.email) as who, q.concern_note
+      from public.shift_service_records q
+      join public.shifts s on s.id = q.shift_id
+      join public.profiles p on p.id = q.worker_id
+      left join public.car_clients c on c.id = s.client_id
+     where q.concern and q.told_at is null
+  loop
+    -- The managers, and the client's case manager (once each).
+    perform public.notify(u, 'service_concern', r.who || ' reported an incident or issue after a shift', coalesce(r.name || ' (' || r.client_ref || '): ', '') || left(r.concern_note, 200),
+                          '/roster?shift=' || r.shift_id || '&tab=service', true)
+      from (select p.id as u from public.profiles p where p.active and p.role = 'manager'
+            union
+            select c.u from public.client_care_contacts(r.client_id) c(u) where r.client_id is not null) x;
+    update public.shift_service_records set told_at = now() where shift_id = r.shift_id;
+    v := v + 1;
+  end loop;
+  return jsonb_build_object('service_concerns', v);
+end;
+$$;
+revoke execute on function public.run_service_record_alerts() from public, anon, authenticated;
+grant execute on function public.run_service_record_alerts() to service_role;
+
+$m152$;
+  insert into public.install_log (name) values ('20270320000001_shift_service_records.sql');
 end;
 $part$;

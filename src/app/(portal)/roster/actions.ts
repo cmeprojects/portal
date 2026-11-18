@@ -425,24 +425,23 @@ export async function moveShift(id: string, date: string, row: string, byClient:
     if ((s.client_id ?? "none") !== row) return { error: "In Client view a shift can only move to another day for the same client." };
   } else {
     patch.worker_id = row === "vacant" ? null : isId(row) ? row : s.worker_id;
-    // Given to someone else: it goes back to draft, to be published again for them.
-    if (patch.worker_id !== s.worker_id && s.status === "published") patch.status = "draft";
   }
-  if (days === 0 && patch.worker_id === s.worker_id) return { message: "" };
+  const reassigned = "worker_id" in patch && patch.worker_id !== s.worker_id;
+  if (days === 0 && !reassigned) return { message: "" };
+  // Any move of a published shift sends it back to draft, to be checked and published again.
+  if (s.status === "published") patch.status = "draft";
   const { error } = await supabase.from("shifts").update(patch).eq("id", id);
   if (error) return { error: friendlyError(error) };
-  if (patch.status === "draft") {
-    // The worker who had it is told it's no longer theirs.
-    if (s.worker_id && s.notified_at) {
-      const when = new Date(s.starts_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-      const was = s.worker_id;
-      after(() => createAdminClient().rpc("notify", { p_user: was, p_kind: "shift_changed", p_title: `Your shift on ${when} has been re-assigned to someone else`, p_body: "See My shifts", p_href: "/my-shifts", p_email: true }));
-    }
-    return { message: "Shift re-assigned and set back to draft. Publish it when ready.", spotlight: id };
+  if (patch.status === "draft" && s.worker_id && s.notified_at) {
+    // The worker who had it is told: it's no longer theirs, or it's on a new day.
+    const when = new Date(s.starts_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+    const was = s.worker_id;
+    const title = reassigned ? `Your shift on ${when} has been re-assigned to someone else` : `Your shift on ${when} is being moved to another day`;
+    const body = reassigned ? "See My shifts" : "You'll get the new day once it's published again. See My shifts";
+    after(() => createAdminClient().rpc("notify", { p_user: was, p_kind: "shift_changed", p_title: title, p_body: body, p_href: "/my-shifts", p_email: true }));
   }
-  // Notices go out just after the move, so nobody waits for them.
-  if (s.status === "published") after(() => tellWorkers());
-  return { message: "Shift moved.", spotlight: id };
+  if (patch.status === "draft") return { message: reassigned ? "Shift re-assigned and set back to draft. Publish it when ready." : "Shift moved and set back to draft. Publish it when ready.", spotlight: id };
+  return { message: reassigned ? "Shift re-assigned." : "Shift moved.", spotlight: id };
 }
 
 // cmeprojects: cancel one shift (asked first on screen); a published shift's worker is told.

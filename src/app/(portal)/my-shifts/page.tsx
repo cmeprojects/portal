@@ -11,7 +11,7 @@ import { putHandUp, withdrawRequest } from "../roster/actions";
 import { ChangeRequestForm } from "./change-request-form";
 import { answerShift } from "./actions";
 import { SignaturePad } from "./signature-pad";
-import { TimesheetForm } from "../roster/timesheets/timesheet-form";
+import { EndShiftForm } from "./end-shift-form";
 
 export const metadata: Metadata = { title: "My shifts" };
 
@@ -76,12 +76,15 @@ export default async function MyShiftsPage() {
   const people = ((colleagues ?? []) as { id: string; full_name: string | null; email: string }[]).map((c) => ({ id: c.id, name: c.full_name || c.email }));
   // cmeprojects (update 128): my answers and the signatures recorded (empty before it runs).
   const shownIds = [...mine, ...past].map((x) => x.id);
-  const [{ data: ansRows }, { data: sigRows }] = shownIds.length
+  const [{ data: ansRows }, { data: sigRows }, { data: recRows }] = shownIds.length
     ? await Promise.all([
         supabase.from("shift_responses").select("shift_id, response").in("shift_id", shownIds),
         supabase.from("shift_signatures").select("shift_id, kind").in("shift_id", shownIds).is("voided_at", null),
+        // cmeprojects (update 134): service records (empty before it runs).
+        supabase.from("shift_service_records").select("shift_id, delivered, client_wellbeing, concern, concern_note, created_at").in("shift_id", shownIds),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const recordOf = new Map(((recRows ?? []) as { shift_id: string; delivered: string; client_wellbeing: string; concern: boolean; concern_note: string; created_at: string }[]).map((r) => [r.shift_id, r]));
   const answerOf = new Map(((ansRows ?? []) as { shift_id: string; response: string }[]).map((a) => [a.shift_id, a.response]));
   const signed = new Set(((sigRows ?? []) as { shift_id: string; kind: string }[]).map((x) => `${x.shift_id}:${x.kind}`));
   const started = (x: Shift) => new Date(x.starts_at).getTime() <= nowMs() + 3_600_000;
@@ -157,16 +160,35 @@ export default async function MyShiftsPage() {
           </p>
         ) : null}
         {started(x) ? (
-          t?.status === "approved" ? (
-            <p className="text-xs text-good">Times approved.</p>
-          ) : (
-            <details open={t?.status === "queried"}>
-              <summary className="cursor-pointer text-sm font-semibold text-brand">{t ? (t.status === "queried" ? "Your times were queried: check them" : "Change the times I sent") : "Confirm my times"}</summary>
-              <div className="mt-2">
-                <TimesheetForm shiftId={x.id} date={sydneyParts(x.starts_at).date} start={sydneyParts(t?.actual_start ?? x.starts_at).time} end={sydneyParts(t?.actual_end ?? x.ends_at).time} breakMinutes={t?.break_minutes ?? x.break_minutes} km={Number(t?.km ?? 0)} expense={Number(t?.expense ?? 0)} allowances={t?.allowances ?? []} note={t?.note ?? ""} />
-              </div>
-            </details>
-          )
+          (() => {
+            const rec = recordOf.get(x.id);
+            const locked = t?.status === "approved" && rec && new Date(rec.created_at).getTime() < nowMs() - 24 * 3_600_000;
+            if (locked) return <p className="text-xs text-good">Shift finished: times approved and shift notes saved.</p>;
+            const done = Boolean(t && rec);
+            return (
+              <details open={!done || t?.status === "queried"} className="rounded-lg border border-line p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-brand">
+                  {t?.status === "queried" ? "Your times were queried: check them" : done ? "Change what you sent for this shift" : "Finish this shift"}
+                </summary>
+                <div className="mt-3">
+                  <EndShiftForm
+                    shiftId={x.id}
+                    date={sydneyParts(x.starts_at).date}
+                    start={sydneyParts(t?.actual_start ?? x.starts_at).time}
+                    end={sydneyParts(t?.actual_end ?? x.ends_at).time}
+                    breakMinutes={t?.break_minutes ?? x.break_minutes}
+                    km={Number(t?.km ?? 0)}
+                    expense={Number(t?.expense ?? 0)}
+                    allowances={t?.allowances ?? []}
+                    delivered={rec?.delivered}
+                    wellbeing={rec?.client_wellbeing}
+                    concern={rec?.concern}
+                    concernNote={rec?.concern_note}
+                  />
+                </div>
+              </details>
+            );
+          })()
         ) : !req || req.status !== "pending" ? (
           <details>
             <summary className="cursor-pointer text-sm font-semibold text-brand">Ask to swap, or say I can&apos;t work it</summary>
@@ -209,7 +231,7 @@ export default async function MyShiftsPage() {
       ) : null}
       {past.length ? (
         <Card className="p-0">
-          <h2 className="heading-sm border-b border-line px-4 py-3">Recent shifts: confirm your times</h2>
+          <h2 className="heading-sm border-b border-line px-4 py-3">Recent shifts: finish them (times, notes, mileage)</h2>
           <ul className="divide-y divide-line">
             {past.map((s) => (
               <div key={s.id}>

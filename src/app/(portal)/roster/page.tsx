@@ -226,7 +226,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const totalHours = shifts.filter((s) => s.worker_id).reduce((n, s) => n + shiftHours(s), 0);
   const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("*").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
   const editing = canEdit && (str("add") || (opened && str("edit") === "1"));
-  const tab = str("tab") === "log" ? "logs" : ["details", "events", "signatures", "trips", "timesheet", "logs"].includes(str("tab")) ? str("tab") : "details";
+  const tab = str("tab") === "log" ? "logs" : ["details", "events", "service", "signatures", "trips", "timesheet", "logs"].includes(str("tab")) ? str("tab") : "details";
   const weekLabel =
     view === "day"
       ? new Date(`${anchor}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
@@ -277,7 +277,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", status: "draft", series: false, shift_type: "standard", vehicle_id: "", pay_group: "", allowances: [], needs_worker_signature: false, needs_client_signature: false };
 
   // The opened shift's timesheet and log.
-  const [{ data: sheet }, { data: events }, { data: sigRows }, { data: tripRows }, { data: noteRows }, { data: response }] = opened && !editing
+  const [{ data: sheet }, { data: events }, { data: sigRows }, { data: tripRows }, { data: noteRows }, { data: response }, { data: serviceRow }] = opened && !editing
     ? await Promise.all([
         supabase.from("shift_timesheets").select("actual_start, actual_end, break_minutes, km, expense, allowances, note, status").eq("shift_id", opened.id).maybeSingle(),
         supabase.from("shift_events").select("*").eq("shift_id", opened.id).order("happened_at", { ascending: false }).limit(200),
@@ -286,8 +286,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         supabase.from("car_trips").select("id, car_id, driver_id, started_at, returned_at, km, went_to, purpose").eq("shift_id", opened.id).order("started_at"),
         supabase.from("shift_notes").select("id, author_id, body, created_at").eq("shift_id", opened.id).order("created_at"),
         supabase.from("shift_responses").select("response, note, responded_at").eq("shift_id", opened.id).maybeSingle(),
+        // cmeprojects (update 134): the worker's service record (empty before it runs).
+        supabase.from("shift_service_records").select("delivered, client_wellbeing, concern, concern_note, created_at, updated_at").eq("shift_id", opened.id).maybeSingle(),
       ])
-    : [{ data: null }, { data: null }, { data: null }, { data: null }, { data: null }, { data: null }];
+    : [{ data: null }, { data: null }, { data: null }, { data: null }, { data: null }, { data: null }, { data: null }];
+  const service = serviceRow as { delivered: string; client_wellbeing: string; concern: boolean; concern_note: string; created_at: string; updated_at: string } | null;
   type Ev = { id: number; actor: string | null; happened_at: string; summary: string; kind?: string; field?: string | null; old_value?: string | null; new_value?: string | null; source?: string; reason?: string | null };
   const evs = (events ?? []) as Ev[];
   const sigs = (sigRows ?? []) as { id: string; kind: string; signer_name: string; signer_role: string; signature: string; captured_by: string | null; signed_at: string; voided_at: string | null; voided_by: string | null; void_reason: string | null }[];
@@ -362,7 +365,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         {inner}
       </label>
     ) : (
-      <Link key={s.id} data-shift-id={s.id} draggable={canEdit && s.status !== "cancelled"} href={`${base}&shift=${s.id}`} scroll={false} title={[...warn].join("\n")} className={`${cls} hover:ring-2 hover:ring-brand`}>
+      <Link key={s.id} data-shift-id={s.id} data-can-drag={canEdit && s.status !== "cancelled" ? "" : undefined} draggable={false} href={`${base}&shift=${s.id}`} scroll={false} title={[...warn].join("\n")} className={`${cls} hover:ring-2 hover:ring-brand`}>
         {inner}
       </Link>
     );
@@ -802,9 +805,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                     </span>
                   </div>
                   <nav className="mt-2 flex gap-1">
-                    {(["details", "events", "signatures", "trips", "timesheet", "logs"] as const).map((t) => (
+                    {(["details", "events", "service", "signatures", "trips", "timesheet", "logs"] as const).map((t) => (
                       <Link key={t} href={`${base}&shift=${opened.id}${t === "details" ? "" : `&tab=${t}`}`} scroll={false} className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${tab === t ? "border-brand" : "border-transparent text-muted"}`}>
-                        {t[0].toUpperCase() + t.slice(1)}
+                        {t === "service" ? "Service record" : t[0].toUpperCase() + t.slice(1)}
                         {t === "signatures" && sigs.length ? ` (${sigs.filter((x) => !x.voided_at).length})` : ""}
                         {t === "trips" && trips.length ? ` (${trips.length})` : ""}
                       </Link>
@@ -1018,6 +1021,28 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                       </ol>
                     ) : (
                       <p className="text-muted">No events yet.</p>
+                    )
+                  ) : tab === "service" ? (
+                    service ? (
+                      <div className="flex flex-col gap-3">
+                        <p className="whitespace-pre-line">{service.delivered}</p>
+                        <p>
+                          <span className="text-muted">How the client was: </span>
+                          {{ settled: "Settled, as usual", some_concerns: "Some concerns", unwell_or_distressed: "Unwell or distressed" }[service.client_wellbeing] ?? service.client_wellbeing}
+                        </p>
+                        {service.concern ? (
+                          <p className="rounded-md bg-warn-soft px-2 py-1">
+                            <span className="font-semibold">Concern: </span>
+                            {service.concern_note}
+                          </p>
+                        ) : null}
+                        <p className="text-xs text-muted">
+                          Written {new Date(service.created_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                          {service.updated_at !== service.created_at ? ", changed since" : ""} by {opened.worker_id ? (name.get(opened.worker_id) ?? "the worker") : "the worker"}.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-muted">The worker writes what they did after the shift, on My shifts. Nothing yet.</p>
                     )
                   ) : tab === "signatures" ? (
                     <div className="flex flex-col gap-3">
