@@ -33,6 +33,8 @@ export type ShiftDraft = {
   allowances: string[];
   signatures_needed: string[];
   notify_worker: boolean;
+  // update 146: other residents on a house (SIL) shift; undefined before it runs.
+  residents?: string[];
 };
 type Opt = { id: string; name: string };
 export type LocationOpt = Opt & { client_id: string; address: string; suburb: string; state: string; postcode: string; access_notes: string };
@@ -187,11 +189,22 @@ export function ShiftForm({
   const usable = (v: ServiceOpt, d: string) => ["planned", "active"].includes(v.status) && v.start_date <= d && (!v.end_date || v.end_date >= d);
   const rosterable = clientServices.filter((v) => usable(v, date));
   // Services that list the type win; older entries with no types set are only used when none does.
+  // Other residents at the same address (SIL houses): each needs a current service covering the type.
+  const norm = (a: string) => a.toLowerCase().replace(/\s+/g, " ").trim();
+  const [residents, setResidents] = useState<string[]>(shift.residents ?? []);
+  const residentCover = (c: string, k: string) => {
+    const mine = services.filter((v) => v.client_id === c && usable(v, date));
+    const listed = mine.filter((v) => v.types?.includes(k));
+    return listed.length ? listed : mine.filter((v) => !v.types);
+  };
   const coveredBy = (k: string) => {
     const listed = rosterable.filter((v) => v.types?.includes(k));
     return listed.length ? listed : rosterable.filter((v) => !v.types);
   };
   const place = clientLocations.find((l) => l.id === location) ?? null;
+  const housemates = place
+    ? clients.filter((c) => c.id !== client && locations.some((l) => l.client_id === c.id && norm(l.address) === norm(place.address)))
+    : [];
   const fits = (t: ShiftTypeOpt, c: string) => !t.used_for || t.used_for === "both" || t.used_for === (c ? "client" : "internal");
   // A new client: its only location and service are chosen for you.
   const pickClient = (c: string) => {
@@ -342,6 +355,31 @@ export function ShiftForm({
                   {place.access_notes ? <p className="mt-1 text-xs">Access: {place.access_notes}</p> : null}
                   <p className={`${hint} mt-1`}>Unit or apartment numbers are part of the approved address. Change it on the client&apos;s page.</p>
                 </div>
+              ) : null}
+              {shift.residents !== undefined && housemates.length ? (
+                <fieldset className="flex flex-col gap-1 rounded-lg border border-line p-3 sm:col-span-2">
+                  <input type="hidden" name="residents_ready" value="1" />
+                  <legend className={`${label} px-1`}>Other residents at this address (shared support)</legend>
+                  {housemates.map((c) => {
+                    const ok = residentCover(c.id, shiftType).length > 0;
+                    return (
+                      <label key={c.id} className={`${check} ${ok ? "" : "text-muted"}`}>
+                        <input
+                          type="checkbox"
+                          name="residents"
+                          value={c.id}
+                          disabled={!ok}
+                          checked={ok && residents.includes(c.id)}
+                          onChange={(e) => setResidents((v) => (e.target.checked ? [...v, c.id] : v.filter((x) => x !== c.id)))}
+                          className={box}
+                        />
+                        {c.name}
+                        {ok ? null : <span className={hint}>(no current approved service for this shift type)</span>}
+                      </label>
+                    );
+                  })}
+                  {residents.length ? <p className={hint}>One worker for {residents.filter((r) => residentCover(r, shiftType).length).length + 1} people. Each resident&apos;s approved service is attached for them.</p> : null}
+                </fieldset>
               ) : null}
             </>
           ) : (

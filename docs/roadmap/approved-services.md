@@ -20,3 +20,27 @@
   ended, is outside its dates, or doesn't cover the shift type.
 - **Later**: cost codes per catalogue service or shift type (funding and pricing); CHSP as a scheme
   if the organisation needs it (add it under Care settings → schemes).
+
+## Update 144: starter list
+
+Shift types added: Meal preparation, Medication support, Wound care, Continence and catheter care,
+Nursing visit, Transport, Laundry, Home maintenance, Behaviour support, Skills building.
+Catalogue services added (descriptions left for the organisation): Supported Independent Living (SIL),
+Short Term Accommodation, Community Nursing, Meal Preparation, Transport, Laundry, Home Maintenance,
+Behaviour Support, Skills Building, Group and Centre-based Activities, Overnight Support (active).
+
+## Update 145: qualifications for shift types
+
+Rostering → ⋮ → Shift types → "Qualifications needed": onboarding and compliance items a worker must
+hold (current on the shift date) for that type, e.g. a medication course for Medication support,
+nursing registration for Wound care. Smart suggest shows "doesn't hold: …"; the database refuses the
+shift. The approved read-only roster_check_dates() now also returns checks with no expiry, and the item.
+
+## Update 146: house rostering (SIL)
+
+A client shift can list other residents at the same address ("Other residents at this address" in
+the shift panel). Each resident needs a current approved service covering the shift type; it's
+attached for them. Workers see each resident's name, alerts and instructions; adding or removing a
+resident is logged. Not yet: splitting hours and costs between residents (with costing), and showing
+house shifts in each resident's row in Client view (they show a "+N residents" badge on the main
+client's shift).

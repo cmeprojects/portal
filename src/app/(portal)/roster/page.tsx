@@ -180,6 +180,10 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
   const answerOf = new Map(((answerRows ?? []) as { shift_id: string; response: string }[]).map((r) => [r.shift_id, r.response]));
+  // cmeprojects (update 146): residents on house shifts (null before it runs).
+  const residentsRes = await supabase.from("shift_residents").select("shift_id, client_id").in("shift_id", shiftIds.length ? shiftIds : ["00000000-0000-0000-0000-000000000000"]);
+  const residentsOn = new Map<string, string[]>();
+  for (const r of (residentsRes.data ?? []) as { shift_id: string; client_id: string }[]) residentsOn.set(r.shift_id, [...(residentsOn.get(r.shift_id) ?? []), r.client_id]);
   const answered = new Set(answerOf.keys());
   // cmeprojects: one status per shift, for its colour.
   const nowAt = Date.parse(new Date().toISOString());
@@ -308,6 +312,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         holds: holds.get(p.id) ?? {},
       }))
     : [];
+  const openedResidents: string[] = opened
+    ? residentsOn.get(opened.id) ?? (((await supabase.from("shift_residents").select("client_id").eq("shift_id", opened.id)).data ?? []) as { client_id: string }[]).map((r) => r.client_id)
+    : [];
   const draft: ShiftDraft = opened
     ? {
         id: opened.id,
@@ -331,11 +338,12 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         extra_notes: opened.extra_notes ?? "",
         pay_class: opened.pay_class ?? "",
         notify_worker: opened.notify_worker ?? true,
+        residents: residentsRes.error ? undefined : openedResidents,
         signatures_needed: opened.signatures_needed ?? [...(opened.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(opened.needs_client_signature ? ["client_out"] : [])],
       }
     : tpl
-      ? { date: fitDay, start: tpl.start_time.slice(0, 5), end: tpl.end_time.slice(0, 5), nextDay: tpl.end_time <= tpl.start_time, break_minutes: tpl.break_minutes, worker_id: str("worker"), client_id: tpl.client_id ?? str("client"), location_id: tpl.location_id ?? "", service_id: tpl.service_id ?? "", notes: tpl.notes, extra_notes: tpl.extra_notes ?? "", status: "draft", series: false, shift_type: tpl.shift_type, vehicle_id: "", pay_group: tpl.pay_group, pay_class: "", notify_worker: true, allowances: tpl.allowances, signatures_needed: tpl.signatures_needed ?? [...(tpl.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(tpl.needs_client_signature ? ["client_out"] : [])] }
-      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", extra_notes: "", status: "draft", series: false, shift_type: str("client") ? "standard" : "admin", vehicle_id: "", pay_group: "", pay_class: "", notify_worker: true, allowances: [], signatures_needed: [] };
+      ? { date: fitDay, start: tpl.start_time.slice(0, 5), end: tpl.end_time.slice(0, 5), nextDay: tpl.end_time <= tpl.start_time, break_minutes: tpl.break_minutes, worker_id: str("worker"), client_id: tpl.client_id ?? str("client"), location_id: tpl.location_id ?? "", service_id: tpl.service_id ?? "", notes: tpl.notes, extra_notes: tpl.extra_notes ?? "", residents: residentsRes.error ? undefined : [], status: "draft", series: false, shift_type: tpl.shift_type, vehicle_id: "", pay_group: tpl.pay_group, pay_class: "", notify_worker: true, allowances: tpl.allowances, signatures_needed: tpl.signatures_needed ?? [...(tpl.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(tpl.needs_client_signature ? ["client_out"] : [])] }
+      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", extra_notes: "", residents: residentsRes.error ? undefined : [], status: "draft", series: false, shift_type: str("client") ? "standard" : "admin", vehicle_id: "", pay_group: "", pay_class: "", notify_worker: true, allowances: [], signatures_needed: [] };
 
   // The opened shift's timesheet and log.
   const [{ data: sheet }, { data: events }, { data: sigRows }, { data: tripRows }, { data: noteRows }, { data: response }, { data: serviceRow }] = opened && !editing
@@ -443,6 +451,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </span>
         <span className="block truncate">{byClient ? (s.worker_id ? name.get(s.worker_id) : "No worker yet") : s.client_id ? clientName.get(s.client_id) : s.notes || "Shift"}</span>
         {s.service_id && !compact ? <span className="block truncate opacity-75">{serviceName.get(s.service_id)}</span> : null}
+        {residentsOn.get(s.id)?.length ? <span className="mt-0.5 inline-block rounded-full bg-surface/70 px-1.5 text-[10px] font-semibold" title={`Also: ${residentsOn.get(s.id)!.map((c) => clientName.get(c) ?? "resident").join(", ")}`}>+{residentsOn.get(s.id)!.length} resident{residentsOn.get(s.id)!.length === 1 ? "" : "s"}</span> : null}
       </>
     );
     const cls = `block w-full rounded-md border-l-[3px] px-1.5 py-1 text-left ${compact ? "text-[10px]" : "text-[11px]"} leading-tight ${STATUS_STYLE[statusOf(s)][1]}`;
@@ -917,6 +926,12 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         </dd>
                         <dt className="text-muted">Worker</dt>
                         <dd>{opened.worker_id ? `${name.get(opened.worker_id)} · ${(hoursOf.get(opened.worker_id) ?? 0).toFixed(1)} of 38 h this week` : "Vacant"}</dd>
+                        {openedResidents.length ? (
+                          <>
+                            <dt className="text-muted">Also supporting</dt>
+                            <dd>{openedResidents.map((c) => clientName.get(c) ?? "Resident").join(", ")} (one worker for {openedResidents.length + 1})</dd>
+                          </>
+                        ) : null}
                         <dt className="text-muted">Worker instructions</dt>
                         <dd className="whitespace-pre-line">{opened.notes || "None"}</dd>
                         {opened.extra_notes ? (

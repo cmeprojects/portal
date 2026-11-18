@@ -31,7 +31,11 @@ export default async function MyShiftsPage() {
   const open = all.filter((s) => !s.worker_id);
   const { data: myHands } = await supabase.from("shift_interest").select("shift_id").eq("user_id", profile.id);
   const raised = new Set(((myHands ?? []) as { shift_id: string }[]).map((h) => h.shift_id));
-  const clientIds = [...new Set(all.map((s) => s.client_id).filter((v): v is string => !!v))];
+  // cmeprojects (update 146): residents on house shifts (empty before it runs).
+  const { data: resRows } = all.length ? await supabase.from("shift_residents").select("shift_id, client_id").in("shift_id", all.map((x) => x.id)) : { data: [] };
+  const residentsOf = new Map<string, string[]>();
+  for (const r of (resRows ?? []) as { shift_id: string; client_id: string }[]) residentsOf.set(r.shift_id, [...(residentsOf.get(r.shift_id) ?? []), r.client_id]);
+  const clientIds = [...new Set([...all.map((s) => s.client_id), ...[...residentsOf.values()].flat()].filter((v): v is string => !!v))];
   const locIds = [...new Set(all.map((s) => s.location_id).filter((v): v is string => !!v))];
   const [{ data: clients }, { data: locs }] = await Promise.all([
     clientIds.length ? supabase.from("car_clients").select("id, name, preferred_name").in("id", clientIds) : Promise.resolve({ data: [] }),
@@ -56,6 +60,21 @@ export default async function MyShiftsPage() {
     careOf.set(i.client_id, c);
   }
   const clientName = new Map(((clients ?? []) as { id: string; name: string; preferred_name: string | null }[]).map((c) => [c.id, c.preferred_name || c.name]));
+  // The client line and care notes cover every resident on a house shift.
+  const careFor = (x: Shift): Care | undefined => {
+    if (!x.client_id) return undefined;
+    const ids = [x.client_id, ...(residentsOf.get(x.id) ?? [])];
+    if (ids.length === 1) return careOf.get(x.client_id);
+    const merged: Care = { alerts: [], instructions: [] };
+    for (const c of ids) {
+      const one = careOf.get(c);
+      if (!one) continue;
+      merged.alerts.push(...one.alerts.map((a) => ({ ...a, title: `${clientName.get(c) ?? "Resident"}: ${a.title}` })));
+      merged.instructions.push(...one.instructions.map((i) => ({ ...i, title: `${clientName.get(c) ?? "Resident"}: ${i.title}` })));
+    }
+    return merged;
+  };
+  const whoFor = (x: Shift) => (x.client_id ? [x.client_id, ...(residentsOf.get(x.id) ?? [])].map((c) => clientName.get(c) ?? "Client").join(" + ") : undefined);
   const loc = new Map(((locs ?? []) as { id: string; label: string; address: string; suburb: string | null; access_notes: string | null }[]).map((l) => [l.id, l]));
   const when = (s: Shift) => {
     const a = sydneyParts(s.starts_at);
@@ -212,7 +231,7 @@ export default async function MyShiftsPage() {
           <ul className="divide-y divide-line">
             {mine.map((s) => (
               <div key={s.id}>
-                <ShiftCard s={s} when={when(s)} client={s.client_id ? clientName.get(s.client_id) : undefined} loc={s.location_id ? loc.get(s.location_id) : undefined} care={s.client_id ? careOf.get(s.client_id) : undefined} />
+                <ShiftCard s={s} when={when(s)} client={whoFor(s)} loc={s.location_id ? loc.get(s.location_id) : undefined} care={careFor(s)} />
                 {extra(s)}
               </div>
             ))}
@@ -226,7 +245,7 @@ export default async function MyShiftsPage() {
           <h2 className="heading-sm border-b border-line px-4 py-3">Open shifts</h2>
           <ul className="divide-y divide-line">
             {open.map((s) => (
-              <ShiftCard key={s.id} s={s} when={when(s)} client={s.client_id ? clientName.get(s.client_id) : undefined} loc={s.location_id ? loc.get(s.location_id) : undefined} isOpen raised={raised.has(s.id)} />
+              <ShiftCard key={s.id} s={s} when={when(s)} client={whoFor(s)} loc={s.location_id ? loc.get(s.location_id) : undefined} isOpen raised={raised.has(s.id)} />
             ))}
           </ul>
         </Card>
@@ -237,7 +256,7 @@ export default async function MyShiftsPage() {
           <ul className="divide-y divide-line">
             {past.map((s) => (
               <div key={s.id}>
-                <ShiftCard s={s} when={when(s)} client={s.client_id ? clientName.get(s.client_id) : undefined} loc={s.location_id ? loc.get(s.location_id) : undefined} care={s.client_id ? careOf.get(s.client_id) : undefined} />
+                <ShiftCard s={s} when={when(s)} client={whoFor(s)} loc={s.location_id ? loc.get(s.location_id) : undefined} care={careFor(s)} />
                 {extra(s)}
               </div>
             ))}

@@ -27,6 +27,40 @@ async function tellWorkers() {
   if (error && error.code !== "PGRST202") console.error("roster alerts", error.message);
 }
 
+// cmeprojects (update 146): residents on a house (SIL) shift. Each resident's
+// approved service is the one that lists the shift type (else an older entry
+// with no types set). The database checks each one and logs the change.
+async function syncResidents(supabase: Awaited<ReturnType<typeof createClient>>, shiftId: string, form: FormData, mainClient: string | null, shiftType: string, date: string): Promise<string[]> {
+  if (!form.has("residents_ready")) return [];
+  const wanted = mainClient ? [...new Set(form.getAll("residents").map(String).filter((v) => isId(v) && v !== mainClient))] : [];
+  const { data: now } = await supabase.from("shift_residents").select("client_id").eq("shift_id", shiftId);
+  const have = ((now ?? []) as { client_id: string }[]).map((r) => r.client_id);
+  const problems: string[] = [];
+  const gone = have.filter((c) => !wanted.includes(c));
+  if (gone.length) await supabase.from("shift_residents").delete().eq("shift_id", shiftId).in("client_id", gone);
+  const add = wanted.filter((c) => !have.includes(c));
+  if (!add.length) return problems;
+  const [{ data: svcs }, { data: cats }] = await Promise.all([
+    supabase.from("client_services").select("id, client_id, status, start_date, end_date, origin, catalogue_id, shift_types").in("client_id", add),
+    supabase.from("service_catalogue").select("id, shift_types"),
+  ]);
+  const catTypes = new Map(((cats ?? []) as { id: string; shift_types: string[] }[]).map((c) => [c.id, c.shift_types]));
+  for (const c of add) {
+    const current = ((svcs ?? []) as { id: string; client_id: string; status: string; start_date: string; end_date: string | null; origin: string; catalogue_id: string | null; shift_types: string[] }[]).filter(
+      (v) => v.client_id === c && ["planned", "active"].includes(v.status) && v.start_date <= date && (!v.end_date || v.end_date >= date),
+    );
+    const typesOf = (v: (typeof current)[number]) => (v.catalogue_id ? (catTypes.get(v.catalogue_id) ?? []) : v.shift_types);
+    const pick = current.find((v) => typesOf(v).includes(shiftType)) ?? current.find((v) => v.origin === "legacy" && !typesOf(v).length);
+    if (!pick) {
+      problems.push("a resident has no approved service for this shift type");
+      continue;
+    }
+    const { error } = await supabase.from("shift_residents").insert({ shift_id: shiftId, client_id: c, service_id: pick.id });
+    if (error) problems.push(friendlyError(error));
+  }
+  return problems;
+}
+
 export async function saveShift(_: FormState, form: FormData): Promise<FormState> {
   await requireRoster();
   const id = String(form.get("id") ?? "");
@@ -121,7 +155,11 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
         const d = sydneyParts(s.starts_at).date;
         const { error } = await supabase.from("shifts").update({ ...base, ...times(s.id === id ? date : d) }).eq("id", s.id);
         if (error) refused.push(`${d}: ${friendlyError(error)}`);
-        else done++;
+        else {
+          done++;
+          const r = await syncResidents(supabase, s.id, form, base.client_id, base.shift_type, s.id === id ? date : d);
+          if (r.length) refused.push(`${d}: residents ${r.join("; ")}`);
+        }
       }
       if (internalNote && done) await supabase.from("shift_notes").insert({ shift_id: id, body: internalNote });
       if (done) await saveTemplate();
@@ -132,9 +170,10 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     const { error } = await supabase.from("shifts").update({ ...base, ...times(date) }).eq("id", id);
     if (error) return { error: friendlyError(error) };
     if (internalNote) await supabase.from("shift_notes").insert({ shift_id: id, body: internalNote });
+    const residentProblems = await syncResidents(supabase, id, form, base.client_id, base.shift_type, date);
     await saveTemplate();
     if (tell) after(() => tellWorkers());
-    return { message: "Shift saved.", spotlight: id };
+    return { message: `Shift saved.${residentProblems.length ? ` Not added: ${residentProblems.join("; ")}.` : ""}`, spotlight: id };
   }
 
   // New: always a draft (published from the roster). Once, or repeating by the same rule the panel previews.
@@ -154,18 +193,21 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
   let made = 0;
   let firstId = "";
   const refused: string[] = [];
+  const refusedResidents: string[] = [];
   for (const d of dates) {
     const { data: added, error } = await supabase.from("shifts").insert({ ...base, ...times(d), status: "draft", series_id: seriesId }).select("id").single();
     if (error) refused.push(`${d}: ${friendlyError(error)}`);
     else {
       made++;
       if (internalNote && made === 1 && added) await supabase.from("shift_notes").insert({ shift_id: added.id, body: internalNote });
+      if (added) refusedResidents.push(...(await syncResidents(supabase, added.id, form, base.client_id, base.shift_type, d)));
       if (made === 1 && added) firstId = added.id;
     }
   }
   if (made) await saveTemplate();
   if (!made) return { error: refused[0]?.replace(/^\d{4}-\d{2}-\d{2}: /, "") ?? "That didn't save." };
-  return { spotlight: firstId, message: `${made} shift${made === 1 ? "" : "s"} added as draft${made === 1 ? "" : "s"}${refused.length ? `; skipped ${refused.length}: ${refused.slice(0, 3).join("; ")}${refused.length > 3 ? "…" : ""}` : ""}.` };
+  const residentNote = refusedResidents.length ? ` Residents not added on ${refusedResidents.length} shift${refusedResidents.length === 1 ? "" : "s"}: ${[...new Set(refusedResidents)].join("; ")}.` : "";
+  return { spotlight: firstId, message: `${made} shift${made === 1 ? "" : "s"} added as draft${made === 1 ? "" : "s"}${residentNote}${refused.length ? `; skipped ${refused.length}: ${refused.slice(0, 3).join("; ")}${refused.length > 3 ? "…" : ""}` : ""}.` };
 }
 
 export async function cancelShift(form: FormData) {
