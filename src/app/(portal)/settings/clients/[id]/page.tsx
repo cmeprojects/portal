@@ -36,7 +36,7 @@ const day = (d: unknown) => (typeof d === "string" && d ? new Date(`${d}T00:00:0
 // section appears once its database update has been run.
 export default async function ClientProfilePage({ params, searchParams }: PageProps<"/settings/clients/[id]">) {
   // Who sees Clients: the Access page (update 107); which clients, the database.
-  await requireSession();
+  const { profile: viewer } = await requireSession();
   if (!(await seesClientsFor())) notFound();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
@@ -49,10 +49,11 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   if (!client) notFound();
   // cmeprojects (update 140, owner's privacy decision): staff opening a client's
   // page is recorded (at most once an hour each), after the page is sent.
+  // (Cookies can't be read inside after() in a page, so the signed-in client is made first.)
+  const since = new Date(Date.parse(new Date().toISOString()) - 3_600_000).toISOString();
   after(async () => {
-    const db = await createClient();
-    const { data: recent, error } = await db.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", (await db.auth.getUser()).data.user?.id ?? "").gte("viewed_at", new Date(Date.parse(new Date().toISOString()) - 3_600_000).toISOString()).limit(1);
-    if (!error && !recent?.length) await db.from("client_staff_views").insert({ client_id: id });
+    const { data: recent, error } = await supabase.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", viewer.id).gte("viewed_at", since).limit(1);
+    if (!error && !recent?.length) await supabase.from("client_staff_views").insert({ client_id: id });
   });
   const viewsRes = await supabase.from("client_staff_views").select("user_id, viewed_at").eq("client_id", id).gte("viewed_at", new Date(Date.parse(new Date().toISOString()) - 30 * 86_400_000).toISOString()).order("viewed_at", { ascending: false }).limit(200);
   const canSeeViews = !viewsRes.error && (await canDoFor("clients.assign", "edit", id));
