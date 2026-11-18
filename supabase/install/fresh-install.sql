@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270320000001_shift_service_records.sql
+-- Built from every migration up to: 20270321000001_trips_link_to_shifts.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -274,7 +274,8 @@ begin
     (149, '20270317000001_practitioner_rules_speed.sql'),
     (150, '20270318000001_reassign_wording.sql'),
     (151, '20270319000001_workers_see_shift_clients.sql'),
-    (152, '20270320000001_shift_service_records.sql')
+    (152, '20270320000001_shift_service_records.sql'),
+    (153, '20270321000001_trips_link_to_shifts.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -26887,5 +26888,48 @@ grant execute on function public.run_service_record_alerts() to service_role;
 
 $m152$;
   insert into public.install_log (name) values ('20270320000001_shift_service_records.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270321000001_trips_link_to_shifts.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270321000001_trips_link_to_shifts.sql') then
+    return;
+  end if;
+  execute $m153$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 135): a car trip links itself to the driver's shift.
+-- When a worker takes a company car during (or up to an hour either side of)
+-- one of their published shifts, the trip is attached to that shift, so it
+-- shows on the shift's Trips tab. A shift for the same client wins.
+-- Not a security definer: it only reads the driver's own shifts.
+
+create or replace function public.link_trip_to_shift() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.shift_id is null and new.driver_id is not null then
+    select s.id into new.shift_id
+    from public.shifts s
+    where s.worker_id = new.driver_id
+      and s.status = 'published'
+      and coalesce(new.started_at, now()) between s.starts_at - interval '1 hour' and s.ends_at + interval '1 hour'
+    order by (s.client_id is not distinct from new.client_id) desc, abs(extract(epoch from (s.starts_at - coalesce(new.started_at, now()))))
+    limit 1;
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.link_trip_to_shift() from public, anon, authenticated;
+
+drop trigger if exists link_trip_to_shift on public.car_trips;
+create trigger link_trip_to_shift before insert on public.car_trips
+  for each row execute function public.link_trip_to_shift();
+
+$m153$;
+  insert into public.install_log (name) values ('20270321000001_trips_link_to_shifts.sql');
 end;
 $part$;

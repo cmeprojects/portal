@@ -335,6 +335,9 @@ body {
 /* cmeprojects: roster drag and drop. */
 .roster-grid [data-shift-id][data-can-drag] {
   cursor: grab;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .roster-grid[data-dragging] [data-drop-date] {
   transition: background-color 0.15s ease;

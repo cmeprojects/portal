@@ -13,13 +13,13 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 18 Nov 2026.
 
-- **Rostering (18 Nov 2026):** updates 129 to 132 run on Dev. **Waiting: 133** (workers see
-  their shift's client, locations, services, alerts and instructions) and **134** (shift notes:
-  `shift_service_records`; an incident or issue alerts managers and the client's care contacts).
-  App: one "Finish this shift" form on My shifts (times, shift notes, incident or issue,
-  own-car mileage, expenses, allowances). Drag and drop follows the mouse; any move of a
-  published shift sets it back to draft (Staff and Client view). Next: smarter Suggest worker,
-  Cars trips linked to shifts, Day timeline, My shifts wording, touch drag.
+- **Rostering (18 Nov 2026):** updates 129 to 134 run on Dev. **Waiting: 135** (a car trip
+  links itself to the driver's published shift, within an hour either side; a trigger, not a
+  definer function). Built: "Finish this shift" on My shifts (times, shift notes, incident or
+  issue alerting managers and care contacts, own-car mileage); drag and drop follows the mouse,
+  press and hold on touch screens; any move of a published shift sets it back to draft; Suggest
+  worker puts the client's case manager, team and recent workers first with reasons; Day view is
+  an hourly timeline. Rostering is feature-complete for this round.
 
 - **QA-008 (odometer photos off) closed:** update 91 applied and verified on Dev
   (16 Nov 2026), all 7 checks as expected. No SQL waiting for Dev.

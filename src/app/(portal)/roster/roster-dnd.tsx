@@ -96,25 +96,52 @@ export function RosterDnd({ byClient, base }: { byClient: boolean; base: string 
       frame = requestAnimationFrame(tick);
     };
 
+    // On a touch screen, press and hold a shift to pick it up (a quick swipe still scrolls).
+    let hold = 0;
+    let touch = false;
     const onDown = (e: PointerEvent) => {
-      if (e.button !== 0 || e.pointerType === "touch") return;
+      if (e.button !== 0) return;
       const c = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-shift-id][data-can-drag]") : null;
       if (!c) return;
       chip = c;
+      touch = e.pointerType !== "mouse";
       startX = x = e.clientX;
       startY = y = e.clientY;
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+      if (touch) {
+        hold = window.setTimeout(() => {
+          begin();
+          navigator.vibrate?.(15);
+        }, 350);
+      }
     };
     const onMove = (e: PointerEvent) => {
       x = e.clientX;
       y = e.clientY;
+      if (!dragging && touch) {
+        if (Math.hypot(x - startX, y - startY) > 8) onCancel();
+        return;
+      }
       if (!dragging && Math.hypot(x - startX, y - startY) > 5) begin();
       if (dragging && !frame) frame = requestAnimationFrame(tick);
     };
+    // While a shift is held, the finger moves it instead of scrolling the page.
+    const onTouchMove = (e: TouchEvent) => {
+      if (dragging) e.preventDefault();
+    };
+    const onCancel = () => {
+      window.clearTimeout(hold);
+      if (dragging) return;
+      stopListening();
+      chip = null;
+    };
     const stopListening = () => {
+      window.clearTimeout(hold);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
     };
     const onUp = (e: PointerEvent) => {
       stopListening();
@@ -188,12 +215,20 @@ export function RosterDnd({ byClient, base }: { byClient: boolean; base: string 
     };
 
     grid.addEventListener("pointerdown", onDown);
+    grid.addEventListener("touchmove", onTouchMove, { passive: false });
+    // A long press would otherwise open the phone's link menu.
+    const onContext = (e: Event) => {
+      if (dragging || (touch && chip)) e.preventDefault();
+    };
+    grid.addEventListener("contextmenu", onContext);
     grid.addEventListener("click", onClick, true);
     window.addEventListener("keydown", onKey);
     return () => {
       stopListening();
       finish();
       grid.removeEventListener("pointerdown", onDown);
+      grid.removeEventListener("touchmove", onTouchMove);
+      grid.removeEventListener("contextmenu", onContext);
       grid.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onKey);
     };

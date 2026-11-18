@@ -39,6 +39,8 @@ export function RosterMenu({ byClient, base }: { byClient: boolean; base: string
       return { shift: chip?.dataset.shiftId, date: cell?.dataset.dropDate, row: cell?.dataset.dropRow };
     };
     const onMenu = (e: MouseEvent) => {
+      // A long press on a shift picks it up to drag; it doesn't open this menu.
+      if ((e as PointerEvent).pointerType === "touch" && e.target instanceof Element && e.target.closest("[data-can-drag]")) return;
       const w = where(e.target);
       if (!w.shift && !w.date) return;
       e.preventDefault();
