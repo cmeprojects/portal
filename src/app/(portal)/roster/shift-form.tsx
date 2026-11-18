@@ -408,7 +408,7 @@ export function CopyWeekForm({ from, to }: { from: string; to: string }) {
 }
 
 // The bar under the roster while selecting shifts.
-export function BulkBar({ formId, workers }: { formId: string; workers: Opt[] }) {
+export function BulkBar({ formId }: { formId: string; workers?: Opt[] }) {
   const [state, action, pending] = useActionState(bulkShifts, null);
   // How many shifts are ticked (the tick boxes sit in the calendar).
   const [count, setCount] = useState(0);
@@ -419,8 +419,14 @@ export function BulkBar({ formId, workers }: { formId: string; workers: Opt[] })
     return () => document.removeEventListener("change", recount);
   }, [formId]);
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-brand px-3 py-2 text-sm text-brand-fg shadow-lg">
-      <b>{count ? `${count} shift${count === 1 ? "" : "s"} selected` : "Tick the shifts in the calendar, then choose what to do:"}</b>
+    <div
+      className={`fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm text-surface shadow-2xl transition ${count ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"}`}
+      role="region"
+      aria-label="Selected shifts"
+    >
+      <b>
+        {count} shift{count === 1 ? "" : "s"} selected
+      </b>
       {(
         [
           ["copy", "Copy to next week"],
@@ -449,23 +455,20 @@ export function BulkBar({ formId, workers }: { formId: string; workers: Opt[] })
               b.click();
             });
           }}
-          className="rounded-md border border-brand-fg/40 px-2 py-1 font-semibold hover:bg-brand-fg/10 disabled:opacity-50">
+          className="rounded-md border border-surface/30 px-2 py-1 font-semibold hover:bg-surface/10 disabled:opacity-50">
           {l}
         </button>
       ))}
-      <span className="flex items-center gap-1">
-        <select form={formId} name="bulk_worker" aria-label="Give to" className="rounded-md bg-surface px-2 py-1 text-ink">
-          <option value="">Give to…</option>
-          {workers.map((w) => (
-            <option key={w.id} value={w.id}>
-              {w.name}
-            </option>
-          ))}
-        </select>
-        <button form={formId} formAction={action} name="bulk" value="worker" disabled={pending || !count} className="rounded-md border border-brand-fg/40 px-2 py-1 font-semibold hover:bg-brand-fg/10 disabled:opacity-50">
-          Change worker
-        </button>
-      </span>
+      <button
+        type="button"
+        onClick={() => {
+          document.querySelectorAll<HTMLInputElement>(`input[form="${formId}"][name="ids"]:checked`).forEach((c) => (c.checked = false));
+          setCount(0);
+        }}
+        className="rounded-md px-2 py-1 font-semibold underline"
+      >
+        Clear
+      </button>
       {state?.error ? <span className="rounded-md bg-danger-soft px-2 py-1 text-danger">{state.error}</span> : null}
       {state?.message ? <span className="rounded-md bg-good-soft px-2 py-1 text-ink">{state.message}</span> : null}
     </div>

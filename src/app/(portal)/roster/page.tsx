@@ -524,10 +524,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       </p>
 
       {selecting ? (
-        <>
-          <form id="pick" />
-          <BulkBar formId="pick" workers={((people ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => ({ id: p.id, name: p.full_name || p.email }))} />
-        </>
+        <p className="rounded-lg bg-brand-soft px-3 py-2 text-sm font-semibold text-brand">Tick the shifts you want, then choose what to do in the bar at the bottom. Press &ldquo;Done selecting&rdquo; when finished.</p>
       ) : null}
       {/* Only the calendar scrolls; the title, figures and toolbar stay put. */}
       <FitCalendar />
@@ -642,6 +639,12 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </table>
         {!shifts.length ? <p className="p-6 text-center text-sm text-muted">No shifts this week yet. Add one, or copy last week from the ⋮ menu.</p> : null}
       </Card>
+      {selecting ? (
+        <>
+          <form id="pick" />
+          <BulkBar formId="pick" />
+        </>
+      ) : null}
 
       {/* Side panels: view, add/edit, change requests. */}
       {editing || opened || str("requests") === "1" || (canEdit && str("templates") === "1") ? (
