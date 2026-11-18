@@ -14,15 +14,16 @@ import { ArchiveClientForm, ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CommsForm, type Comms } from "./comms-form";
+import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow } from "./service-form";
 import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
-import { archiveClientDocument, endPractitionerAccess, shareWithPractitioners, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { archiveClientDocument, promoteClientService, endPractitionerAccess, shareWithPractitioners, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
 import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
 import { AgreementForm, SignAgreementForm, type Agreement } from "./agreement-form";
 import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
 import { canDo, canDoFor } from "@/lib/module-access";
-import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, CLIENT_STATUS, COMMS_CONTACT_WAYS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
+import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, CLIENT_STATUS, COMMS_CONTACT_WAYS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -175,7 +176,8 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
 
   const TAB_SECTIONS: Record<string, string[]> = {
     overview: ["overview", "ready"],
-    profile: ["details", "locations", "people", "safety", "services", "comms"],
+    profile: ["details", "locations", "people", "safety", "comms"],
+    services: ["services"],
     documents: ["docs"],
     care: ["plans", "instructions"],
     reviews: ["reviews"],
@@ -257,6 +259,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const tabs: [string, string, boolean][] = [
     ["overview", "Overview", true],
     ["profile", "Profile", true],
+    ["services", "Services", true],
     ["documents", "Documents", showDocs],
     ["care", "Care plans", plansSectionOn && !!plans && (plans.length > 0 || canPlans)],
     ["reviews", "Reviews", showReviews],
@@ -267,6 +270,19 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["practitioners", "Practitioners", !!practitionerAccess],
   ];
   const canEditClient = await canDoFor("clients.list", "edit", id);
+  // cmeprojects (update 143): the service catalogue, client shift types, and who may edit or promote services.
+  const [catRes, typeRes, canEditServices, maRes] = await Promise.all([
+    supabase.from("service_catalogue").select("id, name, description, schemes, shift_types, active, promoted_from").order("sort_order").order("name"),
+    supabase.from("shift_types").select("*").eq("active", true).order("sort_order"),
+    canDoFor("clients.services", "edit", id),
+    supabase.rpc("is_manager_admin"),
+  ]);
+  const catalogueAll = catRes.error ? [] : ((catRes.data ?? []) as (CatalogueItem & { active: boolean; promoted_from: string | null })[]);
+  const promoted = new Set(catalogueAll.map((c) => c.promoted_from).filter((v): v is string => !!v));
+  const typeRows = (typeRes.data ?? []) as { key: string; label: string; used_for?: string }[];
+  const clientShiftTypes: [string, string][] = typeRows.filter((t) => !t.used_for || t.used_for !== "internal").map((t) => [t.key, t.label]);
+  const shiftTypeName = new Map(typeRows.map((t) => [t.key, t.label]));
+  const canPromote = !catRes.error && (viewer.role === "system_admin" || maRes.data === true);
   const det = (details.data ?? null) as Record<string, unknown> | null;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   const emergency = ((people.data ?? []) as Row[]).filter((p) => p.active && (p.kind === "emergency" || p.primary_contact));
@@ -1157,37 +1173,107 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       ) : null}
 
       {inView("services") ? (
-      <Section title="Service arrangements" intro="What the client receives, under which program, where and when. A service can only be made active when the client is ready for it.">
+      <Section title="Approved Services" intro="Each service the client is approved or funded for, one per record. Rostering only offers the shift types a service covers.">
         {services.error ? (
           missing("client_services")
         ) : (
           <>
-            <Items
-              rows={(services.data ?? []) as Row[]}
-              line={(s) => {
-                const gaps = gapsOf.get(s.id);
-                return `${s.label} · ${label(programChoices, s.program_id)} · ${label(SERVICE_STATUS, s.status)} · from ${day(s.start_date)}${s.end_date ? ` to ${day(s.end_date)}` : ""}${gaps?.length ? ` · ${gaps.length} to fix` : ""}`;
-              }}
-              form={(s) => (
-                <>
-                  {gapsOf.get(s.id)?.length ? (
-                    <ul className="mb-2 list-disc pl-5 text-sm text-danger">
-                      {gapsOf.get(s.id)!.map((g) => (
-                        <li key={g}>{g}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <SectionForm table="client_services" clientId={id} fields={SECTION_FIELDS.client_services} item={s} choices={{ program_id: programChoices, location_id: locationChoices }} submit="Save" />
-                </>
-              )}
-            />
-            {locationChoices.length ? (
-              <Add label="Add a service">
-                <SectionForm table="client_services" clientId={id} fields={SECTION_FIELDS.client_services} choices={{ program_id: programChoices.filter(([, l]) => !l.endsWith("(not in use)")), location_id: locationChoices }} submit="Add service" />
-              </Add>
+            {((services.data ?? []) as unknown as ServiceRow[]).length ? (
+              <ul className="flex flex-col gap-2">
+                {((services.data ?? []) as unknown as (ServiceRow & { catalogue_id?: string | null })[]).map((sv) => {
+                  const gaps = gapsOf.get(sv.id);
+                  const expired = sv.status !== "ended" && !!sv.end_date && sv.end_date < today;
+                  const st = expired ? ["Expired", "bg-line text-muted"] : sv.status === "active" ? ["Active", "bg-good-soft text-good"] : sv.status === "planned" ? ["Pending", "bg-warn-soft"] : sv.status === "on_hold" ? ["Suspended", "bg-danger-soft text-danger"] : ["Ended", "bg-line text-muted"];
+                  const types = sv.origin === "catalogue" ? (catalogueAll.find((c) => c.id === sv.catalogue_id)?.shift_types ?? []) : (sv.shift_types ?? []);
+                  const agr = (agreements ?? []).filter((x) => x.service_id === sv.id && x.status !== "ended");
+                  const fund = (funding ?? []).filter((x) => x.service_id === sv.id && x.status === "active");
+                  return (
+                    <li key={sv.id} className={`rounded-xl border p-3 ${sv.status === "ended" || expired ? "border-line bg-page" : "border-line"}`}>
+                      <div className="flex flex-wrap items-start gap-2">
+                        <div className="min-w-48 flex-1">
+                          <p className="font-semibold">
+                            {sv.label}
+                            <span className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold ${sv.origin === "catalogue" ? "bg-brand-soft text-brand" : sv.origin === "custom" ? "bg-yellow-soft" : "bg-line text-muted"}`}>
+                              {sv.origin === "catalogue" ? "Catalogue" : sv.origin === "custom" ? "Custom" : "Older entry"}
+                            </span>
+                          </p>
+                          {sv.description ? <p className="text-sm text-muted">{sv.description}</p> : null}
+                        </div>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${st[1]}`}>{st[0]}</span>
+                      </div>
+                      <dl className="mt-2 grid grid-cols-[8rem_1fr] gap-x-3 gap-y-0.5 text-sm">
+                        <dt className="text-muted">Program</dt>
+                        <dd>{label(programChoices, sv.program_id)}</dd>
+                        <dt className="text-muted">Dates</dt>
+                        <dd>
+                          {day(sv.start_date)}
+                          {sv.end_date ? ` to ${day(sv.end_date)}` : " onwards"}
+                        </dd>
+                        <dt className="text-muted">Shift types</dt>
+                        <dd>{types.length ? types.map((k) => shiftTypeName.get(k) ?? k).join(", ") : sv.origin === "legacy" ? "Not set (any client shift type for now)" : "None set"}</dd>
+                        {agreements ? (
+                          <>
+                            <dt className="text-muted">Agreement</dt>
+                            <dd>{agr.length ? agr.map((x) => `${AGREEMENT_STATUS[x.status] ?? x.status}${x.ends_on ? `, ends ${day(x.ends_on)}` : ""}`).join("; ") : "None yet"}</dd>
+                          </>
+                        ) : null}
+                        {funding ? (
+                          <>
+                            <dt className="text-muted">Budget</dt>
+                            <dd>{fund.length ? fund.map((x) => `${aud(x.used_amount)} of ${aud(x.total_amount)} used`).join("; ") : "None yet"}</dd>
+                          </>
+                        ) : null}
+                      </dl>
+                      {gaps?.length ? (
+                        <ul className="mt-2 list-disc pl-5 text-sm text-danger">
+                          {gaps.map((g) => (
+                            <li key={g}>{g}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {canEditServices || (canPromote && sv.origin === "custom") ? (
+                        <div className="mt-2 flex flex-wrap items-center gap-3">
+                          {canEditServices ? (
+                            <details className="group w-full">
+                              <summary className="cursor-pointer list-none text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
+                                <span className="group-open:hidden">View and edit details</span>
+                                <span className="hidden group-open:inline">Close</span>
+                              </summary>
+                              <div className="mt-3">
+                                <ServiceEditForm clientId={id} s={sv} programs={programChoices} locations={locationChoices} shiftTypes={clientShiftTypes} />
+                              </div>
+                            </details>
+                          ) : null}
+                          {canPromote && sv.origin === "custom" && !promoted.has(sv.id) ? (
+                            <form action={promoteClientService}>
+                              <input type="hidden" name="id" value={sv.id} />
+                              <input type="hidden" name="client_id" value={id} />
+                              <button className="text-xs font-semibold text-brand underline">Add to the service catalogue</button>
+                            </form>
+                          ) : null}
+                          {promoted.has(sv.id) ? <span className="text-xs text-muted">In the catalogue now</span> : null}
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <p className="text-sm text-muted">Add a service location first.</p>
+              <p className="text-sm text-muted">No approved services yet.</p>
             )}
+            {canEditServices ? (
+              locationChoices.length ? (
+                <AddServicePanel
+                  clientId={id}
+                  catalogue={catalogueAll.filter((c) => c.active)}
+                  programs={((programs.data ?? []) as { id: string; name: string; active: boolean; scheme?: string }[]).filter((x) => x.active).map((x) => [x.id, x.name, x.scheme ?? "other"] as [string, string, string])}
+                  locations={locationChoices}
+                  shiftTypes={clientShiftTypes}
+                />
+              ) : (
+                <p className="text-sm text-muted">Add a service location first.</p>
+              )
+            ) : null}
           </>
         )}
       </Section>

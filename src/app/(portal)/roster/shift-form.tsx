@@ -37,6 +37,8 @@ export type ShiftDraft = {
 type Opt = { id: string; name: string };
 export type LocationOpt = Opt & { client_id: string; address: string; suburb: string; state: string; postcode: string; access_notes: string };
 export type ShiftTypeOpt = { key: string; label: string; active: boolean; used_for?: string };
+// A client's approved service (update 143): its shift types, or null when it doesn't restrict them (older entries).
+export type ServiceOpt = Opt & { client_id: string; status: string; start_date: string; end_date: string | null; program: string; types: string[] | null };
 export type TemplateOpt = { id: string; name: string; start: string; end: string };
 // What the Suggest button weighs, per worker (only what this person may see).
 export type WorkerFit = {
@@ -116,7 +118,7 @@ export function ShiftForm({
   workers: WorkerFit[];
   clients: Opt[];
   locations: LocationOpt[];
-  services: (Opt & { client_id: string })[];
+  services: ServiceOpt[];
   shiftTypes: ShiftTypeOpt[];
   templates?: TemplateOpt[];
   // Address that reopens the panel with a template applied (…&tpl=).
@@ -179,6 +181,14 @@ export function ShiftForm({
 
   const clientLocations = locations.filter((l) => l.client_id === client);
   const clientServices = services.filter((v) => v.client_id === client);
+  // Services that can be rostered on the chosen date (pending or active, within their dates).
+  const usable = (v: ServiceOpt, d: string) => ["planned", "active"].includes(v.status) && v.start_date <= d && (!v.end_date || v.end_date >= d);
+  const rosterable = clientServices.filter((v) => usable(v, date));
+  // Services that list the type win; older entries with no types set are only used when none does.
+  const coveredBy = (k: string) => {
+    const listed = rosterable.filter((v) => v.types?.includes(k));
+    return listed.length ? listed : rosterable.filter((v) => !v.types);
+  };
   const place = clientLocations.find((l) => l.id === location) ?? null;
   const fits = (t: ShiftTypeOpt, c: string) => !t.used_for || t.used_for === "both" || t.used_for === (c ? "client" : "internal");
   // A new client: its only location and service are chosen for you.
@@ -186,8 +196,9 @@ export function ShiftForm({
     setClient(c);
     // Keep the shift type if it still fits; otherwise the first that does (Office work for internal work).
     const current = shiftTypes.find((t) => t.key === shiftType);
-    if (!current || !fits(current, c)) {
-      const ok = shiftTypes.filter((t) => t.active && fits(t, c));
+    const cover = (k: string) => !c || services.some((v) => v.client_id === c && usable(v, date) && (!v.types || v.types.includes(k)));
+    if (!current || !fits(current, c) || !cover(current.key)) {
+      const ok = shiftTypes.filter((t) => t.active && fits(t, c) && cover(t.key));
       setShiftType((!c && ok.find((t) => t.key === "admin")?.key) || ok.find((t) => t.used_for !== "both")?.key || ok[0]?.key || "standard");
     }
     const ls = locations.filter((l) => l.client_id === c);
@@ -219,9 +230,13 @@ export function ShiftForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [workers, date, start, end, nextDay, worker, client],
   );
-  const blocked = Boolean(timeError || breakError || repeatError);
   // Only the types that fit: client shifts, or internal work when there's no client (update 142).
-  const types = shiftTypes.filter((t) => (t.active && fits(t, client)) || (shift.id && t.key === shift.shift_type));
+  // Client shifts: only the types the client's approved services cover.
+  const types = shiftTypes.filter((t) => (t.active && fits(t, client) && (!client || coveredBy(t.key).length > 0)) || (shift.id && t.key === shift.shift_type));
+  const candidates = client ? coveredBy(shiftType) : [];
+  const [serviceChoice, setServiceChoice] = useState(shift.service_id);
+  const serviceId = candidates.length === 1 ? candidates[0].id : candidates.some((v) => v.id === serviceChoice) ? serviceChoice : "";
+  const blocked = Boolean(timeError || breakError || repeatError || (client && !candidates.length));
 
   return (
     <form
@@ -276,19 +291,28 @@ export function ShiftForm({
           </label>
           {client ? (
             <>
-              <label className={field}>
-                <span className={label}>Funded service (from the client&apos;s plan)</span>
-                <select name="service_id" required defaultValue={shift.client_id === client ? shift.service_id : clientServices.length === 1 ? clientServices[0].id : ""} key={`svc-${client}`} className={inputClass}>
-                  <option value="" disabled>
-                    Choose the service
-                  </option>
-                  {clientServices.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {/* What the client is approved for: a quick snapshot (update 143). */}
+              <div className="rounded-lg border border-line bg-page px-3 py-2 sm:col-span-2">
+                <p className="text-xs font-semibold text-muted">Approved for</p>
+                {clientServices.length ? (
+                  <ul className="mt-1 flex flex-wrap gap-1.5">
+                    {clientServices.map((v) => {
+                      const ok = usable(v, date);
+                      const tone = !ok ? "bg-line text-muted" : v.status === "active" ? "bg-good-soft text-ink" : "bg-warn-soft text-ink";
+                      const why = v.status === "on_hold" ? "suspended" : v.status === "planned" ? "pending" : v.end_date && v.end_date < date ? "ended" : v.start_date > date ? `from ${longDay(v.start_date)}` : "";
+                      return (
+                        <li key={v.id} className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone}`} title={v.types ? `Covers: ${v.types.map((k) => shiftTypes.find((t) => t.key === k)?.label ?? k).join(", ")}` : "Covers any client shift type (not set yet)"}>
+                          {v.name} · {v.program}
+                          {why ? ` · ${why}` : ""}
+                          {v.end_date && ok ? ` · until ${longDay(v.end_date)}` : ""}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className={fieldError}>No approved services. Add one on the client&apos;s page before rostering.</p>
+                )}
+              </div>
               <label className={field}>
                 <span className={label}>Service location</span>
                 <select name="location_id" required value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass}>
@@ -302,13 +326,7 @@ export function ShiftForm({
                   ))}
                 </select>
               </label>
-              {!clientServices.length || !clientLocations.length ? (
-                <p className={`${fieldError} sm:col-span-2`}>
-                  This client needs {!clientServices.length ? "an active service" : ""}
-                  {!clientServices.length && !clientLocations.length ? " and " : ""}
-                  {!clientLocations.length ? "an approved location" : ""} before they can be rostered. Add it on the client&apos;s page.
-                </p>
-              ) : null}
+              {!clientLocations.length ? <p className={`${fieldError} sm:col-span-2`}>This client needs an approved location before they can be rostered. Add it on the client&apos;s page.</p> : null}
               {place ? (
                 <div className="rounded-lg border border-line bg-page px-3 py-2 text-sm sm:col-span-2">
                   <p className="font-medium">{place.address}</p>
@@ -339,7 +357,34 @@ export function ShiftForm({
             {shiftType === "other" && shiftTypes.some((t) => t.used_for !== undefined) ? (
               <input name="shift_type_other" required maxLength={60} defaultValue={shift.shift_type_other ?? ""} placeholder="What kind of shift is it?" aria-label="Other shift type" className={`${inputClass} mt-1`} />
             ) : null}
-            <span className={hint}>{client ? "The kind of work on this shift. The funded service above is what it's billed to." : "Internal work types only (no client)."}</span>
+            {client ? (
+              candidates.length > 1 ? (
+                <label className={`${field} mt-1`}>
+                  <span className={label}>Under which approved service?</span>
+                  <select name="service_id" required value={serviceId} onChange={(e) => setServiceChoice(e.target.value)} className={inputClass}>
+                    <option value="" disabled>
+                      Choose the service
+                    </option>
+                    {candidates.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} ({v.program})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : candidates.length === 1 ? (
+                <>
+                  <input type="hidden" name="service_id" value={candidates[0].id} />
+                  <span className={hint}>
+                    Under the approved service: {candidates[0].name} ({candidates[0].program}){candidates[0].status === "planned" ? ", still pending" : ""}.
+                  </span>
+                </>
+              ) : (
+                <span className={fieldError}>{rosterable.length ? "None of the client's approved services covers this shift type." : "The client has no approved service current on this date."}</span>
+              )
+            ) : (
+              <span className={hint}>Internal work types only (no client).</span>
+            )}
           </label>
           <label className={field}>
             <span className={label}>Date</span>

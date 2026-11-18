@@ -505,3 +505,88 @@ export async function shareWithPractitioners(form: FormData) {
   await (await createClient()).from("client_documents").update({ shared_with_practitioners: form.get("shared") === "1" }).eq("id", id);
   revalidatePath(`/settings/clients/${clientId}`);
 }
+
+// cmeprojects (update 143): approved services. A service comes from the
+// catalogue (name and description copied) or is added for this client only
+// (its own name, description and shift types). The database checks who may,
+// the program, readiness, duplicates and the shift types.
+function serviceDetails(form: FormData) {
+  const date = (k: string) => (/^\d{4}-\d{2}-\d{2}$/.test(String(form.get(k) ?? "")) ? String(form.get(k)) : null);
+  const status = String(form.get("status") ?? "planned");
+  return {
+    program_id: isId(String(form.get("program_id") ?? "")) ? String(form.get("program_id")) : null,
+    location_id: isId(String(form.get("location_id") ?? "")) ? String(form.get("location_id")) : null,
+    start_date: date("start_date"),
+    end_date: date("end_date"),
+    status: ["planned", "active", "on_hold", "ended"].includes(status) ? status : "planned",
+    scheduling_notes: String(form.get("scheduling_notes") ?? "").trim().slice(0, 1000),
+    consent_required: form.get("consent_required") === "on",
+    consent_given_on: date("consent_given_on"),
+    consent_note: String(form.get("consent_note") ?? "").trim().slice(0, 500),
+  };
+}
+const customDetails = (form: FormData) => ({
+  label: String(form.get("label") ?? "").trim().slice(0, 80),
+  description: String(form.get("description") ?? "").trim().slice(0, 1000),
+  shift_types: [...new Set(form.getAll("shift_types").map(String).filter((k) => /^[a-z][a-z0-9_]{1,40}$/.test(k)))],
+});
+
+export async function addClientService(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(clientId)) return { error: "That didn't save. Please reload the page." };
+  const details = serviceDetails(form);
+  if (!details.program_id) return { error: "Choose the program." };
+  if (!details.location_id) return { error: "Choose where the service is delivered." };
+  if (!details.start_date) return { error: "Choose the start date." };
+  if (details.end_date && details.end_date < details.start_date) return { error: "The end date is before the start date." };
+  const catalogueId = String(form.get("catalogue_id") ?? "");
+  let row: Record<string, unknown>;
+  if (form.get("mode") === "custom") {
+    const c = customDetails(form);
+    if (!c.label) return { error: "Give the service a name." };
+    if (!c.description) return { error: "Describe the service." };
+    if (!c.shift_types.length) return { error: "Choose the shift types this service covers." };
+    row = { ...details, ...c, origin: "custom", client_id: clientId };
+  } else {
+    if (!isId(catalogueId)) return { error: "Choose a service from the catalogue." };
+    row = { ...details, catalogue_id: catalogueId, label: "From the catalogue", client_id: clientId };
+  }
+  const { error } = await (await createClient()).from("client_services").insert(row);
+  if (error) return { error: error.code === "23505" ? "This client already has that service under that program." : friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: "Service added." };
+}
+
+export async function updateClientService(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const id = String(form.get("id") ?? "");
+  if (!isId(clientId) || !isId(id)) return { error: "That didn't save. Please reload the page." };
+  const details = serviceDetails(form);
+  if (!details.program_id || !details.location_id || !details.start_date) return { error: "Fill in the program, location and start date." };
+  if (details.end_date && details.end_date < details.start_date) return { error: "The end date is before the start date." };
+  // Custom and older services: their own name, description and shift types can be corrected (logged).
+  const own: Partial<ReturnType<typeof customDetails>> = form.get("origin") === "catalogue" ? {} : customDetails(form);
+  if ("label" in own && !own.label) return { error: "Give the service a name." };
+  if (form.get("origin") === "custom" && own.shift_types && !own.shift_types.length) return { error: "Choose the shift types this service covers." };
+  const { error } = await (await createClient()).from("client_services").update({ ...details, ...own }).eq("id", id).eq("client_id", clientId);
+  if (error) return { error: error.code === "23505" ? "This client already has that service under that program." : friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  return { message: "Saved." };
+}
+
+// Manager Administrators: copy a custom service into the catalogue. The client's service stays as it was.
+export async function promoteClientService(form: FormData) {
+  const { profile } = await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(id) || !isId(clientId)) return;
+  const supabase = await createClient();
+  const { data: ma } = await supabase.rpc("is_manager_admin");
+  if (profile.role !== "system_admin" && ma !== true) return;
+  const { data: s } = await supabase.from("client_services").select("label, description, shift_types, origin").eq("id", id).maybeSingle();
+  if (!s || s.origin !== "custom") return;
+  await supabase.from("service_catalogue").insert({ name: s.label, description: s.description, shift_types: s.shift_types, promoted_from: id });
+  revalidatePath(`/settings/clients/${clientId}`);
+}

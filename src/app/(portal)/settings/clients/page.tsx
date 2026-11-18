@@ -183,6 +183,9 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         <Link href="/settings/clients?view=setup" className={`-mb-px border-b-2 px-3 py-2 font-semibold ${setup ? "border-brand" : "border-transparent text-muted hover:text-ink"}`}>
           Teams and programs
         </Link>
+        <Link href="/settings/clients/catalogue" className="-mb-px border-b-2 border-transparent px-3 py-2 font-semibold text-muted hover:text-ink">
+          Service catalogue
+        </Link>
       </nav>
       {setup ? null : (
         <>

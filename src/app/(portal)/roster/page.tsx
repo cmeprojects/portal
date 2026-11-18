@@ -104,7 +104,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("profiles").select("id, full_name, email, role, job_title_id").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").order("full_name"),
     supabase.from("car_clients").select("id, name, status").neq("status", "discharged").order("name"),
     supabase.from("client_locations").select("id, client_id, label, address, suburb, state, postcode, access_notes").eq("approved", true),
-    supabase.from("client_services").select("id, client_id, label").neq("status", "ended"),
+    supabase.from("client_services").select("*").neq("status", "ended"),
     supabase.from("leave_periods").select("user_id, start_date, end_date").lte("start_date", addDays(gridEnd, 6)).gte("end_date", gridStart),
     supabase.from("shift_interest").select("shift_id, user_id"),
     supabase.from("staff_private").select("user_id, availability"),
@@ -114,7 +114,17 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("cars").select("id, name, rego").eq("active", true).order("name"),
   ]);
   // cmeprojects (update 129): shift templates (people who roster; empty before it runs).
-  const [{ data: templateRows }, { data: draftRows }, { data: titleRows }, typesRes] = await Promise.all([templatesP, draftsP, titlesP, supabase.from("shift_types").select("*").order("sort_order").order("label")]);
+  const [{ data: templateRows }, { data: draftRows }, { data: titleRows }, typesRes, catRes, progRes] = await Promise.all([
+    templatesP,
+    draftsP,
+    titlesP,
+    supabase.from("shift_types").select("*").order("sort_order").order("label"),
+    // update 143: the catalogue's shift types (a catalogue service covers what its entry lists).
+    supabase.from("service_catalogue").select("id, shift_types"),
+    supabase.from("client_programs").select("id, name"),
+  ]);
+  const catTypes = new Map(((catRes.data ?? []) as { id: string; shift_types: string[] }[]).map((c) => [c.id, c.shift_types]));
+  const programName = new Map(((progRes.data ?? []) as { id: string; name: string }[]).map((p) => [p.id, p.name]));
   // cmeprojects (update 141): shift types are a managed list; before it runs, the fixed list.
   const shiftTypes = typesRes.error ? SHIFT_TYPES.map(([key, label]) => ({ key, label, active: true })) : ((typesRes.data ?? []) as { key: string; label: string; active: boolean; used_for?: string }[]);
   const typeName = new Map(shiftTypes.map((t) => [t.key, t.label]));
@@ -825,7 +835,12 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                     .map((c) => ({ id: c.id, name: c.status === "active" ? c.name : `${c.name} (not active)` }))}
                   cars={((cars ?? []) as { id: string; name: string; rego: string }[]).map((c) => ({ id: c.id, name: `${c.name} (${c.rego})` }))}
                   locations={((locations ?? []) as { id: string; client_id: string; label: string; address: string; suburb?: string | null; state?: string | null; postcode?: string | null; access_notes?: string | null }[]).map((l) => ({ id: l.id, client_id: l.client_id, name: `${l.label}: ${l.address}`, address: l.address, suburb: l.suburb ?? "", state: l.state ?? "", postcode: l.postcode ?? "", access_notes: l.access_notes ?? "" }))}
-                  services={((services ?? []) as { id: string; client_id: string; label: string }[]).map((v) => ({ id: v.id, client_id: v.client_id, name: v.label }))}
+                  services={((services ?? []) as { id: string; client_id: string; label: string; status: string; start_date: string; end_date: string | null; program_id: string; origin?: string; catalogue_id?: string | null; shift_types?: string[] }[]).map((v) => {
+                    // What it covers: the catalogue entry's types, its own, or (older entries with none set, or before update 143) anything.
+                    const own = v.catalogue_id ? (catTypes.get(v.catalogue_id) ?? []) : (v.shift_types ?? []);
+                    const open = !v.origin || (v.origin === "legacy" && !own.length);
+                    return { id: v.id, client_id: v.client_id, name: v.label, status: v.status, start_date: v.start_date, end_date: v.end_date, program: programName.get(v.program_id) ?? "", types: open ? null : own };
+                  })}
                 />
               </div>
             ) : opened ? (

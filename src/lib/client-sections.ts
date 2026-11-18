@@ -35,7 +35,7 @@ export const ALERT_KINDS: [string, string][] = [
   ["other", "Other"],
 ];
 export const SEVERITIES: [string, string][] = [["high", "High"], ["medium", "Medium"], ["low", "Low"]];
-export const SERVICE_STATUS: [string, string][] = [["planned", "Planned"], ["active", "Active"], ["on_hold", "On hold"], ["ended", "Ended"]];
+export const SERVICE_STATUS: [string, string][] = [["planned", "Pending"], ["active", "Active"], ["on_hold", "Suspended"], ["ended", "Ended"]];
 export const CONTACT_WAYS: [string, string][] = [
   ["", "—"],
   ["phone", "Phone call"],
