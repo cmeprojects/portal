@@ -12,6 +12,7 @@ import { BANDS, availabilitySlot, bandOf, shiftTypeLabel, shortTime } from "@/li
 import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, makeOpenShift, switchOffTemplate, voidSignature } from "./actions";
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
 import { PublishControl, type PublishPeriod } from "./publish-control";
+import { Spotlight } from "./spotlight";
 
 export const metadata: Metadata = { title: "Roster" };
 
@@ -148,9 +149,20 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   };
   const hands = (id: string) => ((interest ?? []) as { shift_id: string; user_id: string }[]).filter((i) => i.shift_id === id);
   const vacant = shifts.filter((s) => !s.worker_id);
+  // cmeprojects: every rosterable staff member (or every active client) gets a row, shifts or not.
   const rowIds = byClient
-    ? [...new Set(shifts.map((s) => s.client_id ?? "none"))].sort((a, b) => (clientName.get(a) ?? "~").localeCompare(clientName.get(b) ?? "~"))
-    : [...new Set(shifts.map((s) => s.worker_id).filter((v): v is string => !!v))].sort((a, b) => (name.get(a) ?? "").localeCompare(name.get(b) ?? ""));
+    ? [
+        ...new Set([
+          ...((clients ?? []) as { id: string; status: string }[]).filter((c) => c.status === "active").map((c) => c.id),
+          ...shifts.filter((s) => !!s.worker_id).map((s) => s.client_id ?? "none"),
+        ]),
+      ].sort((a, b) => (clientName.get(a) ?? "~").localeCompare(clientName.get(b) ?? "~"))
+    : [
+        ...new Set([
+          ...((people ?? []) as { id: string }[]).map((p) => p.id),
+          ...shifts.map((s) => s.worker_id).filter((v): v is string => !!v),
+        ]),
+      ].sort((a, b) => (name.get(a) ?? "").localeCompare(name.get(b) ?? ""));
   const totalHours = shifts.filter((s) => s.worker_id).reduce((n, s) => n + shiftHours(s), 0);
   const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("*").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
   const editing = canEdit && (str("add") || (opened && str("edit") === "1"));
@@ -285,22 +297,26 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     );
     const cls = `block w-full rounded-md border-l-[3px] px-1.5 py-1 text-left ${compact ? "text-[10px]" : "text-[11px]"} leading-tight ${STATUS_STYLE[statusOf(s)][1]}`;
     return selecting ? (
-      <label key={s.id} className={`${cls} cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-brand`}>
+      <label key={s.id} data-shift-id={s.id} className={`${cls} cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-brand`}>
         <input type="checkbox" form="pick" name="ids" value={s.id} className="mr-1 size-3 align-middle" />
         {inner}
       </label>
     ) : (
-      <Link key={s.id} href={`${base}&shift=${s.id}`} scroll={false} title={[...warn].join("\n")} className={`${cls} hover:ring-2 hover:ring-brand`}>
+      <Link key={s.id} data-shift-id={s.id} href={`${base}&shift=${s.id}`} scroll={false} title={[...warn].join("\n")} className={`${cls} hover:ring-2 hover:ring-brand`}>
         {inner}
       </Link>
     );
   };
   const close = base + (selecting ? "&select=1" : "");
+  // Closing a shift's panel spotlights that shift so you can see where it is.
+  const closePanel = opened && !editing ? `${close}&spot=${opened.id}&spotlabel=seen` : close;
 
   return (
     <>
       <span data-wide hidden />
       <PageHeader title="Rostering" intro="Plan, publish and track shifts. Click a shift to see its details, events, signatures and log." />
+      {/^[0-9a-f-]{36}$/.test(str("spot")) ? <Spotlight id={str("spot")} label={str("spotlabel") === "added" ? "Just added" : str("spotlabel") === "changed" ? "Just changed" : "You were here"} /> : null}
+      {str("saved") ? <p role="status" className="rounded-lg bg-good-soft px-3 py-2 text-sm font-semibold">{str("saved")}</p> : null}
       {/* cmeprojects (update 128): the week in numbers, from the shifts shown. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
         {(
@@ -411,7 +427,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <span className="ml-auto">{shifts.length ? "" : "No shifts this week"}</span>
       </p>
 
-      <Card className="overflow-x-auto p-0">
+      <Card className="roster-grid overflow-x-auto p-0">
         <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: `${12 + days.length * (view === "day" ? 18 : compact ? 6.5 : 7.5)}rem` }}>
           <thead>
             <tr className="border-b border-line">
@@ -504,13 +520,13 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       {/* Side panels: view, add/edit, change requests. */}
       {editing || opened || str("requests") === "1" || (canEdit && str("templates") === "1") ? (
         <>
-          <Link href={close} scroll={false} aria-label="Close" className="fixed inset-0 z-40 bg-black/25" />
+          <Link href={closePanel} scroll={false} aria-label="Close" className="fixed inset-0 z-40 bg-black/25" />
           <aside className="thin-scroll fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col overflow-y-auto bg-surface shadow-2xl">
             {canEdit && str("templates") === "1" && !editing && !opened ? (
               <div className="flex flex-col gap-3 p-5">
                 <div className="flex items-center justify-between">
                   <h2 className="heading-sm">Shift templates</h2>
-                  <Link href={close} scroll={false} className={buttonClass("outline")}>
+                  <Link href={closePanel} scroll={false} className={buttonClass("outline")}>
                     Close
                   </Link>
                 </div>
@@ -544,7 +560,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
               <div className="flex flex-col gap-3 p-5">
                 <div className="flex items-center justify-between">
                   <h2 className="heading-sm">Shift change requests</h2>
-                  <Link href={close} scroll={false} className={buttonClass("outline")}>
+                  <Link href={closePanel} scroll={false} className={buttonClass("outline")}>
                     Close
                   </Link>
                 </div>
@@ -591,7 +607,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         Back
                       </Link>
                     ) : null}
-                    <Link href={close} scroll={false} className={buttonClass("outline")}>
+                    <Link href={closePanel} scroll={false} className={buttonClass("outline")}>
                       Close
                     </Link>
                   </span>
@@ -619,6 +635,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                 ) : null}
                 <ShiftForm
                   key={`${opened?.id ?? str("add")}-${str("tpl")}`}
+                  closeHref={close}
                   shift={draft}
                   workers={workerFit}
                   clients={((clients ?? []) as { id: string; name: string; status: string }[])
@@ -650,7 +667,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                           Edit
                         </Link>
                       ) : null}
-                      <Link href={close} scroll={false} className={buttonClass("outline")}>
+                      <Link href={closePanel} scroll={false} className={buttonClass("outline")}>
                         Close
                       </Link>
                     </span>

@@ -108,7 +108,7 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     await saveTemplate();
     if (base.status === "published") await tellWorkers();
     revalidatePath("/roster");
-    return { message: "Shift saved." };
+    return { message: "Shift saved.", spotlight: id };
   }
 
   // New: once, or repeating (every day / week / fortnight on chosen days) until a date or a number of shifts, at most 12 weeks.
@@ -131,6 +131,7 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
   }
   const seriesId = dates.length > 1 ? crypto.randomUUID() : null;
   let made = 0;
+  let firstId = "";
   const refused: string[] = [];
   for (const d of dates) {
     const { data: added, error } = await supabase.from("shifts").insert({ ...base, ...times(d), series_id: seriesId }).select("id").single();
@@ -138,13 +139,14 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     else {
       made++;
       if (internalNote && made === 1 && added) await supabase.from("shift_notes").insert({ shift_id: added.id, body: internalNote });
+      if (made === 1 && added) firstId = added.id;
     }
   }
   if (made) await saveTemplate();
   if (base.status === "published" && made) await tellWorkers();
   revalidatePath("/roster");
   if (!made) return { error: refused[0]?.replace(/^\d{4}-\d{2}-\d{2}: /, "") ?? "That didn't save." };
-  return { message: `${made} shift${made === 1 ? "" : "s"} added${refused.length ? `; skipped ${refused.length}: ${refused.slice(0, 3).join("; ")}${refused.length > 3 ? "…" : ""}` : ""}.` };
+  return { spotlight: firstId, message: `${made} shift${made === 1 ? "" : "s"} added${refused.length ? `; skipped ${refused.length}: ${refused.slice(0, 3).join("; ")}${refused.length > 3 ? "…" : ""}` : ""}.` };
 }
 
 export async function cancelShift(form: FormData) {

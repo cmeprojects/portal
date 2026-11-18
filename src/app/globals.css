@@ -280,3 +280,54 @@ body {
     scrollbar-color: rgb(255 255 255 / 0.2) transparent;
   }
 }
+
+/* cmeprojects: roster spotlight. The rest of the roster dims for a moment;
+   the shift stays lit with an outline that draws in and a small tag. */
+.roster-grid [data-shift-id] {
+  transition: opacity 0.35s ease;
+}
+.roster-grid[data-spotlight] [data-shift-id]:not([data-spotlit]) {
+  opacity: 0.3;
+}
+.roster-grid [data-spotlit] {
+  position: relative;
+  z-index: 5;
+  overflow: visible;
+  box-shadow:
+    0 0 0 2px var(--color-brand),
+    0 10px 28px -8px color-mix(in oklab, var(--color-brand) 55%, transparent);
+}
+.roster-grid [data-spotlit]::after {
+  content: attr(data-spot-label);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-brand);
+  color: var(--color-brand-fg);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .roster-grid [data-spotlit] {
+    animation: roster-spot-in 0.9s ease-out;
+  }
+  .roster-grid [data-spotlit]::after {
+    animation: roster-tag-in 0.45s ease-out;
+  }
+}
+@keyframes roster-spot-in {
+  from {
+    box-shadow:
+      0 0 0 14px color-mix(in oklab, var(--color-brand) 0%, transparent),
+      0 10px 28px -8px transparent;
+  }
+}
+@keyframes roster-tag-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}

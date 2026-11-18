@@ -2,7 +2,8 @@
 "use client";
 
 import { SHIFT_ALLOWANCES, SHIFT_TYPES } from "@/lib/roster";
-import { useActionState, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useActionState, useMemo, useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { bulkShifts, copyLastWeek, copyToNextWeek, saveShift } from "./actions";
 
@@ -58,6 +59,7 @@ export function ShiftForm({
   locations,
   services,
   cars = [],
+  closeHref,
 }: {
   shift: ShiftDraft;
   workers: WorkerFit[];
@@ -65,8 +67,15 @@ export function ShiftForm({
   locations: (Opt & { client_id: string })[];
   services: (Opt & { client_id: string })[];
   cars?: Opt[];
+  closeHref?: string;
 }) {
   const [state, action, pending] = useActionState(saveShift, null);
+  const router = useRouter();
+  // cmeprojects: a successful save closes the panel and shows what happened above the roster.
+  useEffect(() => {
+    if (state?.message && closeHref)
+      router.push(`${closeHref}${closeHref.includes("?") ? "&" : "?"}saved=${encodeURIComponent(state.message)}${state.spotlight ? `&spot=${state.spotlight}&spotlabel=${shift.id ? "changed" : "added"}` : ""}`, { scroll: false });
+  }, [state, closeHref, router, shift.id]);
   const [client, setClient] = useState(shift.client_id);
   const [worker, setWorker] = useState(shift.worker_id);
   const [date, setDate] = useState(shift.date);

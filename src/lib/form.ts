@@ -1,6 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 
-export type FormState = { error?: string; message?: string } | null;
+export type FormState = { error?: string; message?: string; spotlight?: string } | null;
 
 export function text(form: FormData, name: string): string {
   const value = form.get(name);
