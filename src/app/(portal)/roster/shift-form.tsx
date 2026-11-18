@@ -342,6 +342,10 @@ export function ShiftForm({
           <input type="checkbox" name="needs_client_signature" defaultChecked={shift.needs_client_signature} /> Client (or representative) signs at clock out
         </label>
       </fieldset>
+      <label className={`${field} sm:max-w-80`}>
+        Also save as a template (optional)
+        <input name="save_template" maxLength={80} placeholder="Template name, e.g. Morning personal care" className={inputClass} />
+      </label>
       <div className="flex flex-wrap items-center gap-3">
         <select name="status" defaultValue={shift.status === "published" ? "published" : "draft"} aria-label="Save as" className={`${inputClass.replace("w-full", "")} w-auto`}>
           <option value="draft">Save as draft</option>

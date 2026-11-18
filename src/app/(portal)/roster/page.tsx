@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
 import { BANDS, availabilitySlot, bandOf, shiftTypeLabel, shortTime } from "@/lib/roster";
-import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, publishWeek, voidSignature } from "./actions";
+import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, makeOpenShift, publishWeek, switchOffTemplate, voidSignature } from "./actions";
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
 
 export const metadata: Metadata = { title: "Roster" };
@@ -43,21 +43,40 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const sp = await searchParams;
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const today = sydneyToday();
-  const monday = mondayOf(/^\d{4}-\d{2}-\d{2}$/.test(str("w")) ? str("w") : today);
-  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
-  const from = sydneyInstant(monday);
-  const to = sydneyInstant(addDays(monday, 7));
+  // cmeprojects (update 129): Day, Week or Month, around one date.
+  const view: "day" | "week" | "month" = str("v") === "day" ? "day" : str("v") === "month" ? "month" : "week";
+  const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const anchor = isDate(str("d")) ? str("d") : isDate(str("w")) ? str("w") : today;
+  const monday = mondayOf(anchor);
+  const monthStart = `${anchor.slice(0, 7)}-01`;
+  const nextMonthStart = (() => {
+    const [y, m] = anchor.slice(0, 7).split("-").map(Number);
+    return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+  })();
+  const prevMonthStart = (() => {
+    const [y, m] = anchor.slice(0, 7).split("-").map(Number);
+    return m === 1 ? `${y - 1}-12-01` : `${y}-${String(m - 1).padStart(2, "0")}-01`;
+  })();
+  const gridStart = view === "day" ? anchor : view === "month" ? mondayOf(monthStart) : monday;
+  const gridEnd = view === "day" ? addDays(anchor, 1) : view === "month" ? addDays(mondayOf(addDays(nextMonthStart, -1)), 7) : addDays(monday, 7);
+  const days = view === "day" ? [anchor] : Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+  const monthDays = view === "month" ? Array.from({ length: Math.round((Date.parse(`${gridEnd}T12:00:00Z`) - Date.parse(`${gridStart}T12:00:00Z`)) / 86_400_000) }, (_, i) => addDays(gridStart, i)) : [];
+  const from = sydneyInstant(gridStart);
+  const to = sydneyInstant(gridEnd);
   const byClient = str("by") === "client";
   const selecting = canEdit && str("select") === "1";
-  const base = `/roster?w=${monday}${byClient ? "&by=client" : ""}`;
+  const viewQ = `${view === "week" ? "" : `v=${view}&`}d=${anchor}`;
+  const base = `/roster?${viewQ}${byClient ? "&by=client" : ""}`;
+  const go = (d: string, v: string = view) => `/roster?${v === "week" ? "" : `v=${v}&`}d=${d}${byClient ? "&by=client" : ""}`;
   const supabase = await createClient();
+  type Tpl = { id: string; name: string; shift_type: string; start_time: string; end_time: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; allowances: string[]; pay_group: string; needs_worker_signature: boolean; needs_client_signature: boolean };
   const [shiftsRes, { data: people }, { data: clients }, { data: locations }, { data: services }, { data: leave }, { data: interest }, { data: availRows }, { data: checks }, reqRes, { data: cars }] = await Promise.all([
     supabase.from("shifts").select("*").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to).order("starts_at"),
     supabase.from("profiles").select("id, full_name, email").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").order("full_name"),
     supabase.from("car_clients").select("id, name, status").neq("status", "discharged").order("name"),
     supabase.from("client_locations").select("id, client_id, label, address").eq("approved", true),
     supabase.from("client_services").select("id, client_id, label").neq("status", "ended"),
-    supabase.from("leave_periods").select("user_id, start_date, end_date").lte("start_date", addDays(days[6], 7)).gte("end_date", days[0]),
+    supabase.from("leave_periods").select("user_id, start_date, end_date").lte("start_date", addDays(gridEnd, 6)).gte("end_date", gridStart),
     supabase.from("shift_interest").select("shift_id, user_id"),
     supabase.from("staff_private").select("user_id, availability"),
     supabase.rpc("roster_check_dates"),
@@ -65,6 +84,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     // cmeprojects (update 128): company cars from the Cars module (only those this person may see).
     supabase.from("cars").select("id, name, rego").eq("active", true).order("name"),
   ]);
+  // cmeprojects (update 129): shift templates (people who roster; empty before it runs).
+  const templates = canEdit ? (((await supabase.from("shift_templates").select("*").eq("active", true).order("name")).data ?? []) as Tpl[]) : [];
+  const tpl = templates.find((t) => t.id === str("tpl"));
   if (shiftsRes.error) notFound(); // before live update 122
   const shifts = (shiftsRes.data ?? []) as Shift[];
   const requests = reqRes.error ? [] : ((reqRes.data ?? []) as Req[]);
@@ -111,7 +133,12 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("*").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
   const editing = canEdit && (str("add") || (opened && str("edit") === "1"));
   const tab = str("tab") === "log" ? "logs" : ["details", "events", "signatures", "trips", "timesheet", "logs"].includes(str("tab")) ? str("tab") : "details";
-  const weekLabel = `${auDate(days[0])} – ${auDate(days[6])} ${days[6].slice(0, 4)}`;
+  const weekLabel =
+    view === "day"
+      ? new Date(`${anchor}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
+      : view === "month"
+        ? new Date(`${monthStart}T12:00:00Z`).toLocaleDateString("en-AU", { month: "long", year: "numeric", timeZone: "UTC" })
+        : `${auDate(days[0])} – ${auDate(days[6])} ${days[6].slice(0, 4)}`;
   const thisMonday = mondayOf(today);
   const weeksAway = Math.round((new Date(`${monday}T12:00:00Z`).getTime() - new Date(`${thisMonday}T12:00:00Z`).getTime()) / (7 * 86_400_000));
 
@@ -151,7 +178,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         needs_worker_signature: !!opened.needs_worker_signature,
         needs_client_signature: !!opened.needs_client_signature,
       }
-    : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", status: "draft", series: false, shift_type: "standard", vehicle_id: "", pay_group: "", allowances: [], needs_worker_signature: false, needs_client_signature: false };
+    : tpl
+      ? { date: fitDay, start: tpl.start_time.slice(0, 5), end: tpl.end_time.slice(0, 5), nextDay: tpl.end_time <= tpl.start_time, break_minutes: tpl.break_minutes, worker_id: str("worker"), client_id: tpl.client_id ?? str("client"), location_id: tpl.location_id ?? "", service_id: tpl.service_id ?? "", notes: tpl.notes, status: "draft", series: false, shift_type: tpl.shift_type, vehicle_id: "", pay_group: tpl.pay_group, allowances: tpl.allowances, needs_worker_signature: tpl.needs_worker_signature, needs_client_signature: tpl.needs_client_signature }
+      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", status: "draft", series: false, shift_type: "standard", vehicle_id: "", pay_group: "", allowances: [], needs_worker_signature: false, needs_client_signature: false };
 
   // The opened shift's timesheet and log.
   const [{ data: sheet }, { data: events }, { data: sigRows }, { data: tripRows }, { data: noteRows }, { data: response }] = opened && !editing
@@ -272,28 +301,39 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
-          <Link href={`/roster?w=${monday}`} className={`px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand-soft text-brand"}`}>
+          <Link href={`/roster?${viewQ}`} className={`px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand-soft text-brand"}`}>
             Staff
           </Link>
-          <Link href={`/roster?w=${monday}&by=client`} className={`px-3 py-1.5 ${byClient ? "bg-brand-soft text-brand" : "text-muted hover:bg-page"}`}>
+          <Link href={`/roster?${viewQ}&by=client`} className={`px-3 py-1.5 ${byClient ? "bg-brand-soft text-brand" : "text-muted hover:bg-page"}`}>
             Client
           </Link>
         </span>
-        <Link href={`/roster?w=${thisMonday}${byClient ? "&by=client" : ""}`} className={buttonClass("outline")}>
+        <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
+          {(["day", "week", "month"] as const).map((v) => (
+            <Link key={v} href={go(anchor, v)} className={`px-3 py-1.5 ${view === v ? "bg-brand-soft text-brand" : "text-muted hover:bg-page"}`}>
+              {v[0].toUpperCase() + v.slice(1)}
+            </Link>
+          ))}
+        </span>
+        <Link href={go(today)} className={buttonClass("outline")}>
           Today
         </Link>
         {/* The week shown, between its arrows, in one box the height of the buttons. */}
         <span className="inline-flex min-h-11 items-stretch overflow-hidden rounded-lg border border-line bg-surface md:min-h-10">
-          <Link href={`/roster?w=${addDays(monday, -7)}${byClient ? "&by=client" : ""}`} aria-label="Previous week" className="flex items-center border-r border-line px-2.5 hover:bg-page">
+          <Link href={go(view === "day" ? addDays(anchor, -1) : view === "month" ? prevMonthStart : addDays(monday, -7))} aria-label={`Previous ${view}`} className="flex items-center border-r border-line px-2.5 hover:bg-page">
             <ChevronLeft aria-hidden="true" className="size-4" />
           </Link>
           <span className="flex min-w-60 items-center justify-center gap-2 px-3">
             <span className="text-sm font-semibold">{weekLabel}</span>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${weeksAway === 0 ? "bg-brand-soft text-brand" : "bg-page ring-1 ring-line"}`}>
-              {weeksAway === 0 ? "This week" : weeksAway > 0 ? `${weeksAway} week${weeksAway === 1 ? "" : "s"} ahead` : `${-weeksAway} week${weeksAway === -1 ? "" : "s"} ago`}
-            </span>
+            {view === "week" ? (
+              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${weeksAway === 0 ? "bg-brand-soft text-brand" : "bg-page ring-1 ring-line"}`}>
+                {weeksAway === 0 ? "This week" : weeksAway > 0 ? `${weeksAway} week${weeksAway === 1 ? "" : "s"} ahead` : `${-weeksAway} week${weeksAway === -1 ? "" : "s"} ago`}
+              </span>
+            ) : (view === "day" ? anchor === today : monthStart === `${today.slice(0, 7)}-01`) ? (
+              <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">{view === "day" ? "Today" : "This month"}</span>
+            ) : null}
           </span>
-          <Link href={`/roster?w=${addDays(monday, 7)}${byClient ? "&by=client" : ""}`} aria-label="Next week" className="flex items-center border-l border-line px-2.5 hover:bg-page">
+          <Link href={go(view === "day" ? addDays(anchor, 1) : view === "month" ? nextMonthStart : addDays(monday, 7))} aria-label={`Next ${view}`} className="flex items-center border-l border-line px-2.5 hover:bg-page">
             <ChevronRight aria-hidden="true" className="size-4" />
           </Link>
         </span>
@@ -308,7 +348,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
             </form>
           ) : null}
           {canEdit ? (
-            <Link href={`${base}&add=${today >= days[0] && today <= days[6] ? today : days[0]}`} scroll={false} className={buttonClass("primary")}>
+            <Link href={`${base}&add=${today >= gridStart && today < gridEnd ? today : view === "month" ? monthStart : days[0]}`} scroll={false} className={buttonClass("primary")}>
               + Add shift
             </Link>
           ) : null}
@@ -333,6 +373,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
               <Link href="/roster/timesheets" className="block px-3 py-2 text-sm font-semibold hover:bg-page">
                 Timesheets
               </Link>
+              {canEdit ? (
+                <Link href={`${base}&templates=1`} scroll={false} className="block px-3 py-2 text-sm font-semibold hover:bg-page">
+                  Shift templates
+                </Link>
+              ) : null}
               <Link href="/settings/staff" className="block px-3 py-2 text-sm font-semibold hover:bg-page">
                 Staff availability (on each staff page)
               </Link>
@@ -350,16 +395,62 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <span className="ml-auto">{shifts.length ? "" : "No shifts this week"}</span>
       </p>
 
+      {view === "month" ? (
+        <Card className="overflow-x-auto p-0">
+          <div className="grid min-w-[60rem] grid-cols-7 border-b border-line text-center text-xs font-semibold text-muted">
+            {DAY_NAMES.map((n) => (
+              <div key={n} className="border-r border-line py-2 last:border-r-0">
+                {n.toUpperCase()}
+              </div>
+            ))}
+          </div>
+          <div className="grid min-w-[60rem] grid-cols-7">
+            {monthDays.map((d) => {
+              const list = shifts.filter((x) => sydneyParts(x.starts_at).date === d);
+              const inMonth = d.slice(0, 7) === monthStart.slice(0, 7);
+              const open = list.filter((x) => !x.worker_id).length;
+              return (
+                <div key={d} className={`flex min-h-32 flex-col gap-1 border-r border-b border-line p-1.5 [&:nth-child(7n)]:border-r-0 ${inMonth ? "" : "bg-page/60 opacity-60"}`}>
+                  <Link href={go(d, "day")} className="flex items-center justify-between text-xs font-semibold hover:text-brand">
+                    <span className={`rounded-full px-1.5 ${d === today ? "bg-brand text-brand-fg" : ""}`}>{Number(d.slice(8))}</span>
+                    {list.length ? (
+                      <span className="font-normal text-muted">
+                        {list.length} shift{list.length === 1 ? "" : "s"}
+                        {open ? <span className="text-danger"> · {open} vacant</span> : null}
+                      </span>
+                    ) : null}
+                  </Link>
+                  {list.slice(0, 3).map((x) => (
+                    <Link key={x.id} href={`${base}&shift=${x.id}`} scroll={false} className={`block truncate rounded border-l-[3px] px-1 py-0.5 text-[11px] ${STATUS_STYLE[statusOf(x)][1]}`}>
+                      {shortTime(x.starts_at)} {x.worker_id ? (name.get(x.worker_id) ?? "") : "Vacant"}
+                    </Link>
+                  ))}
+                  {list.length > 3 ? (
+                    <Link href={go(d, "day")} className="text-[11px] font-semibold text-brand">
+                      +{list.length - 3} more
+                    </Link>
+                  ) : null}
+                  {canEdit && inMonth ? (
+                    <Link href={`${base}&add=${d}`} scroll={false} aria-label="Add a shift" className="mt-auto rounded text-center text-xs text-muted hover:bg-page hover:text-brand">
+                      +
+                    </Link>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ) : (
       <Card className="overflow-x-auto p-0">
-        <table className="w-full min-w-[60rem] table-fixed border-collapse text-sm">
+        <table className={`w-full ${view === "day" ? "min-w-[30rem]" : "min-w-[60rem]"} table-fixed border-collapse text-sm`}>
           <thead>
             <tr className="border-b border-line">
               <th scope="col" className="sticky left-0 z-10 w-48 border-r-[3px] border-line bg-page px-3 py-2 text-left text-xs font-semibold text-muted">
                 {byClient ? "Client" : "Worker"}
               </th>
-              {days.map((d, i) => (
+              {days.map((d) => (
                 <th key={d} scope="col" className="border-r border-line px-1 py-2 text-center text-xs font-semibold text-muted">
-                  {DAY_NAMES[i].toUpperCase()}
+                  {DAY_NAMES[(new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7].toUpperCase()}
                   <span className={`mx-auto mt-0.5 block w-fit rounded-full px-1.5 font-display text-sm ${d === today ? "bg-brand text-brand-fg" : "text-ink"}`}>{Number(d.slice(8))}</span>
                 </th>
               ))}
@@ -412,6 +503,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </table>
         {!shifts.length ? <p className="p-6 text-center text-sm text-muted">No shifts this week yet. Add one, or copy last week from the ⋮ menu.</p> : null}
       </Card>
+      )}
       {selecting ? (
         <>
           <form id="pick" />
@@ -420,11 +512,45 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       ) : null}
 
       {/* Side panels: view, add/edit, change requests. */}
-      {editing || opened || str("requests") === "1" ? (
+      {editing || opened || str("requests") === "1" || (canEdit && str("templates") === "1") ? (
         <>
           <Link href={close} scroll={false} aria-label="Close" className="fixed inset-0 z-40 bg-black/25" />
           <aside className="thin-scroll fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col overflow-y-auto bg-surface shadow-2xl">
-            {str("requests") === "1" ? (
+            {canEdit && str("templates") === "1" && !editing && !opened ? (
+              <div className="flex flex-col gap-3 p-5">
+                <div className="flex items-center justify-between">
+                  <h2 className="heading-sm">Shift templates</h2>
+                  <Link href={close} scroll={false} className={buttonClass("outline")}>
+                    Close
+                  </Link>
+                </div>
+                <p className="text-sm text-muted">Save a template from the Add shift panel (&ldquo;Also save as a template&rdquo;), then start new shifts from it.</p>
+                {templates.length ? (
+                  <ul className="divide-y divide-line rounded-md border border-line text-sm">
+                    {templates.map((t) => (
+                      <li key={t.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                        <span className="flex-1">
+                          <span className="font-semibold">{t.name}</span>
+                          <span className="block text-xs text-muted">
+                            {shiftTypeLabel(t.shift_type)} · {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
+                            {t.client_id ? ` · ${clientName.get(t.client_id) ?? "a client"}` : ""}
+                          </span>
+                        </span>
+                        <Link href={`${base}&add=${anchor}&tpl=${t.id}`} scroll={false} className="text-xs font-semibold text-brand underline">
+                          Use
+                        </Link>
+                        <form action={switchOffTemplate}>
+                          <input type="hidden" name="id" value={t.id} />
+                          <button className="text-xs font-semibold text-danger underline">Switch off</button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">No templates yet.</p>
+                )}
+              </div>
+            ) : str("requests") === "1" ? (
               <div className="flex flex-col gap-3 p-5">
                 <div className="flex items-center justify-between">
                   <h2 className="heading-sm">Shift change requests</h2>
@@ -480,8 +606,29 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                     </Link>
                   </span>
                 </div>
+                {!opened && templates.length ? (
+                  <form method="get" action="/roster" className="flex flex-wrap items-end gap-2 rounded-lg border border-line bg-page p-3">
+                    {view !== "week" ? <input type="hidden" name="v" value={view} /> : null}
+                    <input type="hidden" name="d" value={anchor} />
+                    {byClient ? <input type="hidden" name="by" value="client" /> : null}
+                    <input type="hidden" name="add" value={str("add")} />
+                    {str("worker") ? <input type="hidden" name="worker" value={str("worker")} /> : null}
+                    <label className="flex flex-1 flex-col gap-1 text-xs font-medium">
+                      Start from a template
+                      <select name="tpl" defaultValue={str("tpl")} className={inputClass}>
+                        <option value="">No template</option>
+                        {templates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} ({t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button className={buttonClass("outline")}>Use</button>
+                  </form>
+                ) : null}
                 <ShiftForm
-                  key={opened?.id ?? str("add")}
+                  key={`${opened?.id ?? str("add")}-${str("tpl")}`}
                   shift={draft}
                   workers={workerFit}
                   clients={((clients ?? []) as { id: string; name: string; status: string }[])
@@ -570,6 +717,17 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                                 <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold">Waiting</span>
                               )}
                               {answer?.note ? <span className="block text-xs text-muted">{answer.note}</span> : null}
+                              {answer?.response === "declined" && canEdit ? (
+                                <span className="mt-1 flex flex-wrap gap-2">
+                                  <form action={makeOpenShift}>
+                                    <input type="hidden" name="id" value={opened.id} />
+                                    <button className={buttonClass("outline")}>Make it an open shift</button>
+                                  </form>
+                                  <Link href={`${base}&shift=${opened.id}&edit=1`} scroll={false} className={buttonClass("primary")}>
+                                    Give to someone else
+                                  </Link>
+                                </span>
+                              ) : null}
                             </dd>
                             <dt className="text-muted">Company car</dt>
                             <dd>{opened.vehicle_id ? (carName.get(opened.vehicle_id) ?? "Booked car") : "None"}</dd>

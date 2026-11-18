@@ -54,6 +54,26 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     needs_client_signature: form.get("needs_client_signature") === "on",
   };
   const internalNote = String(form.get("internal_note") ?? "").trim().slice(0, 2000);
+  // cmeprojects (update 129): also keep these details as a named template.
+  const templateName = String(form.get("save_template") ?? "").trim().slice(0, 80);
+  const saveTemplate = async () => {
+    if (!templateName) return;
+    await (await createClient()).from("shift_templates").insert({
+      name: templateName,
+      shift_type: base.shift_type,
+      start_time: startT,
+      end_time: endT,
+      break_minutes: base.break_minutes,
+      client_id: base.client_id,
+      service_id: base.service_id,
+      location_id: base.location_id,
+      notes: base.notes,
+      allowances: base.allowances,
+      pay_group: base.pay_group,
+      needs_worker_signature: base.needs_worker_signature,
+      needs_client_signature: base.needs_client_signature,
+    });
+  };
   // One date: start and finish (finishing at or before the start, or ticked: the next day).
   const times = (d: string) => {
     const start = sydney(d, startT)!;
@@ -85,6 +105,7 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     const { error } = await supabase.from("shifts").update({ ...base, ...times(date) }).eq("id", id);
     if (error) return { error: friendlyError(error) };
     if (internalNote) await supabase.from("shift_notes").insert({ shift_id: id, body: internalNote });
+    await saveTemplate();
     if (base.status === "published") await tellWorkers();
     revalidatePath("/roster");
     return { message: "Shift saved." };
@@ -119,6 +140,7 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
       if (internalNote && made === 1 && added) await supabase.from("shift_notes").insert({ shift_id: added.id, body: internalNote });
     }
   }
+  if (made) await saveTemplate();
   if (base.status === "published" && made) await tellWorkers();
   revalidatePath("/roster");
   if (!made) return { error: refused[0]?.replace(/^\d{4}-\d{2}-\d{2}: /, "") ?? "That didn't save." };
@@ -354,5 +376,23 @@ export async function voidSignature(form: FormData) {
   const reason = String(form.get("reason") ?? "").trim().slice(0, 500);
   if (!isId(id) || !reason) return;
   await (await createClient()).from("shift_signatures").update({ voided_at: new Date().toISOString(), void_reason: reason }).eq("id", id);
+  revalidatePath("/roster");
+}
+
+// cmeprojects (update 129): switch a shift template off (kept, not deleted).
+export async function switchOffTemplate(form: FormData) {
+  await requireRoster();
+  const id = String(form.get("id") ?? "");
+  if (!isId(id)) return;
+  await (await createClient()).from("shift_templates").update({ active: false }).eq("id", id);
+  revalidatePath("/roster");
+}
+
+// cmeprojects (update 129): a declined shift becomes an open shift (staff can put their hand up).
+export async function makeOpenShift(form: FormData) {
+  await requireRoster();
+  const id = String(form.get("id") ?? "");
+  if (!isId(id)) return;
+  await (await createClient()).from("shifts").update({ worker_id: null }).eq("id", id);
   revalidatePath("/roster");
 }

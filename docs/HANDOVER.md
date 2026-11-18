@@ -140,6 +140,14 @@ Last updated: 17 Nov 2026.
   week label), `/roster/timesheets` (tiles, worker columns split from pay-period columns, expand, edit modal, payroll
   CSV), `/my-shifts` (confirm times, ask to swap). run_roster_alerts also sends request and query notices.
   Next: Stage 6 (Allied Health external access; design for approval first).
+- **Rostering round 4 (update 129, 18 Nov 2026):** shift_templates (roster editors; switched off, not deleted;
+  "Also save as a template" in the form, "Start from a template" in Add shift, ⋮ → Shift templates). Notices in
+  run_roster_alerts (each once, tracked in care_alerts_sent): shift_declined → roster_people() with the reason
+  (also run at once when a worker declines), shift_cancelled → the worker if they'd been told, shift_unfilled →
+  roster_people() when vacant or declined within 48 h. Owner-approved decline flow: the shift stays with the
+  worker marked Declined; the panel offers "Make it an open shift" or "Give to someone else". Views: Day (one-day
+  grid), Week, Month (calendar with counts and first 3 shifts, links to the day); `?v=day|month&d=YYYY-MM-DD`
+  (old `?w=` still works). Shift chips coloured by status (vacant, draft, waiting, accepted, declined, finished).
 - **Rostering round 3 (update 128, 18 Nov 2026; owner's rostering brief):** shifts get ref (SH-000123), shift_type,
   vehicle_id (Cars), pay_group, allowances, needs_worker/client_signature; guard_shift_client: only active clients
   get new shifts, a car can't be double-booked. shift_events gains kind (event/change), field, old_value, new_value,

@@ -104,11 +104,15 @@ export default async function MyShiftsPage() {
                 <input type="hidden" name="response" value="accepted" />
                 <button className={buttonClass("primary")}>Accept</button>
               </form>
-              <form action={answerShift}>
-                <input type="hidden" name="id" value={x.id} />
-                <input type="hidden" name="response" value="declined" />
-                <button className={buttonClass("outline")}>Decline</button>
-              </form>
+              <details className="w-full">
+                <summary className={`${buttonClass("outline")} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>Decline</summary>
+                <form action={answerShift} className="mt-2 flex flex-wrap gap-2">
+                  <input type="hidden" name="id" value={x.id} />
+                  <input type="hidden" name="response" value="declined" />
+                  <input name="note" required maxLength={500} placeholder="Why you can't work it (the roster team sees this)" className="min-w-64 flex-1 rounded-lg border border-line bg-field px-3 py-2 text-sm" />
+                  <button className={buttonClass("primary")}>Send</button>
+                </form>
+              </details>
             </div>
           )
         ) : null}

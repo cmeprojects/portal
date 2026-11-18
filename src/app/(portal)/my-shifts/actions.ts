@@ -4,6 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 
@@ -19,6 +20,8 @@ export async function answerShift(form: FormData) {
   await (await createClient())
     .from("shift_responses")
     .upsert({ shift_id: id, worker_id: profile.id, response, note: String(form.get("note") ?? "").trim().slice(0, 500) }, { onConflict: "shift_id" });
+  // A decline reaches the people who roster straight away (the server-only reminder run).
+  if (response === "declined") await createAdminClient().rpc("run_roster_alerts");
   revalidatePath("/my-shifts");
 }
 
