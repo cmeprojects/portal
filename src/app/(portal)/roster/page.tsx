@@ -27,7 +27,7 @@ type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at:
   // update 128 (absent before it runs)
   ref?: string; shift_type?: string; vehicle_id?: string | null; pay_group?: string; allowances?: string[]; needs_worker_signature?: boolean; needs_client_signature?: boolean;
   // update 141
-  extra_notes?: string; pay_class?: string | null; signatures_needed?: string[]; notify_worker?: boolean;
+  extra_notes?: string; pay_class?: string | null; signatures_needed?: string[]; notify_worker?: boolean; shift_type_other?: string;
   created_by?: string | null; created_at?: string; updated_by?: string | null; updated_at?: string; notified_at?: string | null };
 type Req = { id: string; shift_id: string; requested_by: string; kind: string; swap_with: string | null; reason: string; created_at: string };
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -114,9 +114,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("cars").select("id, name, rego").eq("active", true).order("name"),
   ]);
   // cmeprojects (update 129): shift templates (people who roster; empty before it runs).
-  const [{ data: templateRows }, { data: draftRows }, { data: titleRows }, typesRes] = await Promise.all([templatesP, draftsP, titlesP, supabase.from("shift_types").select("key, label, active").order("sort_order").order("label")]);
+  const [{ data: templateRows }, { data: draftRows }, { data: titleRows }, typesRes] = await Promise.all([templatesP, draftsP, titlesP, supabase.from("shift_types").select("*").order("sort_order").order("label")]);
   // cmeprojects (update 141): shift types are a managed list; before it runs, the fixed list.
-  const shiftTypes = typesRes.error ? SHIFT_TYPES.map(([key, label]) => ({ key, label, active: true })) : ((typesRes.data ?? []) as { key: string; label: string; active: boolean }[]);
+  const shiftTypes = typesRes.error ? SHIFT_TYPES.map(([key, label]) => ({ key, label, active: true })) : ((typesRes.data ?? []) as { key: string; label: string; active: boolean; used_for?: string }[]);
   const typeName = new Map(shiftTypes.map((t) => [t.key, t.label]));
   const typeLabel = (k: string) => typeName.get(k) ?? shiftTypeLabel(k);
   // cmeprojects (update 141): which signatures a shift needs, and the signature kind that fills each.
@@ -304,6 +304,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         status: opened.status,
         series: !!opened.series_id,
         shift_type: opened.shift_type ?? "standard",
+        shift_type_other: opened.shift_type_other ?? "",
         vehicle_id: opened.vehicle_id ?? "",
         pay_group: opened.pay_group ?? "",
         allowances: opened.allowances ?? [],
@@ -314,7 +315,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       }
     : tpl
       ? { date: fitDay, start: tpl.start_time.slice(0, 5), end: tpl.end_time.slice(0, 5), nextDay: tpl.end_time <= tpl.start_time, break_minutes: tpl.break_minutes, worker_id: str("worker"), client_id: tpl.client_id ?? str("client"), location_id: tpl.location_id ?? "", service_id: tpl.service_id ?? "", notes: tpl.notes, extra_notes: tpl.extra_notes ?? "", status: "draft", series: false, shift_type: tpl.shift_type, vehicle_id: "", pay_group: tpl.pay_group, pay_class: "", notify_worker: true, allowances: tpl.allowances, signatures_needed: tpl.signatures_needed ?? [...(tpl.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(tpl.needs_client_signature ? ["client_out"] : [])] }
-      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", extra_notes: "", status: "draft", series: false, shift_type: "standard", vehicle_id: "", pay_group: "", pay_class: "", notify_worker: true, allowances: [], signatures_needed: [] };
+      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", extra_notes: "", status: "draft", series: false, shift_type: str("client") ? "standard" : "admin", vehicle_id: "", pay_group: "", pay_class: "", notify_worker: true, allowances: [], signatures_needed: [] };
 
   // The opened shift's timesheet and log.
   const [{ data: sheet }, { data: events }, { data: sigRows }, { data: tripRows }, { data: noteRows }, { data: response }, { data: serviceRow }] = opened && !editing
@@ -644,8 +645,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                             <span className="hidden group-hover:inline">{compact ? "" : "Open shift"}</span>
                           </Link>
                         ) : canAdd ? (
-                          <Link href={`${base}&add=${d}`} scroll={false} aria-label={`Add another open shift on ${auDate(d)}`} title="Add another open shift" className="absolute -right-0.5 -bottom-0.5 z-10 flex size-5 items-center justify-center rounded-full border border-danger bg-surface text-danger opacity-0 shadow transition group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100">
-                            <Plus aria-hidden="true" className="size-3" />
+                          // cmeprojects: a "+" under the shifts, always shown, to add another.
+                          <Link href={`${base}&add=${d}`} scroll={false} aria-label={`Add another open shift on ${auDate(d)}`} title="Add another open shift" className="flex h-5 items-center justify-center rounded-md text-muted transition hover:bg-danger-soft hover:text-danger focus-visible:bg-danger-soft">
+                            <Plus aria-hidden="true" className="size-3.5" />
                           </Link>
                         ) : null}
                       </div>
@@ -702,9 +704,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                                 <span className="hidden group-hover:inline">{compact ? "" : "Add shift"}</span>
                               </Link>
                             ) : canAdd ? (
-                              // Cell with shifts: a small corner button, so rows stay aligned.
-                              <Link href={addHref} scroll={false} aria-label={addLabel} title="Add another shift" className="absolute -right-0.5 -bottom-0.5 z-10 flex size-5 items-center justify-center rounded-full border border-brand bg-surface text-brand opacity-0 shadow transition group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100">
-                                <Plus aria-hidden="true" className="size-3" />
+                              // Cell with shifts: a "+" under them, always shown, to add another.
+                              <Link href={addHref} scroll={false} aria-label={addLabel} title="Add another shift" className="flex h-5 items-center justify-center rounded-md text-muted transition hover:bg-brand-soft hover:text-brand focus-visible:bg-brand-soft">
+                                <Plus aria-hidden="true" className="size-3.5" />
                               </Link>
                             ) : null}
                           </div>
@@ -871,7 +873,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                             <dt className="text-muted">Reference</dt>
                             <dd className="font-mono text-xs">{opened.ref}</dd>
                             <dt className="text-muted">Shift type</dt>
-                            <dd>{typeLabel(opened.shift_type ?? "standard")}</dd>
+                            <dd>{typeLabel(opened.shift_type ?? "standard")}{opened.shift_type === "other" && opened.shift_type_other ? `: ${opened.shift_type_other}` : ""}</dd>
                           </>
                         ) : null}
                         <dt className="text-muted">Client</dt>

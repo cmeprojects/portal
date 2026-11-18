@@ -22,8 +22,11 @@ export async function saveShiftType(_: FormState, form: FormData): Promise<FormS
   const label = String(form.get("label") ?? "").trim().slice(0, 60);
   if (!label) return { error: "Give the shift type a name." };
   const supabase = await createClient();
+  // update 142: client shifts, internal work (no client) or both.
+  const usedFor = String(form.get("used_for") ?? "");
+  const use = ["client", "internal", "both"].includes(usedFor) ? { used_for: usedFor } : {};
   if (key) {
-    const { error } = await supabase.from("shift_types").update({ label, active: form.get("active") === "on", updated_at: new Date().toISOString() }).eq("key", key);
+    const { error } = await supabase.from("shift_types").update({ label, active: form.get("active") === "on", updated_at: new Date().toISOString(), ...use }).eq("key", key);
     if (error) return { error: friendlyError(error) };
     revalidatePath("/roster/shift-types");
     return { message: "Shift type saved." };
@@ -34,7 +37,7 @@ export async function saveShiftType(_: FormState, form: FormData): Promise<FormS
   const { data: exists } = await supabase.from("shift_types").select("key").eq("key", newKey).maybeSingle();
   if (exists) return { error: "There's already a shift type with that name." };
   const { data: last } = await supabase.from("shift_types").select("sort_order").order("sort_order", { ascending: false }).limit(1).maybeSingle();
-  const { error } = await supabase.from("shift_types").insert({ key: newKey, label, sort_order: (last?.sort_order ?? 0) + 10 });
+  const { error } = await supabase.from("shift_types").insert({ key: newKey, label, sort_order: (last?.sort_order ?? 0) + 10, ...use });
   if (error) return { error: friendlyError(error) };
   revalidatePath("/roster/shift-types");
   return { message: "Shift type added." };

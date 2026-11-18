@@ -47,9 +47,13 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
   const supabase = await createClient();
   // Shift types are the managed list (update 141); a switched-off type stays only on shifts that already have it.
   const wantType = String(form.get("shift_type") ?? "standard");
-  const { data: typeRow } = await supabase.from("shift_types").select("key, active").eq("key", wantType).maybeSingle();
+  const { data: typeRow } = await supabase.from("shift_types").select("*").eq("key", wantType).maybeSingle();
   const { data: current } = id && isId(id) ? await supabase.from("shifts").select("shift_type, status").eq("id", id).maybeSingle() : { data: null };
   if (!typeRow || (!typeRow.active && current?.shift_type !== wantType)) return { error: "Choose a shift type from the list." };
+  // update 142: client shift types for client shifts, internal ones for work with no client.
+  const usedFor = (typeRow as { used_for?: string }).used_for;
+  if (usedFor && usedFor !== "both" && usedFor !== (isId(client) ? "client" : "internal") && current?.shift_type !== wantType)
+    return { error: isId(client) ? "That shift type is for internal work. Choose a client shift type." : "That shift type is for client shifts. Choose an internal work type, or choose the client." };
   const signatures = form.getAll("signatures_needed").map(String).filter((k) => ["worker_in", "worker_out", "client_out", "representative_out"].includes(k));
   const payClass = String(form.get("pay_class") ?? "");
   const base = {
@@ -61,6 +65,8 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     notes: String(form.get("notes") ?? "").trim().slice(0, 500),
     extra_notes: String(form.get("extra_notes") ?? "").trim().slice(0, 1000),
     shift_type: wantType,
+    // update 142: "Other" says what it is (only sent once that update has run).
+    ...(form.has("type_other_ready") ? { shift_type_other: wantType === "other" ? String(form.get("shift_type_other") ?? "").trim().slice(0, 60) : "" } : {}),
     vehicle_id: isId(String(form.get("vehicle_id") ?? "")) ? String(form.get("vehicle_id")) : null,
     pay_group: String(form.get("pay_group") ?? "").trim().slice(0, 60),
     pay_class: ["regular", "casual"].includes(payClass) ? payClass : null,
@@ -68,6 +74,7 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     signatures_needed: signatures,
     notify_worker: form.get("notify_worker") === "on",
   };
+  if (wantType === "other" && form.has("type_other_ready") && !String(form.get("shift_type_other") ?? "").trim()) return { error: "Say what kind of shift it is (Other)." };
   // A client shift needs its service and location (training, meetings and admin shifts have no client).
   if (base.client_id && (!base.service_id || !base.location_id)) return { error: "Choose the client's service and location for this shift." };
   const internalNote = String(form.get("internal_note") ?? "").trim().slice(0, 2000);

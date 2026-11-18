@@ -5,7 +5,7 @@ import { REPEAT_MAX_DAYS, SHIFT_ALLOWANCES, repeatDates, repeatSummary, type Rep
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useActionState, useMemo, useRef, useState, type ReactNode } from "react";
-import { Briefcase, CalendarClock, ChevronDown, FileText, Loader2, MapPin, PenLine, Settings2, Sparkles, UserRound, X } from "lucide-react";
+import { Briefcase, CalendarClock, ChevronDown, FileText, Loader2, MapPin, PenLine, Save, Settings2, Sparkles, UserRound, X } from "lucide-react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { bulkShifts, copyLastWeek, copyToNextWeek, saveShift } from "./actions";
@@ -26,6 +26,7 @@ export type ShiftDraft = {
   status: string;
   series: boolean;
   shift_type: string;
+  shift_type_other?: string;
   vehicle_id: string;
   pay_group: string;
   pay_class: string;
@@ -35,7 +36,7 @@ export type ShiftDraft = {
 };
 type Opt = { id: string; name: string };
 export type LocationOpt = Opt & { client_id: string; address: string; suburb: string; state: string; postcode: string; access_notes: string };
-export type ShiftTypeOpt = { key: string; label: string; active: boolean };
+export type ShiftTypeOpt = { key: string; label: string; active: boolean; used_for?: string };
 export type TemplateOpt = { id: string; name: string; start: string; end: string };
 // What the Suggest button weighs, per worker (only what this person may see).
 export type WorkerFit = {
@@ -127,6 +128,17 @@ export function ShiftForm({
   const [state, action, pending] = useActionState(saveShift, null);
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  // Ctrl+S (or Cmd+S) saves, like a desktop app.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        formRef.current?.requestSubmit();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   // A successful save closes the panel and shows what happened above the roster.
   useEffect(() => {
     if (state?.message)
@@ -168,9 +180,16 @@ export function ShiftForm({
   const clientLocations = locations.filter((l) => l.client_id === client);
   const clientServices = services.filter((v) => v.client_id === client);
   const place = clientLocations.find((l) => l.id === location) ?? null;
+  const fits = (t: ShiftTypeOpt, c: string) => !t.used_for || t.used_for === "both" || t.used_for === (c ? "client" : "internal");
   // A new client: its only location and service are chosen for you.
   const pickClient = (c: string) => {
     setClient(c);
+    // Keep the shift type if it still fits; otherwise the first that does (Office work for internal work).
+    const current = shiftTypes.find((t) => t.key === shiftType);
+    if (!current || !fits(current, c)) {
+      const ok = shiftTypes.filter((t) => t.active && fits(t, c));
+      setShiftType((!c && ok.find((t) => t.key === "admin")?.key) || ok.find((t) => t.used_for !== "both")?.key || ok[0]?.key || "standard");
+    }
     const ls = locations.filter((l) => l.client_id === c);
     setLocation(ls.length === 1 ? ls[0].id : "");
   };
@@ -201,7 +220,8 @@ export function ShiftForm({
     [workers, date, start, end, nextDay, worker, client],
   );
   const blocked = Boolean(timeError || breakError || repeatError);
-  const types = shiftTypes.filter((t) => t.active || t.key === shift.shift_type);
+  // Only the types that fit: client shifts, or internal work when there's no client (update 142).
+  const types = shiftTypes.filter((t) => (t.active && fits(t, client)) || (shift.id && t.key === shift.shift_type));
 
   return (
     <form
@@ -215,6 +235,8 @@ export function ShiftForm({
       aria-busy={pending || undefined}
     >
       {shift.id ? <input type="hidden" name="id" value={shift.id} /> : null}
+      {/* Update 142 has run (shift types say what they're used for): the "Other" description can be saved. */}
+      {shiftTypes.some((t) => t.used_for !== undefined) ? <input type="hidden" name="type_other_ready" value="1" /> : null}
       <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-surface/95 px-5 py-3 backdrop-blur">
         <div className="min-w-0 flex-1">
           <h2 className="heading-sm">Shift</h2>
@@ -225,11 +247,12 @@ export function ShiftForm({
             Back
           </Link>
         ) : null}
-        <Button size="sm" disabled={pending || blocked} icon={pending ? Loader2 : null} aria-label={pending ? "Saving" : "Save"}>
+        <Button size="sm" disabled={pending || blocked} icon={pending ? Loader2 : Save} title="Save (Ctrl+S)">
           {pending ? "Saving…" : "Save"}
         </Button>
-        <Link href={closeHref} scroll={false} aria-label="Close" className="rounded-lg p-1.5 text-muted hover:bg-page hover:text-ink">
-          <X aria-hidden="true" className="size-5" />
+        <Link href={closeHref} scroll={false} title="Close" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-semibold text-ink hover:bg-page">
+          <X aria-hidden="true" className="size-4" />
+          Close
         </Link>
       </header>
       {state?.error ? (
@@ -254,7 +277,7 @@ export function ShiftForm({
           {client ? (
             <>
               <label className={field}>
-                <span className={label}>Service</span>
+                <span className={label}>Funded service (from the client&apos;s plan)</span>
                 <select name="service_id" required defaultValue={shift.client_id === client ? shift.service_id : clientServices.length === 1 ? clientServices[0].id : ""} key={`svc-${client}`} className={inputClass}>
                   <option value="" disabled>
                     Choose the service
@@ -313,6 +336,10 @@ export function ShiftForm({
                 </option>
               ))}
             </select>
+            {shiftType === "other" && shiftTypes.some((t) => t.used_for !== undefined) ? (
+              <input name="shift_type_other" required maxLength={60} defaultValue={shift.shift_type_other ?? ""} placeholder="What kind of shift is it?" aria-label="Other shift type" className={`${inputClass} mt-1`} />
+            ) : null}
+            <span className={hint}>{client ? "The kind of work on this shift. The funded service above is what it's billed to." : "Internal work types only (no client)."}</span>
           </label>
           <label className={field}>
             <span className={label}>Date</span>
@@ -695,14 +722,18 @@ export function BulkBar({ formId }: { formId: string; workers?: Opt[] }) {
           value={k}
           disabled={pending || !count}
           onClick={(e) => {
-            // Cancelling asks first.
+            // Publishing and cancelling ask first.
             const b = e.currentTarget;
-            if (k !== "cancel" || b.dataset.confirmed === "1") {
+            if (k === "copy" || b.dataset.confirmed === "1") {
               delete b.dataset.confirmed;
               return;
             }
             e.preventDefault();
-            void askConfirm(`Cancel ${count} shift${count === 1 ? "" : "s"}? Workers already told will be told again. They stay in the log.`, { action: "Cancel shifts" }).then((ok) => {
+            const question =
+              k === "publish"
+                ? [`Publish ${count} shift${count === 1 ? "" : "s"}? Drafts among them are published and their workers are told (unless "Notify the worker" was unticked).`, "Publish shifts"]
+                : [`Cancel ${count} shift${count === 1 ? "" : "s"}? Workers already told will be told again. They stay in the log.`, "Cancel shifts"];
+            void askConfirm(question[0], { action: question[1] }).then((ok) => {
               if (!ok) return;
               b.dataset.confirmed = "1";
               b.click();

@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270327000001_shift_panel.sql
+-- Built from every migration up to: 20270328000001_shift_type_use.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,7 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shift_types' and column_name = 'used_for') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shifts' and column_name = 'shift_type_other') then v_upto := 160; end if;
   if v_upto = 0 and to_regclass('public.shift_types') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shifts' and column_name = 'notify_worker') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shifts' and column_name = 'pay_class') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shifts' and column_name = 'extra_notes') then v_upto := 159; end if;
   if v_upto = 0 and to_regclass('public.client_staff_views') is not null then v_upto := 158; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shift_service_records' and column_name = 'client_id') then v_upto := 157; end if;
@@ -286,7 +287,8 @@ begin
     (156, '20270324000001_program_scope.sql'),
     (157, '20270325000001_shift_notes_privacy.sql'),
     (158, '20270326000001_privacy_decisions.sql'),
-    (159, '20270327000001_shift_panel.sql')
+    (159, '20270327000001_shift_panel.sql'),
+    (160, '20270328000001_shift_type_use.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -28126,5 +28128,36 @@ $function$;
 
 $m159$;
   insert into public.install_log (name) values ('20270327000001_shift_panel.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270328000001_shift_type_use.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270328000001_shift_type_use.sql') then
+    return;
+  end if;
+  execute $m160$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 142): each shift type says what it's used for: client
+-- shifts, internal work (no client: office, training, meetings) or both. The
+-- shift panel offers only the types that fit; Manager Administrators change it
+-- on the Shift types page. Safe to run again.
+
+alter table public.shift_types add column if not exists used_for text not null default 'client';
+alter table public.shift_types drop constraint if exists shift_types_used_for_check;
+alter table public.shift_types add constraint shift_types_used_for_check check (used_for in ('client', 'internal', 'both'));
+update public.shift_types set used_for = 'internal' where key in ('admin', 'training', 'meeting', 'remote_work', 'on_call') and used_for = 'client';
+update public.shift_types set used_for = 'both' where key = 'other' and used_for = 'client';
+-- "Other": what it is, in a few words.
+alter table public.shifts add column if not exists shift_type_other text not null default '';
+alter table public.shifts drop constraint if exists shifts_shift_type_other_check;
+alter table public.shifts add constraint shifts_shift_type_other_check check (length(shift_type_other) <= 60);
+
+$m160$;
+  insert into public.install_log (name) values ('20270328000001_shift_type_use.sql');
 end;
 $part$;
