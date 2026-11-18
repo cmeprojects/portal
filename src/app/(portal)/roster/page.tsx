@@ -132,6 +132,34 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         supabase.from("shift_events").select("id, actor, happened_at, summary").eq("shift_id", opened.id).order("happened_at", { ascending: false }).limit(50),
       ])
     : [{ data: null }, { data: null }];
+  // cmeprojects: the opened shift's client: address, alerts and how to support them (only what this person may see).
+  type ClientCard = {
+    ref: string | null;
+    status: string | null;
+    address: string | null;
+    access: string | null;
+    alerts: { id: string; title: string; severity: string; worker_instructions: string | null }[];
+    instructions: { id: string; title: string; instructions: string }[];
+  };
+  let clientCard: ClientCard | null = null;
+  if (opened?.client_id && !editing && tab === "details") {
+    const [{ data: c }, { data: loc }, { data: det }, { data: al }, { data: wi }] = await Promise.all([
+      supabase.from("car_clients").select("client_ref, status").eq("id", opened.client_id).maybeSingle(),
+      opened.location_id ? supabase.from("client_locations").select("address, suburb, access_notes").eq("id", opened.location_id).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from("client_details").select("home_address").eq("client_id", opened.client_id).maybeSingle(),
+      supabase.from("client_alerts").select("id, title, severity, worker_instructions").eq("client_id", opened.client_id).eq("active", true),
+      supabase.from("client_worker_instructions").select("id, title, instructions").eq("client_id", opened.client_id).eq("active", true).order("sort_order"),
+    ]);
+    const l = loc as { address: string; suburb: string | null; access_notes: string | null } | null;
+    clientCard = {
+      ref: (c as { client_ref: string | null } | null)?.client_ref ?? null,
+      status: (c as { status: string | null } | null)?.status ?? null,
+      address: l ? `${l.address}${l.suburb ? `, ${l.suburb}` : ""}` : ((det as { home_address: string | null } | null)?.home_address ?? null),
+      access: l?.access_notes ?? null,
+      alerts: (al ?? []) as ClientCard["alerts"],
+      instructions: (wi ?? []) as ClientCard["instructions"],
+    };
+  }
   const actorIds = [...new Set(((events ?? []) as { actor: string | null }[]).map((e) => e.actor).filter((v): v is string => !!v && !name.has(v)))];
   const { data: actors } = actorIds.length ? await supabase.from("profiles").select("id, full_name, email").in("id", actorIds) : { data: [] };
   for (const a of (actors ?? []) as { id: string; full_name: string | null; email: string }[]) name.set(a.id, a.full_name || a.email);
@@ -451,6 +479,52 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         <dt className="text-muted">Instructions</dt>
                         <dd className="whitespace-pre-line">{opened.notes || "None"}</dd>
                       </dl>
+                      {opened.client_id && clientCard ? (
+                        <section className="flex flex-col gap-2 rounded-lg border border-line p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h3 className="font-semibold">
+                              {clientName.get(opened.client_id)}
+                              {clientCard.ref ? <span className="font-normal text-muted"> · {clientCard.ref}</span> : null}
+                            </h3>
+                            <Link href={`/settings/clients/${opened.client_id}`} className="text-xs font-semibold text-brand underline">
+                              Open client
+                            </Link>
+                          </div>
+                          <p>
+                            <span className="block text-xs text-muted">{opened.location_id ? "Shift address" : "Home address"}</span>
+                            {clientCard.address || "No address recorded"}
+                          </p>
+                          {clientCard.access ? (
+                            <p>
+                              <span className="block text-xs text-muted">Getting in</span>
+                              {clientCard.access}
+                            </p>
+                          ) : null}
+                          {clientCard.alerts.length ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs text-muted">Alerts</span>
+                              {clientCard.alerts.map((a) => (
+                                <p key={a.id} className="rounded-md bg-danger-soft px-2 py-1">
+                                  <span className="font-semibold">{a.title}</span>
+                                  {a.worker_instructions ? <span className="block whitespace-pre-line">{a.worker_instructions}</span> : null}
+                                </p>
+                              ))}
+                            </div>
+                          ) : null}
+                          {clientCard.instructions.length ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs text-muted">How to support them</span>
+                              {clientCard.instructions.map((i) => (
+                                <p key={i.id} className="whitespace-pre-line">
+                                  <span className="font-semibold">{i.title}: </span>
+                                  {i.instructions}
+                                </p>
+                              ))}
+                            </div>
+                          ) : null}
+                          {!clientCard.alerts.length && !clientCard.instructions.length ? <p className="text-xs text-muted">No alerts or support instructions recorded.</p> : null}
+                        </section>
+                      ) : null}
                       {warningsFor(opened).map((w) => (
                         <p key={w} className="rounded-md bg-warn-soft px-2 py-1">
                           {w}

@@ -35,6 +35,24 @@ export default async function MyShiftsPage() {
     clientIds.length ? supabase.from("car_clients").select("id, name, preferred_name").in("id", clientIds) : Promise.resolve({ data: [] }),
     locIds.length ? supabase.from("client_locations").select("id, label, address, suburb, access_notes").in("id", locIds) : Promise.resolve({ data: [] }),
   ]);
+  // cmeprojects: alerts and how to support each client (only what the worker may see).
+  const [{ data: alertRows }, { data: instrRows }] = clientIds.length
+    ? await Promise.all([
+        supabase.from("client_alerts").select("client_id, title, worker_instructions").in("client_id", clientIds).eq("active", true),
+        supabase.from("client_worker_instructions").select("client_id, title, instructions").in("client_id", clientIds).eq("active", true).order("sort_order"),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const careOf = new Map<string, Care>();
+  for (const a of (alertRows ?? []) as { client_id: string; title: string; worker_instructions: string | null }[]) {
+    const c = careOf.get(a.client_id) ?? { alerts: [], instructions: [] };
+    c.alerts.push({ title: a.title, text: a.worker_instructions });
+    careOf.set(a.client_id, c);
+  }
+  for (const i of (instrRows ?? []) as { client_id: string; title: string; instructions: string }[]) {
+    const c = careOf.get(i.client_id) ?? { alerts: [], instructions: [] };
+    c.instructions.push({ title: i.title, text: i.instructions });
+    careOf.set(i.client_id, c);
+  }
   const clientName = new Map(((clients ?? []) as { id: string; name: string; preferred_name: string | null }[]).map((c) => [c.id, c.preferred_name || c.name]));
   const loc = new Map(((locs ?? []) as { id: string; label: string; address: string; suburb: string | null; access_notes: string | null }[]).map((l) => [l.id, l]));
   const when = (s: Shift) => {
@@ -105,7 +123,7 @@ export default async function MyShiftsPage() {
           <ul className="divide-y divide-line">
             {mine.map((s) => (
               <div key={s.id}>
-                <ShiftCard s={s} when={when(s)} client={s.client_id ? clientName.get(s.client_id) : undefined} loc={s.location_id ? loc.get(s.location_id) : undefined} />
+                <ShiftCard s={s} when={when(s)} client={s.client_id ? clientName.get(s.client_id) : undefined} loc={s.location_id ? loc.get(s.location_id) : undefined} care={s.client_id ? careOf.get(s.client_id) : undefined} />
                 {extra(s)}
               </div>
             ))}
@@ -130,7 +148,7 @@ export default async function MyShiftsPage() {
           <ul className="divide-y divide-line">
             {past.map((s) => (
               <div key={s.id}>
-                <ShiftCard s={s} when={when(s)} client={s.client_id ? clientName.get(s.client_id) : undefined} loc={s.location_id ? loc.get(s.location_id) : undefined} />
+                <ShiftCard s={s} when={when(s)} client={s.client_id ? clientName.get(s.client_id) : undefined} loc={s.location_id ? loc.get(s.location_id) : undefined} care={s.client_id ? careOf.get(s.client_id) : undefined} />
                 {extra(s)}
               </div>
             ))}
@@ -142,7 +160,8 @@ export default async function MyShiftsPage() {
 }
 
 type Loc = { id: string; label: string; address: string; suburb: string | null; access_notes: string | null };
-function ShiftCard({ s, when, client, loc: l, isOpen, raised }: { s: Shift; when: string; client?: string; loc?: Loc; isOpen?: boolean; raised?: boolean }) {
+type Care = { alerts: { title: string; text: string | null }[]; instructions: { title: string; text: string }[] };
+function ShiftCard({ s, when, client, loc: l, isOpen, raised, care }: { s: Shift; when: string; client?: string; loc?: Loc; isOpen?: boolean; raised?: boolean; care?: Care }) {
   return (
     <li className="flex flex-wrap items-start gap-3 px-4 py-3">
       <div className="min-w-48 flex-1">
@@ -162,6 +181,27 @@ function ShiftCard({ s, when, client, loc: l, isOpen, raised }: { s: Shift; when
           </p>
         ) : null}
         {s.notes ? <p className="mt-0.5 whitespace-pre-line text-sm">{s.notes}</p> : null}
+        {care?.alerts.length ? (
+          <div className="mt-1 flex flex-col gap-1">
+            {care.alerts.map((a) => (
+              <p key={a.title} className="rounded-md bg-danger-soft px-2 py-1 text-sm">
+                <span className="font-semibold">{a.title}</span>
+                {a.text ? <span className="block whitespace-pre-line">{a.text}</span> : null}
+              </p>
+            ))}
+          </div>
+        ) : null}
+        {care?.instructions.length ? (
+          <details className="mt-1 text-sm">
+            <summary className="cursor-pointer font-semibold text-brand">How to support {client ?? "them"}</summary>
+            {care.instructions.map((i) => (
+              <p key={i.title} className="mt-1 whitespace-pre-line">
+                <span className="font-semibold">{i.title}: </span>
+                {i.text}
+              </p>
+            ))}
+          </details>
+        ) : null}
       </div>
       {isOpen ? (
         raised ? (
