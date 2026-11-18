@@ -401,3 +401,33 @@ export async function makeOpenShift(form: FormData) {
   await (await createClient()).from("shifts").update({ worker_id: null }).eq("id", id);
   revalidatePath("/roster");
 }
+
+// cmeprojects: drag and drop. Moves a shift to another day (same times) and,
+// in Staff view, to another worker or to Vacant. The database checks leave,
+// clashes, checks and hours as for any change; a published shift's worker is told.
+export async function moveShift(id: string, date: string, row: string, byClient: boolean): Promise<FormState> {
+  await requireRoster();
+  if (!isId(id) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "That didn't move. Please reload the page." };
+  const supabase = await createClient();
+  const { data: s } = await supabase.from("shifts").select("id, worker_id, client_id, starts_at, ends_at, status").eq("id", id).maybeSingle();
+  if (!s) return { error: "That shift isn't there any more. Please reload the page." };
+  if (s.status === "cancelled") return { error: "A cancelled shift can't be moved." };
+  const fromDate = sydneyParts(s.starts_at).date;
+  const days = Math.round((Date.parse(`${date}T12:00:00Z`) - Date.parse(`${fromDate}T12:00:00Z`)) / 86_400_000);
+  const shiftBy = (iso: string) => {
+    const p = sydneyParts(iso);
+    return sydney(addDays(p.date, days), p.time)!;
+  };
+  const patch: Record<string, unknown> = { starts_at: shiftBy(s.starts_at), ends_at: shiftBy(s.ends_at) };
+  if (byClient) {
+    if ((s.client_id ?? "none") !== row) return { error: "In Client view a shift can only move to another day for the same client." };
+  } else {
+    patch.worker_id = row === "vacant" ? null : isId(row) ? row : s.worker_id;
+  }
+  if (days === 0 && patch.worker_id === s.worker_id) return { message: "" };
+  const { error } = await supabase.from("shifts").update(patch).eq("id", id);
+  if (error) return { error: friendlyError(error) };
+  if (s.status === "published") await tellWorkers();
+  revalidatePath("/roster");
+  return { message: "Shift moved.", spotlight: id };
+}

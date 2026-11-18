@@ -331,3 +331,15 @@ body {
     transform: translateY(4px);
   }
 }
+
+/* cmeprojects: roster drag and drop. */
+.roster-grid [data-shift-id][draggable="true"] {
+  cursor: grab;
+}
+.roster-grid[data-dragging] [data-drop-date] {
+  transition: background-color 0.15s ease;
+}
+.roster-grid [data-drop-over] {
+  background: var(--color-brand-soft);
+  box-shadow: inset 0 0 0 2px var(--color-brand);
+}

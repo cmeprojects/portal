@@ -13,6 +13,9 @@ import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, mak
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
 import { PublishControl, type PublishPeriod } from "./publish-control";
 import { Spotlight } from "./spotlight";
+import { RosterDnd } from "./roster-dnd";
+import { SavedNotice } from "./saved-notice";
+import { FitCalendar } from "./fit-calendar";
 
 export const metadata: Metadata = { title: "Roster" };
 
@@ -29,7 +32,8 @@ const STATUS_STYLE = {
   waiting: ["Published, waiting for answer", "border-warn bg-warn-soft"],
   accepted: ["Accepted", "border-good bg-good-soft"],
   declined: ["Declined", "border-danger bg-surface ring-1 ring-danger"],
-  done: ["Finished", "border-line bg-page opacity-75"],
+  done: ["Completed", "border-line bg-page opacity-75"],
+  missed: ["Missed", "border-danger bg-danger-soft opacity-90 line-through decoration-danger/50"],
 } as const;
 const AVAIL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const auDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -135,8 +139,30 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const answered = new Set(answerOf.keys());
   // cmeprojects: one status per shift, for its colour.
   const nowAt = Date.parse(new Date().toISOString());
+  // Times sent (a timesheet) or a clock-in signature mean the shift happened.
+  const [{ data: sentRows }, { data: inRows }] = shifts.length
+    ? await Promise.all([
+        supabase.from("shift_timesheets").select("shift_id").in("shift_id", shifts.map((x) => x.id)),
+        supabase.from("shift_signatures").select("shift_id").eq("kind", "worker_in").is("voided_at", null).in("shift_id", shifts.map((x) => x.id)),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const happened = new Set([...((sentRows ?? []) as { shift_id: string }[]), ...((inRows ?? []) as { shift_id: string }[])].map((r) => r.shift_id));
   const statusOf = (x: Shift): keyof typeof STATUS_STYLE =>
-    !x.worker_id ? "vacant" : x.status === "draft" ? "draft" : Date.parse(x.ends_at) < nowAt ? "done" : answerOf.get(x.id) === "declined" ? "declined" : answerOf.get(x.id) === "accepted" ? "accepted" : "waiting";
+    !x.worker_id
+      ? "vacant"
+      : x.status === "draft"
+        ? "draft"
+        : Date.parse(x.ends_at) < nowAt
+          ? happened.has(x.id)
+            ? "done"
+            : Date.parse(x.ends_at) < nowAt - 2 * 3_600_000
+              ? "missed"
+              : "done"
+          : answerOf.get(x.id) === "declined"
+            ? "declined"
+            : answerOf.get(x.id) === "accepted"
+              ? "accepted"
+              : "waiting";
   const warningsFor = (s: Shift): string[] => {
     if (!s.worker_id) return [];
     const w: string[] = [];
@@ -302,7 +328,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         {inner}
       </label>
     ) : (
-      <Link key={s.id} data-shift-id={s.id} href={`${base}&shift=${s.id}`} scroll={false} title={[...warn].join("\n")} className={`${cls} hover:ring-2 hover:ring-brand`}>
+      <Link key={s.id} data-shift-id={s.id} draggable={canEdit && s.status !== "cancelled"} href={`${base}&shift=${s.id}`} scroll={false} title={[...warn].join("\n")} className={`${cls} hover:ring-2 hover:ring-brand`}>
         {inner}
       </Link>
     );
@@ -315,8 +341,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     <>
       <span data-wide hidden />
       <PageHeader title="Rostering" intro="Plan, publish and track shifts. Click a shift to see its details, events, signatures and log." />
-      {/^[0-9a-f-]{36}$/.test(str("spot")) ? <Spotlight id={str("spot")} label={str("spotlabel") === "added" ? "Just added" : str("spotlabel") === "changed" ? "Just changed" : "You were here"} /> : null}
-      {str("saved") ? <p role="status" className="rounded-lg bg-good-soft px-3 py-2 text-sm font-semibold">{str("saved")}</p> : null}
+      {/^[0-9a-f-]{36}$/.test(str("spot")) ? (
+        <Spotlight id={str("spot")} label={str("spotlabel") === "added" ? "Just added" : str("spotlabel") === "changed" ? "Just changed" : str("spotlabel") === "moved" ? "Just moved" : "You were here"} />
+      ) : null}
+      {canEdit && !selecting ? <RosterDnd byClient={byClient} base={base} /> : null}
+      {str("saved") ? <SavedNotice key={str("saved") + str("spot")} text={str("saved")} error={str("saved").startsWith("Not moved")} /> : null}
       {/* cmeprojects (update 128): the week in numbers, from the shifts shown. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
         {(
@@ -423,19 +452,40 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
             {STATUS_STYLE[k][0]}
           </span>
         ))}
-        <span>Eve 6–10pm · Night 10pm–6am · ↻ repeats · ✋ hands up · ⇄ change asked</span>
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 border-l border-line pl-3" aria-label="Marks on shifts">
+          <span className="inline-flex items-center gap-1">
+            <span className="rounded bg-ink/10 px-1 text-[9px] font-semibold text-ink">Eve</span> 6–10pm
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="rounded bg-ink/10 px-1 text-[9px] font-semibold text-ink">Night</span> 10pm–6am
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Repeat2 aria-hidden="true" className="size-3.5" /> repeating
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Hand aria-hidden="true" className="size-3.5 text-brand" /> hands up (open shift)
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <ArrowLeftRight aria-hidden="true" className="size-3.5 text-warn" /> change asked
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <AlertTriangle aria-hidden="true" className="size-3.5 text-warn" /> warning
+          </span>
+        </span>
         <span className="ml-auto">{shifts.length ? "" : "No shifts this week"}</span>
       </p>
 
-      <Card className="roster-grid overflow-x-auto p-0">
+      {/* Only the calendar scrolls; the title, figures and toolbar stay put. */}
+      <FitCalendar />
+      <Card className="roster-grid thin-scroll min-h-96 overflow-auto p-0">
         <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: `${12 + days.length * (view === "day" ? 18 : compact ? 6.5 : 7.5)}rem` }}>
           <thead>
             <tr className="border-b border-line">
-              <th scope="col" className="sticky left-0 z-10 w-48 border-r-[3px] border-line bg-page px-3 py-2 text-left text-xs font-semibold text-muted">
+              <th scope="col" className="sticky top-0 left-0 z-30 w-48 border-r-[3px] border-b border-line bg-page px-3 py-2 text-left text-xs font-semibold text-muted">
                 {byClient ? "Client" : "Worker"}
               </th>
               {days.map((d) => (
-                <th key={d} scope="col" className={`border-r border-line px-1 py-2 text-center text-xs font-semibold text-muted ${compact && (new Date(`${d}T12:00:00Z`).getUTCDay() % 6 === 0) ? "bg-page" : ""}`}>
+                <th key={d} scope="col" className={`sticky top-0 z-20 border-r border-b border-line px-1 py-2 text-center text-xs font-semibold text-muted ${compact && (new Date(`${d}T12:00:00Z`).getUTCDay() % 6 === 0) ? "bg-page" : "bg-surface"}`}>
                   {compact ? DAY_NAMES[(new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7].slice(0, 2) : DAY_NAMES[(new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7].toUpperCase()}
                   <span className={`mx-auto mt-0.5 block w-fit rounded-full px-1.5 font-display text-sm ${d === today ? "bg-brand text-brand-fg" : "text-ink"}`}>{Number(d.slice(8))}</span>
                 </th>
@@ -444,33 +494,37 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           </thead>
           <tbody>
             <tr className="border-b border-line">
-              <th scope="row" className="sticky left-0 border-r-[3px] border-line bg-page px-3 py-2 text-left align-top">
+              <th scope="row" className="sticky left-0 z-10 border-r-[3px] border-line bg-page px-3 py-2 text-left align-top">
                 <span className="block text-sm font-semibold text-danger">Vacant shifts</span>
                 <span className="text-xs text-muted">{vacant.reduce((n, s) => n + shiftHours(s), 0).toFixed(1)} hours not filled</span>
               </th>
               {days.map((d) => (
-                <td key={d} className="group border-r border-line px-1 py-1 align-top hover:bg-page/60">
-                  <div className="flex flex-col gap-1">
-                    {vacant.filter((s) => sydneyParts(s.starts_at).date === d).map(chip)}
-                    {canEdit && !selecting && !byClient ? (
-                      <Link
-                        href={`${base}&add=${d}`}
-                        scroll={false}
-                        aria-label={`Add an open shift on ${auDate(d)}`}
-                        title="Add an open shift (no worker yet)"
-                        className="flex min-h-7 items-center justify-center gap-1 rounded-md border border-dashed border-transparent text-xs font-semibold text-muted transition group-hover:border-danger group-hover:bg-danger-soft group-hover:text-danger focus-visible:border-danger [@media(hover:none)]:border-line"
-                      >
-                        <Plus aria-hidden="true" className="size-3.5" />
-                        <span className="hidden group-hover:inline">{compact ? "" : "Open shift"}</span>
-                      </Link>
-                    ) : null}
-                  </div>
+                <td key={d} data-drop-date={canEdit && !byClient ? d : undefined} data-drop-row="vacant" className="group border-r border-line px-1 py-1 align-top hover:bg-page/60">
+                  {(() => {
+                    const here = vacant.filter((s) => sydneyParts(s.starts_at).date === d);
+                    const canAdd = canEdit && !selecting && !byClient;
+                    return (
+                      <div className="relative flex min-h-14 flex-col gap-1">
+                        {here.map(chip)}
+                        {canAdd && !here.length ? (
+                          <Link href={`${base}&add=${d}`} scroll={false} aria-label={`Add an open shift on ${auDate(d)}`} title="Add an open shift (no worker yet)" className="flex flex-1 items-center justify-center gap-1 rounded-md border border-dashed border-transparent text-xs font-semibold text-muted transition group-hover:border-danger group-hover:bg-danger-soft group-hover:text-danger focus-visible:border-danger [@media(hover:none)]:border-line">
+                            <Plus aria-hidden="true" className="size-3.5" />
+                            <span className="hidden group-hover:inline">{compact ? "" : "Open shift"}</span>
+                          </Link>
+                        ) : canAdd ? (
+                          <Link href={`${base}&add=${d}`} scroll={false} aria-label={`Add another open shift on ${auDate(d)}`} title="Add another open shift" className="absolute -right-0.5 -bottom-0.5 z-10 flex size-5 items-center justify-center rounded-full border border-danger bg-surface text-danger opacity-0 shadow transition group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100">
+                            <Plus aria-hidden="true" className="size-3" />
+                          </Link>
+                        ) : null}
+                      </div>
+                    );
+                  })()}
                 </td>
               ))}
             </tr>
             {rowIds.map((k) => (
               <tr key={k} className="border-b border-line">
-                <th scope="row" className="sticky left-0 border-r-[3px] border-line bg-page px-3 py-2 text-left align-top">
+                <th scope="row" className="sticky left-0 z-10 border-r-[3px] border-line bg-page px-3 py-2 text-left align-top">
                   {byClient ? (
                     <span className="block text-sm font-semibold">{clientName.get(k) ?? "No client"}</span>
                   ) : (
@@ -484,23 +538,31 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                 {days.map((d) => {
                   const off = !byClient && onLeave(k, d);
                   return (
-                    <td key={d} className={`group border-r border-line px-1 py-1 align-top hover:bg-page/60 ${off ? "bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line)_6px_7px)]" : ""}`}>
-                      <div className="flex flex-col gap-1">
-                        {off ? <span className="text-[11px] font-semibold text-muted">On leave</span> : null}
-                        {shifts.filter((s) => (byClient ? (s.client_id ?? "none") === k && !!s.worker_id : s.worker_id === k) && sydneyParts(s.starts_at).date === d).map(chip)}
-                        {canEdit && !off && !selecting ? (
-                          <Link
-                            href={`${base}&add=${d}${byClient ? (k !== "none" ? `&client=${k}` : "") : `&worker=${k}`}`}
-                            scroll={false}
-                            aria-label={`Add a shift for ${byClient ? (clientName.get(k) ?? "this client") : (name.get(k) ?? "this worker")} on ${auDate(d)}`}
-                            title="Add a shift"
-                            className="flex min-h-7 items-center justify-center gap-1 rounded-md border border-dashed border-transparent text-xs font-semibold text-muted transition group-hover:border-brand group-hover:bg-brand-soft group-hover:text-brand focus-visible:border-brand [@media(hover:none)]:border-line"
-                          >
-                            <Plus aria-hidden="true" className="size-3.5" />
-                            <span className="hidden group-hover:inline">{compact ? "" : "Add shift"}</span>
-                          </Link>
-                        ) : null}
-                      </div>
+                    <td key={d} data-drop-date={canEdit ? d : undefined} data-drop-row={k} className={`group border-r border-line px-1 py-1 align-top hover:bg-page/60 ${off ? "bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line)_6px_7px)]" : ""}`}>
+                      {(() => {
+                        const here = shifts.filter((s) => (byClient ? (s.client_id ?? "none") === k && !!s.worker_id : s.worker_id === k) && sydneyParts(s.starts_at).date === d);
+                        const addHref = `${base}&add=${d}${byClient ? (k !== "none" ? `&client=${k}` : "") : `&worker=${k}`}`;
+                        const addLabel = `Add a shift for ${byClient ? (clientName.get(k) ?? "this client") : (name.get(k) ?? "this worker")} on ${auDate(d)}`;
+                        const canAdd = canEdit && !off && !selecting;
+                        return (
+                          <div className="relative flex min-h-14 flex-col gap-1">
+                            {off ? <span className="text-[11px] font-semibold text-muted">On leave</span> : null}
+                            {here.map(chip)}
+                            {canAdd && !here.length ? (
+                              // Empty cell: the whole cell adds a shift.
+                              <Link href={addHref} scroll={false} aria-label={addLabel} title="Add a shift" className="flex flex-1 items-center justify-center gap-1 rounded-md border border-dashed border-transparent text-xs font-semibold text-muted transition group-hover:border-brand group-hover:bg-brand-soft group-hover:text-brand focus-visible:border-brand [@media(hover:none)]:border-line">
+                                <Plus aria-hidden="true" className="size-3.5" />
+                                <span className="hidden group-hover:inline">{compact ? "" : "Add shift"}</span>
+                              </Link>
+                            ) : canAdd ? (
+                              // Cell with shifts: a small corner button, so rows stay aligned.
+                              <Link href={addHref} scroll={false} aria-label={addLabel} title="Add another shift" className="absolute -right-0.5 -bottom-0.5 z-10 flex size-5 items-center justify-center rounded-full border border-brand bg-surface text-brand opacity-0 shadow transition group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100">
+                                <Plus aria-hidden="true" className="size-3" />
+                              </Link>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                     </td>
                   );
                 })}
