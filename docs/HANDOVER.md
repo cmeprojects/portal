@@ -140,6 +140,14 @@ Last updated: 17 Nov 2026.
   week label), `/roster/timesheets` (tiles, worker columns split from pay-period columns, expand, edit modal, payroll
   CSV), `/my-shifts` (confirm times, ask to swap). run_roster_alerts also sends request and query notices.
   Next: Stage 6 (Allied Health external access; design for approval first).
+- **Job titles per AUD-016 owner instruction (update 126, 18 Nov 2026):** Care & Coordination (Case Manager, Intake &
+  Assessment Officer, Client Services Coordinator); HR & Workforce (Staff Administrator, Rostering Officer); Finance &
+  Accounts (Payroll Officer = renamed Payroll & Rostering, same access); Service Delivery (Support Worker, Team Leader);
+  Allied Health (Psychologist, Behaviour Support Practitioner, Speech Pathologist, Occupational Therapist, at the
+  external level); Management & Administration (Manager). No Core group. Manager Administrator stays a delegated
+  authority; External Contractor stays an engagement (external level). Rostering Officer: roster + client views (no
+  funding). run_roster_alerts now finds roster people by job titles with ops.roster edit, not by a role name. The staff
+  role picker shows a bare access level only when it has no job title.
 - **Support Worker role (update 125, 17 Nov 2026):** owner: "role should still be support worker" with Standard access as
   its access. Job title "Support Worker" at `support_worker` (Standard access), under Service Delivery; staff and
   invitations on Standard access with no role were given it. Nobody's access changed.

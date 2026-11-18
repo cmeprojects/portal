@@ -28,7 +28,7 @@ end $$;
 grant execute on all functions in schema test to authenticated;
 update public.profiles set job_title_id = (select id from public.job_titles where name = 'Case Manager') where email in ('cm1@example.com', 'cm2@example.com');
 update public.profiles set job_title_id = (select id from public.job_titles where name = 'Intake & Assessment Officer') where email = 'io@example.com';
-update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll & Rostering') where email = 'pay@example.com';
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll Officer') where email = 'pay@example.com';
 insert into public.teams (name) values ('North');
 insert into public.team_members (team_id, user_id) select id, test.pid('sam@example.com') from public.teams where name = 'North';
 insert into public.car_clients (name) values ('Zara North'), ('Alex South');
@@ -40,7 +40,7 @@ insert into public.client_alert_notes (alert_id, client_id, details) values ((se
 -- Set up (updates 105 and 107).
 select test.ok((select count(*) from public.app_modules where id in ('clients.list', 'clients.details', 'clients.people', 'clients.locations', 'clients.alerts', 'clients.notes', 'clients.services', 'clients.assign') and grant_ready) = 8, 'Clients and its seven parts are switched over');
 select test.ok((select count(*) from public.app_modules where id in ('clients.details', 'clients.people', 'clients.notes', 'clients.services') and sensitivity = 'sensitive') = 4, 'details, contacts, risk notes and services are sensitive');
-select test.ok((select count(*) from public.job_titles where name in ('Case Manager', 'Intake & Assessment Officer', 'Payroll & Rostering') and access_level = 'support_worker') = 3, 'three new roles at support worker level');
+select test.ok((select count(*) from public.job_titles where name in ('Case Manager', 'Intake & Assessment Officer', 'Payroll Officer') and access_level = 'support_worker') = 3, 'three new roles at support worker level');
 
 -- Same as today for managers, staff admins and team staff.
 select test.ok(test.n('boss@example.com', '(select count(*) from public.car_clients)') = 2 and test.n('boss@example.com', '(select count(*) from public.client_details)') = 2, 'manager sees every client and their details');

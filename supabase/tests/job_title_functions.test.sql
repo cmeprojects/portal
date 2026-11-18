@@ -12,35 +12,35 @@ insert into auth.users (email) values ('sam@example.com');
 create function test.fg(p_key text) returns uuid language sql security definer as $$ select id from public.function_groups where key = p_key $$;
 create function test.jt(p_name text) returns uuid language sql security definer as $$ select id from public.job_titles where name = p_name $$;
 grant execute on all functions in schema test to authenticated;
-insert into public.job_titles (name, access_level) values ('Care Manager', 'manager'), ('Speech Pathologist', 'external');
+insert into public.job_titles (name, access_level) values ('Care Manager', 'manager'), ('Dietitian', 'external');
 
 select test.act_as('owner@example.com');
 set role authenticated;
 insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Care Manager'), test.fg('care_coordination')), (test.jt('Care Manager'), test.fg('management_admin'));
-insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Speech Pathologist'), test.fg('allied_health'));
+insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Dietitian'), test.fg('allied_health'));
 reset role;
 select test.ok((select count(*) from public.job_title_functions where job_title_id = test.jt('Care Manager')) = 2, 'a role can belong to more than one group');
 
 select test.act_as('sam@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.job_title_functions where job_title_id in (test.jt('Care Manager'), test.jt('Speech Pathologist'))) = 3, 'members read the links');
-select test.refused($$insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Speech Pathologist'), test.fg('care_coordination'))$$, 'a support worker can''t link roles');
+select test.ok((select count(*) from public.job_title_functions where job_title_id in (test.jt('Care Manager'), test.jt('Dietitian'))) = 3, 'members read the links');
+select test.refused($$insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Dietitian'), test.fg('care_coordination'))$$, 'a support worker can''t link roles');
 delete from public.job_title_functions;
 reset role;
-select test.ok((select count(*) from public.job_title_functions where job_title_id in (test.jt('Care Manager'), test.jt('Speech Pathologist'))) = 3, 'a support worker can''t unlink roles');
+select test.ok((select count(*) from public.job_title_functions where job_title_id in (test.jt('Care Manager'), test.jt('Dietitian'))) = 3, 'a support worker can''t unlink roles');
 
--- Update 125 puts Support Worker under Service Delivery; take it out here so this test can switch that group off.
-delete from public.job_title_functions where job_title_id = test.jt('Support Worker');
+-- Updates 125 and 126 put job titles under Service Delivery and Allied Health; take them out here so this test can switch those groups off.
+delete from public.job_title_functions where job_title_id in (select id from public.job_titles where name in ('Support Worker', 'Team Leader', 'Psychologist', 'Behaviour Support Practitioner', 'Speech Pathologist', 'Occupational Therapist'));
 select test.act_as('owner@example.com');
 set role authenticated;
 select test.refused($$update public.function_groups set active = false where key = 'allied_health'$$, 'a group used by an active role can''t be deactivated');
 update public.function_groups set active = false where key = 'service_delivery';
 select test.refused($$insert into public.job_title_functions (job_title_id, function_group_id) values (test.jt('Care Manager'), test.fg('service_delivery'))$$, 'only active groups can be linked');
-update public.job_titles set active = false where name = 'Speech Pathologist';
+update public.job_titles set active = false where name = 'Dietitian';
 update public.function_groups set active = false where key = 'allied_health';
 reset role;
 select test.ok((select not active from public.function_groups where key = 'allied_health'), 'once its roles aren''t in use, the group can be deactivated');
-select test.ok((select count(*) from public.job_title_functions where job_title_id = test.jt('Speech Pathologist')) = 1, 'deactivating a role keeps its links');
+select test.ok((select count(*) from public.job_title_functions where job_title_id = test.jt('Dietitian')) = 1, 'deactivating a role keeps its links');
 select test.act_as('owner@example.com');
 set role authenticated;
 delete from public.job_title_functions where job_title_id = test.jt('Care Manager') and function_group_id = test.fg('management_admin');

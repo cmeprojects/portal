@@ -24,7 +24,7 @@ end $$;
 create function test.at(p_days int, p_hour int) returns timestamptz language sql as $$
   select ((current_date + p_days)::timestamp + make_interval(hours => p_hour)) at time zone 'Australia/Sydney' $$;
 grant execute on all functions in schema test to authenticated;
-update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll & Rostering') where email = 'pay@example.com';
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll Officer') where email = 'pay@example.com';
 insert into public.car_clients (name) values ('Zara North'), ('Alex South');
 insert into public.client_locations (client_id, label, address, approved) select id, 'Home', '1 Test St', true from public.car_clients where name = 'Zara North';
 insert into public.client_locations (client_id, label, address, approved) select id, 'Home', '2 Other St', true from public.car_clients where name = 'Alex South';

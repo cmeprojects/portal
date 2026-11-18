@@ -20,12 +20,14 @@ function Result({ state }: { state: FormState }) {
   return null;
 }
 
-// cmeprojects: roles grouped by their function group (Care & Coordination…),
-// then the access levels on their own (no role). Before function groups:
-// roles under their access level.
-function RoleOptions({ roles, titles }: { roles: Role[]; titles: JobTitle[] }) {
+// cmeprojects: roles grouped by their function group (Care & Coordination…).
+// An access level shows on its own only if it has no role (update 126), or if
+// it's this person's current choice. Before function groups: roles under their
+// access level.
+function RoleOptions({ roles, titles, current }: { roles: Role[]; titles: JobTitle[]; current?: string }) {
   if (titles.some((t) => t.groups?.length)) {
     const usable = titles.filter((t) => t.active && roles.includes(t.access_level));
+    const bare = roles.filter((r) => r !== "new_starter" && (!usable.some((t) => t.access_level === r) || current === roleChoiceValue(r, null)));
     const groupNames = [...new Set(usable.map((t) => t.groups?.[0] ?? "Other roles"))].sort((a, b) => (a === "Other roles" ? 1 : b === "Other roles" ? -1 : a.localeCompare(b)));
     return (
       <>
@@ -41,15 +43,16 @@ function RoleOptions({ roles, titles }: { roles: Role[]; titles: JobTitle[] }) {
               ))}
           </optgroup>
         ))}
+        {bare.length ? (
         <optgroup label="Access level only (no role)">
-          {roles
-            .filter((r) => r !== "new_starter")
+          {bare
             .map((r) => (
               <option key={r} value={roleChoiceValue(r, null)}>
                 {ROLE_LABELS[r]}
               </option>
             ))}
         </optgroup>
+        ) : null}
       </>
     );
   }
@@ -201,7 +204,7 @@ export function PersonEditor({
                 defaultValue={roleChoiceValue(person.role, titles.some((t) => t.id === person.job_title_id) ? person.job_title_id : null)}
                 className={inputClass}
               >
-                <RoleOptions roles={choices} titles={titles} />
+                <RoleOptions roles={choices} titles={titles} current={roleChoiceValue(person.role, titles.some((t) => t.id === person.job_title_id) ? person.job_title_id : null)} />
               </select>
             </Field>
           ) : (

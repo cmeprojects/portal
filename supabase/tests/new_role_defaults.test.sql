@@ -44,7 +44,7 @@ insert into public.client_assignments (client_id, user_id) values (test.cid('Zar
 
 insert into public.invitations (email, full_name, role) values ('pr@example.com', 'Pat', 'support_worker');
 insert into auth.users (email) values ('pr@example.com');
-update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll & Rostering') where email = 'pr@example.com';
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll Officer') where email = 'pr@example.com';
 update public.client_locations set approved = true;
 insert into public.client_funding (client_id, service_id, period_start, period_end, total_amount, plan_management)
 values (test.cid('Zara North'), test.svc('NDIS daily living'), current_date, current_date + 365, 50000, 'plan');

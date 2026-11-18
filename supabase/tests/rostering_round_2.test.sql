@@ -26,7 +26,7 @@ create function test.at(p_days int, p_hour int) returns timestamptz language sql
 create function test.shift(p_email text, p_days int) returns uuid language sql security definer as $$
   select id from public.shifts where worker_id = test.pid(p_email) and (starts_at at time zone 'Australia/Sydney')::date = current_date + p_days and status <> 'cancelled' limit 1 $$;
 grant execute on all functions in schema test to authenticated;
-update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll & Rostering') where email = 'pay@example.com';
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll Officer') where email = 'pay@example.com';
 
 -- Checks: Tom's NDIS Worker Screening (needed before work) has expired; Kim's First Aid (not before work) has expired.
 insert into public.compliance_items (kind, title, before_work, needs_expiry) values ('upload', 'NDIS Worker Screening Check', true, true), ('upload', 'First Aid', false, true);

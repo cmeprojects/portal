@@ -50,10 +50,10 @@ update public.access_baselines set revoked_at = now() where module_id = 'hr.requ
 update public.access_baselines set revoked_at = now() where module_id = 'ops.roster' and access_level = 'staff_admin' and revoked_at is null;
 select test.ok(test.sees('ada@example.com', 'leave_periods') = 0, 'taken from staff admins on the Access page: they no longer see everyone''s');
 select test.ok(test.sees('boss@example.com', 'leave_periods') = 2, 'managers unaffected');
-insert into public.job_titles (name, access_level) values ('Rostering Officer', 'support_worker');
-update public.profiles set job_title_id = (select id from public.job_titles where name = 'Rostering Officer') where email = 'kim@example.com';
+insert into public.job_titles (name, access_level) values ('Roster Clerk', 'support_worker');
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Roster Clerk') where email = 'kim@example.com';
 select set_config('request.jwt.claims', '', false);
-insert into public.access_baselines (job_title_id, module_id, actions) values ((select id from public.job_titles where name = 'Rostering Officer'), 'hr.requests', '{view}');
+insert into public.access_baselines (job_title_id, module_id, actions) values ((select id from public.job_titles where name = 'Roster Clerk'), 'hr.requests', '{view}');
 select test.ok(test.sees('kim@example.com', 'leave_periods') = 2, 'a role (job title) given Staff requests sees everyone''s');
 select test.ok(test.sees('sam@example.com', 'leave_periods') = 1, 'other support workers unchanged');
 

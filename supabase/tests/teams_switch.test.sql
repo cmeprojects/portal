@@ -48,10 +48,10 @@ select test.refused($$update public.teams set name = 'X' where name = 'North'$$,
 reset role;
 
 -- Changed on the Access page now.
-insert into public.job_titles (name, access_level) values ('Rostering Officer', 'support_worker');
-update public.profiles set job_title_id = (select id from public.job_titles where name = 'Rostering Officer') where email = 'kim@example.com';
+insert into public.job_titles (name, access_level) values ('Roster Clerk', 'support_worker');
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Roster Clerk') where email = 'kim@example.com';
 select set_config('request.jwt.claims', '', false);
-insert into public.access_baselines (job_title_id, module_id) values ((select id from public.job_titles where name = 'Rostering Officer'), 'people.teams');
+insert into public.access_baselines (job_title_id, module_id) values ((select id from public.job_titles where name = 'Roster Clerk'), 'people.teams');
 select test.act_as('kim@example.com');
 set role authenticated;
 insert into public.teams (name) values ('West');
