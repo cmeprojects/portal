@@ -18,6 +18,7 @@ import { RosterDnd } from "./roster-dnd";
 import { SavedNotice } from "./saved-notice";
 import { FitCalendar } from "./fit-calendar";
 import { CloseMenus } from "./close-menus";
+import { RosterMenu } from "./roster-menu";
 import { CancelShiftButton } from "./cancel-shift-button";
 
 export const metadata: Metadata = { title: "Roster" };
@@ -378,6 +379,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <Spotlight id={str("spot")} label={str("spotlabel") === "added" ? "Just added" : str("spotlabel") === "changed" ? "Just changed" : str("spotlabel") === "moved" ? "Just moved" : "You were here"} />
       ) : null}
       {canEdit && !selecting ? <RosterDnd byClient={byClient} base={base} /> : null}
+      {canEdit && !selecting ? <RosterMenu byClient={byClient} base={base} /> : null}
       <CloseMenus />
       {str("saved") ? <SavedNotice key={str("saved") + str("spot")} text={str("saved")} error={str("saved").startsWith("Not moved")} /> : null}
       {/* cmeprojects (update 128): the week in numbers, from the shifts shown. */}

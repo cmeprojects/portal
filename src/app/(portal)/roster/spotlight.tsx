@@ -9,6 +9,8 @@ import { useEffect } from "react";
 // who ask for reduced motion (the outline and tag still show).
 export function Spotlight({ id, label }: { id: string; label: string }) {
   useEffect(() => {
+    // A drag-and-drop copy is no longer needed once the fresh roster is here.
+    document.querySelectorAll("[data-dnd-ghost]").forEach((g) => g.remove());
     let grid: HTMLElement | null = null;
     let el: HTMLElement | null = null;
     // Start just after the page settles (it refreshes once after a save).

@@ -53,10 +53,41 @@ export function RosterDnd({ byClient, base }: { byClient: boolean; base: string 
       e.preventDefault();
       const date = cell.dataset.dropDate ?? "";
       const row = cell.dataset.dropRow ?? "";
+      // Show it in the new cell straight away (a copy laid over the cell) while the server checks.
+      const chip = grid.querySelector<HTMLElement>(`[data-shift-id="${CSS.escape(id)}"]`);
+      let ghost: HTMLElement | null = null;
+      if (chip) {
+        const box = cell.getBoundingClientRect();
+        ghost = chip.cloneNode(true) as HTMLElement;
+        ghost.removeAttribute("data-shift-id");
+        ghost.setAttribute("aria-hidden", "true");
+        Object.assign(ghost.style, {
+          position: "fixed",
+          left: `${box.left + 4}px`,
+          top: `${box.top + 4}px`,
+          width: `${box.width - 8}px`,
+          zIndex: "60",
+          pointerEvents: "none",
+          opacity: "0.9",
+        });
+        ghost.dataset.dndGhost = "on";
+        document.body.appendChild(ghost);
+        chip.style.opacity = "0.25";
+      }
+      const undo = () => {
+        ghost?.remove();
+        if (chip) chip.style.opacity = "";
+      };
       startTransition(async () => {
         const res = await moveShift(id, date, row, byClient);
-        if (res?.error) router.push(`${base}&saved=${encodeURIComponent(`Not moved: ${res.error}`)}`, { scroll: false });
-        else if (res?.message) router.push(`${base}&saved=${encodeURIComponent(res.message)}&spot=${id}&spotlabel=moved`, { scroll: false });
+        if (res?.error) {
+          undo();
+          router.push(`${base}&saved=${encodeURIComponent(`Not moved: ${res.error}`)}`, { scroll: false });
+        } else if (res?.message) {
+          router.push(`${base}&saved=${encodeURIComponent(res.message)}&spot=${id}&spotlabel=moved`, { scroll: false });
+          // The fresh roster replaces the copy.
+          window.setTimeout(undo, 8000);
+        } else undo();
       });
     };
     grid.addEventListener("dragstart", onStart);

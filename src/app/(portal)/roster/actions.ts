@@ -3,6 +3,7 @@
 
 import { SHIFT_ALLOWANCES, SHIFT_TYPES } from "@/lib/roster";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
@@ -100,16 +101,16 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
         if (error) refused.push(`${d}: ${friendlyError(error)}`);
         else done++;
       }
-      if (base.status === "published") await tellWorkers();
-      revalidatePath("/roster");
+      if (base.status === "published") after(() => tellWorkers());
+      // Success closes the panel by moving to a new address (one refresh); a part-failure stays and refreshes here.
+      if (refused.length) revalidatePath("/roster");
       return refused.length ? { error: `${done} changed; not changed: ${refused.join("; ")}` } : { message: `${done} shifts changed.` };
     }
     const { error } = await supabase.from("shifts").update({ ...base, ...times(date) }).eq("id", id);
     if (error) return { error: friendlyError(error) };
     if (internalNote) await supabase.from("shift_notes").insert({ shift_id: id, body: internalNote });
     await saveTemplate();
-    if (base.status === "published") await tellWorkers();
-    revalidatePath("/roster");
+    if (base.status === "published") after(() => tellWorkers());
     return { message: "Shift saved.", spotlight: id };
   }
 
@@ -145,8 +146,7 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     }
   }
   if (made) await saveTemplate();
-  if (base.status === "published" && made) await tellWorkers();
-  revalidatePath("/roster");
+  if (base.status === "published" && made) after(() => tellWorkers());
   if (!made) return { error: refused[0]?.replace(/^\d{4}-\d{2}-\d{2}: /, "") ?? "That didn't save." };
   return { spotlight: firstId, message: `${made} shift${made === 1 ? "" : "s"} added${refused.length ? `; skipped ${refused.length}: ${refused.slice(0, 3).join("; ")}${refused.length > 3 ? "…" : ""}` : ""}.` };
 }
@@ -435,13 +435,13 @@ export async function moveShift(id: string, date: string, row: string, byClient:
     // The worker who had it is told it's no longer theirs.
     if (s.worker_id && s.notified_at) {
       const when = new Date(s.starts_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-      await createAdminClient().rpc("notify", { p_user: s.worker_id, p_kind: "shift_changed", p_title: `Your shift on ${when} has been given to someone else`, p_body: "See My shifts", p_href: "/my-shifts", p_email: true });
+      const was = s.worker_id;
+      after(() => createAdminClient().rpc("notify", { p_user: was, p_kind: "shift_changed", p_title: `Your shift on ${when} has been given to someone else`, p_body: "See My shifts", p_href: "/my-shifts", p_email: true }));
     }
-    revalidatePath("/roster");
     return { message: "Shift moved to a new worker and set back to draft. Publish it when ready.", spotlight: id };
   }
-  if (s.status === "published") await tellWorkers();
-  revalidatePath("/roster");
+  // Notices go out just after the move, so nobody waits for them.
+  if (s.status === "published") after(() => tellWorkers());
   return { message: "Shift moved.", spotlight: id };
 }
 
@@ -454,4 +454,29 @@ export async function cancelShiftNow(id: string): Promise<FormState> {
   await tellWorkers();
   revalidatePath("/roster");
   return { message: "Shift cancelled." };
+}
+
+// cmeprojects: copy and paste. A copy of a shift on another day (same times)
+// and, in Staff view, for another worker or Vacant. Always a draft.
+export async function pasteShift(id: string, date: string, row: string, byClient: boolean): Promise<FormState> {
+  await requireRoster();
+  if (!isId(id) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "That didn't paste. Please reload the page." };
+  const supabase = await createClient();
+  const { data: s } = await supabase.from("shifts").select("*").eq("id", id).maybeSingle();
+  if (!s) return { error: "The copied shift isn't there any more." };
+  const fromDate = sydneyParts(s.starts_at).date;
+  const days = Math.round((Date.parse(`${date}T12:00:00Z`) - Date.parse(`${fromDate}T12:00:00Z`)) / 86_400_000);
+  const shiftBy = (iso: string) => {
+    const p = sydneyParts(iso);
+    return sydney(addDays(p.date, days), p.time)!;
+  };
+  const copy: Record<string, unknown> = { ...copyable(s as Record<string, unknown>), starts_at: shiftBy(s.starts_at), ends_at: shiftBy(s.ends_at), status: "draft" };
+  if (byClient) {
+    if ((s.client_id ?? "none") !== row) return { error: "In Client view a shift can only be pasted for the same client." };
+  } else {
+    copy.worker_id = row === "vacant" ? null : isId(row) ? row : s.worker_id;
+  }
+  const { data: added, error } = await supabase.from("shifts").insert(copy).select("id").single();
+  if (error) return { error: friendlyError(error) };
+  return { message: "Shift pasted as a draft.", spotlight: added.id };
 }
