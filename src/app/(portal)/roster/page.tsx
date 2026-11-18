@@ -87,6 +87,10 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   // cmeprojects (update 129): shift templates (people who roster; empty before it runs).
   const templates = canEdit ? (((await supabase.from("shift_templates").select("*").eq("active", true).order("name")).data ?? []) as Tpl[]) : [];
   const tpl = templates.find((t) => t.id === str("tpl"));
+  const { count: nextDraftCount } = canEdit && view === "week"
+    ? await supabase.from("shifts").select("id", { count: "exact", head: true }).eq("status", "draft").gte("starts_at", to).lt("starts_at", sydneyInstant(addDays(monday, 14)))
+    : { count: 0 };
+  const nextDrafts = nextDraftCount ?? 0;
   if (shiftsRes.error) notFound(); // before live update 122
   const shifts = (shiftsRes.data ?? []) as Shift[];
   const requests = reqRes.error ? [] : ((reqRes.data ?? []) as Req[]);
@@ -339,13 +343,35 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </span>
         <span className="ml-auto flex flex-wrap items-center gap-2">
           {canEdit ? (
-            <form action={publishWeek}>
-              <input type="hidden" name="from" value={from} />
-              <input type="hidden" name="to" value={to} />
-              <button className={buttonClass("outline")} disabled={!drafts}>
+            // Publish only the period chosen: the one on screen, or (Week view) the next week, e.g. after copying to it.
+            <details className="relative">
+              <summary className={`${buttonClass("outline")} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
                 Publish shifts{drafts ? ` (${drafts})` : ""}
-              </button>
-            </form>
+              </summary>
+              <div className="absolute right-0 z-30 mt-1 w-72 overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
+                <form action={publishWeek}>
+                  <input type="hidden" name="from" value={from} />
+                  <input type="hidden" name="to" value={to} />
+                  <button disabled={!drafts} className="block w-full px-3 py-2 text-left text-sm font-semibold hover:bg-page disabled:cursor-not-allowed disabled:opacity-50">
+                    Publish {view === "day" ? "this day" : view === "month" ? "this month" : "this week"} ({drafts} draft{drafts === 1 ? "" : "s"})
+                    <span className="block text-xs font-normal text-muted">{weekLabel}</span>
+                  </button>
+                </form>
+                {view === "week" ? (
+                  <form action={publishWeek}>
+                    <input type="hidden" name="from" value={to} />
+                    <input type="hidden" name="to" value={sydneyInstant(addDays(monday, 14))} />
+                    <button disabled={!nextDrafts} className="block w-full border-t border-line px-3 py-2 text-left text-sm font-semibold hover:bg-page disabled:cursor-not-allowed disabled:opacity-50">
+                      Publish next week ({nextDrafts} draft{nextDrafts === 1 ? "" : "s"})
+                      <span className="block text-xs font-normal text-muted">
+                        {auDate(addDays(monday, 7))} – {auDate(addDays(monday, 13))} {addDays(monday, 13).slice(0, 4)}
+                      </span>
+                    </button>
+                  </form>
+                ) : null}
+                <p className="border-t border-line px-3 py-2 text-xs text-muted">Workers are told when their shifts are published.</p>
+              </div>
+            </details>
           ) : null}
           {canEdit ? (
             <Link href={`${base}&add=${today >= gridStart && today < gridEnd ? today : view === "month" ? monthStart : days[0]}`} scroll={false} className={buttonClass("primary")}>

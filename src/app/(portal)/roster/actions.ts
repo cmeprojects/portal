@@ -184,12 +184,12 @@ export async function copyLastWeek(_: FormState, form: FormData): Promise<FormSt
   if (!from) return { error: "Choose a week." };
   const supabase = await createClient();
   const prevFrom = new Date(new Date(from).getTime() - 7 * 86_400_000).toISOString();
-  const { data } = await supabase.from("shifts").select("worker_id, starts_at, ends_at, break_minutes, client_id, service_id, location_id, notes").neq("status", "cancelled").gte("starts_at", prevFrom).lt("starts_at", from);
+  const { data } = await supabase.from("shifts").select("*").neq("status", "cancelled").gte("starts_at", prevFrom).lt("starts_at", from);
   let added = 0;
   let skipped = 0;
   for (const s of (data ?? []) as { worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string }[]) {
     const week = 7 * 86_400_000;
-    const { error } = await supabase.from("shifts").insert({ ...s, starts_at: new Date(new Date(s.starts_at).getTime() + week).toISOString(), ends_at: new Date(new Date(s.ends_at).getTime() + week).toISOString(), status: "draft" });
+    const { error } = await supabase.from("shifts").insert({ ...copyable(s as unknown as Record<string, unknown>), starts_at: new Date(new Date(s.starts_at).getTime() + week).toISOString(), ends_at: new Date(new Date(s.ends_at).getTime() + week).toISOString(), status: "draft" });
     if (error) skipped++;
     else added++;
   }
@@ -224,17 +224,20 @@ export async function copyToNextWeek(_: FormState, form: FormData): Promise<Form
   const to = String(form.get("to") ?? "");
   if (!from || !to) return { error: "Choose a week." };
   const supabase = await createClient();
-  const { data } = await supabase.from("shifts").select("worker_id, starts_at, ends_at, break_minutes, client_id, service_id, location_id, notes").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to);
+  const { data } = await supabase.from("shifts").select("*").neq("status", "cancelled").gte("starts_at", from).lt("starts_at", to);
   return { message: await copyRows(supabase, (data ?? []) as Row[], "next week") };
 }
 
 type Row = { worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string };
+// cmeprojects (update 129): what a copy keeps (the update 128 fields too, when present; never the reference, status or car).
+const COPY_KEYS = ["worker_id", "break_minutes", "client_id", "service_id", "location_id", "notes", "shift_type", "pay_group", "allowances", "needs_worker_signature", "needs_client_signature"];
+const copyable = (r: Record<string, unknown>) => Object.fromEntries(COPY_KEYS.filter((k) => k in r).map((k) => [k, r[k]]));
 async function copyRows(supabase: Awaited<ReturnType<typeof createClient>>, rows: Row[], where: string) {
   let added = 0;
   let skipped = 0;
   const week = 7 * 86_400_000;
   for (const s of rows) {
-    const { error } = await supabase.from("shifts").insert({ ...s, starts_at: new Date(new Date(s.starts_at).getTime() + week).toISOString(), ends_at: new Date(new Date(s.ends_at).getTime() + week).toISOString(), status: "draft" });
+    const { error } = await supabase.from("shifts").insert({ ...copyable(s as unknown as Record<string, unknown>), starts_at: new Date(new Date(s.starts_at).getTime() + week).toISOString(), ends_at: new Date(new Date(s.ends_at).getTime() + week).toISOString(), status: "draft" });
     if (error) skipped++;
     else added++;
   }
@@ -250,7 +253,7 @@ export async function bulkShifts(_: FormState, form: FormData): Promise<FormStat
   if (!ids.length) return { error: "Tick at least one shift." };
   const supabase = await createClient();
   if (what === "copy") {
-    const { data } = await supabase.from("shifts").select("worker_id, starts_at, ends_at, break_minutes, client_id, service_id, location_id, notes").in("id", ids);
+    const { data } = await supabase.from("shifts").select("*").in("id", ids);
     return { message: await copyRows(supabase, (data ?? []) as Row[], "the next week") };
   }
   if (what === "publish") {
