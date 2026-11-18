@@ -14,6 +14,8 @@ export function PublishControl({ periods }: { periods: PublishPeriod[] }) {
   const [menu, setMenu] = useState(false);
   const [chosen, setChosen] = useState<PublishPeriod | null>(null);
   const current = periods[0];
+  // Drafts waiting to be published: the button stands out.
+  const anyDrafts = periods.some((p) => p.drafts > 0);
   const box = useRef<HTMLSpanElement>(null);
   // Close the menu on a click elsewhere or Esc.
   useEffect(() => {
@@ -33,11 +35,11 @@ export function PublishControl({ periods }: { periods: PublishPeriod[] }) {
   }, [menu]);
   return (
     <span ref={box} className="relative inline-flex">
-      <button type="button" onClick={() => setChosen(current)} disabled={!current.drafts} className={`${buttonClass("outline")} rounded-r-none`}>
+      <button type="button" onClick={() => setChosen(current)} disabled={!current.drafts} className={`${buttonClass(current.drafts ? "primary" : "outline")} rounded-r-none`}>
         <Send aria-hidden="true" className="size-4" />
         Publish shifts{current.drafts ? ` (${current.drafts})` : ""}
       </button>
-      <button type="button" aria-label="Choose what to publish" aria-expanded={menu} onClick={() => setMenu(!menu)} className={`${buttonClass("outline")} -ml-px rounded-l-none px-2`}>
+      <button type="button" aria-label="Choose what to publish" aria-expanded={menu} onClick={() => setMenu(!menu)} className={`${buttonClass(anyDrafts ? "primary" : "outline")} -ml-px rounded-l-none border-l border-l-brand-fg/30 px-2`}>
         <ChevronDown aria-hidden="true" className="size-4" />
       </button>
       {menu ? (
