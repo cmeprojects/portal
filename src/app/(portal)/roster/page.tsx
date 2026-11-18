@@ -126,7 +126,13 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const catTypes = new Map(((catRes.data ?? []) as { id: string; shift_types: string[] }[]).map((c) => [c.id, c.shift_types]));
   const programName = new Map(((progRes.data ?? []) as { id: string; name: string }[]).map((p) => [p.id, p.name]));
   // cmeprojects (update 141): shift types are a managed list; before it runs, the fixed list.
-  const shiftTypes = typesRes.error ? SHIFT_TYPES.map(([key, label]) => ({ key, label, active: true })) : ((typesRes.data ?? []) as { key: string; label: string; active: boolean; used_for?: string }[]);
+  type TypeRow = { key: string; label: string; active: boolean; used_for?: string; required_items?: string[] };
+  const shiftTypeRows: TypeRow[] = typesRes.error ? SHIFT_TYPES.map(([key, label]) => ({ key, label, active: true })) : ((typesRes.data ?? []) as TypeRow[]);
+  // update 145: the qualifications each type needs, with their names.
+  const neededIds = [...new Set(shiftTypeRows.flatMap((t) => t.required_items ?? []))];
+  const { data: itemRows } = neededIds.length ? await supabase.from("compliance_items").select("id, title").in("id", neededIds) : { data: [] };
+  const itemTitle = new Map(((itemRows ?? []) as { id: string; title: string }[]).map((i) => [i.id, i.title]));
+  const shiftTypes = shiftTypeRows.map((t) => ({ ...t, needs: (t.required_items ?? []).map((id) => ({ id, title: itemTitle.get(id) ?? "Qualification" })) }));
   const typeName = new Map(shiftTypes.map((t) => [t.key, t.label]));
   const typeLabel = (k: string) => typeName.get(k) ?? shiftTypeLabel(k);
   // cmeprojects (update 141): which signatures a shift needs, and the signature kind that fills each.
@@ -152,8 +158,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const locName = new Map(((locations ?? []) as { id: string; label: string; address: string }[]).map((l) => [l.id, `${l.label}: ${l.address}`]));
   const avail = new Map(((availRows ?? []) as { user_id: string; availability: Record<string, string[]> | null }[]).map((a) => [a.user_id, a.availability]));
   const expired = new Map<string, { before: string[]; other: string[] }>();
-  for (const c of (checks ?? []) as { user_id: string; title: string; expires_on: string; before_work: boolean }[]) {
-    if (c.expires_on >= today) continue;
+  // update 145: what each worker holds (qualifications with no expiry included), by item.
+  const holds = new Map<string, Record<string, string | null>>();
+  for (const c of (checks ?? []) as { user_id: string; title: string; expires_on: string | null; before_work: boolean; item_id?: string }[]) {
+    if (c.item_id) holds.set(c.user_id, { ...(holds.get(c.user_id) ?? {}), [c.item_id]: c.expires_on });
+    if (!c.expires_on || c.expires_on >= today) continue;
     const e = expired.get(c.user_id) ?? { before: [], other: [] };
     (c.before_work ? e.before : e.other).push(c.title);
     expired.set(c.user_id, e);
@@ -296,6 +305,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         expiredOther: (expired.get(p.id)?.other ?? []).join(", "),
         avail: avail.get(p.id) ?? null,
         knows: knows.get(p.id) ?? {},
+        holds: holds.get(p.id) ?? {},
       }))
     : [];
   const draft: ShiftDraft = opened

@@ -36,7 +36,7 @@ export type ShiftDraft = {
 };
 type Opt = { id: string; name: string };
 export type LocationOpt = Opt & { client_id: string; address: string; suburb: string; state: string; postcode: string; access_notes: string };
-export type ShiftTypeOpt = { key: string; label: string; active: boolean; used_for?: string };
+export type ShiftTypeOpt = { key: string; label: string; active: boolean; used_for?: string; needs?: { id: string; title: string }[] };
 // A client's approved service (update 143): its shift types, or null when it doesn't restrict them (older entries).
 export type ServiceOpt = Opt & { client_id: string; status: string; start_date: string; end_date: string | null; program: string; types: string[] | null };
 export type TemplateOpt = { id: string; name: string; start: string; end: string };
@@ -53,6 +53,8 @@ export type WorkerFit = {
   avail: Record<string, string[]> | null;
   // Why they already know a client, by client id.
   knows: Record<string, string[]>;
+  // update 145: what they hold, by item (expiry date, or null when it doesn't expire).
+  holds?: Record<string, string | null>;
 };
 const label = "text-xs font-semibold text-ink";
 const field = "flex flex-col gap-1";
@@ -210,6 +212,12 @@ export function ShiftForm({
     const refuse: string[] = [];
     const warn: string[] = [];
     if (w.expiredBeforeWork) refuse.push(`expired: ${w.expiredBeforeWork}`);
+    // Qualifications the shift type needs (update 145).
+    const missing = (shiftTypes.find((t) => t.key === shiftType)?.needs ?? []).filter((n) => {
+      const h = w.holds?.[n.id];
+      return h === undefined || (h !== null && h < date);
+    });
+    if (missing.length) refuse.push(`doesn't hold: ${missing.map((n) => n.title).join(", ")}`);
     if (w.leave.includes(date)) refuse.push("on leave");
     if (w.busy.some((b) => b.date === date && mins(b.start) < mins(start) + span && mins(start) < mins(b.end))) refuse.push("already busy then");
     const total = w.hours + (worker === w.id && shift.id ? 0 : hours);
@@ -228,7 +236,7 @@ export function ShiftForm({
         .sort((a, b) => a.f.refuse.length - b.f.refuse.length || Number(b.f.known.length > 0) - Number(a.f.known.length > 0) || a.f.warn.length - b.f.warn.length || b.f.known.length - a.f.known.length || a.w.hours - b.w.hours)
         .slice(0, 8),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [workers, date, start, end, nextDay, worker, client],
+    [workers, date, start, end, nextDay, worker, client, shiftType],
   );
   // Only the types that fit: client shifts, or internal work when there's no client (update 142).
   // Client shifts: only the types the client's approved services cover.
@@ -354,6 +362,9 @@ export function ShiftForm({
                 </option>
               ))}
             </select>
+            {(shiftTypes.find((t) => t.key === shiftType)?.needs ?? []).length ? (
+              <span className={hint}>Needs: {shiftTypes.find((t) => t.key === shiftType)!.needs!.map((n) => n.title).join(", ")}. Only workers who hold it can be given this shift.</span>
+            ) : null}
             {shiftType === "other" && shiftTypes.some((t) => t.used_for !== undefined) ? (
               <input name="shift_type_other" required maxLength={60} defaultValue={shift.shift_type_other ?? ""} placeholder="What kind of shift is it?" aria-label="Other shift type" className={`${inputClass} mt-1`} />
             ) : null}

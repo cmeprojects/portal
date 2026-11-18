@@ -24,7 +24,9 @@ export async function saveShiftType(_: FormState, form: FormData): Promise<FormS
   const supabase = await createClient();
   // update 142: client shifts, internal work (no client) or both.
   const usedFor = String(form.get("used_for") ?? "");
-  const use = ["client", "internal", "both"].includes(usedFor) ? { used_for: usedFor } : {};
+  const use: Record<string, unknown> = ["client", "internal", "both"].includes(usedFor) ? { used_for: usedFor } : {};
+  // update 145: qualifications the type needs (onboarding and compliance items).
+  if (form.has("has_items")) use.required_items = [...new Set(form.getAll("required_items").map(String).filter((v) => /^[0-9a-f-]{36}$/.test(v)))];
   if (key) {
     const { error } = await supabase.from("shift_types").update({ label, active: form.get("active") === "on", updated_at: new Date().toISOString(), ...use }).eq("key", key);
     if (error) return { error: friendlyError(error) };

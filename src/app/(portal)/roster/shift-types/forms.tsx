@@ -23,7 +23,7 @@ function UsedFor({ value }: { value?: string }) {
   );
 }
 
-export function ShiftTypeRow({ type }: { type: { key: string; label: string; active: boolean; used: number; used_for?: string } }) {
+export function ShiftTypeRow({ type, items }: { type: { key: string; label: string; active: boolean; used: number; used_for?: string; required_items?: string[] }; items: [string, string][] }) {
   const [state, action, pending] = useActionState(saveShiftType, null);
   return (
     <form action={action} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
@@ -34,6 +34,22 @@ export function ShiftTypeRow({ type }: { type: { key: string; label: string; act
         <input type="checkbox" name="active" defaultChecked={type.active} className="size-4" /> In use
       </label>
       <span className="text-xs text-muted">{type.used ? `${type.used} shift${type.used === 1 ? "" : "s"}` : "Not used yet"}</span>
+      {type.required_items !== undefined && items.length ? (
+        <details className="w-full">
+          <input type="hidden" name="has_items" value="1" />
+          <summary className="cursor-pointer text-xs font-semibold text-brand">
+            Qualifications needed{type.required_items.length ? `: ${items.filter(([id]) => type.required_items!.includes(id)).map(([, t]) => t).join(", ")}` : " (none)"}
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {items.map(([id, t]) => (
+              <label key={id} className="inline-flex min-h-8 items-center gap-2 text-sm">
+                <input type="checkbox" name="required_items" value={id} defaultChecked={type.required_items!.includes(id)} className="size-4" /> {t}
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">Only workers who hold these (and not expired) can be given this type of shift.</p>
+        </details>
+      ) : null}
       <Button size="sm" variant="outline" disabled={pending}>
         {pending ? "Saving…" : "Save"}
       </Button>
