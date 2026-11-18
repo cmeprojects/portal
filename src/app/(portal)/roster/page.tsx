@@ -6,7 +6,7 @@ import { AlertTriangle, ArrowLeftRight, ChevronLeft, ChevronRight, Hand, MoreVer
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
-import { Card, buttonClass, inputClass } from "@/components/ui";
+import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
 import { BANDS, availabilitySlot, bandOf, shiftTypeLabel, shortTime } from "@/lib/roster";
 import { addShiftNote, cancelShift, decideRequest, endRepeat, giveOpenShift, publishWeek, voidSignature } from "./actions";
@@ -20,6 +20,15 @@ type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at:
   created_by?: string | null; created_at?: string; updated_by?: string | null; updated_at?: string; notified_at?: string | null };
 type Req = { id: string; shift_id: string; requested_by: string; kind: string; swap_with: string | null; reason: string; created_at: string };
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+// cmeprojects: shift colours by status (label, chip style).
+const STATUS_STYLE = {
+  vacant: ["Vacant", "border-danger bg-danger-soft"],
+  draft: ["Draft", "border-muted bg-page outline-dashed outline-1 -outline-offset-1 outline-muted"],
+  waiting: ["Published, waiting for answer", "border-warn bg-warn-soft"],
+  accepted: ["Accepted", "border-good bg-good-soft"],
+  declined: ["Declined", "border-danger bg-surface ring-1 ring-danger"],
+  done: ["Finished", "border-line bg-page opacity-75"],
+} as const;
 const AVAIL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const auDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
 
@@ -75,8 +84,13 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   for (const s of shifts) if (s.worker_id) hoursOf.set(s.worker_id, (hoursOf.get(s.worker_id) ?? 0) + shiftHours(s));
   const onLeave = (who: string, day: string) => ((leave ?? []) as { user_id: string; start_date: string; end_date: string }[]).some((l) => l.user_id === who && l.start_date <= day && l.end_date >= day);
   // cmeprojects (update 128): which published shifts the worker has answered (empty before it runs).
-  const { data: answerRows } = shifts.length ? await supabase.from("shift_responses").select("shift_id").in("shift_id", shifts.map((x) => x.id)) : { data: [] };
-  const answered = new Set(((answerRows ?? []) as { shift_id: string }[]).map((r) => r.shift_id));
+  const { data: answerRows } = shifts.length ? await supabase.from("shift_responses").select("shift_id, response").in("shift_id", shifts.map((x) => x.id)) : { data: [] };
+  const answerOf = new Map(((answerRows ?? []) as { shift_id: string; response: string }[]).map((r) => [r.shift_id, r.response]));
+  const answered = new Set(answerOf.keys());
+  // cmeprojects: one status per shift, for its colour.
+  const nowAt = Date.parse(new Date().toISOString());
+  const statusOf = (x: Shift): keyof typeof STATUS_STYLE =>
+    !x.worker_id ? "vacant" : x.status === "draft" ? "draft" : Date.parse(x.ends_at) < nowAt ? "done" : answerOf.get(x.id) === "declined" ? "declined" : answerOf.get(x.id) === "accepted" ? "accepted" : "waiting";
   const warningsFor = (s: Shift): string[] => {
     if (!s.worker_id) return [];
     const w: string[] = [];
@@ -200,6 +214,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         <span className="flex items-center justify-between gap-1 font-semibold">
           <span className="flex items-center gap-1">
             {shortTime(s.starts_at)}–{shortTime(s.ends_at)}
+            {band !== "day" ? <span className="rounded bg-ink/10 px-1 text-[9px] font-semibold">{band === "night" ? "Night" : "Eve"}</span> : null}
             {s.series_id ? <Repeat2 aria-label="Repeats" className="size-3" /> : null}
           </span>
           <span className="flex items-center gap-1">
@@ -217,7 +232,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         {s.service_id ? <span className="block truncate opacity-75">{serviceName.get(s.service_id)}</span> : null}
       </>
     );
-    const cls = `block w-full rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] leading-tight ${!s.worker_id ? "border-danger bg-danger-soft" : `border-brand ${BANDS[band][1]}`} ${s.status === "draft" ? "outline-dashed outline-1 -outline-offset-1 outline-brand" : ""}`;
+    const cls = `block w-full rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] leading-tight ${STATUS_STYLE[statusOf(s)][1]}`;
     return selecting ? (
       <label key={s.id} className={`${cls} cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-brand`}>
         <input type="checkbox" form="pick" name="ids" value={s.id} className="mr-1 size-3 align-middle" />
@@ -234,6 +249,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   return (
     <>
       <span data-wide hidden />
+      <PageHeader title="Rostering" intro="Plan, publish and track shifts. Click a shift to see its details, events, signatures and log." />
       {/* cmeprojects (update 128): the week in numbers, from the shifts shown. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
         {(
@@ -272,7 +288,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
             <ChevronLeft aria-hidden="true" className="size-4" />
           </Link>
           <span className="flex min-w-60 items-center justify-center gap-2 px-3">
-            <h1 className="text-sm font-semibold">{weekLabel}</h1>
+            <span className="text-sm font-semibold">{weekLabel}</span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${weeksAway === 0 ? "bg-brand-soft text-brand" : "bg-page ring-1 ring-line"}`}>
               {weeksAway === 0 ? "This week" : weeksAway > 0 ? `${weeksAway} week${weeksAway === 1 ? "" : "s"} ahead` : `${-weeksAway} week${weeksAway === -1 ? "" : "s"} ago`}
             </span>
@@ -325,10 +341,12 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </span>
       </div>
       <p className="flex flex-wrap gap-2 text-xs text-muted">
-        <span className={`rounded-full px-2 py-0.5 font-semibold ${BANDS.day[1]}`}>Day 6am–6pm</span>
-        <span className={`rounded-full px-2 py-0.5 font-semibold ${BANDS.eve[1]}`}>Evening 6–10pm</span>
-        <span className={`rounded-full px-2 py-0.5 font-semibold ${BANDS.night[1]}`}>Night 10pm–6am</span>
-        <span>Dashed: draft · ↻ repeats · ✋ hands up · ⇄ change asked</span>
+        {(Object.keys(STATUS_STYLE) as (keyof typeof STATUS_STYLE)[]).map((k) => (
+          <span key={k} className={`rounded-md border-l-[3px] px-2 py-0.5 font-semibold text-ink ${STATUS_STYLE[k][1]}`}>
+            {STATUS_STYLE[k][0]}
+          </span>
+        ))}
+        <span>Eve 6–10pm · Night 10pm–6am · ↻ repeats · ✋ hands up · ⇄ change asked</span>
         <span className="ml-auto">{shifts.length ? "" : "No shifts this week"}</span>
       </p>
 
