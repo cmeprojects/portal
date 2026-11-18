@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeftRight, ChevronLeft, ChevronRight, Hand, MoreVertical, Repeat2 } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, ChevronLeft, ChevronRight, Hand, MoreVertical, Plus, Repeat2 } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
@@ -433,8 +433,22 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                 <span className="text-xs text-muted">{vacant.reduce((n, s) => n + shiftHours(s), 0).toFixed(1)} hours not filled</span>
               </th>
               {days.map((d) => (
-                <td key={d} className="border-r border-line px-1 py-1 align-top">
-                  <div className="flex flex-col gap-1">{vacant.filter((s) => sydneyParts(s.starts_at).date === d).map(chip)}</div>
+                <td key={d} className="group border-r border-line px-1 py-1 align-top hover:bg-page/60">
+                  <div className="flex flex-col gap-1">
+                    {vacant.filter((s) => sydneyParts(s.starts_at).date === d).map(chip)}
+                    {canEdit && !selecting && !byClient ? (
+                      <Link
+                        href={`${base}&add=${d}`}
+                        scroll={false}
+                        aria-label={`Add an open shift on ${auDate(d)}`}
+                        title="Add an open shift (no worker yet)"
+                        className="flex min-h-7 items-center justify-center gap-1 rounded-md border border-dashed border-transparent text-xs font-semibold text-muted transition group-hover:border-danger group-hover:bg-danger-soft group-hover:text-danger focus-visible:border-danger [@media(hover:none)]:border-line"
+                      >
+                        <Plus aria-hidden="true" className="size-3.5" />
+                        <span className="hidden group-hover:inline">{compact ? "" : "Open shift"}</span>
+                      </Link>
+                    ) : null}
+                  </div>
                 </td>
               ))}
             </tr>
@@ -454,13 +468,20 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                 {days.map((d) => {
                   const off = !byClient && onLeave(k, d);
                   return (
-                    <td key={d} className={`border-r border-line px-1 py-1 align-top ${off ? "bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line)_6px_7px)]" : ""}`}>
+                    <td key={d} className={`group border-r border-line px-1 py-1 align-top hover:bg-page/60 ${off ? "bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line)_6px_7px)]" : ""}`}>
                       <div className="flex flex-col gap-1">
                         {off ? <span className="text-[11px] font-semibold text-muted">On leave</span> : null}
                         {shifts.filter((s) => (byClient ? (s.client_id ?? "none") === k && !!s.worker_id : s.worker_id === k) && sydneyParts(s.starts_at).date === d).map(chip)}
                         {canEdit && !off && !selecting ? (
-                          <Link href={`${base}&add=${d}${byClient ? (k !== "none" ? `&client=${k}` : "") : `&worker=${k}`}`} scroll={false} aria-label="Add a shift" className="rounded-md text-center text-xs text-muted hover:bg-page hover:text-brand">
-                            +
+                          <Link
+                            href={`${base}&add=${d}${byClient ? (k !== "none" ? `&client=${k}` : "") : `&worker=${k}`}`}
+                            scroll={false}
+                            aria-label={`Add a shift for ${byClient ? (clientName.get(k) ?? "this client") : (name.get(k) ?? "this worker")} on ${auDate(d)}`}
+                            title="Add a shift"
+                            className="flex min-h-7 items-center justify-center gap-1 rounded-md border border-dashed border-transparent text-xs font-semibold text-muted transition group-hover:border-brand group-hover:bg-brand-soft group-hover:text-brand focus-visible:border-brand [@media(hover:none)]:border-line"
+                          >
+                            <Plus aria-hidden="true" className="size-3.5" />
+                            <span className="hidden group-hover:inline">{compact ? "" : "Add shift"}</span>
                           </Link>
                         ) : null}
                       </div>
