@@ -8,6 +8,7 @@ import { useEffect, useActionState, useMemo, useRef, useState, type ReactNode } 
 import { Briefcase, CalendarClock, ChevronDown, FileText, Loader2, MapPin, PenLine, Save, Settings2, Sparkles, UserRound, X } from "lucide-react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
+import { TimeField, niceTime } from "./time-field";
 import { bulkShifts, copyLastWeek, copyToNextWeek, saveShift } from "./actions";
 
 export type ShiftDraft = {
@@ -159,6 +160,18 @@ export function ShiftForm({
   const [start, setStart] = useState(shift.start);
   const [end, setEnd] = useState(shift.end);
   const [nextDay, setNextDay] = useState(shift.nextDay);
+  // Set the start and finish together; a finish at or before the start is the next day.
+  const setTimes = (a: string, z: string) => {
+    setStart(a);
+    setEnd(z);
+    setNextDay(mins(z) <= mins(a));
+  };
+  const setLength = (h: number) => {
+    const total = mins(start) + h * 60;
+    const z = `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+    setEnd(z);
+    setNextDay(total >= 1440);
+  };
   const [hasBreak, setHasBreak] = useState(shift.break_minutes > 0);
   const [breakMins, setBreakMins] = useState(shift.break_minutes || 30);
   const [repeat, setRepeat] = useState(false);
@@ -440,15 +453,30 @@ export function ShiftForm({
             <input type="date" name="date" required value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
           </label>
           <div className="grid grid-cols-2 gap-2">
-            <label className={field}>
-              <span className={label}>Start</span>
-              <input type="time" name="start" required value={start} onChange={(e) => setStart(e.target.value)} className={inputClass} aria-invalid={Boolean(timeError) || undefined} />
-            </label>
-            <label className={field}>
-              <span className={label}>Finish</span>
-              <input type="time" name="end" required value={end} onChange={(e) => setEnd(e.target.value)} className={inputClass} aria-invalid={Boolean(timeError) || undefined} />
-            </label>
+            <TimeField name="start" label="Start" value={start} onChange={setStart} invalid={Boolean(timeError)} />
+            <TimeField name="end" label="Finish" value={end} onChange={setEnd} invalid={Boolean(timeError)} />
           </div>
+        </div>
+        {/* Quick picks: a usual period, or a length from the start (crossing midnight ticks "Finishes the next day"). */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              ["Morning", "07:00", "11:00"],
+              ["Afternoon", "13:00", "17:00"],
+              ["Evening", "17:00", "21:00"],
+              ["Overnight", "22:00", "07:00"],
+            ] as const
+          ).map(([l, a, z]) => (
+            <button key={l} type="button" onClick={() => setTimes(a, z)} className={`rounded-full border px-2.5 py-1 text-xs font-medium ${start === a && end === z ? "border-brand bg-brand-soft text-brand" : "border-line text-muted hover:bg-page hover:text-ink"}`}>
+              {l}
+            </button>
+          ))}
+          <span className="mx-1 h-4 w-px bg-line" aria-hidden="true" />
+          {[2, 3, 4, 6, 8, 10, 12].map((h) => (
+            <button key={h} type="button" onClick={() => setLength(h)} aria-label={`${h} hours from the start`} className={`rounded-full border px-2.5 py-1 text-xs font-medium tabular-nums ${span === h * 60 ? "border-brand bg-brand-soft text-brand" : "border-line text-muted hover:bg-page hover:text-ink"}`}>
+              {h}h
+            </button>
+          ))}
         </div>
         <div className="flex flex-wrap gap-x-5">
           <label className={check}>
@@ -475,8 +503,8 @@ export function ShiftForm({
           </p>
         ) : (
           <p className={hint}>
-            {longDay(date)} {start} to {nextDay ? `${longDay(nextDate(date))} ` : ""}
-            {end} · {hm(span)}
+            {longDay(date)} {niceTime(start)} to {nextDay ? `${longDay(nextDate(date))} ` : ""}
+            {niceTime(end)} · {hm(span)}
             {hasBreak ? `, ${hm(paid)} paid after the break` : ""}
           </p>
         )}
