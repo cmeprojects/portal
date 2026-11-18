@@ -6,7 +6,7 @@ import { Button, Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
-import { CLIENT_STATUS } from "../../cars/manage/forms";
+import { CLIENT_STATUS } from "@/lib/client-sections";
 import { addClientWithManager, archiveClient, saveClientCare, saveProgram, saveScheme } from "./actions";
 import { ARCHIVE_REASONS, TITLES } from "@/lib/client-sections";
 

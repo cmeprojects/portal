@@ -1,6 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { CLIENT_STATUS } from "@/lib/client-sections";
+
 import { useActionState, type ReactNode } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
@@ -211,7 +213,6 @@ export function ClientRow({
   );
 }
 
-export const CLIENT_STATUS: Record<string, string> = { pending: "To check", active: "Active", suspended: "Suspended", discharged: "Discharged" };
 
 export function ClientStatusChip({ status }: { status: string }) {
   const tone = status === "active" ? "bg-good-soft text-ink" : status === "pending" ? "bg-warn-soft text-ink" : "bg-page text-muted ring-1 ring-line";

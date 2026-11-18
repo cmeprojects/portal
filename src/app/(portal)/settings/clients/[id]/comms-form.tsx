@@ -1,19 +1,13 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import { COMMS_CONTACT_WAYS as CONTACT_WAYS } from "@/lib/client-sections";
+
 import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { saveComms } from "./actions";
 
 export type Comms = { preferred_contact: string; language: string; interpreter_needed: boolean; accessibility_needs: string; notes: string };
-export const CONTACT_WAYS: [string, string][] = [
-  ["", "Not set"],
-  ["phone", "Phone call"],
-  ["sms", "Text message"],
-  ["email", "Email"],
-  ["in_person", "In person"],
-  ["through_representative", "Through their representative"],
-];
 
 // cmeprojects (Care block C2): how to communicate with this client.
 export function CommsForm({ clientId, comms }: { clientId: string; comms: Comms | null }) {

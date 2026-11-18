@@ -186,3 +186,14 @@ export const PRACTITIONER_SECTIONS: [string, string][] = [
   ["documents", "Documents marked “Share with practitioners”"],
   ["notes", "Other practitioners' notes"],
 ];
+
+// cmeprojects: shared with server pages (a server page can't use lists from a "use client" file).
+export const CLIENT_STATUS: Record<string, string> = { pending: "To check", active: "Active", suspended: "Suspended", discharged: "Discharged" };
+export const COMMS_CONTACT_WAYS: [string, string][] = [
+  ["", "Not set"],
+  ["phone", "Phone call"],
+  ["sms", "Text message"],
+  ["email", "Email"],
+  ["in_person", "In person"],
+  ["through_representative", "Through their representative"],
+];

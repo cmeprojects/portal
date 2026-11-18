@@ -8,11 +8,11 @@ import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice } from "@/components/ui";
-import { CLIENT_STATUS, ClientStatusChip } from "../../../cars/manage/forms";
+import { ClientStatusChip } from "../../../cars/manage/forms";
 import { ArchiveClientForm, ClientCareForm } from "../care-forms";
 import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
-import { CONTACT_WAYS, CommsForm, type Comms } from "./comms-form";
+import { CommsForm, type Comms } from "./comms-form";
 import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
 import { archiveClientDocument, endPractitionerAccess, shareWithPractitioners, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
 import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
@@ -21,7 +21,7 @@ import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
 import { canDo, canDoFor } from "@/lib/module-access";
-import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
+import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, CLIENT_STATUS, COMMS_CONTACT_WAYS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, SERVICE_STATUS, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -519,7 +519,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             {comms ? (
               <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
                 <dt className="text-muted">Contact method</dt>
-                <dd>{label(CONTACT_WAYS, comms.preferred_contact) || "Not set"}</dd>
+                <dd>{label(COMMS_CONTACT_WAYS, comms.preferred_contact) || "Not set"}</dd>
                 <dt className="text-muted">Language</dt>
                 <dd>
                   {comms.language || "Not set"}
@@ -943,7 +943,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           ) : comms ? (
             <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
               <dt className="text-muted">Preferred contact</dt>
-              <dd>{label(CONTACT_WAYS, comms.preferred_contact) || "Not set"}</dd>
+              <dd>{label(COMMS_CONTACT_WAYS, comms.preferred_contact) || "Not set"}</dd>
               <dt className="text-muted">Language</dt>
               <dd>
                 {comms.language || "Not set"}
