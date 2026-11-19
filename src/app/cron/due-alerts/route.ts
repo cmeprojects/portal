@@ -59,6 +59,9 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
   if (practitionerError && practitionerError.code !== "PGRST202") return { status: 500, body: { ok: false, error: practitionerError.message } };
   // cmeprojects (rostering): concerns from service records (after live update 134).
   const { data: serviceConcerns, error: serviceError } = await admin.rpc("run_service_record_alerts");
+  // cmeprojects (update 149): staff-reported incidents, and reportable ones due soon or overdue.
+  const { data: incidents, error: incidentError } = await admin.rpc("run_incident_alerts");
+  if (incidentError && incidentError.code !== "PGRST202") return { status: 500, body: { ok: false, error: incidentError.message } };
   if (serviceError && serviceError.code !== "PGRST202") return { status: 500, body: { ok: false, error: serviceError.message } };
   // cmeprojects: a week before access or a Manager Administrator nomination ends.
   const accessEnding = await remindAccessEnding(admin);
@@ -70,7 +73,7 @@ async function work(admin: ReturnType<typeof createAdminClient>): Promise<{ stat
     if (!count) break;
     await flushOutbox();
   }
-  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), ...(care ?? {}), ...(hr ?? {}), ...(roster ?? {}), practitioners: practitioners ?? null, service: serviceConcerns ?? null, requests_escalated: escalatedRequests ?? 0, access_ending: accessEnding, onboarding_late: onboardingLate } };
+  return { status: 200, body: { ok: true, ...data, ...documents, ...cars, ...(timed ?? {}), ...(care ?? {}), ...(hr ?? {}), ...(roster ?? {}), practitioners: practitioners ?? null, service: serviceConcerns ?? null, incidents: incidents ?? null, requests_escalated: escalatedRequests ?? 0, access_ending: accessEnding, onboarding_late: onboardingLate } };
 }
 
 export const GET = run;

@@ -16,6 +16,8 @@ import { AssignForm } from "./assign-form";
 import { CommsForm, type Comms } from "./comms-form";
 import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow } from "./service-form";
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
+import { ReportIncidentForm } from "../../../incidents/forms";
+import { INCIDENT_KINDS, INCIDENT_SEVERITY, INCIDENT_STATUS, label as incLabel } from "@/lib/incidents";
 import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
 import { archiveClientDocument, makeClientActive, promoteClientService, endPractitionerAccess, shareWithPractitioners, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
 import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
@@ -187,6 +189,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     staff: ["staff"],
     shifts: ["shifts"],
     comms: ["commslog"],
+    incidents: ["incidents"],
     practitioners: ["practitioners"],
   };
   const STEP_SECTIONS: Record<string, string[]> = {
@@ -282,6 +285,12 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const commsLog: CommEntry[] | null = logRes.error
     ? null
     : ((logRes.data ?? []) as (Omit<CommEntry, "author"> & { author_id: string })[]).map((e) => ({ ...e, author: nameOfStaff.get(e.author_id) ?? "Staff member" }));
+  // cmeprojects (update 149): this client's incidents (the database decides who sees them).
+  const [incRes, canReportIncident] = await Promise.all([
+    supabase.from("client_incidents").select("id, ref, kind, severity, summary, status, occurred_at, reportable, reported_to_regulator_at, report_due_at").eq("client_id", id).order("occurred_at", { ascending: false }).limit(100),
+    canDoFor("clients.incidents", "edit", id),
+  ]);
+  const incidents = incRes.error ? null : ((incRes.data ?? []) as { id: string; ref: string; kind: string; severity: string; summary: string; status: string; occurred_at: string; reportable: boolean; reported_to_regulator_at: string | null; report_due_at: string | null }[]);
   // cmeprojects: one shift opened in a pop-up (people who can see the roster).
   const shiftParam = typeof sp.shift === "string" && /^[0-9a-f-]{36}$/.test(sp.shift) ? sp.shift : "";
   type ShiftView = { id: string; ref?: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; status: string; service_id: string | null; location_id: string | null; shift_type?: string; shift_type_other?: string; notes: string; extra_notes?: string; signatures_needed?: string[]; notified_at?: string | null };
@@ -342,6 +351,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["staff", "Assigned staff", !!assignments],
     ["shifts", "Shifts and notes", !!clientShifts || !!shiftNotes],
     ["comms", "Communication log", !!commsLog && (commsLog.length > 0 || canWriteComms)],
+    ["incidents", "Incidents", !!incidents && (incidents.length > 0 || canReportIncident)],
     ["practitioners", "Practitioners", !!practitionerAccess],
   ];
   const canEditClient = await canDoFor("clients.list", "edit", id);
@@ -564,6 +574,45 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             </details>
           ) : null}
           <CommsLogList clientId={id} entries={commsLog} canWrite={canWriteComms} />
+        </Card>
+      ) : null}
+      {inView("incidents") && incidents ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Incidents</h2>
+            <p className="text-sm text-muted">Incidents reported for this client, including ones flagged in shift notes. Open one to follow it up.</p>
+          </div>
+          {canReportIncident ? (
+            <details className="rounded-lg border border-dashed border-line px-3 py-2">
+              <summary className="cursor-pointer text-sm font-semibold text-brand">+ Report an incident</summary>
+              <div className="mt-3">
+                <ReportIncidentForm clientId={id} />
+              </div>
+            </details>
+          ) : null}
+          {incidents.length ? (
+            <ul className="flex flex-col divide-y divide-line">
+              {incidents.map((i) => {
+                const [st, stClass] = INCIDENT_STATUS[i.status] ?? [i.status, ""];
+                return (
+                  <li key={i.id}>
+                    <Link href={`/incidents/${i.id}`} className="flex flex-wrap items-center gap-2 py-2 text-sm hover:bg-page">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${stClass}`}>{st}</span>
+                      <span className="font-semibold text-ink">{incLabel(INCIDENT_KINDS, i.kind)}</span>
+                      <span className={i.severity === "high" || i.severity === "critical" ? "text-danger" : "text-muted"}>{incLabel(INCIDENT_SEVERITY, i.severity)}</span>
+                      {i.reportable ? <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">{i.reported_to_regulator_at ? "Reportable · reported" : "Reportable"}</span> : null}
+                      <span className="min-w-0 flex-1 truncate text-muted">{i.summary}</span>
+                      <span className="text-xs text-muted">
+                        {i.ref} · {new Date(i.occurred_at).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric" })}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No incidents recorded.</p>
+          )}
         </Card>
       ) : null}
       {inView("shifts") && shiftNotes ? (
