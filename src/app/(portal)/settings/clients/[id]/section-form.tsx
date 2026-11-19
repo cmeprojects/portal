@@ -3,34 +3,34 @@
 
 import { useActionState, useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
-import { useAfterSuccess } from "@/components/use-after-success";
-import { useDirty } from "@/components/use-dirty";
+import { useSavableForm } from "@/components/page-save";
 import type { FieldSpec, SectionTable } from "@/lib/client-sections";
 import { recordNoAlerts, saveClientSection } from "./actions";
 
 // cmeprojects (Clients & Care): one form for any client section item. With an
 // item it edits it; without, it adds a new one (and clears after adding).
-export function SectionForm({
-  table,
-  clientId,
-  fields,
-  item,
-  choices = {},
-  submit,
-}: {
+type SectionProps = {
   table: SectionTable;
   clientId: string;
   fields: FieldSpec[];
   item?: Record<string, unknown> & { id?: string };
   choices?: Record<string, [string, string][]>;
   submit: string;
-}) {
-  const [state, action, pending] = useActionState(saveClientSection, null);
+};
+
+export function SectionForm(props: SectionProps) {
+  // A new item clears after it's added: a fresh form (and fresh change tracking) each time.
   const [round, setRound] = useState(0);
-  const { ref, dirty, markClean } = useDirty();
-  useAfterSuccess(state, () => {
-    markClean();
-    if (!item?.id && table !== "client_details") setRound((r) => r + 1);
+  return <SectionFormInner key={round} {...props} onAdded={() => setRound((r) => r + 1)} />;
+}
+
+function SectionFormInner({ table, clientId, fields, item, choices = {}, submit, onAdded }: SectionProps & { onAdded: () => void }) {
+  // Saved by its own button, or by the page's one Save (owner, 19 Nov 2026).
+  const { state, pending, ref, dirty, onSubmit, pageSave } = useSavableForm(saveClientSection, {
+    label: item?.id ? `${submit.replace(/^Save /, "")}` : submit.replace(/^Add /, "new "),
+    onSaved: () => {
+      if (!item?.id && table !== "client_details") onAdded();
+    },
   });
   const value = (f: FieldSpec) => {
     const v = item?.[f.name];
@@ -38,7 +38,7 @@ export function SectionForm({
     return v === null || v === undefined ? "" : Array.isArray(v) ? v.join(", ") : String(v);
   };
   return (
-    <form key={round} ref={ref} action={action} className="flex flex-col gap-3">
+    <form ref={ref} onSubmit={onSubmit} className="flex flex-col gap-3">
       <input type="hidden" name="table" value={table} />
       <input type="hidden" name="client_id" value={clientId} />
       {item?.id ? <input type="hidden" name="id" value={item.id} /> : null}
@@ -82,11 +82,13 @@ export function SectionForm({
         })}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" variant={item?.id ? "outline" : undefined} disabled={pending || (Boolean(item?.id) && !dirty)}>
-          {pending ? "Saving…" : submit}
-        </Button>
+        {pageSave ? null : (
+          <Button size="sm" variant={item?.id ? "outline" : undefined} disabled={pending || (Boolean(item?.id) && !dirty)}>
+            {pending ? "Saving…" : submit}
+          </Button>
+        )}
         {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-        {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+        {state?.message && !pageSave ? <Notice tone="success">{state.message}</Notice> : null}
       </div>
     </form>
   );

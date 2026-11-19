@@ -6,8 +6,7 @@ import { BookOpen, PencilLine, Plus, Search, X } from "lucide-react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { SERVICE_STATUS } from "@/lib/client-sections";
 import { addClientService, updateClientService } from "./actions";
-import { useAfterSuccess } from "@/components/use-after-success";
-import { useDirty } from "@/components/use-dirty";
+import { useSavableForm } from "@/components/page-save";
 
 export type CatalogueItem = { id: string; name: string; description: string; schemes: string[]; shift_types: string[] };
 export type ServiceRow = {
@@ -252,12 +251,10 @@ export function AddServicePanel({
 }
 
 export function ServiceEditForm({ clientId, s, programs, locations, shiftTypes }: { clientId: string; s: ServiceRow; programs: Choice[]; locations: Choice[]; shiftTypes: Choice[] }) {
-  const [state, action, pending] = useActionState(updateClientService, null);
-  // Save stays greyed out until something changes, and again once it's saved.
-  const { ref, dirty, markClean } = useDirty();
-  useAfterSuccess(state, markClean);
+  // Saved by its own button (greyed out until something changes), or by the page's one Save.
+  const { state, pending, ref, dirty, onSubmit, pageSave } = useSavableForm(updateClientService, { label: s.label });
   return (
-    <form ref={ref} action={action} className="flex flex-col gap-3">
+    <form ref={ref} onSubmit={onSubmit} className="flex flex-col gap-3">
       <input type="hidden" name="client_id" value={clientId} />
       <input type="hidden" name="id" value={s.id} />
       <input type="hidden" name="origin" value={s.origin} />
@@ -278,11 +275,13 @@ export function ServiceEditForm({ clientId, s, programs, locations, shiftTypes }
       )}
       <Details s={s} programs={programs} locations={locations} />
       <div className="flex items-center gap-2">
-        <Button size="sm" disabled={pending || !dirty}>
-          {pending ? "Saving…" : dirty ? "Save" : "Saved"}
-        </Button>
+        {pageSave ? null : (
+          <Button size="sm" disabled={pending || !dirty}>
+            {pending ? "Saving…" : dirty ? "Save" : "Saved"}
+          </Button>
+        )}
         {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-        {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+        {state?.message && !pageSave ? <Notice tone="success">{state.message}</Notice> : null}
       </div>
     </form>
   );

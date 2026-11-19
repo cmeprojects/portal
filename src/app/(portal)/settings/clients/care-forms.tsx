@@ -1,10 +1,11 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { startTransition, useActionState, useEffect, useState, useTransition } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, Notice, buttonClass, inputClass } from "@/components/ui";
+import { useSavableForm } from "@/components/page-save";
 import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
@@ -19,22 +20,18 @@ export function ClientCareForm({ client }: { client: { id: string; name: string;
   const parts = client.name.trim().split(/\s+/);
   const given = client.given_name || (parts.length > 1 ? parts.slice(0, -1).join(" ") : parts[0] ?? "");
   const family = client.family_name || (parts.length > 1 ? parts[parts.length - 1] : "");
-  const [state, action, pending] = useActionState(saveClientCare, null);
-  const [, start] = useTransition();
-  const { ref, dirty, markClean } = useDirty();
-  useAfterSuccess(state, markClean);
+  // Saved by its own button, or by the page's one Save; a status change is confirmed first.
+  const { state, pending, ref, dirty, onSubmit, pageSave } = useSavableForm(saveClientCare, {
+    label: "Name and status",
+    beforeSave: async (data) => {
+      const to = String(data.get("status"));
+      return to === client.status || askConfirm(`Change ${client.name} (${client.client_ref}) from ${CLIENT_STATUS[client.status]} to ${CLIENT_STATUS[to]}? This is recorded in the change log.`, { action: "Change status" });
+    },
+  });
   return (
     <form
       ref={ref}
-      onSubmit={async (e) => {
-        e.preventDefault();
-        const data = new FormData(e.currentTarget);
-        const to = String(data.get("status"));
-        if (to !== client.status && !(await askConfirm(`Change ${client.name} (${client.client_ref}) from ${CLIENT_STATUS[client.status]} to ${CLIENT_STATUS[to]}? This is recorded in the change log.`, { action: "Change status" }))) {
-          return;
-        }
-        start(() => action(data));
-      }}
+      onSubmit={onSubmit}
       className="mt-3 flex flex-col gap-2 border-t border-line pt-3"
     >
       <input type="hidden" name="id" value={client.id} />
@@ -84,12 +81,14 @@ export function ClientCareForm({ client }: { client: { id: string; name: string;
             ))}
           </select>
         </label>
-        <Button size="sm" variant="outline" disabled={pending || !dirty}>
-          {pending ? "Saving…" : "Save"}
-        </Button>
+        {pageSave ? null : (
+          <Button size="sm" variant="outline" disabled={pending || !dirty}>
+            {pending ? "Saving…" : "Save"}
+          </Button>
+        )}
       </div>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-      {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+      {state?.message && !pageSave ? <Notice tone="success">{state.message}</Notice> : null}
     </form>
   );
 }

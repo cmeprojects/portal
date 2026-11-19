@@ -17,6 +17,7 @@ import { CommsForm, type Comms } from "./comms-form";
 import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow } from "./service-form";
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { SchemePicker } from "./scheme-picker";
+import { PageSave, type PageSaveConfig } from "@/components/page-save";
 import { ReportIncidentForm } from "../../../incidents/forms";
 import { INCIDENT_KINDS, INCIDENT_SEVERITY, INCIDENT_STATUS, label as incLabel } from "@/lib/incidents";
 import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
@@ -392,6 +393,15 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   // shown at the top of their page. The same rules the roster checks: the client is
   // active (To check done), a current approved service that lists its shift types,
   // and an approved service location.
+  // cmeprojects (owner, 19 Nov 2026): one Save for the Basic and Support steps and the
+  // Profile tab; each step's "Save and continue" goes on to the next step.
+  const stepAt = STEPS.findIndex(([k]) => k === step);
+  const pageSave: PageSaveConfig | null =
+    canEditClient && (step === "basic" || step === "support")
+      ? { mode: "steps", back: stepAt > 0 ? `/settings/clients/${id}?edit=${STEPS[stepAt - 1][0]}` : undefined, next: stepAt < STEPS.length - 1 ? `/settings/clients/${id}?edit=${STEPS[stepAt + 1][0]}` : `/settings/clients/${id}`, cancel: `/settings/clients/${id}` }
+      : canEditClient && !step && tab === "profile"
+        ? { mode: "tab" }
+        : null;
   const rosterBlocks: [string, string][] = [];
   // A service that starts later isn't a gap: they can be rostered from that day.
   let rosterFrom: { date: string; label: string } | null = null;
@@ -436,7 +446,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const missing = (table: SectionTable) => <p className="text-sm text-muted">This section appears after database update {SECTION_UPDATE[table]}.</p>;
 
   return (
-    <>
+    <PageSave config={pageSave}>
       <p className="text-sm">
         <Link href="/settings/clients" className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">
           <ArrowLeft aria-hidden="true" className="size-4" /> All clients
@@ -1556,7 +1566,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           </div>
         </details>
       ) : null}
-      {step ? (
+      {step && !pageSave ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           {STEPS.findIndex(([k]) => k === step) > 0 ? (
             <Link href={`/settings/clients/${id}?edit=${STEPS[STEPS.findIndex(([k]) => k === step) - 1][0]}`} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-page">
@@ -1658,7 +1668,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           </aside>
         </>
       ) : null}
-    </>
+    </PageSave>
   );
 }
 

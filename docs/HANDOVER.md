@@ -13,6 +13,16 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 19 Nov 2026.
 
+- **One Save for client pages (19 Nov 2026, owner).** `src/components/page-save.tsx`: `PageSave` wraps the client
+  page on the Basic and Support edit steps and the Profile tab; forms there use `useSavableForm` (name and status,
+  details, communication preferences, location/contact/alert rows and new rows, services), register themselves and
+  hide their own Save. A sticky bar saves every changed form in order: steps show Back, Cancel, "Save for later"
+  and "Save and continue" (next step); Profile shows "Save" while anything changed. Leaving by a link with changes
+  asks: Save and leave, Leave without saving, or Stay (reloading or closing the tab uses the browser's own
+  warning). Actions such as Assign, Archive, Approve and "No known safety alerts" keep their own buttons. Also: the
+  client page's "Can't be rostered yet" box and tag, Fix/Do this links to exact sections, Funded by picker on
+  To check, Service catalogue/Incidents/Houses as menu items, and only changed contact details are validated.
+
 - **SIL houses (19 Nov 2026, update 150, waiting).** Behind the new "SIL houses" switch (System settings ->
   Features), off until turned on; while off nothing shows (the database hides it too) and nothing is deleted.
   `sil_houses` (name, type SIL/SDA/respite/STA, checked Australian address and phone, beds, house manager,

@@ -3,22 +3,18 @@
 
 import { COMMS_CONTACT_WAYS as CONTACT_WAYS } from "@/lib/client-sections";
 
-import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { saveComms } from "./actions";
-import { useAfterSuccess } from "@/components/use-after-success";
-import { useDirty } from "@/components/use-dirty";
+import { useSavableForm } from "@/components/page-save";
 
 export type Comms = { preferred_contact: string; language: string; interpreter_needed: boolean; accessibility_needs: string; notes: string };
 
 // cmeprojects (Care block C2): how to communicate with this client.
 export function CommsForm({ clientId, comms }: { clientId: string; comms: Comms | null }) {
-  const [state, action, pending] = useActionState(saveComms, null);
-  // Save stays greyed out until something changes, and again once it's saved.
-  const { ref, dirty, markClean } = useDirty();
-  useAfterSuccess(state, markClean);
+  // Saved by its own button (greyed out until something changes), or by the page's one Save.
+  const { state, pending, ref, dirty, onSubmit, pageSave } = useSavableForm(saveComms, { label: "Communication preferences" });
   return (
-    <form ref={ref} action={action} className="flex flex-col gap-2">
+    <form ref={ref} onSubmit={onSubmit} className="flex flex-col gap-2">
       <input type="hidden" name="client_id" value={clientId} />
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-xs font-medium">
@@ -49,11 +45,13 @@ export function CommsForm({ clientId, comms }: { clientId: string; comms: Comms 
         <textarea name="notes" maxLength={1000} rows={2} defaultValue={comms?.notes ?? ""} className={inputClass} />
       </label>
       <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" disabled={pending || !dirty}>
-          {pending ? "Saving…" : "Save"}
-        </Button>
+        {pageSave ? null : (
+          <Button size="sm" disabled={pending || !dirty}>
+            {pending ? "Saving…" : "Save"}
+          </Button>
+        )}
         {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-        {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+        {state?.message && !pageSave ? <Notice tone="success">{state.message}</Notice> : null}
       </div>
     </form>
   );
