@@ -16,6 +16,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { SECTION_FIELDS, type SectionTable } from "@/lib/client-sections";
+import { sydneyInstant } from "@/lib/sydney-time";
+// "2026-11-19T14:30" (Sydney wall clock) -> an instant.
+const sydneyLocalToIso = (v: string) => sydneyInstant(v.slice(0, 10), v.slice(11, 16));
 
 const isId = (v: string) => /^[0-9a-f-]{36}$/.test(v);
 
@@ -589,4 +592,43 @@ export async function promoteClientService(form: FormData) {
   if (!s || s.origin !== "custom") return;
   await supabase.from("service_catalogue").insert({ name: s.label, description: s.description, shift_types: s.shift_types, promoted_from: id });
   revalidatePath(`/settings/clients/${clientId}`);
+}
+
+// cmeprojects (update 147): the communication log. The database checks who
+// may write it, keeps the author, and keeps entries as written after 24 hours.
+const METHODS = ["phone", "sms", "email", "meeting", "video", "letter", "other"];
+export async function addCommunication(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(clientId)) return { error: "That didn't save. Please reload the page." };
+  const method = String(form.get("method") ?? "");
+  const summary = String(form.get("summary") ?? "").trim().slice(0, 2000);
+  if (!METHODS.includes(method)) return { error: "Choose how it happened." };
+  if (!summary) return { error: "Write a short summary." };
+  const at = String(form.get("happened_at") ?? "");
+  const followBy = String(form.get("follow_up_by") ?? "");
+  const { error } = await (await createClient()).from("client_communications").insert({
+    client_id: clientId,
+    method,
+    direction: form.get("direction") === "in" ? "in" : "out",
+    with_whom: String(form.get("with_whom") ?? "").trim().slice(0, 120),
+    summary,
+    follow_up: String(form.get("follow_up") ?? "").trim().slice(0, 500),
+    follow_up_by: /^\d{4}-\d{2}-\d{2}$/.test(followBy) ? followBy : null,
+    ...(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(at) ? { happened_at: sydneyLocalToIso(at) } : {}),
+  });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath(`/settings/clients/${clientId}`);
+  revalidatePath("/settings/clients");
+  return { message: "Added to the communication log." };
+}
+
+export async function setFollowUpDone(form: FormData) {
+  await requireClients();
+  const id = String(form.get("id") ?? "");
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(id) || !isId(clientId)) return;
+  await (await createClient()).from("client_communications").update({ follow_up_done_at: form.get("done") === "1" ? new Date().toISOString() : null }).eq("id", id).eq("client_id", clientId);
+  revalidatePath(`/settings/clients/${clientId}`);
+  revalidatePath("/settings/clients");
 }

@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270401000001_house_rostering.sql
+-- Built from every migration up to: 20270402000001_client_communications.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,7 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and to_regclass('public.client_communications') is not null then v_upto := 165; end if;
   if v_upto = 0 and to_regclass('public.shift_residents') is not null then v_upto := 164; end if;
   if v_upto = 0 and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'roster_check_dates') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'shift_types' and column_name = 'required_items') then v_upto := 163; end if;
   if v_upto = 0 and to_regclass('public.service_catalogue') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'client_services' and column_name = 'catalogue_id') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'client_services' and column_name = 'origin') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'client_services' and column_name = 'description') then v_upto := 161; end if;
@@ -295,7 +296,8 @@ begin
     (161, '20270329000001_approved_services.sql'),
     (162, '20270330000001_starter_services.sql'),
     (163, '20270331000001_shift_type_qualifications.sql'),
-    (164, '20270401000001_house_rostering.sql')
+    (164, '20270401000001_house_rostering.sql'),
+    (165, '20270402000001_client_communications.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -28817,5 +28819,107 @@ $function$;
 
 $m164$;
   insert into public.install_log (name) values ('20270401000001_house_rostering.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270402000001_client_communications.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270402000001_client_communications.sql') then
+    return;
+  end if;
+  execute $m165$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 147): the communication log. Calls, texts, emails,
+-- meetings and letters with the client, their family or others, with who it
+-- was with, which way, a short summary and an optional follow-up.
+-- Read by people who change the client's communication details or see their
+-- care plans (managers, case managers for their clients, intake, client
+-- services coordinators); written by people who change communication details.
+-- Support workers and payroll don't see it. Entries stay as written: the
+-- author can correct one within 24 hours; anyone who can write can mark a
+-- follow-up done. Nothing is deleted. No new security definer function.
+-- Safe to run again.
+
+create table if not exists public.client_communications (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null default public.default_org_id(),
+  client_id uuid not null references public.car_clients (id) on delete cascade,
+  happened_at timestamptz not null default now(),
+  method text not null check (method in ('phone', 'sms', 'email', 'meeting', 'video', 'letter', 'other')),
+  direction text not null default 'out' check (direction in ('in', 'out')),
+  with_whom text not null default '' check (length(with_whom) <= 120),
+  summary text not null check (length(trim(summary)) between 1 and 2000),
+  follow_up text not null default '' check (length(follow_up) <= 500),
+  follow_up_by date,
+  follow_up_done_at timestamptz,
+  follow_up_done_by uuid,
+  author_id uuid not null default auth.uid() references public.profiles (id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists client_communications_client on public.client_communications (client_id, happened_at desc);
+alter table public.client_communications enable row level security;
+drop policy if exists "read the communication log" on public.client_communications;
+create policy "read the communication log" on public.client_communications
+  for select to authenticated
+  using (public.can('clients.comms', 'edit', client_id) or public.can('clients.care_plans', 'view', client_id));
+drop policy if exists "write the communication log" on public.client_communications;
+create policy "write the communication log" on public.client_communications
+  for insert to authenticated
+  with check (author_id = (select auth.uid()) and public.can('clients.comms', 'edit', client_id));
+drop policy if exists "correct or follow up the communication log" on public.client_communications;
+create policy "correct or follow up the communication log" on public.client_communications
+  for update to authenticated
+  using (public.can('clients.comms', 'edit', client_id))
+  with check (public.can('clients.comms', 'edit', client_id));
+-- No delete.
+grant select, insert, update on public.client_communications to authenticated;
+revoke all on public.client_communications from anon;
+
+create or replace function public.guard_client_communication() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then
+    new.author_id := auth.uid();
+    new.created_at := now();
+    new.follow_up_done_at := null;
+    new.follow_up_done_by := null;
+    if new.happened_at > now() + interval '1 hour' then
+      raise exception 'A communication can''t be in the future.';
+    end if;
+  else
+    if new.client_id <> old.client_id or new.author_id <> old.author_id or new.created_at <> old.created_at then
+      raise exception 'A log entry stays with its client and author.';
+    end if;
+    -- Marking a follow-up done (or undone) is open to anyone who can write; anything else is a correction.
+    if (new.happened_at, new.method, new.direction, new.with_whom, new.summary, new.follow_up, new.follow_up_by)
+       is distinct from (old.happened_at, old.method, old.direction, old.with_whom, old.summary, old.follow_up, old.follow_up_by) then
+      if old.author_id <> auth.uid() then
+        raise exception 'Only the person who wrote it can correct a log entry.';
+      end if;
+      if old.created_at < now() - interval '24 hours' then
+        raise exception 'A log entry can only be corrected within 24 hours. Add a new entry instead.';
+      end if;
+    end if;
+    if new.follow_up_done_at is distinct from old.follow_up_done_at then
+      new.follow_up_done_at := case when new.follow_up_done_at is null then null else now() end;
+      new.follow_up_done_by := case when new.follow_up_done_at is null then null else auth.uid() end;
+    end if;
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+revoke execute on function public.guard_client_communication() from public, anon, authenticated;
+drop trigger if exists guard_client_communication on public.client_communications;
+create trigger guard_client_communication before insert or update on public.client_communications
+  for each row execute function public.guard_client_communication();
+
+$m165$;
+  insert into public.install_log (name) values ('20270402000001_client_communications.sql');
 end;
 $part$;

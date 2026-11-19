@@ -78,6 +78,8 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         roster ? supabase.from("shifts").select("id, client_id, worker_id, starts_at, ends_at, status").not("client_id", "is", null).neq("status", "cancelled").gte("starts_at", new Date().toISOString()).lte("starts_at", new Date(Date.parse(new Date().toISOString()) + 14 * 86_400_000).toISOString()).order("starts_at").limit(2000) : null,
         supabase.from("shift_service_records").select("shift_id, client_id, worker_id, delivered, client_wellbeing, concern, created_at").gte("created_at", new Date(Date.parse(new Date().toISOString()) - 14 * 86_400_000).toISOString()).order("created_at", { ascending: false }).limit(2000),
       ]);
+  // update 147: follow-ups due from the communication log (for the bell; empty if not visible).
+  const { data: followRows } = setup ? { data: [] } : await supabase.from("client_communications").select("client_id").is("follow_up_done_at", null).lte("follow_up_by", new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }));
   type UpShift = { id: string; client_id: string; worker_id: string | null; starts_at: string; ends_at: string; status: string };
   type RecentNote = { shift_id: string; worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; created_at: string; client_id: string | null };
   const upShifts = shiftsRes && !shiftsRes.error ? ((shiftsRes.data ?? []) as UpShift[]) : null;
@@ -161,6 +163,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         : null,
       // Incidents or issues reported in shift notes over the last 14 days (for the bell).
       incidents: (recentNotes ?? []).filter((n) => n.client_id === c.id && n.concern).length,
+      followUps: ((followRows ?? []) as { client_id: string }[]).filter((f) => f.client_id === c.id).length,
       notes: recentNotes
         ? recentNotes
             .filter((n) => n.client_id === c.id)

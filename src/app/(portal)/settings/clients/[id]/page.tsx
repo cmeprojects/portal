@@ -15,6 +15,7 @@ import { NoAlertsButton, SectionForm } from "./section-form";
 import { AssignForm } from "./assign-form";
 import { CommsForm, type Comms } from "./comms-form";
 import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow } from "./service-form";
+import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
 import { archiveClientDocument, promoteClientService, endPractitionerAccess, shareWithPractitioners, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
 import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
@@ -185,6 +186,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     funding: ["funding"],
     staff: ["staff"],
     shifts: ["shifts"],
+    comms: ["commslog"],
     practitioners: ["practitioners"],
   };
   const STEP_SECTIONS: Record<string, string[]> = {
@@ -229,6 +231,14 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     some_concerns: ["Some concerns", "bg-warn-soft"],
     unwell_or_distressed: ["Unwell or distressed", "bg-danger-soft text-danger"],
   };
+  // cmeprojects (update 147): the communication log (the database decides who sees it).
+  const [logRes, canWriteComms] = await Promise.all([
+    supabase.from("client_communications").select("id, happened_at, method, direction, with_whom, summary, follow_up, follow_up_by, follow_up_done_at, author_id").eq("client_id", id).order("happened_at", { ascending: false }).limit(200),
+    canDoFor("clients.comms", "edit", id),
+  ]);
+  const commsLog: CommEntry[] | null = logRes.error
+    ? null
+    : ((logRes.data ?? []) as (Omit<CommEntry, "author"> & { author_id: string })[]).map((e) => ({ ...e, author: nameOfStaff.get(e.author_id) ?? "Staff member" }));
   // cmeprojects: one shift opened in a pop-up (people who can see the roster).
   const shiftParam = typeof sp.shift === "string" && /^[0-9a-f-]{36}$/.test(sp.shift) ? sp.shift : "";
   type ShiftView = { id: string; ref?: string; worker_id: string | null; starts_at: string; ends_at: string; break_minutes: number; status: string; service_id: string | null; location_id: string | null; shift_type?: string; shift_type_other?: string; notes: string; extra_notes?: string; signatures_needed?: string[]; notified_at?: string | null };
@@ -288,6 +298,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["funding", "Funding", showFunding],
     ["staff", "Assigned staff", !!assignments],
     ["shifts", "Shifts and notes", !!clientShifts || !!shiftNotes],
+    ["comms", "Communication log", !!commsLog && (commsLog.length > 0 || canWriteComms)],
     ["practitioners", "Practitioners", !!practitionerAccess],
   ];
   const canEditClient = await canDoFor("clients.list", "edit", id);
@@ -493,6 +504,23 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               <p className="text-sm text-muted">No notes yet.</p>
             )}
           </div>
+        </Card>
+      ) : null}
+      {inView("commslog") && commsLog ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Communication log</h2>
+            <p className="text-sm text-muted">Calls, texts, emails, meetings and letters with the client, their family or others. Entries can be corrected by their author for 24 hours, then stay as written.</p>
+          </div>
+          {canWriteComms ? (
+            <details className="rounded-lg border border-dashed border-line px-3 py-2">
+              <summary className="cursor-pointer text-sm font-semibold text-brand">+ Add to the log</summary>
+              <div className="mt-3">
+                <CommsLogForm clientId={id} />
+              </div>
+            </details>
+          ) : null}
+          <CommsLogList clientId={id} entries={commsLog} canWrite={canWriteComms} />
         </Card>
       ) : null}
       {inView("shifts") && shiftNotes ? (

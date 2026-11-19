@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
 import { loadClientNotes, type ClientNotes } from "./notes-actions";
+import { CommsLogForm, CommsLogList } from "./[id]/comms-log";
 import { inputClass } from "@/components/ui";
 import { ClientCareForm } from "./care-forms";
 import { ClientRow, ClientStatusChip } from "../../cars/manage/forms";
@@ -36,6 +37,7 @@ export type ListClient = {
   shifts: { id: string; when: string; worker: string; draft: boolean; day: string }[] | null;
   notes: { when: string; worker: string; wellbeing: string; concern: boolean; text: string }[] | null;
   incidents: number;
+  followUps: number;
 };
 const WELLBEING: Record<string, [string, string]> = {
   settled: ["Settled", "bg-good-soft"],
@@ -62,20 +64,23 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
   const [data, setData] = useState<ClientNotes | null>(null);
   const [error, setError] = useState("");
   const [loading, start] = useTransition();
-  useEffect(() => {
+  const [adding, setAdding] = useState(false);
+  const reload = () =>
     start(async () => {
       const r = await loadClientNotes(client.id);
       if ("error" in r) setError(r.error);
       else setData(r);
     });
+  useEffect(() => {
+    reload();
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
-  }, [client.id, onClose]);
+  }, [client.id, onClose]); // eslint-disable-line react-hooks/exhaustive-deps
   const tabs: [NotesTab, string, number | null][] = [
     ["shift", "Shift and progress notes", data?.shiftNotes?.length ?? null],
     ["practitioner", "Practitioner notes", data?.practitionerNotes?.length ?? null],
-    ["comms", "Communications", null],
+    ["comms", "Communications", data?.commsLog?.length ?? null],
     ["log", "Activity log", data?.log?.length ?? null],
   ];
   const empty = (t: string) => <p className="text-sm text-muted">{t}</p>;
@@ -150,7 +155,24 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
                   {data.comms.notes ? (<><dt className="text-muted">Notes</dt><dd className="whitespace-pre-wrap">{data.comms.notes}</dd></>) : null}
                 </dl>
               ) : empty("No communication preferences recorded, or you don't have access to them.")}
-              <p className="rounded-lg bg-page px-3 py-2 text-xs text-muted">A log of calls, emails and meetings with the client isn&apos;t set up yet.</p>
+              <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
+                <h3 className="text-xs font-semibold uppercase text-muted">Communication log</h3>
+                {data.canWriteComms && data.commsLog ? (
+                  <button type="button" onClick={() => setAdding((v) => !v)} className="text-xs font-semibold text-brand underline">
+                    {adding ? "Close" : "+ Add to the log"}
+                  </button>
+                ) : null}
+              </div>
+              {adding ? (
+                <CommsLogForm
+                  clientId={client.id}
+                  onDone={() => {
+                    setAdding(false);
+                    reload();
+                  }}
+                />
+              ) : null}
+              {data.commsLog === null ? empty("You don't have access to the communication log.") : <CommsLogList clientId={client.id} entries={data.commsLog} canWrite={data.canWriteComms} />}
             </div>
           ) : tab === "log" ? (
             data.log === null ? hidden : data.log.length ? (
@@ -352,8 +374,8 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                         {(() => {
                           // One number, like a notification: active safety alerts plus reviews overdue or due within 30 days.
                           const due = c.reviews.filter((r) => r.overdue || r.due <= in30).length;
-                          const count = c.alerts + due + c.incidents;
-                          const tip = count ? [c.incidents ? `${c.incidents} incident${c.incidents === 1 ? "" : "s"} in the last 14 days` : "", c.alerts ? `${c.alerts} safety alert${c.alerts === 1 ? "" : "s"}` : "", due ? `${due} review${due === 1 ? "" : "s"} due` : ""].filter(Boolean).join(", ") : "Nothing needs attention";
+                          const count = c.alerts + due + c.incidents + c.followUps;
+                          const tip = count ? [c.followUps ? `${c.followUps} follow-up${c.followUps === 1 ? "" : "s"} due` : "", c.incidents ? `${c.incidents} incident${c.incidents === 1 ? "" : "s"} in the last 14 days` : "", c.alerts ? `${c.alerts} safety alert${c.alerts === 1 ? "" : "s"}` : "", due ? `${due} review${due === 1 ? "" : "s"} due` : ""].filter(Boolean).join(", ") : "Nothing needs attention";
                           return (
                             <button type="button" onClick={() => setAlertsFor(c)} title={tip} aria-label={`Alerts for ${c.name}: ${tip}`} className={`relative inline-flex size-8 items-center justify-center rounded-full hover:opacity-80 ${count ? "bg-danger-soft text-danger" : "bg-page text-muted"}`}>
                               <Bell aria-hidden="true" className="size-4" />
@@ -606,6 +628,8 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
   }, [client.id, onClose]);
   const todayIso = new Date().toISOString().slice(0, 10);
   const due = (data?.reviews ?? []).filter((r) => r.status === "open" && r.due <= in30);
+  // Follow-ups from the communication log that are due (not done).
+  const follow = (data?.commsLog ?? []).filter((e) => e.follow_up_by && !e.follow_up_done_at && e.follow_up_by <= todayIso);
   // Incidents or issues from shift notes in the last 14 days (newest first).
   const incidents = (data?.shiftNotes ?? []).filter((n) => n.concern && n.at >= new Date(Date.parse(todayIso + "T00:00:00Z") - 14 * 86_400_000).toISOString());
   return (
@@ -651,6 +675,15 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
                   {a.escalation ? <p className="mt-1 whitespace-pre-wrap"><span className="text-muted">If it happens: </span>{a.escalation}</p> : null}
                 </div>
               ))}
+              {follow.map((e) => (
+                <div key={e.id} className={`rounded-lg border p-3 ${e.follow_up_by! < todayIso ? "border-danger" : "border-warn"}`}>
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">Follow-up{e.follow_up ? `: ${e.follow_up}` : ""}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${e.follow_up_by! < todayIso ? "bg-danger-soft text-danger" : "bg-warn-soft"}`}>{e.follow_up_by! < todayIso ? `Overdue (by ${day(e.follow_up_by!)})` : "Due today"}</span>
+                  </p>
+                  <p className="mt-1 text-xs text-muted">From {e.author}: {e.summary}</p>
+                </div>
+              ))}
               {due.map((r, i) => (
                 <div key={`r${i}`} className={`rounded-lg border p-3 ${r.due < todayIso ? "border-danger" : "border-warn"}`}>
                   <p className="flex flex-wrap items-center gap-2">
@@ -660,7 +693,7 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
                   {r.reason ? <p className="mt-1 text-xs text-muted">What changed: {r.reason}</p> : null}
                 </div>
               ))}
-              {!(data.alerts ?? []).length && !due.length && !incidents.length ? <p className="text-muted">Nothing needs attention.</p> : null}
+              {!(data.alerts ?? []).length && !due.length && !incidents.length && !follow.length ? <p className="text-muted">Nothing needs attention.</p> : null}
             </>
           )}
         </div>
