@@ -247,7 +247,12 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
         ...svcRows.map((v) => supabase.rpc("client_gaps", { p_client: id, p_program: v.program_id, p_location: v.location_id, p_consent_required: v.consent_required, p_consent_given: v.consent_given_on })),
       ])
     : [];
-  const allGaps = [...new Set(gapRes.flatMap((r) => ((r.data ?? []) as string[])))].filter((g) => !/isn't active yet/.test(g));
+  // The first check has no service, so no location to look at: its location message is ignored.
+  const allGaps = [...new Set(gapRes.flatMap((r, i) => ((r.data ?? []) as string[]).filter((g) => i > 0 || !/location/i.test(g))))].filter((g) => !/isn't active yet/.test(g));
+  // Services whose own location isn't approved and current today (dates included).
+  const badLocationServices = svcRows.filter((_, i) => ((gapRes[i + 1]?.data ?? []) as string[]).some((g) => /location/i.test(g))).map((v) => v.label);
+  const todaySyd = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  const currentApproved = locationRows.some((l) => l.approved && (!l.from_date || String(l.from_date) <= todaySyd) && (!l.to_date || String(l.to_date) >= todaySyd));
   const has = (re: RegExp) => !allGaps.some((g) => re.test(g));
   // update 148: the scheme chosen at registration (not asked before it runs).
   const schemeRes = checking ? await supabase.from("car_clients").select("scheme").eq("id", id).maybeSingle() : null;
@@ -256,7 +261,18 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ? [
         ...(schemeRes && !schemeRes.error ? [["Funded by (NDIS, Support at Home, …)", !!regScheme, regScheme ? (schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme) : "Not chosen", `/settings/clients/${id}#to-check`] as [string, boolean, string, string]] : []),
         ["At least one approved service", svcRows.length > 0, svcRows.length ? svcRows.map((v) => v.label).join(", ") : "None yet", `/settings/clients/${id}?tab=services#services`],
-        ["An approved service location", has(/location/i) && locationRows.some((l) => l.approved), locationRows.some((l) => l.approved) ? "Approved" : "Add and approve the address where support happens", `/settings/clients/${id}?tab=profile#locations`],
+        [
+          "An approved service location",
+          currentApproved && !badLocationServices.length,
+          !locationRows.some((l) => l.approved)
+            ? "Add and approve the address where support happens"
+            : !currentApproved
+              ? "The approved location isn't current today: check its From and To dates"
+              : badLocationServices.length
+                ? `${badLocationServices.join(", ")} uses a location that isn't approved or current. Choose the approved location on the service.`
+                : "Approved",
+          badLocationServices.length && currentApproved ? `/settings/clients/${id}?tab=services#services` : `/settings/clients/${id}?tab=profile#locations`,
+        ],
         ["An emergency contact", has(/emergency/i), has(/emergency/i) ? "Recorded" : "Add one under Emergency contacts", `/settings/clients/${id}?tab=profile#emergency`],
         ["Safety answered", has(/safety/i), has(/safety/i) ? "Recorded" : "Add an alert, or record \"No known safety alerts\"", `/settings/clients/${id}?tab=profile#safety`],
         ["Date of birth (if the program needs it)", has(/date of birth/i), has(/date of birth/i) ? "Done" : "Needed for this program", `/settings/clients/${id}?tab=profile#details`],
