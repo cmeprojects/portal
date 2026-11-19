@@ -17,7 +17,7 @@ import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { SECTION_FIELDS, type SectionTable } from "@/lib/client-sections";
 import { sydneyInstant } from "@/lib/sydney-time";
-import { checkAuPhone, checkEmail, checkFullAddress, checkPostcode, checkStreet, type Check } from "@/lib/validate";
+import { checkAuPhone, checkDob, checkEmail, checkFullAddress, checkPostcode, checkStreet, type Check } from "@/lib/validate";
 // "2026-11-19T14:30" (Sydney wall clock) -> an instant.
 const sydneyLocalToIso = (v: string) => sydneyInstant(v.slice(0, 10), v.slice(11, 16));
 
@@ -79,6 +79,7 @@ export async function saveClientSection(_: FormState, form: FormData): Promise<F
     if (st && values.state && values.state !== st) problems.push(`State: the home address is in ${st}, but ${values.state} is chosen.`);
   }
   if (table === "client_details") {
+    if (values.date_of_birth && changed("date_of_birth")) problems.push(fix("date_of_birth", checkDob(String(values.date_of_birth)), "Date of birth"));
     if (values.ndis_number && changed("ndis_number")) {
       values.ndis_number = String(values.ndis_number).replace(/\s/g, "");
       if (!/^\d{9}$/.test(String(values.ndis_number))) problems.push("NDIS number: it's 9 digits.");

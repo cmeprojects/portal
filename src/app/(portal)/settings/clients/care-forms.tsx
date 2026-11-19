@@ -6,6 +6,7 @@ import { UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, Notice, buttonClass, inputClass } from "@/components/ui";
 import { useSavableForm } from "@/components/page-save";
+import { Req } from "@/components/required";
 import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
@@ -51,7 +52,10 @@ export function ClientCareForm({ client }: { client: { id: string; name: string;
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium">
-            First name
+            <span>
+              First name
+              <Req />
+            </span>
             <input name="given_name" required maxLength={40} defaultValue={given} className={inputClass} />
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium">
@@ -59,7 +63,10 @@ export function ClientCareForm({ client }: { client: { id: string; name: string;
             <input name="middle_name" maxLength={40} defaultValue={client.middle_name ?? ""} className={inputClass} />
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium">
-            Last name
+            <span>
+              Last name
+              <Req />
+            </span>
             <input name="family_name" required maxLength={40} defaultValue={family} className={inputClass} />
           </label>
         </div>
@@ -296,12 +303,18 @@ export function AddCareClientForm({ staff, schemes = [] }: { staff: { id: string
     >
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs font-medium">
-          Name
+          <span>
+            Name
+            <Req />
+          </span>
           <input name="name" required maxLength={80} defaultValue={draft.name ?? ""} className={inputClass} />
         </label>
         {schemes.length ? (
           <label className="flex flex-col gap-1 text-xs font-medium">
-            Funded by
+            <span>
+              Funded by
+              <Req />
+            </span>
             <select name="scheme" required value={scheme} onChange={(e) => setScheme(e.target.value)} className={inputClass}>
               <option value="" disabled>
                 Choose the scheme
@@ -316,12 +329,18 @@ export function AddCareClientForm({ staff, schemes = [] }: { staff: { id: string
         ) : null}
         {scheme === "ndis" ? (
           <label className="flex flex-col gap-1 text-xs font-medium">
-            NDIS number
+            <span>
+              NDIS number
+              <Req />
+            </span>
             <input name="ndis_number" required inputMode="numeric" pattern="\d{9}" maxLength={11} placeholder="9 digits" defaultValue={draft.ndis_number ?? ""} className={inputClass} />
           </label>
         ) : MAC_SCHEMES.includes(scheme) ? (
           <label className="flex flex-col gap-1 text-xs font-medium">
-            My Aged Care ID
+            <span>
+              My Aged Care ID
+              <Req />
+            </span>
             <input name="aged_care_id" required maxLength={12} placeholder="AC12345678" defaultValue={draft.aged_care_id ?? ""} className={inputClass} />
           </label>
         ) : null}

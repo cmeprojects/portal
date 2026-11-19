@@ -7,6 +7,17 @@ import { checkPhone } from "@/lib/phone";
 
 export type Check = { ok: true; value: string } | { ok: false; error: string };
 
+// A date of birth (YYYY-MM-DD): not in the future, and not more than 120 years ago (Sydney time).
+export function checkDob(raw: string): Check {
+  const v = raw.trim();
+  if (!v) return { ok: true, value: "" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || Number.isNaN(Date.parse(`${v}T00:00:00Z`))) return { ok: false, error: "Enter the date of birth as a date." };
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  if (v > today) return { ok: false, error: "The date of birth can't be in the future." };
+  if (Number(v.slice(0, 4)) < Number(today.slice(0, 4)) - 120) return { ok: false, error: "Check the year: that's more than 120 years ago." };
+  return { ok: true, value: v };
+}
+
 // A real-looking email: something@domain.tld, no spaces, lower-cased.
 export function checkEmail(raw: string): Check {
   const v = raw.trim().toLowerCase();

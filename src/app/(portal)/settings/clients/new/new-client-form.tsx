@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { useDirty } from "@/components/use-dirty";
+import { NeededTag, Req, RequiredLegend } from "@/components/required";
 import { GENDERS, MAC_SCHEMES, STATES, TITLES } from "@/lib/client-sections";
 import { createClientFull } from "../actions";
 
@@ -46,6 +47,7 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
       }}
       className="flex flex-col gap-4"
     >
+      <RequiredLegend />
       <section className="shadow-card flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
         <h2 className="heading-sm">Name</h2>
         <div className="grid gap-3 sm:grid-cols-[6rem_1fr_1fr_1fr]">
@@ -60,7 +62,10 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
             </select>
           </label>
           <label className={lab}>
-            First name
+            <span>
+              First name
+              <Req />
+            </span>
             <input name="given_name" required maxLength={40} defaultValue={given} className={inputClass} />
           </label>
           <label className={lab}>
@@ -68,7 +73,10 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
             <input name="middle_name" maxLength={40} className={inputClass} />
           </label>
           <label className={lab}>
-            Last name
+            <span>
+              Last name
+              <Req />
+            </span>
             <input name="family_name" required maxLength={40} defaultValue={family} className={inputClass} />
           </label>
         </div>
@@ -82,7 +90,10 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
         <h2 className="heading-sm">Funding</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className={lab}>
-            Funded by
+            <span>
+              Funded by
+              <Req />
+            </span>
             <select name="scheme" required value={scheme} onChange={(e) => setScheme(e.target.value)} className={inputClass}>
               <option value="" disabled>
                 Choose the scheme
@@ -96,12 +107,18 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
           </label>
           {scheme === "ndis" ? (
             <label className={lab}>
-              NDIS number
+              <span>
+                NDIS number
+                <Req />
+              </span>
               <input name="ndis_number" required inputMode="numeric" maxLength={11} placeholder="9 digits" defaultValue={initial.ndis_number ?? ""} className={inputClass} />
             </label>
           ) : MAC_SCHEMES.includes(scheme) ? (
             <label className={lab}>
-              My Aged Care ID
+              <span>
+                My Aged Care ID
+                <Req />
+              </span>
               <input name="aged_care_id" required maxLength={12} placeholder="AC12345678" defaultValue={initial.aged_care_id ?? ""} className={inputClass} />
             </label>
           ) : (
@@ -119,9 +136,12 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
         <h2 className="heading-sm">Contact details</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className={lab}>
-            Date of birth
-            <input type="date" name="date_of_birth" className={inputClass} />
-            <span className="font-normal text-muted">Required for NDIS and Support at Home</span>
+            <span>
+              Date of birth
+              {scheme === "ndis" || MAC_SCHEMES.includes(scheme) ? <NeededTag /> : null}
+            </span>
+            <input type="date" name="date_of_birth" max={new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })} className={inputClass} />
+            <span className="font-normal text-muted">Required for NDIS, Support at Home and CHSP</span>
           </label>
           <label className={lab}>
             Gender (optional)

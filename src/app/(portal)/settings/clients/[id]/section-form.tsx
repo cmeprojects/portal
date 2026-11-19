@@ -82,7 +82,7 @@ function SectionFormInner({ table, clientId, fields, item, choices = {}, submit,
                   ))}
                 </select>
               ) : (
-                <input id={id} name={f.name} type={f.type === "date" ? "date" : "text"} required={f.required} maxLength={f.max} defaultValue={value(f)} className={inputClass} />
+                <input id={id} name={f.name} type={f.type === "date" ? "date" : "text"} required={f.required} maxLength={f.max} max={f.name === "date_of_birth" ? new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) : undefined} defaultValue={value(f)} className={inputClass} />
               )}
               {f.hint ? <span className="font-normal text-muted">{f.hint}</span> : null}
             </label>

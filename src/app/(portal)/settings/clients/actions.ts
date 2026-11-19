@@ -15,7 +15,7 @@ async function requireClients() {
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
-import { checkAuPhone, checkEmail, checkFullAddress } from "@/lib/validate";
+import { checkAuPhone, checkDob, checkEmail, checkFullAddress } from "@/lib/validate";
 import { MAC_SCHEMES } from "@/lib/client-sections";
 
 // cmeprojects: which team(s) look after a client (people who manage staff).
@@ -211,7 +211,8 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
   const phone = checkAuPhone(t("phone", 30));
   const email = checkEmail(t("email", 120));
   const address = checkFullAddress(t("home_address", 300));
-  const problems = [phone.ok ? "" : `Phone: ${phone.error}`, email.ok ? "" : `Email: ${email.error}`, address.ok ? "" : `Home address: ${address.error}`].filter(Boolean);
+  const dobCheck = checkDob(t("date_of_birth", 10));
+  const problems = [dobCheck.ok ? "" : `Date of birth: ${dobCheck.error}`, phone.ok ? "" : `Phone: ${phone.error}`, email.ok ? "" : `Email: ${email.error}`, address.ok ? "" : `Home address: ${address.error}`].filter(Boolean);
   const state = t("state", 3);
   const inAddress = address.ok ? address.value.match(/ (NSW|VIC|QLD|WA|SA|TAS|ACT|NT) \d{4}$/)?.[1] : null;
   if (inAddress && state && state !== inAddress) problems.push(`State: the home address is in ${inAddress}, but ${state} is chosen.`);
