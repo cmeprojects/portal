@@ -45,6 +45,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   const canAssign = await canDo("clients.assign", "edit");
   // cmeprojects (update 127): people who only view clients (support workers, team leaders) don't see Add.
   const canAddClient = await canDo("clients.list", "edit");
+  const seesIncidents = await canDo("clients.incidents", "view");
   // Who can manage a new client: care partners (Case Managers, by main or extra job title) and managers.
   const [{ data: staffRows }, { data: cmTitles }] = canAssign
     ? await Promise.all([
@@ -91,6 +92,9 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       ]);
   // update 147: follow-ups due from the communication log (for the bell; empty if not visible).
   const { data: followRows } = setup ? { data: [] } : await supabase.from("client_communications").select("client_id").is("follow_up_done_at", null).lte("follow_up_by", new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }));
+  // update 149: open client incidents (for the bell); before 149 runs, shift-note incidents.
+  const openInc = setup ? null : await supabase.from("client_incidents").select("client_id").neq("status", "closed");
+  const openIncidents = openInc && !openInc.error ? ((openInc.data ?? []) as { client_id: string }[]) : null;
   type UpShift = { id: string; client_id: string; worker_id: string | null; starts_at: string; ends_at: string; status: string };
   type RecentNote = { shift_id: string; worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; created_at: string; client_id: string | null };
   const upShifts = shiftsRes && !shiftsRes.error ? ((shiftsRes.data ?? []) as UpShift[]) : null;
@@ -172,8 +176,8 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
             .slice(0, 5)
             .map((x) => ({ id: x.id, when: `${when(x.starts_at)} – ${new Date(x.ends_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })}`, worker: x.worker_id ? (staffName.get(x.worker_id) ?? "Staff member") : "", draft: x.status === "draft", day: new Date(x.starts_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) }))
         : null,
-      // Incidents or issues reported in shift notes over the last 14 days (for the bell).
-      incidents: (recentNotes ?? []).filter((n) => n.client_id === c.id && n.concern).length,
+      // Open incidents (update 149), or before it runs, shift-note incidents in the last 14 days (for the bell).
+      incidents: openIncidents ? openIncidents.filter((n) => n.client_id === c.id).length : (recentNotes ?? []).filter((n) => n.client_id === c.id && n.concern).length,
       followUps: ((followRows ?? []) as { client_id: string }[]).filter((f) => f.client_id === c.id).length,
       notes: recentNotes
         ? recentNotes
@@ -205,6 +209,12 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         <Link href="/settings/clients/catalogue" className="-mb-px border-b-2 border-transparent px-3 py-2 font-semibold text-muted hover:text-ink">
           Service catalogue
         </Link>
+        {seesIncidents ? (
+          <Link href="/incidents" className="-mb-px flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2 font-semibold text-muted hover:text-ink">
+            Incidents
+            {openIncidents?.length ? <span className="rounded-full bg-danger px-1.5 text-xs font-bold text-white">{openIncidents.length}</span> : null}
+          </Link>
+        ) : null}
       </nav>
       {setup ? null : (
         <>

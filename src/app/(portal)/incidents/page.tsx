@@ -24,6 +24,7 @@ type Row = {
   reportable: boolean;
   report_due_at: string | null;
   reported_to_regulator_at: string | null;
+  investigator_id: string | null;
   car_clients: { name: string; preferred_name: string | null } | null;
 };
 
@@ -38,24 +39,28 @@ function dueWords(due: string, now: number) {
 // cmeprojects (update 149): every incident this person may see (the database
 // decides which), open ones first, with the NDIS Commission deadline.
 export default async function IncidentsPage({ searchParams }: PageProps<"/incidents">) {
-  await requireSession();
+  const { profile } = await requireSession();
   const sp = await searchParams;
-  const show = sp.show === "closed" ? "closed" : sp.show === "all" ? "all" : "open";
+  const show = sp.show === "closed" ? "closed" : sp.show === "all" ? "all" : sp.show === "mine" ? "mine" : "open";
   const canView = await canDo("clients.incidents", "view");
   const canReport = await canDo("clients.incidents", "edit");
   const supabase = await createClient();
   let q = supabase
     .from("client_incidents")
-    .select("id, ref, client_id, kind, severity, summary, status, source, occurred_at, reportable, report_due_at, reported_to_regulator_at, car_clients(name, preferred_name)")
+    .select("id, ref, client_id, kind, severity, summary, status, source, occurred_at, reportable, report_due_at, reported_to_regulator_at, investigator_id, car_clients(name, preferred_name)")
     .order("occurred_at", { ascending: false })
     .limit(300);
   if (show === "open") q = q.neq("status", "closed");
   if (show === "closed") q = q.eq("status", "closed");
+  if (show === "mine") q = q.eq("investigator_id", profile.id).neq("status", "closed");
   const { data, error } = await q;
   if (error?.code === "42P01" || error?.code === "PGRST205") notFound();
   const rows = (data ?? []) as unknown as Row[];
-  if (!canView && !rows.length && !canReport) notFound();
-  const order = { new: 0, acknowledged: 1, investigating: 2, closed: 3 } as Record<string, number>;
+  // Actions given to me on open incidents.
+  const { data: myActs } = await supabase.from("client_incident_actions").select("id, action, due_on, incident_id, client_incidents(ref, status)").eq("owner_id", profile.id).is("done_at", null).order("due_on");
+  const myActions = ((myActs ?? []) as unknown as { id: string; action: string; due_on: string; incident_id: string; client_incidents: { ref: string; status: string } | null }[]).filter((a) => a.client_incidents?.status !== "closed");
+  if (!canView && !rows.length && !canReport && !myActions.length && show !== "mine") notFound();
+  const order = { new: 0, review: 1, investigating: 2, closed: 3 } as Record<string, number>;
   rows.sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9) || Number(b.reportable) - Number(a.reportable));
   const now = Date.parse(new Date().toISOString());
   const clients = canReport ? (((await supabase.from("car_clients").select("id, name").eq("active", true).neq("status", "discharged").order("name")).data ?? []) as { id: string; name: string }[]) : [];
@@ -67,7 +72,7 @@ export default async function IncidentsPage({ searchParams }: PageProps<"/incide
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader eyebrow="Clients" title="Incidents" intro="Report, follow up and close incidents. NDIS reportable incidents show when the Commission report is due." />
+      <PageHeader eyebrow="Clients" title="Incidents" action={<Link href="/settings/clients" className="text-sm font-semibold text-brand underline">Back to clients</Link>} intro="Client incidents: reported, triaged, investigated and signed off by a manager. NDIS reportable incidents show when the Commission report is due. Staff and workplace incidents stay in the Workplace Incident Register." />
       {canReport ? (
         <details className="rounded-xl border border-line bg-white p-4">
           <summary className="cursor-pointer text-sm font-semibold text-ink">+ Report an incident</summary>
@@ -76,8 +81,28 @@ export default async function IncidentsPage({ searchParams }: PageProps<"/incide
           </div>
         </details>
       ) : null}
-      <div className="flex gap-2">
+      {myActions.length ? (
+        <Card className="flex flex-col gap-2 border-warn p-4">
+          <h2 className="text-sm font-semibold text-ink">Your incident actions</h2>
+          <ul className="flex flex-col gap-1 text-sm">
+            {myActions.map((a) => {
+              const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+              return (
+                <li key={a.id}>
+                  <Link href={`/incidents/${a.incident_id}`} className="flex flex-wrap gap-2 hover:underline">
+                    <span className="text-muted">{a.client_incidents?.ref}</span>
+                    <span className="flex-1 text-ink">{a.action}</span>
+                    <span className={a.due_on < today ? "font-semibold text-danger" : "text-muted"}>Due {new Date(`${a.due_on}T12:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
         {tab("open", "Open")}
+        {tab("mine", "I'm investigating")}
         {tab("closed", "Closed")}
         {tab("all", "All")}
       </div>

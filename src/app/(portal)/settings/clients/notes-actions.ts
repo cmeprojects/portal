@@ -16,6 +16,8 @@ export type ClientNotes = {
   alerts: { kind: string; severity: string; title: string; instructions: string; escalation: string }[] | null;
   commsLog: CommEntry[] | null;
   canWriteComms: boolean;
+  // update 149: open incidents (null before it runs or when not visible).
+  incidents: { id: string; ref: string; kind: string; severity: string; status: string; summary: string; when: string; reportable: boolean }[] | null;
 };
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
@@ -40,6 +42,7 @@ export async function loadClientNotes(clientId: string): Promise<ClientNotes | {
     supabase.from("client_communications").select("id, happened_at, method, direction, with_whom, summary, follow_up, follow_up_by, follow_up_done_at, author_id").eq("client_id", clientId).order("happened_at", { ascending: false }).limit(50),
     canDoFor("clients.comms", "edit", clientId),
   ]);
+  const inc = await supabase.from("client_incidents").select("id, ref, kind, severity, status, summary, occurred_at, reportable").eq("client_id", clientId).neq("status", "closed").order("occurred_at", { ascending: false });
   const people = [...new Set([...((sn.data ?? []) as { worker_id: string }[]).map((r) => r.worker_id), ...((pn.data ?? []) as { author_id: string | null }[]).map((r) => r.author_id), ...((lg.data ?? []) as { actor_id: string | null }[]).map((r) => r.actor_id), ...((cl.data ?? []) as { author_id: string }[]).map((r) => r.author_id)].filter((v): v is string => !!v))];
   const { data: names } = people.length ? await supabase.from("profiles").select("id, full_name, email").in("id", people) : { data: [] };
   const nameOf = new Map(((names ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => [p.id, p.full_name || p.email]));
@@ -55,6 +58,7 @@ export async function loadClientNotes(clientId: string): Promise<ClientNotes | {
     log: lg.error ? null : ((lg.data ?? []) as { action: string; created_at: string; actor_id: string | null; details: Record<string, unknown> | null }[]).map((r) => ({ when: when(r.created_at), who: (r.actor_id && nameOf.get(r.actor_id)) || "The portal", what: what(r.action, r.details ?? {}) })),
     commsLog: cl.error ? null : ((cl.data ?? []) as (Omit<CommEntry, "author"> & { author_id: string })[]).map((e) => ({ ...e, author: nameOf.get(e.author_id) ?? "Staff member" })),
     canWriteComms,
+    incidents: inc.error ? null : ((inc.data ?? []) as { id: string; ref: string; kind: string; severity: string; status: string; summary: string; occurred_at: string; reportable: boolean }[]).map((i) => ({ ...i, when: when(i.occurred_at) })),
     alerts: al.error ? null : ((al.data ?? []) as { kind: string; severity: string; title: string; worker_instructions: string | null; escalation: string | null }[]).map((a) => ({ kind: ALERT_KINDS.find(([k]) => k === a.kind)?.[1] ?? a.kind, severity: a.severity, title: a.title, instructions: a.worker_instructions ?? "", escalation: a.escalation ?? "" })),
     reviews: rv.error ? null : ((rv.data ?? []) as { scheme: string; kind: string; due_on: string; status: string; reason: string | null }[]).map((r) => {
       const w = sch.get(r.scheme);

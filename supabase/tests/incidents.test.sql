@@ -36,26 +36,61 @@ select test.ok((select count(*) from public.client_incidents) = 0, 'other worker
 select test.refused($$insert into public.client_incidents (client_id, summary) values (test.cid(), 'Made up')$$, 'other workers can''t report against a client they don''t work with');
 reset role;
 
--- The manager works it through.
+-- The manager triages it and chooses an investigator (Kim, a support worker).
 select test.act_as('boss@example.com');
 set role authenticated;
-update public.client_incidents set status = 'acknowledged';
-update public.client_incidents set status = 'investigating', kind = 'fall', severity = 'high';
+select test.refused($$update public.client_incidents set status = 'investigating'$$, 'triage needs an investigator');
 select test.refused($$update public.client_incidents set reportable = true$$, 'reportable needs a category');
-update public.client_incidents set reportable = true, reportable_category = 'serious_injury';
+update public.client_incidents set kind = 'fall', severity = 'high', reportable = true, reportable_category = 'serious_injury', investigator_id = test.pid('kim@example.com'), status = 'investigating';
+select test.ok((select triaged_at is not null and staff_involved = test.pid('sam@example.com') from public.client_incidents), 'triaged, and the shift''s worker is the staff member involved');
 reset role;
 select test.ok((select report_due_at = reported_at + interval '24 hours' from public.client_incidents), 'a serious injury is due to the Commission within 24 hours');
+select public.run_incident_alerts();
+select test.ok((select count(*) from public.notifications where kind = 'incident_investigate' and user_id = test.pid('kim@example.com')) = 1, 'the investigator is told');
+
+-- The investigator fills in the investigation, adds an action, and sends it for sign-off.
+select test.act_as('kim@example.com');
+set role authenticated;
+select test.ok((select count(*) from public.client_incidents) = 1, 'the investigator sees it');
+select test.refused($$update public.client_incidents set severity = 'low'$$, 'the investigator can''t change the triage');
+select test.refused($$update public.client_incidents set status = 'review'$$, 'sign-off needs findings');
+update public.client_incidents set findings = 'Wet floor after the shower; no mat in place.', contributing_factors = 'Mat sent for washing.';
+select test.refused($$update public.client_incidents set status = 'review'$$, 'sign-off needs the family told (or why not)');
+update public.client_incidents set family_told_at = now(), family_told_note = 'Called her daughter.';
+insert into public.client_incident_actions (incident_id, action, owner_id, due_on) values (test.inc(), 'Buy a second bath mat', test.pid('sam@example.com'), current_date + 3);
+update public.client_incidents set status = 'review';
+select test.refused($$update public.client_incidents set status = 'closed', outcome = 'x'$$, 'the investigator can''t sign it off');
+reset role;
+
+-- The action owner marks it done; they can't change it.
+select test.act_as('sam@example.com');
+set role authenticated;
+select test.refused($$update public.client_incident_actions set due_on = current_date + 30$$, 'the owner can''t move the due date');
+reset role;
+
+-- The manager signs off.
 select test.act_as('boss@example.com');
 set role authenticated;
 select test.refused($$update public.client_incidents set status = 'closed', outcome = 'Reviewed.'$$, 'a reportable incident can''t close before it''s reported');
 update public.client_incidents set reported_to_regulator_at = now(), regulator_ref = 'NDIS-12345';
-select test.refused($$update public.client_incidents set status = 'closed'$$, 'closing needs an outcome');
-update public.client_incidents set status = 'closed', outcome = 'Hoist plan reviewed with the family; extra training booked.';
+select test.refused($$update public.client_incidents set status = 'closed', outcome = 'Reviewed.'$$, 'every action must be done first');
+reset role;
+select test.act_as('sam@example.com');
+set role authenticated;
+update public.client_incident_actions set done_at = now(), done_note = 'Bought and in place.';
+reset role;
+select test.ok((select done_by = test.pid('sam@example.com') from public.client_incident_actions), 'the owner marked their action done');
+select test.act_as('boss@example.com');
+set role authenticated;
+select test.refused($$update public.client_incidents set status = 'closed'$$, 'signing off needs an outcome');
+update public.client_incidents set status = 'closed', outcome = 'Second mat bought; bathroom routine updated with the family.';
 select test.refused($$update public.client_incidents set summary = 'changed'$$, 'a closed incident stays as it was');
 insert into public.client_incident_events (incident_id, body) values (test.inc(), 'Family called back, happy with the plan.');
 select test.refused($$delete from public.client_incidents$$, 'incidents are never deleted');
+update public.client_incidents set status = 'investigating';
+select test.ok((select status from public.client_incidents) = 'investigating', 'a manager can reopen it');
 reset role;
-select test.ok((select count(*) from public.client_incident_events where incident_id = test.inc() and kind = 'step') >= 5, 'every step is on the timeline');
+select test.ok((select count(*) from public.client_incident_events where incident_id = test.inc() and kind = 'step') >= 7, 'every step is on the timeline');
 select test.ok(((public.plus_business_days('2026-11-20 10:00+11'::timestamptz, 5)) at time zone 'Australia/Sydney')::date = '2026-11-27', 'five business days skips the weekend');
 -- Staff report one directly; the notice goes out once.
 select test.act_as('boss@example.com');

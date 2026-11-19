@@ -11,6 +11,7 @@ export const INCIDENT_KINDS: [string, string][] = [
   ["property", "Property damage or loss"],
   ["complaint", "Complaint"],
   ["restrictive_practice", "Restrictive practice"],
+  ["near_miss", "Near miss"],
   ["other", "Other"],
 ];
 export const INCIDENT_SEVERITY: [string, string][] = [
@@ -28,10 +29,18 @@ export const REPORTABLE: [string, string][] = [
   ["sexual_misconduct", "Sexual misconduct"],
   ["restrictive_practice", "Unauthorised use of a restrictive practice"],
 ];
+// The usual flow: reported -> triage -> investigation -> manager sign-off -> closed.
 export const INCIDENT_STATUS: Record<string, [string, string]> = {
-  new: ["New", "bg-danger text-white"],
-  acknowledged: ["Acknowledged", "bg-warn-soft text-ink"],
-  investigating: ["Investigating", "bg-brand-soft text-brand"],
+  new: ["Reported, needs triage", "bg-danger text-white"],
+  investigating: ["Under investigation", "bg-brand-soft text-brand"],
+  review: ["Awaiting sign-off", "bg-warn-soft text-ink"],
   closed: ["Closed", "bg-line text-muted"],
 };
+export const INCIDENT_STAGES: [string, string][] = [
+  ["new", "Reported"],
+  ["triage", "Triage"],
+  ["investigating", "Investigation"],
+  ["review", "Sign-off"],
+  ["closed", "Closed"],
+];
 export const label = (list: [string, string][], k: string | null) => list.find(([v]) => v === k)?.[1] ?? k ?? "";
