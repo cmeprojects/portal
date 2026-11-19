@@ -36,7 +36,10 @@ export type ShiftDraft = {
   notify_worker: boolean;
   // update 146: other residents on a house (SIL) shift; undefined before it runs.
   residents?: string[];
+  // update 150: the SIL house the shift is at; undefined while SIL houses is off.
+  house_id?: string;
 };
+export type HouseOpt = { id: string; name: string; residents: string[] };
 type Opt = { id: string; name: string };
 export type LocationOpt = Opt & { client_id: string; address: string; suburb: string; state: string; postcode: string; access_notes: string };
 export type ShiftTypeOpt = { key: string; label: string; active: boolean; used_for?: string; needs?: { id: string; title: string }[] };
@@ -118,6 +121,7 @@ export function ShiftForm({
   cars = [],
   closeHref,
   backHref,
+  houses,
 }: {
   shift: ShiftDraft;
   workers: WorkerFit[];
@@ -131,6 +135,7 @@ export function ShiftForm({
   cars?: Opt[];
   closeHref: string;
   backHref?: string;
+  houses?: HouseOpt[];
 }) {
   const [state, action, pending] = useActionState(saveShift, null);
   const router = useRouter();
@@ -215,9 +220,12 @@ export function ShiftForm({
     return listed.length ? listed : rosterable.filter((v) => !v.types);
   };
   const place = clientLocations.find((l) => l.id === location) ?? null;
-  const housemates = place
-    ? clients.filter((c) => c.id !== client && locations.some((l) => l.client_id === c.id && norm(l.address) === norm(place.address)))
-    : [];
+  // update 150: the house's current residents count as housemates too.
+  const [house, setHouse] = useState(shift.house_id ?? "");
+  const houseResidents = houses?.find((h) => h.id === house)?.residents ?? [];
+  const housemates = clients.filter(
+    (c) => c.id !== client && (houseResidents.includes(c.id) || (place ? locations.some((l) => l.client_id === c.id && norm(l.address) === norm(place.address)) : false)),
+  );
   const fits = (t: ShiftTypeOpt, c: string) => !t.used_for || t.used_for === "both" || t.used_for === (c ? "client" : "internal");
   // A new client: its only location and service are chosen for you.
   const pickClient = (c: string) => {
@@ -325,6 +333,34 @@ export function ShiftForm({
 
       <Section icon={MapPin} title="Client and location">
         <div className="grid gap-3 sm:grid-cols-2">
+          {houses && shift.house_id !== undefined ? (
+            <label className={`${field} sm:col-span-2`}>
+              <input type="hidden" name="house_ready" value="1" />
+              <span className={label}>House (SIL)</span>
+              <select
+                name="house_id"
+                value={house}
+                onChange={(e) => {
+                  const h = houses.find((x) => x.id === e.target.value);
+                  setHouse(e.target.value);
+                  if (!h) return;
+                  // The first resident who can be rostered becomes the main client; the others are offered below.
+                  const open = h.residents.filter((r) => clients.some((c) => c.id === r && !c.disabled));
+                  const main = client && h.residents.includes(client) ? client : (open[0] ?? client);
+                  if (main && main !== client) pickClient(main);
+                  setResidents(open.filter((r) => r !== main));
+                }}
+                className={inputClass}
+              >
+                <option value="">Not at a house</option>
+                {houses.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name} ({h.residents.length} resident{h.residents.length === 1 ? "" : "s"})
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className={`${field} sm:col-span-2`}>
             <span className={label}>Client</span>
             <select name="client_id" value={client} onChange={(e) => pickClient(e.target.value)} className={inputClass}>

@@ -13,6 +13,17 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 19 Nov 2026.
 
+- **SIL houses (19 Nov 2026, update 150, waiting).** Behind the new "SIL houses" switch (System settings ->
+  Features), off until turned on; while off nothing shows (the database hides it too) and nothing is deleted.
+  `sil_houses` (name, type SIL/SDA/respite/STA, checked Australian address and phone, beds, house manager,
+  team, notes for staff), `sil_house_residents` (room, moved in/out, reason; history kept, one current house per
+  client, never over the beds, a house with residents can't close), `shifts.house_id`. Part "Houses (SIL)"
+  (clients.houses): managers and Team Leaders change; Case Managers and Intake view; a worker sees the house of
+  their own published shifts. Screens: /houses (cards with beds used), /houses/[id] (residents with rooms, move
+  in/out, past residents, shifts in the next 14 days, notes for staff, details), "Lives at" on the client page,
+  Houses link on the clients page, a House picker on the shift panel (fills the main client and offers the other
+  residents), the house name, phone and notes on the worker's My shifts. Test: sil_houses.test.sql.
+
 - **Client incident management (19 Nov 2026, update 149, waiting).** The usual care-sector flow, chosen by the
   owner: Reported -> Triage (kind, severity, NDIS reportable and category, investigator) -> Investigation (staff
   involved, witnesses, findings, contributing factors, client or family told, actions with owner and due date)

@@ -28,6 +28,8 @@ type Shift = { id: string; worker_id: string | null; starts_at: string; ends_at:
   ref?: string; shift_type?: string; vehicle_id?: string | null; pay_group?: string; allowances?: string[]; needs_worker_signature?: boolean; needs_client_signature?: boolean;
   // update 141
   extra_notes?: string; pay_class?: string | null; signatures_needed?: string[]; notify_worker?: boolean; shift_type_other?: string;
+  // update 150
+  house_id?: string | null;
   created_by?: string | null; created_at?: string; updated_by?: string | null; updated_at?: string; notified_at?: string | null };
 type Req = { id: string; shift_id: string; requested_by: string; kind: string; swap_with: string | null; reason: string; created_at: string };
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -49,7 +51,7 @@ const auDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-
 // change a shift; change requests behind the ⇄ icon; select mode for bulk work.
 export default async function RosterPage({ searchParams }: PageProps<"/roster">) {
   // cmeprojects (speed): the session and both permission checks at once.
-  const [{ features }, canView, canEdit] = await Promise.all([requireSession(), canDo("ops.roster", "view"), canDo("ops.roster", "edit")]);
+  const [{ features, live }, canView, canEdit] = await Promise.all([requireSession(), canDo("ops.roster", "view"), canDo("ops.roster", "edit")]);
   if (features.rostering === false) notFound();
   if (!canView) notFound();
   const sp = await searchParams;
@@ -312,6 +314,12 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         holds: holds.get(p.id) ?? {},
       }))
     : [];
+  // cmeprojects (update 150): SIL houses and their current residents, while the switch is on.
+  const housesOn = live.sil_houses === true;
+  const [houseRows, houseRes] = housesOn
+    ? await Promise.all([supabase.from("sil_houses").select("id, name").eq("active", true).order("name"), supabase.from("sil_house_residents").select("house_id, client_id").is("moved_out", null)])
+    : [null, null];
+  const houseOpts = houseRows && !houseRows.error ? ((houseRows.data ?? []) as { id: string; name: string }[]).map((h) => ({ id: h.id, name: h.name, residents: ((houseRes?.data ?? []) as { house_id: string; client_id: string }[]).filter((r) => r.house_id === h.id).map((r) => r.client_id) })) : undefined;
   const openedResidents: string[] = opened
     ? residentsOn.get(opened.id) ?? (((await supabase.from("shift_residents").select("client_id").eq("shift_id", opened.id)).data ?? []) as { client_id: string }[]).map((r) => r.client_id)
     : [];
@@ -339,11 +347,12 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         pay_class: opened.pay_class ?? "",
         notify_worker: opened.notify_worker ?? true,
         residents: residentsRes.error ? undefined : openedResidents,
+        house_id: houseOpts ? (opened.house_id ?? "") : undefined,
         signatures_needed: opened.signatures_needed ?? [...(opened.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(opened.needs_client_signature ? ["client_out"] : [])],
       }
     : tpl
-      ? { date: fitDay, start: tpl.start_time.slice(0, 5), end: tpl.end_time.slice(0, 5), nextDay: tpl.end_time <= tpl.start_time, break_minutes: tpl.break_minutes, worker_id: str("worker"), client_id: tpl.client_id ?? str("client"), location_id: tpl.location_id ?? "", service_id: tpl.service_id ?? "", notes: tpl.notes, extra_notes: tpl.extra_notes ?? "", residents: residentsRes.error ? undefined : [], status: "draft", series: false, shift_type: tpl.shift_type, vehicle_id: "", pay_group: tpl.pay_group, pay_class: "", notify_worker: true, allowances: tpl.allowances, signatures_needed: tpl.signatures_needed ?? [...(tpl.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(tpl.needs_client_signature ? ["client_out"] : [])] }
-      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", extra_notes: "", residents: residentsRes.error ? undefined : [], status: "draft", series: false, shift_type: str("client") ? "standard" : "admin", vehicle_id: "", pay_group: "", pay_class: "", notify_worker: true, allowances: [], signatures_needed: [] };
+      ? { date: fitDay, start: tpl.start_time.slice(0, 5), end: tpl.end_time.slice(0, 5), nextDay: tpl.end_time <= tpl.start_time, break_minutes: tpl.break_minutes, worker_id: str("worker"), client_id: tpl.client_id ?? str("client"), location_id: tpl.location_id ?? "", service_id: tpl.service_id ?? "", notes: tpl.notes, extra_notes: tpl.extra_notes ?? "", residents: residentsRes.error ? undefined : [], house_id: houseOpts ? "" : undefined, status: "draft", series: false, shift_type: tpl.shift_type, vehicle_id: "", pay_group: tpl.pay_group, pay_class: "", notify_worker: true, allowances: tpl.allowances, signatures_needed: tpl.signatures_needed ?? [...(tpl.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(tpl.needs_client_signature ? ["client_out"] : [])] }
+      : { date: fitDay, start: "09:00", end: "15:00", nextDay: false, break_minutes: 0, worker_id: str("worker"), client_id: str("client"), location_id: "", service_id: "", notes: "", extra_notes: "", residents: residentsRes.error ? undefined : [], house_id: houseOpts ? "" : undefined, status: "draft", series: false, shift_type: str("client") ? "standard" : "admin", vehicle_id: "", pay_group: "", pay_class: "", notify_worker: true, allowances: [], signatures_needed: [] };
 
   // The opened shift's timesheet and log.
   const [{ data: sheet }, { data: events }, { data: sigRows }, { data: tripRows }, { data: noteRows }, { data: response }, { data: serviceRow }] = opened && !editing
@@ -848,6 +857,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                   templates={templates.map((t) => ({ id: t.id, name: t.name, start: t.start_time.slice(0, 5), end: t.end_time.slice(0, 5) }))}
                   templateHref={`${base}&add=${str("add")}${str("worker") ? `&worker=${str("worker")}` : ""}${str("client") ? `&client=${str("client")}` : ""}`}
                   shift={draft}
+                  houses={houseOpts}
                   workers={workerFit}
                   clients={((clients ?? []) as { id: string; name: string; status: string }[])
                     .filter((c) => c.status === "active" || c.status === "pending" || c.id === opened?.client_id)

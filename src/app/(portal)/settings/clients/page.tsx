@@ -46,6 +46,8 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   // cmeprojects (update 127): people who only view clients (support workers, team leaders) don't see Add.
   const canAddClient = await canDo("clients.list", "edit");
   const seesIncidents = await canDo("clients.incidents", "view");
+  const { live } = await requireSession();
+  const seesHouses = live.sil_houses === true && (await canDo("clients.houses", "view"));
   // Who can manage a new client: care partners (Case Managers, by main or extra job title) and managers.
   const [{ data: staffRows }, { data: cmTitles }] = canAssign
     ? await Promise.all([
@@ -209,6 +211,11 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         <Link href="/settings/clients/catalogue" className="-mb-px border-b-2 border-transparent px-3 py-2 font-semibold text-muted hover:text-ink">
           Service catalogue
         </Link>
+        {seesHouses ? (
+          <Link href="/houses" className="-mb-px border-b-2 border-transparent px-3 py-2 font-semibold text-muted hover:text-ink">
+            Houses
+          </Link>
+        ) : null}
         {seesIncidents ? (
           <Link href="/incidents" className="-mb-px flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2 font-semibold text-muted hover:text-ink">
             Incidents

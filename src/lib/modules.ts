@@ -105,6 +105,7 @@ export const MODULES: ModuleDef[] = [
   { id: "clients.funding", category: "clients", parent: "clients.list", label: "Funding and budgets", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
   { id: "clients.external", category: "clients", parent: "clients.list", label: "Allied Health practitioners", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
   { id: "clients.incidents", category: "clients", parent: "clients.list", label: "Incidents", icon: "Siren", href: "", sensitivity: "sensitive", delegable: true },
+  { id: "clients.houses", category: "clients", parent: "clients.list", label: "Houses (SIL)", icon: "HeartHandshake", href: "", delegable: true },
 
   // Forms & workflows
   { id: "workflows.forms", category: "operations", label: "Forms", icon: "ClipboardList", href: "/forms", delegable: true },

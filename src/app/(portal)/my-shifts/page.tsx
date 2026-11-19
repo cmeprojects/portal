@@ -41,6 +41,14 @@ export default async function MyShiftsPage() {
     clientIds.length ? supabase.from("car_clients").select("id, name, preferred_name").in("id", clientIds) : Promise.resolve({ data: [] }),
     locIds.length ? supabase.from("client_locations").select("id, label, address, suburb, access_notes").in("id", locIds) : Promise.resolve({ data: [] }),
   ]);
+  // cmeprojects (update 150): the SIL house of my shifts, with its notes for staff (while the switch is on).
+  const houseIds = [...new Set(mine.map((x) => (x as { house_id?: string | null }).house_id).filter((v): v is string => !!v))];
+  const { data: houseRows } = houseIds.length ? await supabase.from("sil_houses").select("id, name, phone, staff_notes").in("id", houseIds) : { data: [] };
+  const houseOf = new Map(((houseRows ?? []) as House[]).map((h) => [h.id, h]));
+  const houseFor = (x: Shift) => {
+    const h = (x as { house_id?: string | null }).house_id;
+    return h ? houseOf.get(h) : undefined;
+  };
   // cmeprojects: alerts and how to support each client (only what the worker may see).
   const [{ data: alertRows }, { data: instrRows }] = clientIds.length
     ? await Promise.all([
@@ -231,7 +239,7 @@ export default async function MyShiftsPage() {
           <ul className="divide-y divide-line">
             {mine.map((s) => (
               <div key={s.id}>
-                <ShiftCard s={s} when={when(s)} client={whoFor(s)} loc={s.location_id ? loc.get(s.location_id) : undefined} care={careFor(s)} />
+                <ShiftCard s={s} when={when(s)} client={whoFor(s)} loc={s.location_id ? loc.get(s.location_id) : undefined} care={careFor(s)} house={houseFor(s)} />
                 {extra(s)}
               </div>
             ))}
@@ -256,7 +264,7 @@ export default async function MyShiftsPage() {
           <ul className="divide-y divide-line">
             {past.map((s) => (
               <div key={s.id}>
-                <ShiftCard s={s} when={when(s)} client={whoFor(s)} loc={s.location_id ? loc.get(s.location_id) : undefined} care={careFor(s)} />
+                <ShiftCard s={s} when={when(s)} client={whoFor(s)} loc={s.location_id ? loc.get(s.location_id) : undefined} care={careFor(s)} house={houseFor(s)} />
                 {extra(s)}
               </div>
             ))}
@@ -268,8 +276,9 @@ export default async function MyShiftsPage() {
 }
 
 type Loc = { id: string; label: string; address: string; suburb: string | null; access_notes: string | null };
+type House = { id: string; name: string; phone: string; staff_notes: string };
 type Care = { alerts: { title: string; text: string | null }[]; instructions: { title: string; text: string }[] };
-function ShiftCard({ s, when, client, loc: l, isOpen, raised, care }: { s: Shift; when: string; client?: string; loc?: Loc; isOpen?: boolean; raised?: boolean; care?: Care }) {
+function ShiftCard({ s, when, client, loc: l, isOpen, raised, care, house }: { s: Shift; when: string; client?: string; loc?: Loc; isOpen?: boolean; raised?: boolean; care?: Care; house?: House }) {
   return (
     <li className="flex flex-wrap items-start gap-3 px-4 py-3">
       <div className="min-w-48 flex-1">
@@ -287,6 +296,15 @@ function ShiftCard({ s, when, client, loc: l, isOpen, raised, care }: { s: Shift
               {!isOpen && l.access_notes ? <span className="block">{l.access_notes}</span> : null}
             </span>
           </p>
+        ) : null}
+        {house ? (
+          <div className="mt-1 rounded-md border border-line px-2 py-1 text-sm">
+            <p className="font-semibold">
+              At {house.name}
+              {house.phone ? <span className="font-normal text-muted"> · house phone {house.phone}</span> : null}
+            </p>
+            {house.staff_notes ? <p className="whitespace-pre-line text-muted">{house.staff_notes}</p> : null}
+          </div>
         ) : null}
         {s.notes ? <p className="mt-0.5 whitespace-pre-line text-sm">{s.notes}</p> : null}
         {s.extra_notes ? <p className="mt-0.5 whitespace-pre-line text-sm text-muted">{s.extra_notes}</p> : null}

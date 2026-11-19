@@ -108,6 +108,8 @@ export async function saveShift(_: FormState, form: FormData): Promise<FormState
     allowances: [...new Set(form.getAll("allowances").map(String).filter((a) => SHIFT_ALLOWANCES.includes(a)))],
     signatures_needed: signatures,
     notify_worker: form.get("notify_worker") === "on",
+    // update 150: the SIL house (only sent while SIL houses is on).
+    ...(form.has("house_ready") ? { house_id: isId(String(form.get("house_id") ?? "")) ? String(form.get("house_id")) : null } : {}),
   };
   if (wantType === "other" && form.has("type_other_ready") && !String(form.get("shift_type_other") ?? "").trim()) return { error: "Say what kind of shift it is (Other)." };
   // A client shift needs its service and location (training, meetings and admin shifts have no client).

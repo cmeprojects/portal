@@ -195,6 +195,16 @@ const ROWS: Row[] = [
     areas: [],
     links: [{ href: "/settings/clients", text: "Clients" }],
   },
+  // cmeprojects (update 150): SIL houses, off until turned on.
+  {
+    id: "sil_houses",
+    label: "SIL houses",
+    intro: "Supported Independent Living houses: residents and rooms, move-ins and move-outs, house notes for staff, and rostering by house. Nothing is deleted when it's switched off.",
+    switches: ["sil_houses"],
+    sections: [],
+    areas: [],
+    links: [{ href: "/houses", text: "Houses" }],
+  },
   {
     // cmeprojects (Care block C2, update 111): which client sections are on, and what team staff see.
     id: "care",

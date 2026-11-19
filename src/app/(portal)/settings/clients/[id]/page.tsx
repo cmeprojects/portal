@@ -200,7 +200,10 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   };
   const inView = (key: string) => (step ? STEP_SECTIONS[step] : (TAB_SECTIONS[tab] ?? TAB_SECTIONS.overview)).includes(key);
   // cmeprojects (rostering round 2; premium package): this client's shifts, last week to four weeks ahead.
-  const { features: feats } = await requireSession();
+  const { features: feats, live: liveFeats } = await requireSession();
+  // cmeprojects (update 150): the SIL house they live in (switch on; the database decides who sees it).
+  const homeRes = liveFeats.sil_houses === true ? await supabase.from("sil_house_residents").select("room, moved_in, sil_houses(id, name)").eq("client_id", id).is("moved_out", null).maybeSingle() : null;
+  const home = homeRes && !homeRes.error && homeRes.data ? (homeRes.data as unknown as { room: string; moved_in: string; sil_houses: { id: string; name: string } | null }) : null;
   const clientShifts =
     feats.rostering !== false && (await canDo("ops.roster", "view"))
       ? ((
@@ -720,6 +723,17 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                 <dd>{label(GENDERS, det.gender) || "Not recorded"}</dd>
                 <dt className="text-muted">Living situation</dt>
                 <dd>{label(LIVING, det.living_situation) || "Not recorded"}</dd>
+                {home?.sil_houses ? (
+                  <>
+                    <dt className="text-muted">Lives at</dt>
+                    <dd>
+                      <Link href={`/houses/${home.sil_houses.id}`} className="font-medium text-brand hover:underline">
+                        {home.sil_houses.name}
+                      </Link>
+                      {home.room ? ` · ${home.room}` : ""} · since {day(home.moved_in)}
+                    </dd>
+                  </>
+                ) : null}
                 <dt className="text-muted">Time zone</dt>
                 <dd>{label(TIME_ZONES, det.time_zone) || "Sydney"}</dd>
                 {str(det.ndis_number) ? (
