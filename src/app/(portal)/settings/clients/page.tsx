@@ -68,7 +68,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   const [detailsRes, assignRes, servicesRes, fundingRes, reviewsRes, agreementsRes, alertsRes] = setup
     ? []
     : await Promise.all([
-        supabase.from("client_details").select("client_id, date_of_birth, ndis_number, email, phone, home_address"),
+        supabase.from("client_details").select("client_id, date_of_birth, ndis_number, aged_care_id, email, phone, home_address"),
         supabase.from("client_assignments").select("client_id, user_id, assigned_as, starts_on, ends_on").is("ended_at", null).in("assigned_as", ["case_manager", "support_coordinator"]),
         supabase.from("client_services").select("id, client_id, label, status, client_programs(scheme)").neq("status", "ended"),
         supabase.from("client_funding").select("client_id, service_id, scheme, total_amount, used_amount, used_as_of, period_start, period_end, plan_management, classification").eq("status", "active"),
@@ -119,7 +119,10 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
     const [ty, tm, td] = today.split("-").map(Number);
     return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
   };
-  const details = new Map(((detailsRes?.data ?? []) as { client_id: string; date_of_birth: string | null; ndis_number: string | null; email: string | null; phone: string | null; home_address: string | null }[]).map((d) => [d.client_id, d]));
+  // update 148: the scheme chosen when they were added (none before it runs).
+  const schemeCol = await supabase.from("car_clients").select("id, scheme");
+  const regScheme = new Map(schemeCol.error ? [] : ((schemeCol.data ?? []) as { id: string; scheme: string | null }[]).filter((r) => r.scheme).map((r) => [r.id, r.scheme as string]));
+  const details = new Map(((detailsRes?.data ?? []) as { client_id: string; date_of_birth: string | null; ndis_number: string | null; aged_care_id?: string | null; email: string | null; phone: string | null; home_address: string | null }[]).map((d) => [d.client_id, d]));
   const listClients: ListClient[] = clients.map((c) => {
     const mine = services.filter((v) => v.client_id === c.id);
     return {
@@ -132,11 +135,13 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       active: c.active,
       age: ageOf(details.get(c.id)?.date_of_birth ?? null),
       ndisNumber: details.get(c.id)?.ndis_number ?? "",
+      agedCareId: details.get(c.id)?.aged_care_id ?? "",
       email: details.get(c.id)?.email ?? "",
       phone: details.get(c.id)?.phone ?? "",
       // The suburb only (the part before the state or postcode), not the full address.
       suburb: suburbOf(details.get(c.id)?.home_address ?? ""),
-      schemes: [...new Set(mine.map((v) => v.client_programs?.scheme ?? "other"))],
+      // Who funds them: the scheme chosen at registration, and their services' schemes.
+      schemes: [...new Set([...(regScheme.get(c.id) ? [regScheme.get(c.id) as string] : []), ...mine.map((v) => v.client_programs?.scheme ?? "other")])],
       services: mine.map((v) => v.label),
       managers: ((assignRes?.data ?? []) as { client_id: string; user_id: string; assigned_as: string; starts_on: string; ends_on: string | null }[])
         .filter((a) => a.client_id === c.id && a.starts_on <= today && (!a.ends_on || a.ends_on >= today))
@@ -211,7 +216,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
               {toCheck.length > 5 ? " and more" : ""}. Open them, check their details and set the status (for example Active).
             </Notice>
           ) : null}
-          <ClientList clients={listClients} word={orgWord} schemes={schemes.map((x) => [x.key, x.label])} showNdis={showNdis} showBudget={showBudget} showContact={showContact} />
+          <ClientList clients={listClients} word={orgWord} schemes={schemes.map((x) => [x.key, x.label])} schemeWords={Object.fromEntries(schemes.map((x) => [x.key, x.person_word ?? ""]))} showNdis={showNdis} showBudget={showBudget} showContact={showContact} />
         </>
       )}
       {setup && !linkError && clients.some((c) => c.active) ? (

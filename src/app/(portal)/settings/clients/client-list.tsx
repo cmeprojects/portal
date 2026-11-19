@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
 import { loadClientNotes, type ClientNotes } from "./notes-actions";
 import { CommsLogForm, CommsLogList } from "./[id]/comms-log";
@@ -23,6 +23,7 @@ export type ListClient = {
   active: boolean;
   age: number | null;
   ndisNumber: string;
+  agedCareId: string;
   email: string;
   phone: string;
   suburb: string;
@@ -197,7 +198,22 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
 // sortable table with Active and Archived tabs; a client opens in a side
 // panel (Overview, Plan budget, Reviews and agreements). Each column only
 // holds what this person may already see (the database decides).
-export function ClientList({ clients, word, schemes, showNdis, showBudget, showContact }: { clients: ListClient[]; word: string; schemes: [string, string][]; showNdis: boolean; showBudget: boolean; showContact: boolean }) {
+// cmeprojects (owner, 19 Nov 2026): the last scheme tab, remembered on this device.
+const TAB_KEY = "portal.clientSchemeTab";
+const readTab = () => {
+  try {
+    return window.localStorage.getItem(TAB_KEY) ?? "";
+  } catch {
+    return "";
+  }
+};
+const watchTab = (cb: () => void) => {
+  window.addEventListener("storage", cb);
+  return () => window.removeEventListener("storage", cb);
+};
+const MAC = ["support_at_home", "chsp"];
+
+export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis, showBudget, showContact }: { clients: ListClient[]; word: string; schemes: [string, string][]; schemeWords?: Record<string, string>; showNdis: boolean; showBudget: boolean; showContact: boolean }) {
   const router = useRouter();
   // The notes pop-up (shift notes, practitioner notes, communications, log, reviews).
   const [notesFor, setNotesFor] = useState<{ client: ListClient; tab: NotesTab } | null>(null);
@@ -205,7 +221,19 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [q, setQ] = useState("");
-  const [scheme, setScheme] = useState("");
+  // Scheme tabs (NDIS, Support at Home, CHSP …): the choice is kept on this device.
+  const storedTab = useSyncExternalStore(watchTab, readTab, () => "");
+  const [pickedTab, setPickedTab] = useState<string | null>(null);
+  const wanted = pickedTab ?? storedTab;
+  const scheme = schemes.some(([k]) => k === wanted) ? wanted : "";
+  const setScheme = (v: string) => {
+    setPickedTab(v);
+    try {
+      window.localStorage.setItem(TAB_KEY, v);
+    } catch {
+      /* private window: not remembered */
+    }
+  };
   const [manager, setManager] = useState("");
   const [status, setStatus] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; up: boolean }>({ key: "name", up: true });
@@ -214,12 +242,21 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
 
   const managers = useMemo(() => [...new Set(clients.flatMap((c) => c.managers.map((m) => m.name)))].sort(), [clients]);
   const counts = { active: clients.filter((c) => !isArchived(c)).length, archived: clients.filter(isArchived).length };
+  const inTab = clients.filter((c) => (tab === "archived") === isArchived(c));
+  const schemeCounts = schemes.map(([k, l]) => [k, l, inTab.filter((c) => c.schemes.includes(k)).length] as const).filter(([k, , n]) => n > 0 || k === scheme);
+  // The word for this tab ("participants" for NDIS, if set in the scheme's wording).
+  const tabWord = (scheme && schemeWords[scheme]) || word;
+  const tabPlural = tabWord.endsWith("s") ? tabWord : `${tabWord}s`;
+  const showMac = MAC.includes(scheme);
+  const showNdisCol = showNdis && scheme === "ndis";
+  // All: one column with whichever ID they have (NDIS number or My Aged Care ID).
+  const showIdCol = scheme === "" && (showNdis || clients.some((c) => c.agedCareId));
   const rows = useMemo(() => {
     const term = q.trim().toLowerCase();
     const list = clients.filter(
       (c) =>
         (tab === "archived") === isArchived(c) &&
-        (!term || [c.name, c.preferredName, c.ref, c.reference, c.ndisNumber, c.email, c.suburb, ...c.services].some((v) => v.toLowerCase().includes(term))) &&
+        (!term || [c.name, c.preferredName, c.ref, c.reference, c.ndisNumber, c.agedCareId, c.email, c.suburb, ...c.services].some((v) => v.toLowerCase().includes(term))) &&
         (!scheme || c.schemes.includes(scheme)) &&
         (!manager || (manager === "-" ? c.managers.length === 0 : c.managers.some((m) => m.name === manager))) &&
         (!status || c.status === status),
@@ -266,6 +303,21 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
           </button>
         ))}
       </div>
+      {schemeCounts.length > 1 ? (
+        <div role="group" aria-label="Funded by" className="flex flex-wrap gap-1.5 px-3 pt-3">
+          {[["", "All", inTab.length] as const, ...schemeCounts].map(([k, l, n]) => (
+            <button
+              key={k || "all"}
+              type="button"
+              aria-pressed={scheme === k}
+              onClick={() => setScheme(k)}
+              className={`rounded-full px-3 py-1 text-sm font-semibold ${scheme === k ? "bg-ink text-white" : "border border-line text-ink hover:bg-page"}`}
+            >
+              {l} <span className={`text-xs font-normal ${scheme === k ? "text-white/80" : "text-muted"}`}>{n}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2 p-3">
         <button type="button" onClick={() => setFiltersOpen((o) => !o)} aria-expanded={filtersOpen} className={`inline-flex h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold md:h-10 ${filtersOpen || scheme || manager || status ? "border-brand bg-brand-soft text-ink" : "border-field text-muted hover:text-ink"}`}>
           <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
@@ -273,7 +325,7 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
         <label className="relative min-w-48 flex-1">
           <span className="sr-only">Search</span>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search name, reference${showNdis ? ", NDIS number" : ""}${showContact ? ", email, suburb" : ""} or service`} className={`${inputClass} pl-8`} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${tabPlural.toLowerCase()}: name, reference${showNdisCol || showIdCol ? ", NDIS number" : ""}${showMac || showIdCol ? ", My Aged Care ID" : ""}${showContact ? ", email, suburb" : ""} or service`} className={`${inputClass} pl-8`} />
         </label>
         <button type="button" onClick={() => router.refresh()} title="Refresh" aria-label="Refresh" className="inline-flex size-11 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink md:size-10">
           <RefreshCw aria-hidden="true" className="size-4" />
@@ -314,7 +366,9 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                 <HeadCell sort={sort} setSort={setSort} k="name">Name</HeadCell>
                 <HeadCell sort={sort} setSort={setSort} k="age" className="w-16">Age</HeadCell>
                 {showContact ? <HeadCell sort={sort} setSort={setSort}>Email</HeadCell> : null}
-                {showNdis ? <HeadCell sort={sort} setSort={setSort}>NDIS number</HeadCell> : null}
+                {showNdisCol ? <HeadCell sort={sort} setSort={setSort}>NDIS number</HeadCell> : null}
+                {showMac ? <HeadCell sort={sort} setSort={setSort}>My Aged Care ID</HeadCell> : null}
+                {showIdCol ? <HeadCell sort={sort} setSort={setSort}>NDIS / My Aged Care ID</HeadCell> : null}
                 {showContact ? <HeadCell sort={sort} setSort={setSort}>Suburb</HeadCell> : null}
                 <HeadCell sort={sort} setSort={setSort}>Services</HeadCell>
                 <HeadCell sort={sort} setSort={setSort} k="manager">Assigned manager</HeadCell>
@@ -340,7 +394,9 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                     </td>
                     <td className="px-3 py-2 text-muted">{c.age ?? ""}</td>
                     {showContact ? <td className="max-w-48 truncate px-3 py-2 text-muted">{c.email}</td> : null}
-                    {showNdis ? <td className="px-3 py-2 tabular-nums">{c.ndisNumber}</td> : null}
+                    {showNdisCol ? <td className="px-3 py-2 tabular-nums">{c.ndisNumber}</td> : null}
+                    {showMac ? <td className="px-3 py-2 tabular-nums">{c.agedCareId}</td> : null}
+                    {showIdCol ? <td className="px-3 py-2 tabular-nums">{c.ndisNumber || c.agedCareId}</td> : null}
                     {showContact ? <td className="px-3 py-2 text-muted">{c.suburb}</td> : null}
                     <td className="px-3 py-2">
                       <span className="flex flex-wrap gap-1">
@@ -476,6 +532,12 @@ function Panel({ client: c, onClose, schemes, showBudget }: { client: ListClient
                   <>
                     <dt className="text-muted">NDIS number</dt>
                     <dd className="tabular-nums">{c.ndisNumber}</dd>
+                  </>
+                ) : null}
+                {c.agedCareId ? (
+                  <>
+                    <dt className="text-muted">My Aged Care ID</dt>
+                    <dd className="tabular-nums">{c.agedCareId}</dd>
                   </>
                 ) : null}
                 <dt className="text-muted">Services</dt>
