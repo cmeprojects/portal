@@ -1,15 +1,12 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
-import { NewClientButton, ProgramRow, AddProgramForm, SchemeRow, type Scheme } from "./care-forms";
+import { NewClientButton, type Scheme } from "./care-forms";
 import { canDo } from "@/lib/module-access";
-import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Notice, PageHeader } from "@/components/ui";
-import { ClientTeamsForm } from "./team-form";
+import { Notice, PageHeader } from "@/components/ui";
 import { ClientList, type ListClient } from "./client-list";
 import { PLAN_MANAGEMENT } from "@/lib/client-sections";
 
@@ -23,9 +20,9 @@ function suburbOf(address: string) {
 }
 
 // The company's client list, used by Cars and by built features (for example Fluid intake).
-export default async function ClientsPage({ searchParams }: PageProps<"/settings/clients">) {
+export default async function ClientsPage() {
   // Who sees Clients: the Access page (update 107); which clients, the database.
-  const { profile } = await requireSession();
+  await requireSession();
   if (!(await seesClientsFor())) notFound();
   const supabase = await createClient();
   // cmeprojects (Clients step 1): reference, status and preferred name (after live update 85).
@@ -33,10 +30,6 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   const { data } = care.error ? await supabase.from("car_clients").select("id, name, reference, active").order("active", { ascending: false }).order("name") : care;
   const clients = (data ?? []) as { id: string; name: string; reference: string; active: boolean; client_ref?: string; status?: string; preferred_name?: string }[];
   const toCheck = clients.filter((c) => c.status === "pending");
-  const { data: programs } = care.error ? { data: null } : await supabase.from("client_programs").select("id, name, needs_dob, active, scheme").order("sort_order").order("name");
-  const isAdmin = profile.role === "system_admin";
-  // cmeprojects (update 110): programs and schemes live in Care settings.
-  const canCare = isAdmin || (await getMyAdminAreas(profile.role)).includes("care");
   const schemeRes = await supabase.from("client_schemes").select("key, label, person_word, review_label, change_review_label, review_lead_days, needs_dob").order("sort_order");
   const schemes = schemeRes.error ? [] : ((schemeRes.data ?? []) as Scheme[]);
   const { data: wordRow } = await supabase.from("app_settings").select("value").eq("key", "wording.client").maybeSingle();
@@ -58,12 +51,8 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         .filter((p) => p.role === "manager" || (p.job_title_id && cmIds.has(p.job_title_id)) || (p.extra_job_title_ids ?? []).some((t) => cmIds.has(t)))
         .map((p) => ({ id: p.id, name: `${p.full_name || p.email}${p.role === "manager" ? " (Manager)" : " (Case Manager)"}` }))
     : null;
-  // cmeprojects: which team looks after each client (hidden before live update 54).
-  const [{ data: teams }, { data: links, error: linkError }] = await Promise.all([
-    supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
-    supabase.from("client_teams").select("client_id, team_id"),
-  ]);
-  const setup = (await searchParams).view === "setup";
+  // The Teams and programs view is gone (owner, 19 Nov 2026): programs and schemes are in Care settings.
+  const setup = false;
 
   // cmeprojects (owner's client list concept): one row per client with what
   // this person may already see (each query is limited by the database; a
@@ -113,7 +102,6 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
     const { data: people } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
     for (const p of (people ?? []) as { id: string; full_name: string | null; email: string }[]) staffName.set(p.id, p.full_name || p.email);
   }
-  const teamName = new Map(((teams ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
   type Svc = { id: string; client_id: string; label: string; client_programs: { scheme: string } | null };
   const services = ((servicesRes?.data ?? []) as unknown as Svc[]);
   const svcLabel = new Map(services.map((v) => [v.id, v.label]));
@@ -145,7 +133,6 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       managers: ((assignRes?.data ?? []) as { client_id: string; user_id: string; assigned_as: string; starts_on: string; ends_on: string | null }[])
         .filter((a) => a.client_id === c.id && a.starts_on <= today && (!a.ends_on || a.ends_on >= today))
         .map((a) => ({ name: staffName.get(a.user_id) ?? "Staff member", as: a.assigned_as === "support_coordinator" ? "support coordinator" : "care manager" })),
-      teams: ((links ?? []) as { client_id: string; team_id: string }[]).filter((l) => l.client_id === c.id).map((l) => teamName.get(l.team_id) ?? "").filter(Boolean),
       budgets: ((fundingRes?.data ?? []) as { client_id: string; service_id: string; scheme: string; total_amount: number; used_amount: number; used_as_of: string | null; period_start: string; period_end: string; plan_management: string | null; classification: number | null }[])
         .filter((f) => f.client_id === c.id)
         .map((f) => ({
@@ -198,14 +185,6 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
           canAddClient && !setup ? <NewClientButton staff={staff} word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} /> : undefined
         }
       />
-      <nav className="flex gap-1 border-b border-line text-sm" aria-label="Client pages">
-        <Link href="/settings/clients" className={`-mb-px border-b-2 px-3 py-2 font-semibold ${setup ? "border-transparent text-muted hover:text-ink" : "border-brand"}`}>
-          List
-        </Link>
-        <Link href="/settings/clients?view=setup" className={`-mb-px border-b-2 px-3 py-2 font-semibold ${setup ? "border-brand" : "border-transparent text-muted hover:text-ink"}`}>
-          Teams and programs
-        </Link>
-      </nav>
       {setup ? null : (
         <>
 
@@ -218,49 +197,6 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
           <ClientList clients={listClients} word={orgWord} schemes={schemes.map((x) => [x.key, x.label])} showNdis={showNdis} showBudget={showBudget} showContact={showContact} />
         </>
       )}
-      {setup && !linkError && clients.some((c) => c.active) ? (
-        <Card className="p-4">
-          <h2 className="heading-sm">Which team looks after each client</h2>
-          <p className="mb-2 text-sm text-muted">Team leaders see their team&apos;s clients, with their open tasks, on their dashboard.</p>
-          {teams?.length ? (
-            <div className="divide-y divide-line">
-              {clients
-                .filter((c) => c.active)
-                .map((c) => (
-                  <ClientTeamsForm key={c.id} clientId={c.id} name={c.name} teams={teams} chosen={(links ?? []).filter((l) => l.client_id === c.id).map((l) => l.team_id)} />
-                ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted">Add teams on the Teams page first.</p>
-          )}
-        </Card>
-      ) : null}
-      {setup && programs ? (
-        <Card className="p-4">
-          <h2 className="heading-sm">Programs and schemes</h2>
-          <p className="mb-2 text-sm text-muted">
-            {canCare
-              ? "Every program sits under one scheme (NDIS, Support at Home, Private or Other). The scheme decides the wording and rules, so they never mix. Add or rename programs, or untick In use; a program is never deleted, and its scheme can't change once a service uses it."
-              : "The programs clients' services come under, each under its scheme. Changed in Care settings."}
-          </p>
-          <ul className="divide-y divide-line">
-            {programs.map((p) => (
-              <ProgramRow key={p.id} program={p} canEdit={canCare} schemes={schemes} />
-            ))}
-          </ul>
-          {canCare && schemes.length ? <AddProgramForm schemes={schemes} /> : null}
-          {schemes.length ? (
-            <div className="mt-4 border-t border-line pt-3">
-              <h3 className="text-sm font-semibold">Schemes: wording and rules</h3>
-              <ul className="divide-y divide-line">
-                {schemes.map((sc) => (
-                  <SchemeRow key={sc.key} scheme={sc} canEdit={canCare} orgWord={orgWord} />
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </Card>
-      ) : null}
 
     </>
   );

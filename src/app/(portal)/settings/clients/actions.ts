@@ -18,23 +18,6 @@ import type { FormState } from "@/lib/form";
 import { checkAuPhone, checkDob, checkEmail, checkFullAddress } from "@/lib/validate";
 import { MAC_SCHEMES } from "@/lib/client-sections";
 
-// cmeprojects: which team(s) look after a client (people who manage staff).
-export async function setClientTeams(_: FormState, form: FormData): Promise<FormState> {
-  await requireClients();
-  const clientId = String(form.get("client_id") ?? "");
-  if (!/^[0-9a-f-]{36}$/.test(clientId)) return { error: "Choose a client." };
-  const teamIds = form.getAll("team_ids").map(String).filter((t) => /^[0-9a-f-]{36}$/.test(t));
-  const supabase = await createClient();
-  const { error: removeError } = await supabase.from("client_teams").delete().eq("client_id", clientId);
-  if (removeError) return { error: friendlyError(removeError) };
-  if (teamIds.length) {
-    const { error } = await supabase.from("client_teams").insert(teamIds.map((team_id) => ({ client_id: clientId, team_id })));
-    if (error) return { error: friendlyError(error) };
-  }
-  revalidatePath("/settings/clients");
-  return { message: teamIds.length ? "Teams saved." : "No team looks after this client now." };
-}
-
 const STATUSES = ["pending", "active", "suspended", "discharged"];
 const isId = (v: string) => /^[0-9a-f-]{36}$/.test(v);
 
@@ -120,6 +103,7 @@ export async function saveProgram(_: FormState, form: FormData): Promise<FormSta
   }
   if (error) return { error: error.code === "23505" ? "That program is already on the list." : friendlyError(error) };
   revalidatePath("/settings/clients");
+  revalidatePath("/settings/clients/programs");
   return { message: id ? "Saved." : `${name} added.` };
 }
 
@@ -146,6 +130,7 @@ export async function saveScheme(_: FormState, form: FormData): Promise<FormStat
   const { error } = await (await createClient()).from("client_schemes").update(values).eq("key", key);
   if (error) return { error: friendlyError(error) };
   revalidatePath("/settings/clients");
+  revalidatePath("/settings/clients/programs");
   return { message: "Saved." };
 }
 
