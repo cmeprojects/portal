@@ -64,6 +64,10 @@ export function buildNav(opts: {
         match: home && opts.homeLabel !== "Dashboard" ? ["/", "/my-tasks"] : match,
         children: kids.length > 1 ? kids : [],
       });
+      // cmeprojects (owner, 19 Nov 2026): the Service catalogue as its own item under
+      // Clients & care, for everyone who can open Clients (the page's own check).
+      if (m.id === "clients.list")
+        out.push({ id: "clients.catalogue", label: "Service catalogue", icon: "ClipboardList", href: "/settings/clients/catalogue", match: ["/settings/clients/catalogue"], children: [] });
     }
     return out;
   };
