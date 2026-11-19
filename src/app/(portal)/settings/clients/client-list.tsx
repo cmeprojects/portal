@@ -207,9 +207,15 @@ const readTab = () => {
     return "";
   }
 };
+// Changes in this tab (the title follows the list) and in other tabs.
+const TAB_EVENT = "portal-client-tab";
 const watchTab = (cb: () => void) => {
   window.addEventListener("storage", cb);
-  return () => window.removeEventListener("storage", cb);
+  window.addEventListener(TAB_EVENT, cb);
+  return () => {
+    window.removeEventListener("storage", cb);
+    window.removeEventListener(TAB_EVENT, cb);
+  };
 };
 const MAC = ["support_at_home", "chsp"];
 // The word for each scheme's people (owner, 19 Nov 2026): NDIS participants, aged care clients.
@@ -237,6 +243,7 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
     } catch {
       /* private window: not remembered */
     }
+    window.dispatchEvent(new Event(TAB_EVENT));
   };
   const [manager, setManager] = useState("");
   const [status, setStatus] = useState("");
@@ -784,4 +791,14 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
       </div>
     </>
   );
+}
+
+// cmeprojects (owner, 19 Nov 2026): the page title follows the scheme tab:
+// Participants for NDIS, Clients for Support at Home and CHSP, otherwise the
+// organisation's own word.
+export function ClientsTitle({ word, schemeWords = {}, schemes }: { word: string; schemeWords?: Record<string, string>; schemes: [string, string][] }) {
+  const stored = useSyncExternalStore(watchTab, readTab, () => "");
+  const tab = schemes.some(([k]) => k === stored) ? stored : "";
+  const w = (tab && (schemeWords[tab] || DEFAULT_WORD[tab])) || word;
+  return <>{pluralOf(w)}</>;
 }

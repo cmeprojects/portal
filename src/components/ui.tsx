@@ -183,7 +183,7 @@ export function Badge({ children, tone = "soft" }: { children: ReactNode; tone?:
   );
 }
 
-export function PageHeader({ eyebrow, title, intro, action }: { eyebrow?: string; title: string; intro?: string; action?: ReactNode }) {
+export function PageHeader({ eyebrow, title, intro, action }: { eyebrow?: string; title: ReactNode; intro?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>

@@ -9,7 +9,7 @@ import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader } from "@/components/ui";
 import { ClientTeamsForm } from "./team-form";
-import { ClientList, type ListClient } from "./client-list";
+import { ClientList, ClientsTitle, type ListClient } from "./client-list";
 import { PLAN_MANAGEMENT } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Clients" };
@@ -193,7 +193,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   return (
     <>
       <PageHeader
-        title={orgWord.endsWith("s") ? orgWord : `${orgWord}s`}
+        title={<ClientsTitle word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} schemeWords={Object.fromEntries(schemes.map((x) => [x.key, x.person_word ?? ""]))} />}
         intro="The people you support. Click a name to see a summary; open the full profile for everything else."
         action={
           canAddClient && !setup ? <NewClientButton staff={staff} word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} /> : undefined
