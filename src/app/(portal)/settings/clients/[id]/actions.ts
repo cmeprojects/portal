@@ -38,6 +38,8 @@ export async function saveClientSection(_: FormState, form: FormData): Promise<F
   const values: Record<string, unknown> = {};
   let notes: string | null = null;
   for (const f of fields) {
+    // A greyed-out field (not applicable to this client) isn't sent: it keeps what's stored.
+    if (f.type !== "checkbox" && !form.has(f.name)) continue;
     const raw = String(form.get(f.name) ?? "").trim();
     if (f.name === "notes") {
       notes = raw.slice(0, f.max ?? 5000);

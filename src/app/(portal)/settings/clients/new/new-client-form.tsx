@@ -8,7 +8,7 @@ import { useClientTab, wordForTab } from "../client-tab";
 import { Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { useDirty } from "@/components/use-dirty";
-import { NeededTag, Req, RequiredLegend } from "@/components/required";
+import { Req, RequiredLegend } from "@/components/required";
 import { GENDERS, MAC_SCHEMES, STATES, TITLES } from "@/lib/client-sections";
 import { createClientFull } from "../actions";
 
@@ -140,10 +140,9 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
           <label className={lab}>
             <span>
               Date of birth
-              {scheme === "ndis" || MAC_SCHEMES.includes(scheme) ? <NeededTag /> : null}
+              <Req />
             </span>
-            <input type="date" name="date_of_birth" max={new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })} className={inputClass} />
-            <span className="font-normal text-muted">Required for NDIS, Support at Home and CHSP</span>
+            <input type="date" name="date_of_birth" required max={new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })} className={inputClass} />
           </label>
           <label className={lab}>
             Gender (optional)
@@ -156,20 +155,34 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
             </select>
           </label>
           <label className={lab}>
-            Mobile or phone
-            <input name="phone" type="tel" maxLength={30} placeholder="0412 345 678" className={inputClass} />
+            <span>
+              Mobile
+              <Req />
+            </span>
+            <input name="phone" type="tel" required maxLength={30} placeholder="0412 345 678" className={inputClass} />
+            <span className="font-normal text-muted">If they don&apos;t have one, enter the mobile of the family carer or person assisting them.</span>
           </label>
           <label className={lab}>
-            Email
-            <input name="email" type="email" maxLength={120} className={inputClass} />
+            <span>
+              Email
+              <Req />
+            </span>
+            <input name="email" type="email" required maxLength={120} className={inputClass} />
+            <span className="font-normal text-muted">If they don&apos;t have one, enter the email of the family carer or person assisting them.</span>
           </label>
           <label className={lab}>
-            Home address
-            <input name="home_address" maxLength={300} placeholder="12 Smith Street, Dulwich Hill NSW 2203" className={inputClass} />
+            <span>
+              Home address
+              <Req />
+            </span>
+            <input name="home_address" required maxLength={300} placeholder="12 Smith Street, Dulwich Hill NSW 2203" className={inputClass} />
           </label>
           <label className={lab}>
-            State
-            <select name="state" defaultValue="" className={inputClass}>
+            <span>
+              State
+              <Req />
+            </span>
+            <select name="state" required defaultValue="" className={inputClass}>
               {STATES.map(([k, l]) => (
                 <option key={k} value={k}>
                   {l}

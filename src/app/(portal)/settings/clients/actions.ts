@@ -214,6 +214,9 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
   const phone = checkAuPhone(t("phone", 30));
   const email = checkEmail(t("email", 120));
   const address = checkFullAddress(t("home_address", 300));
+  // Mandatory (owner, 19 Nov 2026): date of birth, mobile, email, home address and state.
+  const missing = [["date_of_birth", "date of birth"], ["phone", "mobile"], ["email", "email"], ["home_address", "home address"], ["state", "state"]].filter(([k]) => !t(k)).map(([, l]) => l);
+  if (missing.length) return { error: `Fill in the ${missing.join(", ")}. If they don't have a mobile or email, enter the family carer's or the person assisting them.` };
   const dobCheck = checkDob(t("date_of_birth", 10));
   const problems = [dobCheck.ok ? "" : `Date of birth: ${dobCheck.error}`, phone.ok ? "" : `Phone: ${phone.error}`, email.ok ? "" : `Email: ${email.error}`, address.ok ? "" : `Home address: ${address.error}`].filter(Boolean);
   const state = t("state", 3);

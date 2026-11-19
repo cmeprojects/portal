@@ -458,6 +458,10 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ...(fundedBy.includes("ndis") ? ["ndis_number"] : []),
     ...(fundedBy.some((k) => MAC_SCHEMES.includes(k)) ? ["aged_care_id"] : []),
   ];
+  // The ID that doesn't apply (owner, 19 Nov 2026): NDIS only, no My Aged Care ID; aged care only, no NDIS number.
+  const hasNdis = fundedBy.includes("ndis");
+  const hasMac = fundedBy.some((k) => MAC_SCHEMES.includes(k));
+  const notApplicableDetails = hasNdis && !hasMac ? ["aged_care_id"] : hasMac && !hasNdis ? ["ndis_number"] : [];
 
   const missing = (table: SectionTable) => <p className="text-sm text-muted">This section appears after database update {SECTION_UPDATE[table]}.</p>;
 
@@ -1396,7 +1400,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
         {canEditClient ? <RequiredLegend /> : null}
         <ClientCareForm client={{ id: client.id, name: client.name, client_ref: client.client_ref, status: client.status, preferred_name: client.preferred_name ?? "", title: client.title, given_name: client.given_name, middle_name: client.middle_name, family_name: client.family_name }} />
         <div className="mt-4 border-t border-line pt-4">
-          {details.error ? missing("client_details") : <SectionForm table="client_details" clientId={id} fields={SECTION_FIELDS.client_details} item={(details.data ?? { id: undefined }) as Row} submit="Save details" needed={neededDetails} marks />}
+          {details.error ? missing("client_details") : <SectionForm table="client_details" clientId={id} fields={SECTION_FIELDS.client_details} item={(details.data ?? { id: undefined }) as Row} submit="Save details" needed={neededDetails} notApplicable={notApplicableDetails} marks />}
         </div>
       </Section>
       ) : null}
