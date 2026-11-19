@@ -159,6 +159,8 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
             .slice(0, 5)
             .map((x) => ({ id: x.id, when: `${when(x.starts_at)} – ${new Date(x.ends_at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" })}`, worker: x.worker_id ? (staffName.get(x.worker_id) ?? "Staff member") : "", draft: x.status === "draft", day: new Date(x.starts_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) }))
         : null,
+      // Incidents or issues reported in shift notes over the last 14 days (for the bell).
+      incidents: (recentNotes ?? []).filter((n) => n.client_id === c.id && n.concern).length,
       notes: recentNotes
         ? recentNotes
             .filter((n) => n.client_id === c.id)

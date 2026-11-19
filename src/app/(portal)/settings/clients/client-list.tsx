@@ -35,6 +35,7 @@ export type ListClient = {
   // Next shifts and recent shift notes (null when this person can't see them).
   shifts: { id: string; when: string; worker: string; draft: boolean; day: string }[] | null;
   notes: { when: string; worker: string; wellbeing: string; concern: boolean; text: string }[] | null;
+  incidents: number;
 };
 const WELLBEING: Record<string, [string, string]> = {
   settled: ["Settled", "bg-good-soft"],
@@ -351,8 +352,8 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                         {(() => {
                           // One number, like a notification: active safety alerts plus reviews overdue or due within 30 days.
                           const due = c.reviews.filter((r) => r.overdue || r.due <= in30).length;
-                          const count = c.alerts + due;
-                          const tip = count ? [c.alerts ? `${c.alerts} safety alert${c.alerts === 1 ? "" : "s"}` : "", due ? `${due} review${due === 1 ? "" : "s"} due` : ""].filter(Boolean).join(", ") : "Nothing needs attention";
+                          const count = c.alerts + due + c.incidents;
+                          const tip = count ? [c.incidents ? `${c.incidents} incident${c.incidents === 1 ? "" : "s"} in the last 14 days` : "", c.alerts ? `${c.alerts} safety alert${c.alerts === 1 ? "" : "s"}` : "", due ? `${due} review${due === 1 ? "" : "s"} due` : ""].filter(Boolean).join(", ") : "Nothing needs attention";
                           return (
                             <button type="button" onClick={() => setAlertsFor(c)} title={tip} aria-label={`Alerts for ${c.name}: ${tip}`} className={`relative inline-flex size-8 items-center justify-center rounded-full hover:opacity-80 ${count ? "bg-danger-soft text-danger" : "bg-page text-muted"}`}>
                               <Bell aria-hidden="true" className="size-4" />
@@ -605,6 +606,8 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
   }, [client.id, onClose]);
   const todayIso = new Date().toISOString().slice(0, 10);
   const due = (data?.reviews ?? []).filter((r) => r.status === "open" && r.due <= in30);
+  // Incidents or issues from shift notes in the last 14 days (newest first).
+  const incidents = (data?.shiftNotes ?? []).filter((n) => n.concern && n.at >= new Date(Date.parse(todayIso + "T00:00:00Z") - 14 * 86_400_000).toISOString());
   return (
     <>
       <button type="button" aria-label="Close" onClick={onClose} className="fixed inset-0 z-40 bg-black/30" />
@@ -625,6 +628,18 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
             </p>
           ) : (
             <>
+              {incidents.map((n, i) => (
+                <div key={`i${i}`} className="rounded-lg border border-danger p-3">
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-white">Incident or issue</span>
+                    <span className="text-xs text-muted">
+                      {n.worker} · {n.when}
+                    </span>
+                  </p>
+                  {n.concernNote ? <p className="mt-1 whitespace-pre-wrap">{n.concernNote}</p> : null}
+                  <p className="mt-1 text-xs text-muted">Shift note: {n.text}</p>
+                </div>
+              ))}
               {(data.alerts ?? []).map((a, i) => (
                 <div key={`a${i}`} className={`rounded-lg border p-3 ${a.severity === "high" ? "border-danger" : "border-line"}`}>
                   <p className="flex flex-wrap items-center gap-2">
@@ -645,7 +660,7 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
                   {r.reason ? <p className="mt-1 text-xs text-muted">What changed: {r.reason}</p> : null}
                 </div>
               ))}
-              {!(data.alerts ?? []).length && !due.length ? <p className="text-muted">Nothing needs attention.</p> : null}
+              {!(data.alerts ?? []).length && !due.length && !incidents.length ? <p className="text-muted">Nothing needs attention.</p> : null}
             </>
           )}
         </div>

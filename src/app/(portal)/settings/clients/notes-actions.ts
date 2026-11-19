@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ALERT_KINDS, CLIENT_STATUS } from "@/lib/client-sections";
 
 export type ClientNotes = {
-  shiftNotes: { when: string; worker: string; wellbeing: string; concern: boolean; concernNote: string; text: string }[] | null;
+  shiftNotes: { when: string; at: string; worker: string; wellbeing: string; concern: boolean; concernNote: string; text: string }[] | null;
   practitionerNotes: { when: string; who: string; text: string }[] | null;
   comms: { contact: string; language: string; interpreter: boolean; needs: string; notes: string } | null;
   log: { when: string; who: string; what: string }[] | null;
@@ -44,7 +44,7 @@ export async function loadClientNotes(clientId: string): Promise<ClientNotes | {
       ? `Status changed from ${CLIENT_STATUS[String(d.from)] ?? d.from} to ${CLIENT_STATUS[String(d.to)] ?? d.to}`
       : a.replace(/^client_/, "").replace(/_(added|changed)$/, " $1").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
   return {
-    shiftNotes: sn.error ? null : ((sn.data ?? []) as { worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; concern_note: string; created_at: string }[]).map((r) => ({ when: when(r.created_at), worker: nameOf.get(r.worker_id) ?? "Staff member", wellbeing: r.client_wellbeing, concern: r.concern, concernNote: r.concern_note, text: r.delivered })),
+    shiftNotes: sn.error ? null : ((sn.data ?? []) as { worker_id: string; delivered: string; client_wellbeing: string; concern: boolean; concern_note: string; created_at: string }[]).map((r) => ({ when: when(r.created_at), at: r.created_at, worker: nameOf.get(r.worker_id) ?? "Staff member", wellbeing: r.client_wellbeing, concern: r.concern, concernNote: r.concern_note, text: r.delivered })),
     practitionerNotes: pn.error ? null : ((pn.data ?? []) as { author_id: string | null; note_date: string; body: string }[]).map((r) => ({ when: day(r.note_date), who: (r.author_id && nameOf.get(r.author_id)) || "Practitioner", text: r.body })),
     comms: cm.error || !cm.data ? null : { contact: String(cm.data.preferred_contact ?? ""), language: String(cm.data.language ?? ""), interpreter: Boolean(cm.data.interpreter_needed), needs: String(cm.data.accessibility_needs ?? ""), notes: String(cm.data.notes ?? "") },
     log: lg.error ? null : ((lg.data ?? []) as { action: string; created_at: string; actor_id: string | null; details: Record<string, unknown> | null }[]).map((r) => ({ when: when(r.created_at), who: (r.actor_id && nameOf.get(r.actor_id)) || "The portal", what: what(r.action, r.details ?? {}) })),
