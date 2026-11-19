@@ -7,6 +7,19 @@ Which live updates each copy has: see supabase/live-updates/README.md. Start wit
 
 **Documentation register (start here):** docs/00-governance/GOV-002-documentation-register.md lists every document with its ID, owner role, status and path; decisions are in docs/11-decisions-and-change-history/DEC-001-decision-register.md.
 
+## LATER: address auto-complete (owner, 19 Nov 2026)
+
+The owner wants every address (clients, houses, staff, contacts) to auto-complete and fill the
+street, suburb, state and postcode into their own fields. Chosen: a built-in suburb list (no cost,
+no outside service): typing the suburb suggests matches and fills the postcode and state. Parked
+on the data source:
+- ABS Suburbs and Localities + Postal Areas (CC BY 4.0, clean licence): abs.gov.au and data.gov.au
+  are blocked in the build environment; the owner can supply the files or allow the host.
+- Matthew Proctor's australianpostcodes list: downloadable, but states no licence (compiled from
+  former Australia Post data), a risk if the portal is sold or shared.
+- A paid street-level service (Google Places, Addressfinder, Geoscape) can come later.
+Validation of typed addresses (lib/validate.ts) stays in place meanwhile.
+
 ## ON HOLD: Clients & Care and new roles (owner, 16 Nov 2026)
 
 Paused by the owner; pick up from here when asked. Done and on Dev:
