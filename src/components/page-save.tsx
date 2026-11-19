@@ -117,7 +117,7 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
             </p>
             {steps && config.cancel ? (
               <Link href={config.cancel} className="rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page">
-                Cancel
+                Exit
               </Link>
             ) : null}
             {steps ? (
