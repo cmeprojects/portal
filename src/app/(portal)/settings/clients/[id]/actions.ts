@@ -695,3 +695,19 @@ export async function makeClientActive(form: FormData) {
   revalidatePath(`/settings/clients/${clientId}`);
   revalidatePath("/settings/clients");
 }
+
+// cmeprojects (owner, 19 Nov 2026): who funds the client (NDIS, Support at Home …),
+// set from the To check list when it wasn't chosen at registration.
+export async function setClientScheme(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const scheme = String(form.get("scheme") ?? "");
+  if (!isId(clientId)) return { error: "That didn't save. Please reload the page." };
+  if (!/^[a-z_]{1,40}$/.test(scheme)) return { error: "Choose who funds them." };
+  const { data, error } = await (await createClient()).from("car_clients").update({ scheme }).eq("id", clientId).select("id");
+  if (error) return { error: friendlyError(error) };
+  if (!data?.length) return { error: "You can't change this client." };
+  revalidatePath(`/settings/clients/${clientId}`);
+  revalidatePath("/settings/clients");
+  return { message: "Saved." };
+}

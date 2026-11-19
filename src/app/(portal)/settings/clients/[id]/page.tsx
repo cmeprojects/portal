@@ -16,6 +16,7 @@ import { AssignForm } from "./assign-form";
 import { CommsForm, type Comms } from "./comms-form";
 import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow } from "./service-form";
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
+import { SchemePicker } from "./scheme-picker";
 import { ReportIncidentForm } from "../../../incidents/forms";
 import { INCIDENT_KINDS, INCIDENT_SEVERITY, INCIDENT_STATUS, label as incLabel } from "@/lib/incidents";
 import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
@@ -253,14 +254,14 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const regScheme = (schemeRes?.data as { scheme?: string | null } | null)?.scheme ?? null;
   const checklist: [string, boolean, string, string][] = checking
     ? [
-        ...(schemeRes && !schemeRes.error ? [["Funded by (NDIS, Support at Home, …)", !!regScheme, regScheme ? (schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme) : "Not chosen", `/settings/clients/${id}?edit=basic`] as [string, boolean, string, string]] : []),
-        ["At least one approved service", svcRows.length > 0, svcRows.length ? svcRows.map((v) => v.label).join(", ") : "None yet", `/settings/clients/${id}?tab=services`],
-        ["An approved service location", has(/location/i) && locationRows.some((l) => l.approved), locationRows.some((l) => l.approved) ? "Approved" : "Add and approve the address where support happens", `/settings/clients/${id}?tab=profile`],
-        ["An emergency contact", has(/emergency/i), has(/emergency/i) ? "Recorded" : "Add one under Emergency contacts", `/settings/clients/${id}?tab=profile`],
-        ["Safety answered", has(/safety/i), has(/safety/i) ? "Recorded" : "Add an alert, or record \"No known safety alerts\"", `/settings/clients/${id}?tab=profile`],
-        ["Date of birth (if the program needs it)", has(/date of birth/i), has(/date of birth/i) ? "Done" : "Needed for this program", `/settings/clients/${id}?edit=basic`],
-        ["NDIS number / My Aged Care ID", has(/NDIS number|My Aged Care/i), has(/NDIS number|My Aged Care/i) ? "Done" : allGaps.filter((g) => /NDIS number|My Aged Care/i.test(g)).join(" "), `/settings/clients/${id}?edit=basic`],
-        ["Consent (where a service needs it)", has(/consent/i), has(/consent/i) ? "Done" : "Record the consent date on the service", `/settings/clients/${id}?tab=services`],
+        ...(schemeRes && !schemeRes.error ? [["Funded by (NDIS, Support at Home, …)", !!regScheme, regScheme ? (schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme) : "Not chosen", `/settings/clients/${id}#to-check`] as [string, boolean, string, string]] : []),
+        ["At least one approved service", svcRows.length > 0, svcRows.length ? svcRows.map((v) => v.label).join(", ") : "None yet", `/settings/clients/${id}?tab=services#services`],
+        ["An approved service location", has(/location/i) && locationRows.some((l) => l.approved), locationRows.some((l) => l.approved) ? "Approved" : "Add and approve the address where support happens", `/settings/clients/${id}?tab=profile#locations`],
+        ["An emergency contact", has(/emergency/i), has(/emergency/i) ? "Recorded" : "Add one under Emergency contacts", `/settings/clients/${id}?tab=profile#emergency`],
+        ["Safety answered", has(/safety/i), has(/safety/i) ? "Recorded" : "Add an alert, or record \"No known safety alerts\"", `/settings/clients/${id}?tab=profile#safety`],
+        ["Date of birth (if the program needs it)", has(/date of birth/i), has(/date of birth/i) ? "Done" : "Needed for this program", `/settings/clients/${id}?tab=profile#details`],
+        ["NDIS number / My Aged Care ID", has(/NDIS number|My Aged Care/i), has(/NDIS number|My Aged Care/i) ? "Done" : allGaps.filter((g) => /NDIS number|My Aged Care/i.test(g)).join(" "), `/settings/clients/${id}?tab=profile#details`],
+        ["Consent (where a service needs it)", has(/consent/i), has(/consent/i) ? "Done" : "Record the consent date on the service", `/settings/clients/${id}?tab=services#services`],
       ]
     : [];
   // The registered scheme also decides what's needed before any service is added.
@@ -379,7 +380,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   if (client.status !== "discharged") {
     if (client.status !== "active") {
       if (checking) for (const [l, ok, note, href] of checklist) if (!ok) rosterBlocks.push([`${l}: ${note}`, href]);
-      rosterBlocks.push([client.status === "suspended" ? "Their status is Suspended. Change it to Active to roster them." : "They're not active yet. Finish the To check steps, then Make active.", `/settings/clients/${id}`]);
+      rosterBlocks.push(client.status === "suspended" ? ["Their status is Suspended. Change it to Active to roster them (Profile, Details).", `/settings/clients/${id}?tab=profile#details`] : ["They're not active yet. Finish the To check steps, then Make active.", `/settings/clients/${id}#to-check`]);
     }
     const svcAll = (services.data ?? []) as { id: string; label: string; status: string; start_date: string; end_date: string | null; origin?: string; catalogue_id?: string | null; shift_types?: string[] }[];
     const current = svcAll.filter((v) => ["planned", "active"].includes(v.status) && v.start_date <= todayAu && (!v.end_date || v.end_date >= todayAu));
@@ -390,11 +391,11 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       // nothing more
     } else if (!current.length) {
       const next = svcAll.filter((v) => ["planned", "active"].includes(v.status) && v.start_date > todayAu).sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
-      rosterBlocks.push([next ? `No approved service is current today. "${next.label}" starts ${day(next.start_date)}.` : "No current approved service. Add one on the Services tab.", `/settings/clients/${id}?tab=services`]);
+      rosterBlocks.push([next ? `No approved service is current today. "${next.label}" starts ${day(next.start_date)}.` : "No current approved service. Add one on the Services tab.", `/settings/clients/${id}?tab=services#services`]);
     } else if (!catRes.error && current.every((v) => v.origin !== undefined && !typesOf(v).length)) {
-      rosterBlocks.push([`The current service${current.length === 1 ? "" : "s"} (${current.map((v) => v.label).join(", ")}) ${current.length === 1 ? "doesn't" : "don't"} list any shift types. Set them on the Services tab.`, `/settings/clients/${id}?tab=services`]);
+      rosterBlocks.push([`The current service${current.length === 1 ? "" : "s"} (${current.map((v) => v.label).join(", ")}) ${current.length === 1 ? "doesn't" : "don't"} list any shift types. Set them on the Services tab.`, `/settings/clients/${id}?tab=services#services`]);
     }
-    if (!checking && !locationRows.some((l) => l.approved)) rosterBlocks.push(["No approved service location. Add the address where support happens and approve it.", `/settings/clients/${id}?tab=profile`]);
+    if (!checking && !locationRows.some((l) => l.approved)) rosterBlocks.push(["No approved service location. Add the address where support happens and approve it.", `/settings/clients/${id}?tab=profile#locations`]);
   }
   const det = (details.data ?? null) as Record<string, unknown> | null;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
@@ -527,7 +528,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               <li key={text} className="flex flex-wrap items-baseline gap-x-2">
                 <span aria-hidden="true">•</span>
                 <span className="flex-1">{text}</span>
-                <Link href={href} scroll={false} className="text-xs font-semibold text-brand underline">
+                <Link href={href} className="text-xs font-semibold text-brand underline">
                   Fix
                 </Link>
               </li>
@@ -709,7 +710,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
         </Card>
       ) : null}
       {checking && !step ? (
-        <Card className="flex flex-col gap-3 border-warn/50 p-4">
+        <Card id="to-check" className="flex scroll-mt-24 flex-col gap-3 border-warn/50 p-4 target:ring-2 target:ring-warn">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="heading-sm">To check: getting {client.preferred_name || client.name.split(" ")[0]} ready</h2>
@@ -729,7 +730,9 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                   <span className="font-medium">{label}</span>
                   <span className={`block text-xs ${ok ? "text-muted" : "text-warn"}`}>{note}</span>
                 </span>
-                {ok ? null : (
+                {ok ? null : label.startsWith("Funded by") && canEditClient ? (
+                  <SchemePicker clientId={id} schemes={schemeWords.map((w) => [w.key, w.label] as [string, string])} />
+                ) : (
                   <Link href={href} className="text-xs font-semibold text-brand underline">
                     Do this
                   </Link>
@@ -1338,7 +1341,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       ) : null}
 
       {inView("details") ? (
-      <Section title="Details" intro="Status and preferred name, then contact details, date of birth and identifiers (managers only).">
+      <Section anchor="details" title="Details" intro="Status and preferred name, then contact details, date of birth and identifiers (managers only).">
         <ClientCareForm client={{ id: client.id, name: client.name, client_ref: client.client_ref, status: client.status, preferred_name: client.preferred_name ?? "", title: client.title, given_name: client.given_name, middle_name: client.middle_name, family_name: client.family_name }} />
         <div className="mt-4 border-t border-line pt-4">
           {details.error ? missing("client_details") : <SectionForm table="client_details" clientId={id} fields={SECTION_FIELDS.client_details} item={(details.data ?? { id: undefined }) as Row} submit="Save details" />}
@@ -1347,7 +1350,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       ) : null}
 
       {inView("locations") ? (
-      <Section title="Service locations" intro="Where support happens. A location must be approved before services can use it; staff see approved, current ones with the access instructions.">
+      <Section anchor="locations" title="Service locations" intro="Where support happens. A location must be approved before services can use it; staff see approved, current ones with the access instructions.">
         {locations.error ? (
           missing("client_locations")
         ) : (
@@ -1366,7 +1369,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       ) : null}
 
       {inView("people") ? (
-      <Section title="Emergency contacts and representatives" intro="Sensitive: managers only. At least one current emergency contact is needed before services start.">
+      <Section anchor="emergency" title="Emergency contacts and representatives" intro="Sensitive: managers only. At least one current emergency contact is needed before services start.">
         {people.error ? (
           missing("client_people")
         ) : (
@@ -1385,7 +1388,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       ) : null}
 
       {inView("safety") ? (
-      <Section title="Safety" intro="Alerts and what workers must do (staff in the client's team see current ones). Detailed risk notes are for managers only. Record 'no known safety alerts' if there are none.">
+      <Section anchor="safety" title="Safety" intro="Alerts and what workers must do (staff in the client's team see current ones). Detailed risk notes are for managers only. Record 'no known safety alerts' if there are none.">
         {alerts.error ? (
           missing("client_alerts")
         ) : (
@@ -1411,7 +1414,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       ) : null}
 
       {inView("services") ? (
-      <Section title="Approved Services" intro="Each service the client is approved or funded for, one per record. Rostering only offers the shift types a service covers.">
+      <Section anchor="services" title="Approved Services" intro="Each service the client is approved or funded for, one per record. Rostering only offers the shift types a service covers.">
         {services.error ? (
           missing("client_services")
         ) : (
@@ -1630,9 +1633,9 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   );
 }
 
-function Section({ title, intro, children }: { title: string; intro: string; children: ReactNode }) {
+function Section({ title, intro, children, anchor }: { title: string; intro: string; children: ReactNode; anchor?: string }) {
   return (
-    <Card className="flex flex-col gap-3 p-4">
+    <Card id={anchor} className="flex scroll-mt-24 flex-col gap-3 p-4 target:ring-2 target:ring-brand">
       <div>
         <h2 className="heading-sm">{title}</h2>
         <p className="text-sm text-muted">{intro}</p>
