@@ -196,7 +196,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         title={<ClientsTitle word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} schemeWords={Object.fromEntries(schemes.map((x) => [x.key, x.person_word ?? ""]))} />}
         intro="The people you support. Click a name to see a summary; open the full profile for everything else."
         action={
-          canAddClient && !setup ? <NewClientButton staff={staff} word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} /> : undefined
+          canAddClient && !setup ? <NewClientButton staff={staff} word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} schemeWords={Object.fromEntries(schemes.map((x) => [x.key, x.person_word ?? ""]))} /> : undefined
         }
       />
       <nav className="flex gap-1 border-b border-line text-sm" aria-label="Client pages">

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button, Notice, buttonClass, inputClass } from "@/components/ui";
 import { useSavableForm } from "@/components/page-save";
 import { Req } from "@/components/required";
+import { useClientTab, wordForTab } from "./client-tab";
 import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
@@ -247,13 +248,13 @@ export function SchemeRow({ scheme, canEdit, orgWord }: { scheme: Scheme; canEdi
 
 // cmeprojects (Care block): add a client and choose who manages them (their
 // care manager or support coordinator), when you may assign staff.
-export function AddCareClientForm({ staff, schemes = [] }: { staff: { id: string; name: string }[] | null; word: string; schemes?: [string, string][] }) {
+export function AddCareClientForm({ staff, schemes = [], defaultScheme = "" }: { staff: { id: string; name: string }[] | null; word: string; schemes?: [string, string][]; defaultScheme?: string }) {
   const [state, action, pending] = useActionState(addClientWithManager, null);
   const [scheme, setScheme] = useState(() => {
     try {
-      return (JSON.parse(window.localStorage.getItem("portal.newClientDraft") ?? "{}") as Record<string, string>).scheme ?? "";
+      return (JSON.parse(window.localStorage.getItem("portal.newClientDraft") ?? "{}") as Record<string, string>).scheme || defaultScheme;
     } catch {
-      return "";
+      return defaultScheme;
     }
   });
   const router = useRouter();
@@ -423,7 +424,10 @@ export function ArchiveClientForm({ clientId, name }: { clientId: string; name: 
 
 // cmeprojects: "New participant" opens straight away (no page reload); the
 // form keeps a draft on this device, so closing it loses nothing.
-export function NewClientButton({ staff, word, schemes }: { staff: { id: string; name: string }[] | null; word: string; schemes: [string, string][] }) {
+export function NewClientButton({ staff, word: orgWord, schemes, schemeWords = {} }: { staff: { id: string; name: string }[] | null; word: string; schemes: [string, string][]; schemeWords?: Record<string, string> }) {
+  // The word follows the client list's tab: New participant (NDIS), New client (aged care).
+  const tab = useClientTab(schemes);
+  const word = wordForTab(tab, orgWord, schemeWords);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -450,7 +454,7 @@ export function NewClientButton({ staff, word, schemes }: { staff: { id: string;
             </div>
             <div className="flex flex-col gap-3 p-5">
               <p className="text-xs text-muted">Start with the basics. Continue opens the full form with these filled in; nothing is saved until you save there. What you type is kept as a draft if you close this.</p>
-              <AddCareClientForm staff={staff} word={word} schemes={schemes} />
+              <AddCareClientForm staff={staff} word={word} schemes={schemes} defaultScheme={tab} />
             </div>
           </div>
         </>

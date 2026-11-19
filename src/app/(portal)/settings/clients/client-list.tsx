@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { pluralOf, storeClientTab, useClientTab, useStoredClientTab, wordForTab } from "./client-tab";
 import { ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
 import { loadClientNotes, type ClientNotes } from "./notes-actions";
 import { CommsLogForm, CommsLogList } from "./[id]/comms-log";
@@ -198,30 +199,7 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
 // sortable table with Active and Archived tabs; a client opens in a side
 // panel (Overview, Plan budget, Reviews and agreements). Each column only
 // holds what this person may already see (the database decides).
-// cmeprojects (owner, 19 Nov 2026): the last scheme tab, remembered on this device.
-const TAB_KEY = "portal.clientSchemeTab";
-const readTab = () => {
-  try {
-    return window.localStorage.getItem(TAB_KEY) ?? "";
-  } catch {
-    return "";
-  }
-};
-// Changes in this tab (the title follows the list) and in other tabs.
-const TAB_EVENT = "portal-client-tab";
-const watchTab = (cb: () => void) => {
-  window.addEventListener("storage", cb);
-  window.addEventListener(TAB_EVENT, cb);
-  return () => {
-    window.removeEventListener("storage", cb);
-    window.removeEventListener(TAB_EVENT, cb);
-  };
-};
 const MAC = ["support_at_home", "chsp"];
-// The word for each scheme's people (owner, 19 Nov 2026): NDIS participants, aged care clients.
-// A word set in Programs and schemes wins.
-const DEFAULT_WORD: Record<string, string> = { ndis: "Participant", support_at_home: "Client", chsp: "Client" };
-const pluralOf = (w: string) => (w.endsWith("s") ? w : `${w}s`);
 
 export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis, showBudget, showContact }: { clients: ListClient[]; word: string; schemes: [string, string][]; schemeWords?: Record<string, string>; showNdis: boolean; showBudget: boolean; showContact: boolean }) {
   const router = useRouter();
@@ -232,18 +210,13 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [q, setQ] = useState("");
   // Scheme tabs (NDIS, Support at Home, CHSP …): the choice is kept on this device.
-  const storedTab = useSyncExternalStore(watchTab, readTab, () => "");
+  const storedTab = useStoredClientTab();
   const [pickedTab, setPickedTab] = useState<string | null>(null);
   const wanted = pickedTab ?? storedTab;
   const scheme = schemes.some(([k]) => k === wanted) ? wanted : "";
   const setScheme = (v: string) => {
     setPickedTab(v);
-    try {
-      window.localStorage.setItem(TAB_KEY, v);
-    } catch {
-      /* private window: not remembered */
-    }
-    window.dispatchEvent(new Event(TAB_EVENT));
+    storeClientTab(v);
   };
   const [manager, setManager] = useState("");
   const [status, setStatus] = useState("");
@@ -256,7 +229,7 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
   const inTab = clients.filter((c) => (tab === "archived") === isArchived(c));
   const schemeCounts = schemes.map(([k, l]) => [k, l, inTab.filter((c) => c.schemes.includes(k)).length] as const).filter(([k, , n]) => n > 0 || k === scheme);
   // The word for this tab ("participants" for NDIS, if set in the scheme's wording).
-  const wordFor = (k: string) => schemeWords[k] || DEFAULT_WORD[k] || "";
+  const wordFor = (k: string) => (k ? wordForTab(k, "", schemeWords) : "");
   const tabWord = (scheme && wordFor(scheme)) || word;
   const tabPlural = pluralOf(tabWord);
   const showMac = MAC.includes(scheme);
@@ -797,8 +770,6 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
 // Participants for NDIS, Clients for Support at Home and CHSP, otherwise the
 // organisation's own word.
 export function ClientsTitle({ word, schemeWords = {}, schemes }: { word: string; schemeWords?: Record<string, string>; schemes: [string, string][] }) {
-  const stored = useSyncExternalStore(watchTab, readTab, () => "");
-  const tab = schemes.some(([k]) => k === stored) ? stored : "";
-  const w = (tab && (schemeWords[tab] || DEFAULT_WORD[tab])) || word;
-  return <>{pluralOf(w)}</>;
+  const tab = useClientTab(schemes);
+  return <>{pluralOf(wordForTab(tab, word, schemeWords))}</>;
 }
