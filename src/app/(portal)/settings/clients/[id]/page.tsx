@@ -393,6 +393,8 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   // active (To check done), a current approved service that lists its shift types,
   // and an approved service location.
   const rosterBlocks: [string, string][] = [];
+  // A service that starts later isn't a gap: they can be rostered from that day.
+  let rosterFrom: { date: string; label: string } | null = null;
   if (client.status !== "discharged") {
     if (client.status !== "active") {
       if (checking) for (const [l, ok, note, href] of checklist) if (!ok) rosterBlocks.push([`${l}: ${note}`, href]);
@@ -407,7 +409,8 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       // nothing more
     } else if (!current.length) {
       const next = svcAll.filter((v) => ["planned", "active"].includes(v.status) && v.start_date > todayAu).sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
-      rosterBlocks.push([next ? `No approved service is current today. "${next.label}" starts ${day(next.start_date)}.` : "No current approved service. Add one on the Services tab.", `/settings/clients/${id}?tab=services#services`]);
+      if (next) rosterFrom = { date: next.start_date, label: next.label };
+      else rosterBlocks.push(["No current approved service. Add one on the Services tab.", `/settings/clients/${id}?tab=services#services`]);
     } else if (!catRes.error && current.every((v) => v.origin !== undefined && !typesOf(v).length)) {
       rosterBlocks.push([`The current service${current.length === 1 ? "" : "s"} (${current.map((v) => v.label).join(", ")}) ${current.length === 1 ? "doesn't" : "don't"} list any shift types. Set them on the Services tab.`, `/settings/clients/${id}?tab=services#services`]);
     }
@@ -480,7 +483,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                 </span>
               ))}
               {ready && client.status !== "discharged" ? (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold text-ink ${ready.ready ? "bg-good-soft" : "bg-warn-soft"}`}>{ready.ready ? "Ready for services" : "Not ready for services yet"}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold text-ink ${ready.ready ? "bg-good-soft" : !rosterBlocks.length && rosterFrom ? "bg-brand-soft" : "bg-warn-soft"}`}>{ready.ready ? "Ready for services" : !rosterBlocks.length && rosterFrom ? `Services start ${day(rosterFrom.date)}` : "Not ready for services yet"}</span>
               ) : null}
             </div>
           </div>
@@ -550,6 +553,11 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               </li>
             ))}
           </ul>
+        </div>
+      ) : null}
+      {!rosterBlocks.length && rosterFrom && !step ? (
+        <div role="status" className="rounded-xl border border-brand/20 bg-brand-soft px-4 py-3 text-sm text-ink">
+          <span className="font-semibold">Can be rostered from {day(rosterFrom.date)}</span>, when &ldquo;{rosterFrom.label}&rdquo; starts. Shifts before then aren&apos;t allowed.
         </div>
       ) : null}
       {inView("practitioners") && practitionerAccess ? (
