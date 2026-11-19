@@ -397,8 +397,15 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   // Profile tab; each step's "Save and continue" goes on to the next step.
   const stepAt = STEPS.findIndex(([k]) => k === step);
   const pageSave: PageSaveConfig | null =
-    canEditClient && (step === "basic" || step === "support")
-      ? { mode: "steps", back: stepAt > 0 ? `/settings/clients/${id}?edit=${STEPS[stepAt - 1][0]}` : undefined, next: stepAt < STEPS.length - 1 ? `/settings/clients/${id}?edit=${STEPS[stepAt + 1][0]}` : `/settings/clients/${id}`, cancel: `/settings/clients/${id}` }
+    canEditClient && step
+      ? {
+          mode: "steps",
+          back: stepAt > 0 ? `/settings/clients/${id}?edit=${STEPS[stepAt - 1][0]}` : undefined,
+          next: stepAt < STEPS.length - 1 ? `/settings/clients/${id}?edit=${STEPS[stepAt + 1][0]}` : `/settings/clients/${id}`,
+          // The last step: Finish saves too.
+          nextLabel: stepAt === STEPS.length - 1 ? "Save and finish" : undefined,
+          cancel: `/settings/clients/${id}`,
+        }
       : canEditClient && !step && tab === "profile"
         ? { mode: "tab" }
         : null;
@@ -498,11 +505,8 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             </div>
           </div>
           {canEditClient ? (
-            step ? (
-              <Link href={`/settings/clients/${id}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold hover:bg-page">
-                Done editing
-              </Link>
-            ) : !TAB_SECTIONS[tab] || tab === "overview" ? (
+            // The edit steps finish from the bar at the bottom (no "Done editing" up here).
+            step ? null : !TAB_SECTIONS[tab] || tab === "overview" ? (
               // Only on Overview (read-only): the other tabs are edited in place.
               <Link href={`/settings/clients/${id}?edit=basic`} className="inline-flex items-center gap-1 rounded-lg border border-brand px-3 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft">
                 <Pencil aria-hidden="true" className="size-4" /> Edit

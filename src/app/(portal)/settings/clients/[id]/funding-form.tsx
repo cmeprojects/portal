@@ -1,34 +1,44 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { saveFunding } from "./actions";
+import { useSavableForm } from "@/components/page-save";
 import { PLAN_MANAGEMENT } from "@/lib/client-sections";
 
 export type Funding = { id: string; service_id: string; scheme: string; period_start: string; period_end: string; total_amount: number; used_amount: number; used_as_of: string | null; plan_management: string | null; classification: number | null; status: string; notes: string };
 const field = "flex flex-col gap-1 text-xs font-medium";
 
-function Footer({ pending, state, submit }: { pending: boolean; state: { error?: string; message?: string } | null; submit: string }) {
+function Footer({ pending, state, submit, pageSave, unchanged = false }: { pending: boolean; state: { error?: string; message?: string } | null; submit: string; pageSave: boolean; unchanged?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Button size="sm" disabled={pending}>
-        {pending ? "Saving…" : submit}
-      </Button>
+      {pageSave ? null : (
+        <Button size="sm" disabled={pending || unchanged}>
+          {pending ? "Saving…" : submit}
+        </Button>
+      )}
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
-      {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
+      {state?.message && !pageSave ? <Notice tone="success">{state.message}</Notice> : null}
     </div>
   );
 }
 
 // cmeprojects (Care block C7): a new budget. Only the chosen service's scheme
 // fields show (NDIS: plan management; Support at Home: classification).
-export function FundingForm({ clientId, services }: { clientId: string; services: { id: string; label: string; scheme: string; schemeLabel: string }[] }) {
-  const [state, action, pending] = useActionState(saveFunding, null);
+type FundingProps = { clientId: string; services: { id: string; label: string; scheme: string; schemeLabel: string }[] };
+export function FundingForm(props: FundingProps) {
+  // A fresh form after each budget is added.
+  const [round, setRound] = useState(0);
+  return <FundingFormInner key={round} {...props} onAdded={() => setRound((r) => r + 1)} />;
+}
+
+function FundingFormInner({ clientId, services, onAdded }: FundingProps & { onAdded: () => void }) {
+  const { state, pending, ref, onSubmit, pageSave } = useSavableForm(saveFunding, { label: "New budget", onSaved: onAdded });
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const scheme = services.find((s) => s.id === serviceId)?.scheme;
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form ref={ref} onSubmit={onSubmit} className="flex flex-col gap-2">
       <input type="hidden" name="client_id" value={clientId} />
       <div className="grid gap-2 sm:grid-cols-2">
         <label className={field}>
@@ -81,15 +91,15 @@ export function FundingForm({ clientId, services }: { clientId: string; services
         Notes
         <textarea name="notes" maxLength={1000} rows={2} className={inputClass} />
       </label>
-      <Footer pending={pending} state={state} submit="Add budget" />
+      <Footer pending={pending} state={state} submit="Add budget" pageSave={pageSave} />
     </form>
   );
 }
 
 export function FundingUsedForm({ clientId, funding }: { clientId: string; funding: Funding }) {
-  const [state, action, pending] = useActionState(saveFunding, null);
+  const { state, pending, ref, dirty, onSubmit, pageSave } = useSavableForm(saveFunding, { label: "Budget used so far" });
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form ref={ref} onSubmit={onSubmit} className="flex flex-col gap-2">
       <input type="hidden" name="client_id" value={clientId} />
       <input type="hidden" name="id" value={funding.id} />
       <div className="grid gap-2 sm:grid-cols-2">
@@ -106,7 +116,7 @@ export function FundingUsedForm({ clientId, funding }: { clientId: string; fundi
         Notes
         <textarea name="notes" maxLength={1000} rows={2} defaultValue={funding.notes} className={inputClass} />
       </label>
-      <Footer pending={pending} state={state} submit="Save" />
+      <Footer pending={pending} state={state} submit="Save" pageSave={pageSave} unchanged={!dirty} />
     </form>
   );
 }
