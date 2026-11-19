@@ -212,6 +212,10 @@ const watchTab = (cb: () => void) => {
   return () => window.removeEventListener("storage", cb);
 };
 const MAC = ["support_at_home", "chsp"];
+// The word for each scheme's people (owner, 19 Nov 2026): NDIS participants, aged care clients.
+// A word set in Programs and schemes wins.
+const DEFAULT_WORD: Record<string, string> = { ndis: "Participant", support_at_home: "Client", chsp: "Client" };
+const pluralOf = (w: string) => (w.endsWith("s") ? w : `${w}s`);
 
 export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis, showBudget, showContact }: { clients: ListClient[]; word: string; schemes: [string, string][]; schemeWords?: Record<string, string>; showNdis: boolean; showBudget: boolean; showContact: boolean }) {
   const router = useRouter();
@@ -245,8 +249,9 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
   const inTab = clients.filter((c) => (tab === "archived") === isArchived(c));
   const schemeCounts = schemes.map(([k, l]) => [k, l, inTab.filter((c) => c.schemes.includes(k)).length] as const).filter(([k, , n]) => n > 0 || k === scheme);
   // The word for this tab ("participants" for NDIS, if set in the scheme's wording).
-  const tabWord = (scheme && schemeWords[scheme]) || word;
-  const tabPlural = tabWord.endsWith("s") ? tabWord : `${tabWord}s`;
+  const wordFor = (k: string) => schemeWords[k] || DEFAULT_WORD[k] || "";
+  const tabWord = (scheme && wordFor(scheme)) || word;
+  const tabPlural = pluralOf(tabWord);
   const showMac = MAC.includes(scheme);
   const showNdisCol = showNdis && scheme === "ndis";
   // All: one column with whichever ID they have (NDIS number or My Aged Care ID).
@@ -313,7 +318,8 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
               onClick={() => setScheme(k)}
               className={`rounded-full px-3 py-1 text-sm font-semibold ${scheme === k ? "bg-ink text-white" : "border border-line text-ink hover:bg-page"}`}
             >
-              {l} <span className={`text-xs font-normal ${scheme === k ? "text-white/80" : "text-muted"}`}>{n}</span>
+              {l}
+              {k && wordFor(k) ? ` ${pluralOf(wordFor(k)).toLowerCase()}` : ""} <span className={`text-xs font-normal ${scheme === k ? "text-white/80" : "text-muted"}`}>{n}</span>
             </button>
           ))}
         </div>
