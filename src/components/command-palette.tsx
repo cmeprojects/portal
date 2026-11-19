@@ -107,7 +107,7 @@ export function CommandPalette({ pages, people, registers }: { pages: { label: s
     const t = setTimeout(async () => {
       const supabase = createClient();
       const like = `%${term.replace(/[\\%_]/g, "\\$&")}%`;
-      const ref = term.match(/^([a-z]{2,6})-?0*(\d{1,6})$/i);
+      const ref = term.match(/^([a-z0-9]{2,6}(?:-[a-z]{2,6})?)-?0*(\d{1,6})$/i);
       const [tasks, regs, folks] = await Promise.all([
         ref
           ? supabase.from("tasks").select("id, title, ref_number, status, registries!inner(prefix)").eq("ref_number", Number(ref[2])).ilike("registries.prefix", ref[1]).limit(5)

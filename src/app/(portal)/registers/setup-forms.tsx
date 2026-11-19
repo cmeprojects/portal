@@ -35,7 +35,7 @@ export function CreateRegistryForm() {
   return (
     <form action={action} className="flex flex-col gap-5">
       <Result state={state} />
-      <Field label="Name" htmlFor="name" hint="For example “Incident Register”.">
+      <Field label="Name" htmlFor="name" hint="For example “Complaints Register”.">
         <input id="name" name="name" required maxLength={80} className={inputClass} />
       </Field>
       <Field label="What it's for (optional)" htmlFor="description">
@@ -58,8 +58,8 @@ export function CreateRegistryForm() {
           ))}
         </div>
       </fieldset>
-      <Field label="Reference prefix (optional)" htmlFor="prefix" hint="2–6 letters, like INC. Leave blank to make one from the name.">
-        <input id="prefix" name="prefix" maxLength={6} className={`${inputClass} max-w-40 uppercase`} />
+      <Field label="Reference prefix (optional)" htmlFor="prefix" hint="2–6 letters, like RSK (one hyphen allowed, like WRK-INC). Leave blank to make one from the name.">
+        <input id="prefix" name="prefix" maxLength={13} className={`${inputClass} max-w-40 uppercase`} />
       </Field>
       {kind === "tasks" ? <Toggle name="requires_approval" label="Manager approval needed to close tasks" defaultChecked={false} /> : null}
       <p className="text-sm text-muted">Next you&apos;ll add its fields and choose its managers.</p>
@@ -83,7 +83,7 @@ export function RegistrySettingsForm({ registry, companySla }: { registry: Regis
           <input id="s-name" name="name" defaultValue={registry.name} required maxLength={80} className={inputClass} />
         </Field>
         <Field label="Prefix" htmlFor="s-prefix" hint="Used in reference numbers.">
-          <input id="s-prefix" name="prefix" defaultValue={registry.prefix} required maxLength={6} className={`${inputClass} uppercase`} />
+          <input id="s-prefix" name="prefix" defaultValue={registry.prefix} required maxLength={13} className={`${inputClass} uppercase`} />
         </Field>
       </div>
       <Field label="What it's for" htmlFor="s-desc">

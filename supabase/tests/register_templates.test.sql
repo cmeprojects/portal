@@ -20,11 +20,11 @@ reset role;
 
 select test.act_as('owner@example.com');
 set role authenticated;
-select test.ok(public.add_register_from_template('incidents') is not null, 'the system admin adds the Incident Register');
+select test.ok(public.add_register_from_template('incidents') is not null, 'the system admin adds the Workplace Incident Register');
 select test.refused($$select public.add_register_from_template('incidents')$$, 'but not twice');
 reset role;
-select test.ok((select count(*) from public.registry_fields f join public.registries r on r.id = f.registry_id where r.prefix = 'INC') = 6, 'with all its fields');
-select test.ok((select option_colors ->> 'Extreme' from public.registry_fields f join public.registries r on r.id = f.registry_id where r.prefix = 'INC' and f.key = 'severity') = 'red', 'and its colours');
+select test.ok((select count(*) from public.registry_fields f join public.registries r on r.id = f.registry_id where r.prefix = 'WRK-INC') = 6, 'with all its fields');
+select test.ok((select option_colors ->> 'Extreme' from public.registry_fields f join public.registries r on r.id = f.registry_id where r.prefix = 'WRK-INC' and f.key = 'severity') = 'red', 'and its colours');
 
 -- Managers can add registers by default (Adding registers: all managers).
 -- (The test copy already has an Asset Register from a company file: remove it first.)

@@ -23,12 +23,13 @@ Last updated: 19 Nov 2026.
   for unauthorised restrictive practice; can't close until the Commission report is recorded; every action must
   be done first. The investigator (even without Incidents: edit) sees it and fills in the investigation only;
   action owners see and mark their actions done. Part "Incidents" (clients.incidents, view/edit/approve):
-  managers all clients; Case Managers view/edit assigned; Intake view. Notices (`run_incident_alerts`, hourly
+  managers all clients; Case Managers and Team Leaders view/edit assigned; Intake view. Notices (`run_incident_alerts`, hourly
   cron and straight after a change): new, investigator chosen, Commission due within 2 h or overdue, ready for
   sign-off, action given, action overdue. Screens: /incidents (Open, I'm investigating, Closed, All; my actions),
   /incidents/[id] (stage tracker, the four steps, timeline), client page Incidents tab, client list bell counts
   open incidents, Incidents link on the clients page. The general "Incident Register" is renamed "Workplace
-  Incident Register" (staff, WHS, property); its entries and prefix are unchanged. Test: incidents.test.sql.
+  Incident Register" (staff, WHS, property) with the prefix WRK-INC (owner: INC is for client incidents);
+  register prefixes may now have one hyphen. Its entries are kept (their references read WRK-INC-0001). Test: incidents.test.sql.
 
 - **AUD-016 Stage 6 (18 Nov 2026, update 137): more than one job title per person.**
   `profiles.extra_job_title_ids` (up to 5, each active and at the person's own access level, so the level stays

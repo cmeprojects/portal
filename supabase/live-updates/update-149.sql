@@ -11,6 +11,7 @@ do $$
 declare
   v_cm uuid := (select id from public.job_titles where name = 'Case Manager' and active limit 1);
   v_io uuid := (select id from public.job_titles where name = 'Intake & Assessment Officer' and active limit 1);
+  v_tl uuid := (select id from public.job_titles where name = 'Team Leader' and active limit 1);
 begin
   if not exists (select 1 from public.access_baselines where module_id = 'clients.incidents' and revoked_at is null) then
     insert into public.access_baselines (access_level, module_id, actions, scope, note, by_system_admin)
@@ -19,10 +20,19 @@ begin
       insert into public.access_baselines (job_title_id, module_id, actions, scope, note, by_system_admin)
       values (v_cm, 'clients.incidents', '{view,edit}', 'assigned', 'Incidents default: case managers, assigned clients', true);
     end if;
+    if v_tl is not null then
+      insert into public.access_baselines (job_title_id, module_id, actions, scope, note, by_system_admin)
+      values (v_tl, 'clients.incidents', '{view,edit}', 'assigned', 'Incidents default: team leaders, assigned clients (as case managers)', true);
+    end if;
     if v_io is not null then
       insert into public.access_baselines (job_title_id, module_id, actions, scope, note, by_system_admin)
       values (v_io, 'clients.incidents', '{view}', 'all', 'Incidents default: intake, view', true);
     end if;
+  end if;
+  -- Team Leaders: the same as Case Managers (owner, 19 Nov 2026); added on a re-run too.
+  if v_tl is not null and not exists (select 1 from public.access_baselines where module_id = 'clients.incidents' and job_title_id = v_tl and revoked_at is null) then
+    insert into public.access_baselines (job_title_id, module_id, actions, scope, note, by_system_admin)
+    values (v_tl, 'clients.incidents', '{view,edit}', 'assigned', 'Incidents default: team leaders, assigned clients (as case managers)', true);
   end if;
 end $$;
 
@@ -455,12 +465,17 @@ $$;
 revoke execute on function public.run_incident_alerts() from public, anon, authenticated;
 grant execute on function public.run_incident_alerts() to service_role;
 
+alter table public.registries drop constraint if exists registries_prefix_format;
+alter table public.registries add constraint registries_prefix_format check (prefix ~ '^[A-Z0-9]{2,6}(-[A-Z0-9]{2,6})?$');
+alter table public.register_templates drop constraint if exists register_templates_prefix_check;
+alter table public.register_templates add constraint register_templates_prefix_check check (prefix ~ '^[A-Z0-9]{2,6}(-[A-Z0-9]{2,6})?$');
 update public.register_templates
-   set name = 'Workplace Incident Register',
+   set name = 'Workplace Incident Register', prefix = 'WRK-INC',
        description = 'Staff injuries, WHS hazards, near misses and property incidents. Client incidents are recorded under Incidents.'
- where key = 'incidents' and name = 'Incident Register';
+ where key = 'incidents' and (name = 'Incident Register' or prefix = 'INC');
 update public.registries
    set name = 'Workplace Incident Register',
+       prefix = case when prefix = 'INC' and not exists (select 1 from public.registries r2 where r2.prefix = 'WRK-INC') then 'WRK-INC' else prefix end,
        description = 'Staff injuries, WHS hazards, near misses and property incidents. Client incidents are recorded under Incidents.'
- where name = 'Incident Register';
+ where name in ('Incident Register', 'Workplace Incident Register');
 commit;

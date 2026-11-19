@@ -12,7 +12,7 @@ import { text, type FormState } from "@/lib/form";
 import { slaFromForm } from "@/lib/tasks";
 import { isRole } from "@/lib/roles";
 
-const PREFIX = /^[A-Z0-9]{2,6}$/;
+const PREFIX = /^[A-Z0-9]{2,6}(-[A-Z0-9]{2,6})?$/;
 const on = (form: FormData, name: string) => form.get(name) === "on";
 
 function options(form: FormData): string[] {
@@ -42,7 +42,7 @@ export async function createRegistry(_: FormState, form: FormData): Promise<Form
   const prefix = text(form, "prefix").toUpperCase();
   const kind = text(form, "kind") === "records" ? "records" : "tasks";
   if (!name) return { error: "Give the register a name." };
-  if (prefix && !PREFIX.test(prefix)) return { error: "The prefix should be 2 to 6 letters or numbers, like RSK." };
+  if (prefix && !PREFIX.test(prefix)) return { error: "The prefix should be 2 to 6 letters or numbers, like RSK (one hyphen allowed, like WRK-INC)." };
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -69,7 +69,7 @@ export async function saveRegistrySettings(_: FormState, form: FormData): Promis
   const name = text(form, "name");
   const prefix = text(form, "prefix").toUpperCase();
   if (!name) return { error: "Give the register a name." };
-  if (!PREFIX.test(prefix)) return { error: "The prefix should be 2 to 6 letters or numbers, like RSK." };
+  if (!PREFIX.test(prefix)) return { error: "The prefix should be 2 to 6 letters or numbers, like RSK (one hyphen allowed, like WRK-INC)." };
 
   const supabase = await createClient();
   const { data, error } = await supabase

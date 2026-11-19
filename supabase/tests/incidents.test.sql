@@ -99,5 +99,9 @@ insert into public.client_incidents (client_id, kind, severity, summary) values 
 reset role;
 select public.run_incident_alerts();
 select test.ok((select count(*) from public.notifications where kind = 'incident') = 1, 'staff-reported incidents are notified once');
+select test.ok((select prefix || '|' || name from public.register_templates where key = 'incidents') = 'WRK-INC|Workplace Incident Register', 'the workplace register template uses WRK-INC');
+select test.ok(exists (select 1 from public.access_baselines b join public.job_titles j on j.id = b.job_title_id where j.name = 'Team Leader' and b.module_id = 'clients.incidents' and b.actions = '{view,edit}' and b.scope = 'assigned' and b.revoked_at is null) or not exists (select 1 from public.job_titles where name = 'Team Leader' and active), 'team leaders get the case manager incident default');
+insert into public.registries (name, prefix) values ('Old incidents', 'INC');
+select test.refused($$insert into public.registries (name, prefix) values ('Bad', 'WRK--INC')$$, 'a prefix allows only one hyphen between letters');
 \o
 select 'All incident tests passed.';
