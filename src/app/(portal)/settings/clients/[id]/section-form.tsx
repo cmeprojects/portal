@@ -4,6 +4,7 @@
 import { useActionState, useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { useSavableForm } from "@/components/page-save";
+import { NeededTag, Req } from "@/components/required";
 import type { FieldSpec, SectionTable } from "@/lib/client-sections";
 import { recordNoAlerts, saveClientSection } from "./actions";
 
@@ -16,6 +17,10 @@ type SectionProps = {
   item?: Record<string, unknown> & { id?: string };
   choices?: Record<string, [string, string][]>;
   submit: string;
+  // Fields that can wait, but are needed before services start (for example the NDIS number).
+  needed?: string[];
+  // Show which fields are mandatory (the basic fields only).
+  marks?: boolean;
 };
 
 export function SectionForm(props: SectionProps) {
@@ -24,7 +29,7 @@ export function SectionForm(props: SectionProps) {
   return <SectionFormInner key={round} {...props} onAdded={() => setRound((r) => r + 1)} />;
 }
 
-function SectionFormInner({ table, clientId, fields, item, choices = {}, submit, onAdded }: SectionProps & { onAdded: () => void }) {
+function SectionFormInner({ table, clientId, fields, item, choices = {}, submit, needed = [], marks = false, onAdded }: SectionProps & { onAdded: () => void }) {
   // Saved by its own button, or by the page's one Save (owner, 19 Nov 2026).
   const { state, pending, ref, dirty, onSubmit, pageSave } = useSavableForm(saveClientSection, {
     label: item?.id ? `${submit.replace(/^Save /, "")}` : submit.replace(/^Add /, "new "),
@@ -61,8 +66,11 @@ function SectionFormInner({ table, clientId, fields, item, choices = {}, submit,
           const opts = f.options ?? choices[f.name] ?? [];
           return (
             <label key={f.name} htmlFor={id} className={`flex flex-col gap-1 text-xs font-medium ${f.type === "textarea" ? "sm:col-span-2" : ""}`}>
-              {f.label}
-              {f.required ? <span className="sr-only">(required)</span> : null}
+              <span>
+                {f.label}
+                {marks && f.required ? <Req /> : null}
+                {marks && !f.required && needed.includes(f.name) ? <NeededTag /> : null}
+              </span>
               {f.type === "textarea" ? (
                 <textarea id={id} name={f.name} maxLength={f.max} defaultValue={value(f)} rows={2} className={inputClass} />
               ) : f.type === "select" ? (

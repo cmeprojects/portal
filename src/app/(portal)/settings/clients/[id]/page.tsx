@@ -18,6 +18,7 @@ import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow }
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { SchemePicker } from "./scheme-picker";
 import { PageSave, type PageSaveConfig } from "@/components/page-save";
+import { RequiredLegend } from "@/components/required";
 import { ReportIncidentForm } from "../../../incidents/forms";
 import { INCIDENT_KINDS, INCIDENT_SEVERITY, INCIDENT_STATUS, label as incLabel } from "@/lib/incidents";
 import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
@@ -256,11 +257,11 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const currentApproved = locationRows.some((l) => l.approved && (!l.from_date || String(l.from_date) <= todaySyd) && (!l.to_date || String(l.to_date) >= todaySyd));
   const has = (re: RegExp) => !allGaps.some((g) => re.test(g));
   // update 148: the scheme chosen at registration (not asked before it runs).
-  const schemeRes = checking ? await supabase.from("car_clients").select("scheme").eq("id", id).maybeSingle() : null;
+  const schemeRes = await supabase.from("car_clients").select("scheme").eq("id", id).maybeSingle();
   const regScheme = (schemeRes?.data as { scheme?: string | null } | null)?.scheme ?? null;
   const checklist: [string, boolean, string, string][] = checking
     ? [
-        ...(schemeRes && !schemeRes.error ? [["Funded by (NDIS, Support at Home, …)", !!regScheme, regScheme ? (schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme) : "Not chosen", `/settings/clients/${id}#to-check`] as [string, boolean, string, string]] : []),
+        ...(!schemeRes.error ? [["Funded by (NDIS, Support at Home, …)", !!regScheme, regScheme ? (schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme) : "Not chosen", `/settings/clients/${id}#to-check`] as [string, boolean, string, string]] : []),
         ["At least one approved service", svcRows.length > 0, svcRows.length ? svcRows.map((v) => v.label).join(", ") : "None yet", `/settings/clients/${id}?tab=services#services`],
         [
           "An approved service location",
@@ -449,6 +450,14 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       : a.replace(/^client_/, "").replace(/_(added|changed)$/, " $1").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
   const initials = client.name.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
   const clientSchemes = [...new Set(((services.data ?? []) as Row[]).filter((v) => v.status !== "ended").map((v) => programScheme.get(String(v.program_id)) ?? "other"))];
+  // cmeprojects (owner, 19 Nov 2026): Basic details fields needed before services start, by who
+  // funds them (the registered scheme, or for older records, their services' schemes).
+  const fundedBy = [...new Set([...(regScheme ? [regScheme] : []), ...clientSchemes])];
+  const neededDetails = [
+    ...(fundedBy.some((k) => ["ndis", ...MAC_SCHEMES].includes(k) || Boolean((schemeWords.find((w) => w.key === k) as { needs_dob?: boolean } | undefined)?.needs_dob)) ? ["date_of_birth"] : []),
+    ...(fundedBy.includes("ndis") ? ["ndis_number"] : []),
+    ...(fundedBy.some((k) => MAC_SCHEMES.includes(k)) ? ["aged_care_id"] : []),
+  ];
 
   const missing = (table: SectionTable) => <p className="text-sm text-muted">This section appears after database update {SECTION_UPDATE[table]}.</p>;
 
@@ -1381,9 +1390,10 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
 
       {inView("details") ? (
       <Section anchor="details" title="Details" intro="Status and preferred name, then contact details, date of birth and identifiers (managers only).">
+        {canEditClient ? <RequiredLegend /> : null}
         <ClientCareForm client={{ id: client.id, name: client.name, client_ref: client.client_ref, status: client.status, preferred_name: client.preferred_name ?? "", title: client.title, given_name: client.given_name, middle_name: client.middle_name, family_name: client.family_name }} />
         <div className="mt-4 border-t border-line pt-4">
-          {details.error ? missing("client_details") : <SectionForm table="client_details" clientId={id} fields={SECTION_FIELDS.client_details} item={(details.data ?? { id: undefined }) as Row} submit="Save details" />}
+          {details.error ? missing("client_details") : <SectionForm table="client_details" clientId={id} fields={SECTION_FIELDS.client_details} item={(details.data ?? { id: undefined }) as Row} submit="Save details" needed={neededDetails} marks />}
         </div>
       </Section>
       ) : null}
