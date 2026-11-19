@@ -371,6 +371,31 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const clientShiftTypes: [string, string][] = typeRows.filter((t) => !t.used_for || t.used_for !== "internal").map((t) => [t.key, t.label]);
   const shiftTypeName = new Map(typeRows.map((t) => [t.key, t.label]));
   const canPromote = !catRes.error && (viewer.role === "system_admin" || maRes.data === true);
+  // cmeprojects (owner, 19 Nov 2026): what's missing before this client can be rostered,
+  // shown at the top of their page. The same rules the roster checks: the client is
+  // active (To check done), a current approved service that lists its shift types,
+  // and an approved service location.
+  const rosterBlocks: [string, string][] = [];
+  if (client.status !== "discharged") {
+    if (client.status !== "active") {
+      if (checking) for (const [l, ok, note, href] of checklist) if (!ok) rosterBlocks.push([`${l}: ${note}`, href]);
+      rosterBlocks.push([client.status === "suspended" ? "Their status is Suspended. Change it to Active to roster them." : "They're not active yet. Finish the To check steps, then Make active.", `/settings/clients/${id}`]);
+    }
+    const svcAll = (services.data ?? []) as { id: string; label: string; status: string; start_date: string; end_date: string | null; origin?: string; catalogue_id?: string | null; shift_types?: string[] }[];
+    const current = svcAll.filter((v) => ["planned", "active"].includes(v.status) && v.start_date <= todayAu && (!v.end_date || v.end_date >= todayAu));
+    const catTypesOf = new Map(catalogueAll.map((c) => [c.id, (c as { shift_types?: string[] }).shift_types ?? []]));
+    const typesOf = (v: (typeof svcAll)[number]) => (v.catalogue_id ? (catTypesOf.get(v.catalogue_id) ?? []) : (v.shift_types ?? []));
+    // Clients on To check get these from their checklist above.
+    if (checking) {
+      // nothing more
+    } else if (!current.length) {
+      const next = svcAll.filter((v) => ["planned", "active"].includes(v.status) && v.start_date > todayAu).sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+      rosterBlocks.push([next ? `No approved service is current today. "${next.label}" starts ${day(next.start_date)}.` : "No current approved service. Add one on the Services tab.", `/settings/clients/${id}?tab=services`]);
+    } else if (!catRes.error && current.every((v) => v.origin !== undefined && !typesOf(v).length)) {
+      rosterBlocks.push([`The current service${current.length === 1 ? "" : "s"} (${current.map((v) => v.label).join(", ")}) ${current.length === 1 ? "doesn't" : "don't"} list any shift types. Set them on the Services tab.`, `/settings/clients/${id}?tab=services`]);
+    }
+    if (!checking && !locationRows.some((l) => l.approved)) rosterBlocks.push(["No approved service location. Add the address where support happens and approve it.", `/settings/clients/${id}?tab=profile`]);
+  }
   const det = (details.data ?? null) as Record<string, unknown> | null;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   const emergency = ((people.data ?? []) as Row[]).filter((p) => p.active && (p.kind === "emergency" || p.primary_contact));
@@ -494,6 +519,22 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           </nav>
         )}
       </Card>
+      {rosterBlocks.length && !step ? (
+        <div role="status" className="flex flex-col gap-1.5 rounded-xl border border-warn/50 bg-warn-soft px-4 py-3 text-sm text-ink">
+          <p className="font-semibold">Can&apos;t be rostered yet: {rosterBlocks.length} thing{rosterBlocks.length === 1 ? "" : "s"} missing</p>
+          <ul className="flex flex-col gap-1">
+            {rosterBlocks.map(([text, href]) => (
+              <li key={text} className="flex flex-wrap items-baseline gap-x-2">
+                <span aria-hidden="true">•</span>
+                <span className="flex-1">{text}</span>
+                <Link href={href} scroll={false} className="text-xs font-semibold text-brand underline">
+                  Fix
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {inView("practitioners") && practitionerAccess ? (
         <Card className="flex flex-col gap-3 p-4">
           <div>

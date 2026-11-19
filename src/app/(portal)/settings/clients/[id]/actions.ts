@@ -58,26 +58,37 @@ export async function saveClientSection(_: FormState, form: FormData): Promise<F
     if (key in values) values[key] = c.value;
     return "";
   };
+  // Only what's changed is checked: details saved before the checks (an older address
+  // format, say) don't stop the rest of the section from saving.
+  const supabase0 = await createClient();
+  const { data: before } =
+    table === "client_details"
+      ? await supabase0.from("client_details").select("*").eq("client_id", clientId).maybeSingle()
+      : id
+        ? await supabase0.from(table).select("*").eq("id", id).maybeSingle()
+        : { data: null };
+  const was = (before ?? null) as Record<string, unknown> | null;
+  const changed = (...keys: string[]) => !was || keys.some((k) => k in values && String(was[k] ?? "") !== String(values[k] ?? ""));
   const problems: string[] = [];
-  if ("phone" in values) problems.push(fix("phone", checkAuPhone(String(values.phone ?? "")), "Phone"));
-  if ("email" in values) problems.push(fix("email", checkEmail(String(values.email ?? "")), "Email"));
-  if (table === "client_details" && values.home_address) {
+  if ("phone" in values && changed("phone")) problems.push(fix("phone", checkAuPhone(String(values.phone ?? "")), "Phone"));
+  if ("email" in values && changed("email")) problems.push(fix("email", checkEmail(String(values.email ?? "")), "Email"));
+  if (table === "client_details" && values.home_address && changed("home_address", "state")) {
     const a = checkFullAddress(String(values.home_address));
     problems.push(fix("home_address", a, "Home address"));
     const st = a.ok ? a.value.match(/ (NSW|VIC|QLD|WA|SA|TAS|ACT|NT) \d{4}$/)?.[1] : null;
     if (st && values.state && values.state !== st) problems.push(`State: the home address is in ${st}, but ${values.state} is chosen.`);
   }
   if (table === "client_details") {
-    if (values.ndis_number) {
+    if (values.ndis_number && changed("ndis_number")) {
       values.ndis_number = String(values.ndis_number).replace(/\s/g, "");
       if (!/^\d{9}$/.test(String(values.ndis_number))) problems.push("NDIS number: it's 9 digits.");
     }
-    if (values.aged_care_id) {
+    if (values.aged_care_id && changed("aged_care_id")) {
       values.aged_care_id = String(values.aged_care_id).replace(/\s/g, "").toUpperCase();
       if (!/^AC\d{8}$/.test(String(values.aged_care_id))) problems.push("My Aged Care ID: it's AC followed by 8 numbers (for example AC12345678).");
     }
   }
-  if (table === "client_locations") {
+  if (table === "client_locations" && changed("address", "suburb", "state", "postcode")) {
     problems.push(fix("address", checkStreet(String(values.address ?? "")), "Street address"));
     if (!values.suburb || !values.state || !values.postcode) problems.push("Fill in the suburb, state and postcode too.");
     else problems.push(fix("postcode", checkPostcode(String(values.state), String(values.postcode)), "Postcode"));

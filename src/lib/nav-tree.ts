@@ -16,6 +16,8 @@ export function buildNav(opts: {
   formsAsMaker: boolean;
   builtFeatures: { slug: string; label: string }[];
   featureReports: { slug: string; label: string }[];
+  // cmeprojects: Clients & care pages with their own menu item (update 149, 150).
+  clientPages?: { incidents?: boolean; houses?: boolean };
 }): NavCategory[] {
   const { allowed } = opts;
   const allowedList = [...allowed];
@@ -66,8 +68,11 @@ export function buildNav(opts: {
       });
       // cmeprojects (owner, 19 Nov 2026): the Service catalogue as its own item under
       // Clients & care, for everyone who can open Clients (the page's own check).
-      if (m.id === "clients.list")
+      if (m.id === "clients.list") {
         out.push({ id: "clients.catalogue", label: "Service catalogue", icon: "ClipboardList", href: "/settings/clients/catalogue", match: ["/settings/clients/catalogue"], children: [] });
+        if (opts.clientPages?.incidents) out.push({ id: "clients.incidents", label: "Incidents", icon: "ShieldCheck", href: "/incidents", match: ["/incidents"], children: [] });
+        if (opts.clientPages?.houses) out.push({ id: "clients.houses", label: "Houses", icon: "HeartHandshake", href: "/houses", match: ["/houses"], children: [] });
+      }
     }
     return out;
   };

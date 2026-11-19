@@ -3,6 +3,7 @@ import { photoLinks } from "@/lib/avatars";
 import { Avatar } from "@/components/avatar";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
+import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { getPeople, getRegistries } from "@/lib/register-data";
 import { refLabel } from "@/lib/registers";
@@ -31,7 +32,7 @@ import { asChannelMap, channelOn, type ChannelMap } from "@/lib/notification-cat
 const APP_VERSION = "0.1.1";
 
 export default async function PortalLayout({ children }: LayoutProps<"/">) {
-  const [{ profile, features }, brand, idleMinutes, { data: claims }] = await Promise.all([
+  const [{ profile, features, live }, brand, idleMinutes, { data: claims }] = await Promise.all([
     requireSession(),
     getBranding(),
     getIdleMinutes(),
@@ -94,7 +95,10 @@ export default async function PortalLayout({ children }: LayoutProps<"/">) {
   // cmeprojects: the menu from the module catalogue, showing only pages
   // today's rules already let this person open (no access change).
   const { groups, tabPages, searchPages, allowed } = await getAllowedPages();
+  // cmeprojects: Incidents (update 149) and Houses (update 150, while switched on) in the menu.
+  const [menuIncidents, menuHouses] = await Promise.all([canDo("clients.incidents", "view"), live.sil_houses === true ? canDo("clients.houses", "view") : Promise.resolve(false)]);
   const tree = buildNav({
+    clientPages: { incidents: menuIncidents, houses: menuHouses },
     allowed,
     homeLabel: groups[0]?.items[0]?.label ?? "Dashboard",
     formsAsMaker: Boolean(navAccess.forms),
