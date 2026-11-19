@@ -13,6 +13,11 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 19 Nov 2026.
 
+- **CHSP (19 Nov 2026, update 151, waiting).** "chsp" scheme (label CHSP) and a CHSP program; the My Aged Care
+  ID is needed for Support at Home and CHSP (`MAC_SCHEMES` in lib/client-sections.ts; `client_gaps` in the
+  database). New participant: the pop-up's Continue opens /settings/clients/new filled in; nothing is saved until
+  Save and continue (on to their Basic step) or Save for later (`createClientFull`). Test: chsp_scheme.test.sql.
+
 - **One Save for client pages (19 Nov 2026, owner).** `src/components/page-save.tsx`: `PageSave` wraps the client
   page on the Basic and Support edit steps and the Profile tab; forms there use `useSavableForm` (name and status,
   details, communication preferences, location/contact/alert rows and new rows, services), register themselves and

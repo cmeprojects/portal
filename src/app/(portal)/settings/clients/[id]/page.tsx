@@ -28,7 +28,7 @@ import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
 import { DocumentForm } from "./document-form";
 import { canDo, canDoFor } from "@/lib/module-access";
-import { ALERT_KINDS, ARCHIVE_REASONS, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, CLIENT_STATUS, COMMS_CONTACT_WAYS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, type SectionTable } from "@/lib/client-sections";
+import { ALERT_KINDS, ARCHIVE_REASONS, MAC_SCHEMES, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, CLIENT_STATUS, COMMS_CONTACT_WAYS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, type SectionTable } from "@/lib/client-sections";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -291,7 +291,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       dobRow[2] = `Needed for ${schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme}`;
     }
     const idRow = checklist.find(([l]) => l.startsWith("NDIS number"));
-    const idMissing = regScheme === "ndis" ? !det0?.ndis_number : regScheme === "support_at_home" ? !det0?.aged_care_id : false;
+    const idMissing = regScheme === "ndis" ? !det0?.ndis_number : regScheme && MAC_SCHEMES.includes(regScheme) ? !det0?.aged_care_id : false;
     if (idRow && idMissing) {
       idRow[1] = false;
       idRow[2] = regScheme === "ndis" ? "The NDIS number is needed" : "The My Aged Care ID is needed";

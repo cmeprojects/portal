@@ -11,7 +11,7 @@ import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
 import { CLIENT_STATUS } from "@/lib/client-sections";
 import { addClientWithManager, archiveClient, saveClientCare, saveProgram, saveScheme } from "./actions";
-import { ARCHIVE_REASONS, TITLES } from "@/lib/client-sections";
+import { ARCHIVE_REASONS, MAC_SCHEMES, TITLES } from "@/lib/client-sections";
 
 // cmeprojects (Clients step 1): a client's preferred name and status. Changing
 // the status asks first; the database records who changed it and when.
@@ -319,7 +319,7 @@ export function AddCareClientForm({ staff, schemes = [] }: { staff: { id: string
             NDIS number
             <input name="ndis_number" required inputMode="numeric" pattern="\d{9}" maxLength={11} placeholder="9 digits" defaultValue={draft.ndis_number ?? ""} className={inputClass} />
           </label>
-        ) : scheme === "support_at_home" ? (
+        ) : MAC_SCHEMES.includes(scheme) ? (
           <label className="flex flex-col gap-1 text-xs font-medium">
             My Aged Care ID
             <input name="aged_care_id" required maxLength={12} placeholder="AC12345678" defaultValue={draft.aged_care_id ?? ""} className={inputClass} />

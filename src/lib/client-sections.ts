@@ -18,6 +18,8 @@ export type FieldSpec = {
   def?: string;
 };
 
+// cmeprojects (update 151): schemes whose clients need their My Aged Care ID.
+export const MAC_SCHEMES = ["support_at_home", "chsp"];
 export const STATES: [string, string][] = [["", "—"], ...["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"].map((s) => [s, s] as [string, string])];
 export const PERSON_KINDS: [string, string][] = [
   ["emergency", "Emergency contact"],
@@ -98,7 +100,7 @@ export const SECTION_FIELDS: Record<SectionTable, FieldSpec[]> = {
     { name: "preferred_contact", label: "Best way to contact", type: "select", options: CONTACT_WAYS },
     { name: "communication_needs", label: "Communication or accessibility needs", type: "textarea", max: 1000 },
     { name: "ndis_number", label: "NDIS number", type: "text", max: 9, hint: "Nine numbers. Required for NDIS services" },
-    { name: "aged_care_id", label: "My Aged Care ID", type: "text", max: 30, hint: "Required for Support at Home services" },
+    { name: "aged_care_id", label: "My Aged Care ID", type: "text", max: 30, hint: "Required for Support at Home and CHSP services" },
     { name: "about", label: "About them (optional)", type: "textarea", max: 2000, hint: "What matters to them, likes and dislikes, how they like support" },
     { name: "atsi_status", label: "Aboriginal and/or Torres Strait Islander (optional)", type: "select", options: ATSI, hint: "Ask; never assume. Only with consent" },
     { name: "country_of_birth", label: "Country of birth (optional)", type: "text", max: 60 },

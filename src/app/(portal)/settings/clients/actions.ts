@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { checkAuPhone, checkEmail, checkFullAddress } from "@/lib/validate";
+import { MAC_SCHEMES } from "@/lib/client-sections";
 
 // cmeprojects: which team(s) look after a client (people who manage staff).
 export async function setClientTeams(_: FormState, form: FormData): Promise<FormState> {
@@ -88,7 +89,7 @@ export async function archiveClient(_: FormState, form: FormData): Promise<FormS
   return { message: "Archived." };
 }
 
-const SCHEMES = ["ndis", "support_at_home", "private", "other"];
+const SCHEMES = ["ndis", "support_at_home", "chsp", "private", "other"];
 
 // Care settings (update 110): the system admin, or whoever has the Care
 // settings area (the database checks too).
@@ -166,13 +167,13 @@ export async function addClientWithManager(_: FormState, form: FormData): Promis
   const ndis = String(form.get("ndis_number") ?? "").replace(/\s/g, "");
   const mac = String(form.get("aged_care_id") ?? "").replace(/\s/g, "").toUpperCase();
   if (scheme === "ndis" && !/^\d{9}$/.test(ndis)) return { error: "Enter their NDIS number (9 digits)." };
-  if (scheme === "support_at_home" && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
+  if (MAC_SCHEMES.includes(scheme) && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
   const row: Record<string, string> = { name, reference: String(form.get("reference") ?? "").trim().slice(0, 60) };
   let res = await supabase.from("car_clients").insert(/^[a-z_]{1,40}$/.test(scheme) ? { ...row, scheme } : row).select("id").single();
   if (res.error?.code === "42703" || res.error?.code === "PGRST204") res = await supabase.from("car_clients").insert(row).select("id").single();
   const { data, error } = res;
   if (error || !data) return { error: friendlyError(error) };
-  if (scheme === "ndis" || scheme === "support_at_home") {
+  if (scheme === "ndis" || MAC_SCHEMES.includes(scheme)) {
     const { error: dError } = await supabase.from("client_details").upsert({ client_id: data.id, ...(scheme === "ndis" ? { ndis_number: ndis } : { aged_care_id: mac }) }, { onConflict: "client_id" });
     if (dError) {
       revalidatePath("/settings/clients");
@@ -206,7 +207,7 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
   const ndis = t("ndis_number", 20).replace(/\s/g, "");
   const mac = t("aged_care_id", 20).replace(/\s/g, "").toUpperCase();
   if (scheme === "ndis" && !/^\d{9}$/.test(ndis)) return { error: "Enter their NDIS number (9 digits)." };
-  if (scheme === "support_at_home" && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
+  if (MAC_SCHEMES.includes(scheme) && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
   const phone = checkAuPhone(t("phone", 30));
   const email = checkEmail(t("email", 120));
   const address = checkFullAddress(t("home_address", 300));
@@ -246,7 +247,7 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
     state: state || inAddress || "",
   };
   if (scheme === "ndis") details.ndis_number = ndis;
-  if (scheme === "support_at_home") details.aged_care_id = mac;
+  if (MAC_SCHEMES.includes(scheme)) details.aged_care_id = mac;
   const { error: dError } = await supabase.from("client_details").upsert({ client_id: data.id, ...details }, { onConflict: "client_id" });
   if (dError) {
     revalidatePath("/settings/clients");

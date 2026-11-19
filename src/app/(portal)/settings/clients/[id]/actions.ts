@@ -333,7 +333,7 @@ export async function setWorkerInstructionActive(form: FormData) {
 // at Home never mix), checks who may (Reviews, for this client) and keeps
 // closed reviews as they were. A change of situation sends its reminder
 // straight away (the same hourly job, which only sends what's due once).
-const SCHEMES = ["ndis", "support_at_home", "private", "other"];
+const SCHEMES = ["ndis", "support_at_home", "chsp", "private", "other"];
 
 export async function addClientReview(_: FormState, form: FormData): Promise<FormState> {
   await requireClients();

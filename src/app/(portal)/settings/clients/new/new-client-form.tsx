@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { useDirty } from "@/components/use-dirty";
-import { GENDERS, STATES, TITLES } from "@/lib/client-sections";
+import { GENDERS, MAC_SCHEMES, STATES, TITLES } from "@/lib/client-sections";
 import { createClientFull } from "../actions";
 
 const lab = "flex flex-col gap-1 text-xs font-medium";
@@ -99,7 +99,7 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
               NDIS number
               <input name="ndis_number" required inputMode="numeric" maxLength={11} placeholder="9 digits" defaultValue={initial.ndis_number ?? ""} className={inputClass} />
             </label>
-          ) : scheme === "support_at_home" ? (
+          ) : MAC_SCHEMES.includes(scheme) ? (
             <label className={lab}>
               My Aged Care ID
               <input name="aged_care_id" required maxLength={12} placeholder="AC12345678" defaultValue={initial.aged_care_id ?? ""} className={inputClass} />
