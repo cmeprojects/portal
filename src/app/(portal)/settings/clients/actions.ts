@@ -15,6 +15,7 @@ async function requireClients() {
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
+import { checkAuPhone, checkEmail, checkFullAddress } from "@/lib/validate";
 
 // cmeprojects: which team(s) look after a client (people who manage staff).
 export async function setClientTeams(_: FormState, form: FormData): Promise<FormState> {
@@ -188,4 +189,76 @@ export async function addClientWithManager(_: FormState, form: FormData): Promis
   revalidatePath("/settings/clients");
   // The new client's id comes back, so the screen can open their details next.
   return { message: managerId ? `${name} added and assigned.` : `${name} added.`, spotlight: data.id };
+}
+
+// cmeprojects (owner, 19 Nov 2026): the full New participant page. Nothing is
+// saved until here: the client, their details and who manages them, together.
+// Contact details are checked (standing rule); the database checks who may.
+export async function createClientFull(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const t = (k: string, max = 200) => String(form.get(k) ?? "").trim().slice(0, max);
+  const given = t("given_name", 40);
+  const family = t("family_name", 40);
+  if (!given || !family) return { error: "Fill in the first and last name." };
+  const title = t("title", 10);
+  const scheme = t("scheme", 40);
+  if (!/^[a-z_]{1,40}$/.test(scheme)) return { error: "Choose who funds them." };
+  const ndis = t("ndis_number", 20).replace(/\s/g, "");
+  const mac = t("aged_care_id", 20).replace(/\s/g, "").toUpperCase();
+  if (scheme === "ndis" && !/^\d{9}$/.test(ndis)) return { error: "Enter their NDIS number (9 digits)." };
+  if (scheme === "support_at_home" && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
+  const phone = checkAuPhone(t("phone", 30));
+  const email = checkEmail(t("email", 120));
+  const address = checkFullAddress(t("home_address", 300));
+  const problems = [phone.ok ? "" : `Phone: ${phone.error}`, email.ok ? "" : `Email: ${email.error}`, address.ok ? "" : `Home address: ${address.error}`].filter(Boolean);
+  const state = t("state", 3);
+  const inAddress = address.ok ? address.value.match(/ (NSW|VIC|QLD|WA|SA|TAS|ACT|NT) \d{4}$/)?.[1] : null;
+  if (inAddress && state && state !== inAddress) problems.push(`State: the home address is in ${inAddress}, but ${state} is chosen.`);
+  if (problems.length) return { error: problems.join(" ") };
+  const dob = t("date_of_birth", 10);
+  const managerId = t("manager_id", 36);
+  const as = t("assigned_as", 30) || "case_manager";
+  if (managerId && !isId(managerId)) return { error: "Choose who manages them." };
+  if (!["case_manager", "support_coordinator"].includes(as)) return { error: "Choose care manager or support coordinator." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("car_clients")
+    .insert({
+      name: `${given} ${family}`.slice(0, 80),
+      title: ["", "mr", "mrs", "ms", "miss", "mx", "dr"].includes(title) ? title : "",
+      given_name: given,
+      middle_name: t("middle_name", 40),
+      family_name: family,
+      preferred_name: t("preferred_name", 80),
+      reference: t("reference", 60),
+      scheme,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: friendlyError(error) };
+  const details: Record<string, string | null> = {
+    date_of_birth: /^\d{4}-\d{2}-\d{2}$/.test(dob) ? dob : null,
+    gender: t("gender", 30),
+    phone: phone.ok ? phone.value : "",
+    email: email.ok ? email.value : "",
+    home_address: address.ok ? address.value : "",
+    state: state || inAddress || "",
+  };
+  if (scheme === "ndis") details.ndis_number = ndis;
+  if (scheme === "support_at_home") details.aged_care_id = mac;
+  const { error: dError } = await supabase.from("client_details").upsert({ client_id: data.id, ...details }, { onConflict: "client_id" });
+  if (dError) {
+    revalidatePath("/settings/clients");
+    return { error: `They were added, but their details weren't saved: ${friendlyError(dError)} Add them on their page.`, spotlight: data.id };
+  }
+  if (managerId) {
+    const { error: aError } = await supabase.from("client_assignments").insert({ client_id: data.id, user_id: managerId, assigned_as: as });
+    if (aError) {
+      revalidatePath("/settings/clients");
+      return { error: `They were added, but not assigned: ${friendlyError(aError)} Assign them on their page.`, spotlight: data.id };
+    }
+  }
+  revalidatePath("/settings/clients");
+  return { message: `${given} ${family} added.`, spotlight: data.id };
 }

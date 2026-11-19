@@ -1,7 +1,7 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { startTransition, useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, Notice, buttonClass, inputClass } from "@/components/ui";
@@ -240,7 +240,7 @@ export function SchemeRow({ scheme, canEdit, orgWord }: { scheme: Scheme; canEdi
 
 // cmeprojects (Care block): add a client and choose who manages them (their
 // care manager or support coordinator), when you may assign staff.
-export function AddCareClientForm({ staff, word, schemes = [] }: { staff: { id: string; name: string }[] | null; word: string; schemes?: [string, string][] }) {
+export function AddCareClientForm({ staff, schemes = [] }: { staff: { id: string; name: string }[] | null; word: string; schemes?: [string, string][] }) {
   const [state, action, pending] = useActionState(addClientWithManager, null);
   const [scheme, setScheme] = useState(() => {
     try {
@@ -284,9 +284,13 @@ export function AddCareClientForm({ staff, word, schemes = [] }: { staff: { id: 
       onChange={(e) => keep(e.currentTarget)}
       onSubmit={(e) => {
         // Keep what was typed on screen if something needs fixing (React would clear the form).
+        // cmeprojects (owner, 19 Nov 2026): nothing is saved here. What's typed opens
+        // the full New participant page, already filled in (the draft stays until it's saved).
         e.preventDefault();
         const data = new FormData(e.currentTarget);
-        startTransition(() => action(data));
+        const q = new URLSearchParams();
+        for (const [k, v] of data.entries()) if (typeof v === "string" && v.trim()) q.set(k, v.trim());
+        router.push(`/settings/clients/new?${q.toString()}`);
       }}
       className="flex flex-col gap-2"
     >
@@ -351,7 +355,7 @@ export function AddCareClientForm({ staff, word, schemes = [] }: { staff: { id: 
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" disabled={pending}>
-          {pending ? "Adding…" : `Add ${word.toLowerCase()}`}
+          Continue
         </Button>
         {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
         {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
@@ -426,7 +430,7 @@ export function NewClientButton({ staff, word, schemes }: { staff: { id: string;
               </button>
             </div>
             <div className="flex flex-col gap-3 p-5">
-              <p className="text-xs text-muted">Only the basics now. They&apos;re saved as &ldquo;To check&rdquo;, and their page lists what&apos;s left. What you type is kept as a draft if you close this.</p>
+              <p className="text-xs text-muted">Start with the basics. Continue opens the full form with these filled in; nothing is saved until you save there. What you type is kept as a draft if you close this.</p>
               <AddCareClientForm staff={staff} word={word} schemes={schemes} />
             </div>
           </div>
