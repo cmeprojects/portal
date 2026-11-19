@@ -483,7 +483,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                 </span>
               ))}
               {ready && client.status !== "discharged" ? (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold text-ink ${ready.ready ? "bg-good-soft" : !rosterBlocks.length && rosterFrom ? "bg-brand-soft" : "bg-warn-soft"}`}>{ready.ready ? "Ready for services" : !rosterBlocks.length && rosterFrom ? `Services start ${day(rosterFrom.date)}` : "Not ready for services yet"}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold text-ink ${rosterBlocks.length ? "bg-warn-soft" : rosterFrom ? "bg-brand-soft" : "bg-good-soft"}`}>{rosterBlocks.length ? "Not ready to roster yet" : rosterFrom ? `Services start ${day(rosterFrom.date)}` : "Ready to roster"}</span>
               ) : null}
             </div>
           </div>
@@ -1500,9 +1500,13 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                         <div className="mt-2 flex flex-wrap items-center gap-3">
                           {canEditServices ? (
                             <details className="group w-full">
-                              <summary className="cursor-pointer list-none text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
-                                <span className="group-open:hidden">View and edit details</span>
-                                <span className="hidden group-open:inline">Close</span>
+                              <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm hover:border-muted hover:bg-page group-open:hidden">
+                                  <Pencil aria-hidden="true" className="size-3.5" /> View and edit details
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm hover:border-muted hover:bg-page hidden group-open:inline-flex">
+                                  <X aria-hidden="true" className="size-3.5" /> Close
+                                </span>
                               </summary>
                               <div className="mt-3">
                                 <ServiceEditForm clientId={id} s={sv} programs={programChoices} locations={locationChoices} shiftTypes={clientShiftTypes} />
@@ -1678,8 +1682,12 @@ function Items({ rows, line, form }: { rows: Row[]; line: (r: Row) => string; fo
           <details name="client-item" className="group">
             <summary className="flex cursor-pointer list-none items-center gap-3 text-sm [&::-webkit-details-marker]:hidden">
               <span className="min-w-0 flex-1">{line(r)}</span>
-              <span className="text-xs font-semibold text-brand group-open:hidden">Edit</span>
-              <span className="hidden text-xs font-semibold text-brand group-open:inline">Close</span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm hover:border-muted hover:bg-page group-open:hidden">
+                <Pencil aria-hidden="true" className="size-3.5" /> Edit
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm hover:border-muted hover:bg-page hidden group-open:inline-flex">
+                <X aria-hidden="true" className="size-3.5" /> Close
+              </span>
             </summary>
             <div className="mt-3">{form(r)}</div>
           </details>
