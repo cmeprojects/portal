@@ -51,7 +51,7 @@ const usedPct = (c: ListClient) => {
 };
 const isArchived = (c: ListClient) => !c.active || c.status === "discharged";
 const in30 = new Date(Date.parse(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`) + 30 * 86_400_000).toISOString().slice(0, 10);
-type NotesTab = "alerts" | "shift" | "practitioner" | "comms" | "log" | "reviews";
+type NotesTab = "shift" | "practitioner" | "comms" | "log";
 const CONTACT_WORDS: Record<string, string> = { phone: "Phone call", sms: "Text message", email: "Email", post: "Post" };
 
 // cmeprojects: one client's notes in a pop-up, loaded when opened. Each part is
@@ -72,12 +72,10 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
     return () => window.removeEventListener("keydown", esc);
   }, [client.id, onClose]);
   const tabs: [NotesTab, string, number | null][] = [
-    ["alerts", "Safety alerts", data?.alerts?.length ?? null],
     ["shift", "Shift and progress notes", data?.shiftNotes?.length ?? null],
     ["practitioner", "Practitioner notes", data?.practitionerNotes?.length ?? null],
     ["comms", "Communications", null],
     ["log", "Activity log", data?.log?.length ?? null],
-    ["reviews", "Reviews", data?.reviews?.filter((r) => r.status === "open").length ?? null],
   ];
   const empty = (t: string) => <p className="text-sm text-muted">{t}</p>;
   const hidden = empty("You don't have access to this part.");
@@ -112,22 +110,6 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
             <p className="flex items-center gap-2 text-muted">
               <Loader2 aria-hidden="true" className="size-4 animate-spin" /> Loading…
             </p>
-          ) : tab === "alerts" ? (
-            data.alerts === null ? hidden : data.alerts.length ? (
-              <ul className="flex flex-col gap-2">
-                {data.alerts.map((a, i) => (
-                  <li key={i} className={`rounded-lg border p-3 ${a.severity === "high" ? "border-danger" : "border-line"}`}>
-                    <p className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">{a.title}</span>
-                      <span className="rounded-full bg-page px-2 py-0.5 text-xs">{a.kind}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${a.severity === "high" ? "bg-danger-soft text-danger" : a.severity === "medium" ? "bg-warn-soft" : "bg-good-soft"}`}>{a.severity}</span>
-                    </p>
-                    {a.instructions ? <p className="mt-1 whitespace-pre-wrap"><span className="text-muted">What workers do: </span>{a.instructions}</p> : null}
-                    {a.escalation ? <p className="mt-1 whitespace-pre-wrap"><span className="text-muted">If it happens: </span>{a.escalation}</p> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : empty("No active safety alerts.")
           ) : tab === "shift" ? (
             data.shiftNotes === null ? hidden : data.shiftNotes.length ? (
               <ul className="flex flex-col gap-2">
@@ -180,27 +162,7 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
                 ))}
               </ul>
             ) : empty("Nothing logged yet.")
-          ) : data.reviews === null ? (
-            hidden
-          ) : data.reviews.length ? (
-            <ul className="flex flex-col gap-2">
-              {data.reviews.map((r, i) => {
-                const overdue = r.status === "open" && r.due < new Date().toISOString().slice(0, 10);
-                const soon = r.status === "open" && !overdue && r.due <= in30;
-                return (
-                  <li key={i} className={`flex flex-wrap items-center gap-2 rounded-lg border p-3 ${overdue ? "border-danger" : soon ? "border-warn" : "border-line"} ${r.status === "open" ? "" : "text-muted"}`}>
-                    <span className="min-w-40 flex-1 font-semibold">{r.label}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${overdue ? "bg-danger-soft text-danger" : soon ? "bg-warn-soft" : r.status === "open" ? "bg-page" : "bg-line"}`}>
-                      {r.status === "open" ? (overdue ? `Overdue (due ${day(r.due)})` : `Due ${day(r.due)}`) : r.status === "completed" ? "Completed" : "Cancelled"}
-                    </span>
-                    {r.reason ? <p className="w-full text-xs text-muted">What changed: {r.reason}</p> : null}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            empty("No reviews or re-assessments set up.")
-          )}
+          ) : null}
         </div>
       </div>
     </>
@@ -215,6 +177,7 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
   const router = useRouter();
   // The notes pop-up (shift notes, practitioner notes, communications, log, reviews).
   const [notesFor, setNotesFor] = useState<{ client: ListClient; tab: NotesTab } | null>(null);
+  const [alertsFor, setAlertsFor] = useState<ListClient | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [q, setQ] = useState("");
@@ -348,19 +311,7 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                       <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
                         {c.ref}
                         {c.status !== "active" ? <ClientStatusChip status={c.status} /> : null}
-                        {c.alerts ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setNotesFor({ client: c, tab: "alerts" });
-                            }}
-                            title="See the safety alerts"
-                            className="rounded-full bg-danger px-1.5 font-semibold text-white hover:opacity-90"
-                          >
-                            {c.alerts} alert{c.alerts === 1 ? "" : "s"}
-                          </button>
-                        ) : null}
+
                       </span>
                     </td>
                     <td className="px-3 py-2 text-muted">{c.age ?? ""}</td>
@@ -398,15 +349,14 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
                     <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                       <span className="flex justify-end gap-1">
                         {(() => {
-                          // Reviews and re-assessments: red when overdue, amber when due within 30 days.
-                          const soon = c.reviews.filter((r) => !r.overdue && r.due <= in30).length;
-                          const late = c.reviews.filter((r) => r.overdue).length;
-                          const tone = late ? "bg-danger-soft text-danger" : soon ? "bg-warn-soft text-ink" : "bg-page text-muted";
-                          const tip = late ? `${late} overdue` : soon ? `${soon} due within 30 days` : c.reviews.length ? `Next due ${day(c.reviews[0].due)}` : "No open reviews";
+                          // One number, like a notification: active safety alerts plus reviews overdue or due within 30 days.
+                          const due = c.reviews.filter((r) => r.overdue || r.due <= in30).length;
+                          const count = c.alerts + due;
+                          const tip = count ? [c.alerts ? `${c.alerts} safety alert${c.alerts === 1 ? "" : "s"}` : "", due ? `${due} review${due === 1 ? "" : "s"} due` : ""].filter(Boolean).join(", ") : "Nothing needs attention";
                           return (
-                            <button type="button" onClick={() => setNotesFor({ client: c, tab: "reviews" })} title={`Reviews and re-assessments: ${tip}`} aria-label={`Reviews for ${c.name}: ${tip}`} className={`relative inline-flex size-8 items-center justify-center rounded-full hover:opacity-80 ${tone}`}>
+                            <button type="button" onClick={() => setAlertsFor(c)} title={tip} aria-label={`Alerts for ${c.name}: ${tip}`} className={`relative inline-flex size-8 items-center justify-center rounded-full hover:opacity-80 ${count ? "bg-danger-soft text-danger" : "bg-page text-muted"}`}>
                               <Bell aria-hidden="true" className="size-4" />
-                              {late || soon ? <span className={`absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white ${late ? "bg-danger" : "bg-warn"}`}>{late || soon}</span> : null}
+                              {count ? <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">{count}</span> : null}
                             </button>
                           );
                         })()}
@@ -434,6 +384,7 @@ export function ClientList({ clients, word, schemes, showNdis, showBudget, showC
       )}
       {picked ? <Panel client={picked} onClose={() => setOpen(null)} schemes={schemes} showBudget={showBudget} /> : null}
       {notesFor ? <NotesPopup key={notesFor.client.id} client={notesFor.client} tab={notesFor.tab} onClose={() => setNotesFor(null)} /> : null}
+      {alertsFor ? <AlertsPopup key={alertsFor.id} client={alertsFor} onClose={() => setAlertsFor(null)} /> : null}
     </div>
   );
 }
@@ -632,6 +583,73 @@ function Panel({ client: c, onClose, schemes, showBudget }: { client: ListClient
           )}
         </div>
       </aside>
+    </>
+  );
+}
+
+// cmeprojects: the bell. Just the details: active safety alerts, and reviews
+// that are overdue or due within 30 days (what the database lets this person see).
+function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => void }) {
+  const [data, setData] = useState<ClientNotes | null>(null);
+  const [error, setError] = useState("");
+  const [loading, start] = useTransition();
+  useEffect(() => {
+    start(async () => {
+      const r = await loadClientNotes(client.id);
+      if ("error" in r) setError(r.error);
+      else setData(r);
+    });
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [client.id, onClose]);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const due = (data?.reviews ?? []).filter((r) => r.status === "open" && r.due <= in30);
+  return (
+    <>
+      <button type="button" aria-label="Close" onClick={onClose} className="fixed inset-0 z-40 bg-black/30" />
+      <div role="dialog" aria-modal="true" aria-label={`${client.name}: alerts`} className="fixed inset-x-4 top-[12vh] z-50 mx-auto flex max-h-[76vh] max-w-lg flex-col overflow-hidden rounded-xl bg-surface shadow-2xl">
+        <div className="flex items-center gap-2 border-b border-line px-4 py-3">
+          <Bell aria-hidden="true" className="size-4 text-danger" />
+          <h2 className="heading-sm flex-1">{client.name}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-page hover:text-ink">
+            <X aria-hidden="true" className="size-5" />
+          </button>
+        </div>
+        <div className="thin-scroll flex flex-col gap-3 overflow-y-auto p-4 text-sm">
+          {error ? (
+            <p className="text-muted">{error}</p>
+          ) : loading || !data ? (
+            <p className="flex items-center gap-2 text-muted">
+              <Loader2 aria-hidden="true" className="size-4 animate-spin" /> Loading…
+            </p>
+          ) : (
+            <>
+              {(data.alerts ?? []).map((a, i) => (
+                <div key={`a${i}`} className={`rounded-lg border p-3 ${a.severity === "high" ? "border-danger" : "border-line"}`}>
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{a.title}</span>
+                    <span className="rounded-full bg-page px-2 py-0.5 text-xs">{a.kind}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${a.severity === "high" ? "bg-danger-soft text-danger" : a.severity === "medium" ? "bg-warn-soft" : "bg-good-soft"}`}>{a.severity}</span>
+                  </p>
+                  {a.instructions ? <p className="mt-1 whitespace-pre-wrap"><span className="text-muted">What workers do: </span>{a.instructions}</p> : null}
+                  {a.escalation ? <p className="mt-1 whitespace-pre-wrap"><span className="text-muted">If it happens: </span>{a.escalation}</p> : null}
+                </div>
+              ))}
+              {due.map((r, i) => (
+                <div key={`r${i}`} className={`rounded-lg border p-3 ${r.due < todayIso ? "border-danger" : "border-warn"}`}>
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{r.label}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${r.due < todayIso ? "bg-danger-soft text-danger" : "bg-warn-soft"}`}>{r.due < todayIso ? `Overdue (due ${day(r.due)})` : `Due ${day(r.due)}`}</span>
+                  </p>
+                  {r.reason ? <p className="mt-1 text-xs text-muted">What changed: {r.reason}</p> : null}
+                </div>
+              ))}
+              {!(data.alerts ?? []).length && !due.length ? <p className="text-muted">Nothing needs attention.</p> : null}
+            </>
+          )}
+        </div>
+      </div>
     </>
   );
 }
