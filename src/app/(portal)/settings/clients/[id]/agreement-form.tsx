@@ -2,6 +2,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { useAfterSuccess } from "@/components/use-after-success";
+import { useDirty } from "@/components/use-dirty";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { saveAgreement } from "./actions";
 
@@ -28,8 +30,11 @@ function Doc({ documents, value }: { documents: [string, string][]; value?: stri
 // cmeprojects (Care block C6): an agreement before it's signed (new or changed).
 export function AgreementForm({ clientId, agreement, services, documents }: { clientId: string; agreement?: Agreement; services: [string, string][]; documents: [string, string][] }) {
   const [state, action, pending] = useActionState(saveAgreement, null);
+  // Changing an agreement: Save stays greyed out until something changes.
+  const { ref, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form ref={ref} action={action} className="flex flex-col gap-2">
       <input type="hidden" name="client_id" value={clientId} />
       {agreement ? <input type="hidden" name="id" value={agreement.id} /> : null}
       <div className="grid gap-2 sm:grid-cols-2">
@@ -67,7 +72,7 @@ export function AgreementForm({ clientId, agreement, services, documents }: { cl
         <textarea name="notes" maxLength={1000} rows={2} defaultValue={agreement?.notes ?? ""} className={inputClass} />
       </label>
       <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" disabled={pending}>
+        <Button size="sm" disabled={pending || (Boolean(agreement) && !dirty)}>
           {pending ? "Saving…" : agreement ? "Save" : "Add agreement"}
         </Button>
         {state?.error ? <Notice tone="error">{state.error}</Notice> : null}

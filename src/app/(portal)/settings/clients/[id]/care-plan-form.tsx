@@ -4,15 +4,17 @@
 import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { saveCareGoal, saveCarePlan, saveWorkerInstruction } from "./actions";
+import { useAfterSuccess } from "@/components/use-after-success";
+import { useDirty } from "@/components/use-dirty";
 
 export type CarePlan = { id: string; title: string; status: string; assessed_on: string | null; starts_on: string | null; review_by: string | null; summary: string; document_id: string | null };
 
 const field = "flex flex-col gap-1 text-xs font-medium";
 
-function Footer({ pending, state, submit }: { pending: boolean; state: { error?: string; message?: string } | null; submit: string }) {
+function Footer({ pending, state, submit, unchanged = false }: { pending: boolean; state: { error?: string; message?: string } | null; submit: string; unchanged?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Button size="sm" disabled={pending}>
+      <Button size="sm" disabled={pending || unchanged}>
         {pending ? "Saving…" : submit}
       </Button>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
@@ -24,8 +26,11 @@ function Footer({ pending, state, submit }: { pending: boolean; state: { error?:
 // cmeprojects (Care block C4): a care plan draft (new, or changing a draft).
 export function CarePlanForm({ clientId, plan, documents }: { clientId: string; plan?: CarePlan; documents: [string, string][] }) {
   const [state, action, pending] = useActionState(saveCarePlan, null);
+  // Changing a draft: Save stays greyed out until something changes.
+  const { ref, dirty, markClean } = useDirty();
+  useAfterSuccess(state, markClean);
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form ref={ref} action={action} className="flex flex-col gap-2">
       <input type="hidden" name="client_id" value={clientId} />
       {plan ? <input type="hidden" name="id" value={plan.id} /> : null}
       <label className={field}>
@@ -63,7 +68,7 @@ export function CarePlanForm({ clientId, plan, documents }: { clientId: string; 
           </select>
         </label>
       ) : null}
-      <Footer pending={pending} state={state} submit={plan ? "Save draft" : "Add draft"} />
+      <Footer pending={pending} state={state} submit={plan ? "Save draft" : "Add draft"} unchanged={Boolean(plan) && !dirty} />
     </form>
   );
 }

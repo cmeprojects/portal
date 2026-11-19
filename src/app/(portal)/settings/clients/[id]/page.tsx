@@ -492,11 +492,12 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               <Link href={`/settings/clients/${id}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold hover:bg-page">
                 Done editing
               </Link>
-            ) : (
+            ) : !TAB_SECTIONS[tab] || tab === "overview" ? (
+              // Only on Overview (read-only): the other tabs are edited in place.
               <Link href={`/settings/clients/${id}?edit=basic`} className="inline-flex items-center gap-1 rounded-lg border border-brand px-3 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft">
                 <Pencil aria-hidden="true" className="size-4" /> Edit
               </Link>
-            )
+            ) : null
           ) : null}
         </div>
         {client.status === "discharged" ? (
