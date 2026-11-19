@@ -1,12 +1,11 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui";
-import { NewClientFullForm } from "./new-client-form";
+import { NewClientFullForm, NewClientHeading } from "./new-client-form";
 
 export const metadata: Metadata = { title: "New client" };
 
@@ -23,10 +22,11 @@ export default async function NewClientPage({ searchParams }: PageProps<"/settin
   }
   const supabase = await createClient();
   const [{ data: schemeRows }, { data: wordRow }, canAssign] = await Promise.all([
-    supabase.from("client_schemes").select("key, label").order("sort_order"),
+    supabase.from("client_schemes").select("key, label, person_word").order("sort_order"),
     supabase.from("app_settings").select("value").eq("key", "wording.client").maybeSingle(),
     canDo("clients.assign", "edit"),
   ]);
+  const schemeList = (schemeRows ?? []) as { key: string; label: string; person_word: string | null }[];
   const word = typeof wordRow?.value === "string" && wordRow.value ? wordRow.value : "Client";
   // Who can manage them: care partners (Case Managers, main or extra job title) and managers.
   const [{ data: staffRows }, { data: cmTitles }] = canAssign
@@ -43,13 +43,8 @@ export default async function NewClientPage({ searchParams }: PageProps<"/settin
     : null;
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm">
-        <Link href="/settings/clients" className="font-semibold text-brand hover:underline">
-          ← All {word.toLowerCase()}s
-        </Link>
-      </p>
-      <PageHeader eyebrow="Step 1 of 4: Basic details" title={`New ${word.toLowerCase()}`} intro="Check what came from the pop-up and add the rest. Nothing is saved until you press Save; they're then added as “To check”." />
-      <NewClientFullForm initial={initial} schemes={((schemeRows ?? []) as { key: string; label: string }[]).map((s) => [s.key, s.label])} staff={staff} word={word} />
+      <PageHeader eyebrow="Step 1 of 4: Basic details" title={<NewClientHeading word={word} schemes={schemeList.map((x) => [x.key, x.label] as [string, string])} schemeWords={Object.fromEntries(schemeList.map((x) => [x.key, x.person_word ?? ""]))} />} intro="Check what came from the pop-up and add the rest. Nothing is saved until you press Save; they're then added as “To check”." />
+      <NewClientFullForm initial={initial} schemes={schemeList.map((s) => [s.key, s.label])} staff={staff} word={word} />
     </div>
   );
 }

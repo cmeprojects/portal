@@ -463,11 +463,14 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
 
   return (
     <PageSave config={pageSave}>
-      <p className="text-sm">
-        <Link href="/settings/clients" className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">
-          <ArrowLeft aria-hidden="true" className="size-4" /> All clients
-        </Link>
-      </p>
+      {step ? null : (
+        // Editing a record has no back link: Exit and the save bar are at the bottom (owner, 19 Nov 2026).
+        <p className="text-sm">
+          <Link href="/settings/clients" className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">
+            <ArrowLeft aria-hidden="true" className="size-4" /> All clients
+          </Link>
+        </p>
+      )}
       <Card className="flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-start gap-4">
           <span aria-hidden="true" className="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand-soft font-display text-lg font-semibold text-brand">

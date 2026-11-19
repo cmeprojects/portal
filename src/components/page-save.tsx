@@ -3,6 +3,7 @@
 
 import { createContext, startTransition, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { ArrowRight, Check, LogOut, Save, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDirty } from "@/components/use-dirty";
 import { ToastOnMount } from "@/components/toast";
@@ -19,7 +20,7 @@ const Ctx = createContext<Registry | null>(null);
 
 export type PageSaveConfig = {
   mode: "steps" | "tab";
-  // Steps: where Back, Save and continue, and Cancel go.
+  // Steps: where Save and continue and Exit go (no Back: the step names at the top switch steps).
   back?: string;
   next?: string;
   nextLabel?: string;
@@ -107,17 +108,12 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
       {steps || dirtyCount || problem ? (
         <div className="sticky bottom-0 z-30 -mx-4 mt-2 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)] backdrop-blur md:-mx-8 md:px-8 print:hidden">
           <div className="flex flex-wrap items-center gap-2">
-            {steps && config.back ? (
-              <Link href={config.back} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-page">
-                ← Back
-              </Link>
-            ) : null}
             <p className={`min-w-0 flex-1 text-sm ${problem ? "font-medium text-danger" : "text-muted"}`} role={problem ? "alert" : "status"}>
               {problem || (dirtyCount ? `${dirtyCount} unsaved change${dirtyCount === 1 ? "" : "s"}` : "No unsaved changes")}
             </p>
             {steps && config.cancel ? (
-              <Link href={config.cancel} className="rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page">
-                Exit
+              <Link href={config.cancel} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink">
+                <LogOut aria-hidden="true" className="size-4" /> Exit
               </Link>
             ) : null}
             {steps ? (
@@ -126,9 +122,9 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
                   type="button"
                   disabled={busy || !dirtyCount}
                   onClick={() => startTransition(() => void saveAll())}
-                  className="rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page disabled:opacity-50"
                 >
-                  {busy ? "Saving…" : "Save for later"}
+                  <Save aria-hidden="true" className="size-4" /> {busy ? "Saving…" : "Save for later"}
                 </button>
                 <button
                   type="button"
@@ -138,9 +134,10 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
                       if ((await saveAll()) && config.next) go(config.next);
                     })
                   }
-                  className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm hover:opacity-90 disabled:opacity-50"
                 >
                   {busy ? "Saving…" : (config.nextLabel ?? "Save and continue")}
+                  {config.nextLabel ? <Check aria-hidden="true" className="size-4" /> : <ArrowRight aria-hidden="true" className="size-4" />}
                 </button>
               </>
             ) : (
@@ -148,9 +145,9 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
                 type="button"
                 disabled={busy || !dirtyCount}
                 onClick={() => startTransition(() => void saveAll())}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm hover:opacity-90 disabled:opacity-50"
               >
-                {busy ? "Saving…" : "Save"}
+                <Save aria-hidden="true" className="size-4" /> {busy ? "Saving…" : "Save"}
               </button>
             )}
           </div>
@@ -165,16 +162,18 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
               You have {dirtyCount} unsaved change{dirtyCount === 1 ? "" : "s"} on this page.
             </p>
             <div className="flex flex-wrap justify-end gap-2">
-              <button type="button" onClick={() => setLeaving(null)} className="rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page">
-                Stay
+              <button type="button" onClick={() => setLeaving(null)} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page">
+                <Undo2 aria-hidden="true" className="size-4" /> Stay
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setLeaving(null);
                   go(leaving);
-                }} className="rounded-lg border border-field px-4 py-2 text-sm font-semibold text-ink hover:bg-page">
-                Leave without saving
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-field px-4 py-2 text-sm font-semibold text-ink hover:bg-page"
+              >
+                <LogOut aria-hidden="true" className="size-4" /> Leave without saving
               </button>
               <button
                 type="button"
@@ -187,9 +186,9 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
                     if (ok) go(to);
                   })
                 }
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90 disabled:opacity-50"
               >
-                {busy ? "Saving…" : "Save and leave"}
+                <Save aria-hidden="true" className="size-4" /> {busy ? "Saving…" : "Save and leave"}
               </button>
             </div>
           </div>

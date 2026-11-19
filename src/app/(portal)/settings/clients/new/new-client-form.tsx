@@ -3,6 +3,8 @@
 
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight, LogOut, Save } from "lucide-react";
+import { useClientTab, wordForTab } from "../client-tab";
 import { Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { useDirty } from "@/components/use-dirty";
@@ -215,15 +217,15 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
                 router.push("/settings/clients");
               }
             }}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page"
+            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink"
           >
-            Exit
+            <LogOut aria-hidden="true" className="size-4" /> Exit
           </button>
-          <button type="submit" onClick={() => setThen("later")} disabled={pending} className="rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page disabled:opacity-50">
-            {pending && then === "later" ? "Saving…" : "Save for later"}
+          <button type="submit" onClick={() => setThen("later")} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page disabled:opacity-50">
+            <Save aria-hidden="true" className="size-4" /> {pending && then === "later" ? "Saving…" : "Save for later"}
           </button>
-          <button type="submit" onClick={() => setThen("continue")} disabled={pending} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90 disabled:opacity-50">
-            {pending && then === "continue" ? "Saving…" : "Save and continue"}
+          <button type="submit" onClick={() => setThen("continue")} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm hover:opacity-90 disabled:opacity-50">
+            {pending && then === "continue" ? "Saving…" : "Save and continue"} <ArrowRight aria-hidden="true" className="size-4" />
           </button>
         </div>
         {state?.error ? (
@@ -234,4 +236,11 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
       </div>
     </form>
   );
+}
+
+// cmeprojects (owner, 19 Nov 2026): the page heading follows the client list's tab:
+// New participant (NDIS), New client (Support at Home, CHSP), otherwise the organisation's word.
+export function NewClientHeading({ word, schemes, schemeWords = {} }: { word: string; schemes: [string, string][]; schemeWords?: Record<string, string> }) {
+  const tab = useClientTab(schemes);
+  return <>New {wordForTab(tab, word, schemeWords).toLowerCase()}</>;
 }
