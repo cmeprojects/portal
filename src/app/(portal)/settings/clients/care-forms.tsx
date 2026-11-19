@@ -1,7 +1,8 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useTransition } from "react";
+import { useActionState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
@@ -241,9 +242,14 @@ export function SchemeRow({ scheme, canEdit, orgWord }: { scheme: Scheme; canEdi
 // care manager or support coordinator), when you may assign staff.
 export function AddCareClientForm({ staff, word }: { staff: { id: string; name: string }[] | null; word: string }) {
   const [state, action, pending] = useActionState(addClientWithManager, null);
+  const router = useRouter();
+  // Added: straight on to their details.
+  useEffect(() => {
+    if (state?.spotlight) router.push(`/settings/clients/${state.spotlight}?edit=basic`);
+  }, [state, router]);
   return (
     <form action={action} className="flex flex-col gap-2">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs font-medium">
           Name
           <input name="name" required maxLength={80} className={inputClass} />

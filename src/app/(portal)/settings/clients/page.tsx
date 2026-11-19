@@ -8,7 +8,8 @@ import { AddCareClientForm, ProgramRow, AddProgramForm, SchemeRow, type Scheme }
 import { canDo } from "@/lib/module-access";
 import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Notice, PageHeader } from "@/components/ui";
+import { Card, Notice, PageHeader, buttonClass } from "@/components/ui";
+import { UserPlus, X } from "lucide-react";
 import { ClientTeamsForm } from "./team-form";
 import { ClientList, type ListClient } from "./client-list";
 import { PLAN_MANAGEMENT } from "@/lib/client-sections";
@@ -45,14 +46,26 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   const canAssign = await canDo("clients.assign", "edit");
   // cmeprojects (update 127): people who only view clients (support workers, team leaders) don't see Add.
   const canAddClient = await canDo("clients.list", "edit");
-  const { data: staffRows } = canAssign ? await supabase.from("profiles").select("id, full_name, email").eq("active", true).not("role", "in", "(new_starter,system_admin)").order("full_name") : { data: null };
-  const staff = staffRows ? (staffRows as { id: string; full_name: string | null; email: string }[]).map((p) => ({ id: p.id, name: p.full_name || p.email })) : null;
+  // Who can manage a new client: care partners (Case Managers, by main or extra job title) and managers.
+  const [{ data: staffRows }, { data: cmTitles }] = canAssign
+    ? await Promise.all([
+        supabase.from("profiles").select("*").eq("active", true).not("role", "in", "(new_starter,system_admin,external)").order("full_name"),
+        supabase.from("job_titles").select("id").ilike("name", "case manager%"),
+      ])
+    : [{ data: null }, { data: [] }];
+  const cmIds = new Set(((cmTitles ?? []) as { id: string }[]).map((t) => t.id));
+  const staff = staffRows
+    ? (staffRows as { id: string; full_name: string | null; email: string; role: string; job_title_id: string | null; extra_job_title_ids?: string[] }[])
+        .filter((p) => p.role === "manager" || (p.job_title_id && cmIds.has(p.job_title_id)) || (p.extra_job_title_ids ?? []).some((t) => cmIds.has(t)))
+        .map((p) => ({ id: p.id, name: `${p.full_name || p.email}${p.role === "manager" ? " (Manager)" : " (Case Manager)"}` }))
+    : null;
   // cmeprojects: which team looks after each client (hidden before live update 54).
   const [{ data: teams }, { data: links, error: linkError }] = await Promise.all([
     supabase.from("teams").select("id, name").eq("active", true).eq("is_core", false).order("name"),
     supabase.from("client_teams").select("client_id, team_id"),
   ]);
   const setup = (await searchParams).view === "setup";
+  const adding = (await searchParams).add === "1";
 
   // cmeprojects (owner's client list concept): one row per client with what
   // this person may already see (each query is limited by the database; a
@@ -180,6 +193,14 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       <PageHeader
         title={orgWord.endsWith("s") ? orgWord : `${orgWord}s`}
         intro="The people you support. Click a name to see a summary; open the full profile for everything else."
+        action={
+          canAddClient && !setup ? (
+            <Link href="/settings/clients?add=1" scroll={false} className={buttonClass("primary")}>
+              <UserPlus aria-hidden="true" className="size-4" />
+              New {orgWord.toLowerCase()}
+            </Link>
+          ) : undefined
+        }
       />
       <nav className="flex gap-1 border-b border-line text-sm" aria-label="Client pages">
         <Link href="/settings/clients" className={`-mb-px border-b-2 px-3 py-2 font-semibold ${setup ? "border-transparent text-muted hover:text-ink" : "border-brand"}`}>
@@ -194,14 +215,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       </nav>
       {setup ? null : (
         <>
-          {canAddClient ? (
-            <details className="shadow-card group rounded-xl border border-line bg-surface">
-              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">+ Add {orgWord.toLowerCase()}</summary>
-              <div className="border-t border-line p-4">
-                <AddCareClientForm staff={staff} word={orgWord} />
-              </div>
-            </details>
-          ) : null}
+
           {toCheck.length ? (
             <Notice tone="info">
               {toCheck.length === 1 ? `1 ${orgWord.toLowerCase()} is` : `${toCheck.length} ${(orgWord.endsWith("s") ? orgWord : `${orgWord}s`).toLowerCase()} are`} <strong>to check</strong>: {toCheck.slice(0, 5).map((c) => c.name).join(", ")}
@@ -253,6 +267,23 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
             </div>
           ) : null}
         </Card>
+      ) : null}
+      {canAddClient && adding ? (
+        <>
+          <Link href="/settings/clients" scroll={false} aria-label="Close" className="fixed inset-0 z-40 bg-black/30" />
+          <div role="dialog" aria-modal="true" aria-label={`New ${orgWord.toLowerCase()}`} className="thin-scroll fixed inset-x-4 top-[8vh] z-50 mx-auto max-h-[84vh] max-w-xl overflow-y-auto rounded-xl bg-surface shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-line px-5 py-3">
+              <UserPlus aria-hidden="true" className="size-5 text-brand" />
+              <h2 className="heading-sm flex-1">New {orgWord.toLowerCase()}</h2>
+              <Link href="/settings/clients" scroll={false} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-page hover:text-ink">
+                <X aria-hidden="true" className="size-5" />
+              </Link>
+            </div>
+            <div className="p-5">
+              <AddCareClientForm staff={staff} word={orgWord} />
+            </div>
+          </div>
+        </>
       ) : null}
     </>
   );

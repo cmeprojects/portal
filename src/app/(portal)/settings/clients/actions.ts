@@ -165,9 +165,10 @@ export async function addClientWithManager(_: FormState, form: FormData): Promis
     const { error: aError } = await supabase.from("client_assignments").insert({ client_id: data.id, user_id: managerId, assigned_as: as });
     if (aError) {
       revalidatePath("/settings/clients");
-      return { error: `${name} was added, but not assigned: ${friendlyError(aError)} Assign them on their page.` };
+      return { error: `${name} was added, but not assigned: ${friendlyError(aError)} Assign them on their page.`, spotlight: data.id };
     }
   }
   revalidatePath("/settings/clients");
-  return { message: managerId ? `${name} added and assigned.` : `${name} added.` };
+  // The new client's id comes back, so the screen can open their details next.
+  return { message: managerId ? `${name} added and assigned.` : `${name} added.`, spotlight: data.id };
 }
