@@ -13,6 +13,13 @@ has been agreed and what's next. Other docs in this folder go into more detail.
 
 Last updated: 19 Nov 2026.
 
+- **Programs and schemes in Portal settings (19 Nov 2026, update 152, waiting).** Tile "Programs and schemes"
+  (module system.settings.programs, page /settings/clients/programs, also shown inside Portal settings) for the
+  system admin and Manager Administrators, plus anyone given the Care settings area (`managesPrograms` in
+  lib/programs-access.ts; the database policies on client_programs and client_schemes accept
+  can_admin_area('care') or is_manager_admin()). Clients' teams are back as before on the Participants page
+  (tab "Teams"; the team in each client's summary); the owner will decide later whether to keep them.
+
 - **CHSP (19 Nov 2026, update 151, waiting).** "chsp" scheme (label CHSP) and a CHSP program; the My Aged Care
   ID is needed for Support at Home and CHSP (`MAC_SCHEMES` in lib/client-sections.ts; `client_gaps` in the
   database). New participant: the pop-up's Continue opens /settings/clients/new filled in; nothing is saved until

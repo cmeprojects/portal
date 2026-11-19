@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/session";
 import { getNavAccess } from "@/lib/nav-access";
 import { navFor, sectionTabs } from "@/components/nav";
 import { seesExpiryFor } from "@/lib/module-access";
+import { managesPrograms } from "@/lib/programs-access";
 
 // cmeprojects: the pages this person can open, from the existing menu and
 // page-tab rules (the same checks the pages themselves use). The menu and the
@@ -24,5 +25,7 @@ export const getAllowedPages = cache(async () => {
   if (allowed.has("/compliance")) allowed.add("/compliance/expiry");
   // cmeprojects step 4: just the Expiry list, given on the Access page.
   else if (features.compliance !== false && (await seesExpiryFor())) allowed.add("/compliance/expiry");
+  // cmeprojects (update 152): Programs and schemes, in Portal settings.
+  if (await managesPrograms()) allowed.add("/settings/clients/programs");
   return { navAccess, groups, tabPages, searchPages, allowed };
 });

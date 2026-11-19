@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { PageHeader } from "@/components/ui";
 import { ModuleIcon } from "@/components/module-icons";
 import { MODULES } from "@/lib/modules";
+import ProgramsPage from "./clients/programs/page";
 import { getAllowedPages } from "@/lib/allowed-pages";
 import { SystemSettings } from "../system/page";
 import { ChangeLog } from "../system/audit/page";
@@ -46,6 +47,8 @@ export default async function PortalSettingsPage({ searchParams }: PageProps<"/s
         return <BuilderPage />;
       case "system.health":
         return <SystemHealthPage />;
+      case "system.settings.programs":
+        return <ProgramsPage />;
       default:
         return null;
     }

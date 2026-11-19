@@ -135,6 +135,7 @@ export const MODULES: ModuleDef[] = [
   { id: "system.settings.vehicles", category: "system", parent: "system.settings", label: "Car settings", icon: "Settings", href: "", delegable: true },
   { id: "system.settings.hr", category: "system", parent: "system.settings", label: "HR Pack settings", icon: "Settings", href: "", delegable: true },
   { id: "system.settings.care", category: "system", parent: "system.settings", label: "Care settings", icon: "Settings", href: "", delegable: true },
+  { id: "system.settings.programs", category: "system", parent: "system.settings", label: "Programs and schemes", icon: "HeartHandshake", href: "/settings/clients/programs", description: "The funding programs clients' services come under, and each scheme's wording and rules (Manager Administrators)." },
   { id: "ops.registers.setup", category: "operations", parent: "ops.registers", label: "Set up any register", icon: "FolderKanban", href: "", delegable: true },
   { id: "system.access", category: "system", label: "Access", icon: "KeyRound", href: "/settings/access", sensitivity: "protected" },
   { id: "system.audit", category: "system", parent: "system.settings", label: "Change log", icon: "History", href: "/system/audit", delegable: true, description: "Who changed what in the settings, and when." },

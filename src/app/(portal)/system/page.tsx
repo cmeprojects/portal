@@ -209,12 +209,11 @@ const ROWS: Row[] = [
     // cmeprojects (Care block C2, update 111): which client sections are on, and what team staff see.
     id: "care",
     label: "Care",
-    intro: "Client sections your organisation uses, what team staff see, and the programs and schemes clients' services come under.",
+    intro: "Client sections your organisation uses, and what team staff see. Programs and schemes are in Portal settings.",
     always: true,
     switches: [],
     sections: [{ title: "Care settings", area: "care", keys: (k) => k.startsWith("care.") }],
     areas: ["care"],
-    links: [{ href: "/settings/clients/programs", text: "Programs and schemes" }],
   },
   {
     id: "staff-app",

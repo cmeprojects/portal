@@ -3,20 +3,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
-import { getMyAdminAreas } from "@/lib/settings";
+import { managesPrograms } from "@/lib/programs-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { AddProgramForm, ProgramRow, SchemeRow, type Scheme } from "../care-forms";
 
 export const metadata: Metadata = { title: "Programs and schemes" };
 
-// cmeprojects (owner, 19 Nov 2026): programs and schemes, part of Care settings
-// (moved off the Participants page). The system admin, or whoever has the Care
-// settings area, changes them; the database checks too.
+// cmeprojects (owner, 19 Nov 2026; update 152): programs and schemes, in Portal
+// settings for the system admin and Manager Administrators (and anyone given the
+// Care settings area). The database checks too.
 export default async function ProgramsPage() {
-  const { profile } = await requireSession();
-  const canCare = profile.role === "system_admin" || (await getMyAdminAreas(profile.role)).includes("care");
-  if (!canCare) notFound();
+  await requireSession();
+  if (!(await managesPrograms())) notFound();
   const supabase = await createClient();
   const [{ data: programRows }, schemeRes, { data: wordRow }] = await Promise.all([
     supabase.from("client_programs").select("id, name, needs_dob, active, scheme").order("sort_order").order("name"),
@@ -29,11 +28,11 @@ export default async function ProgramsPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        eyebrow="Care settings"
+        eyebrow="Portal settings"
         title="Programs and schemes"
         intro="Every program sits under one scheme (NDIS, Support at Home, CHSP, Private or Other). The scheme decides the wording and rules, so they never mix."
         action={
-          <Link href="/system" className="text-sm font-semibold text-brand underline">
+          <Link href="/settings" className="text-sm font-semibold text-brand underline">
             Back to settings
           </Link>
         }

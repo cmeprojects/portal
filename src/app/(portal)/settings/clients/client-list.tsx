@@ -29,6 +29,7 @@ export type ListClient = {
   schemes: string[];
   services: string[];
   managers: { name: string; as: string }[];
+  teams: string[];
   budgets: ListBudget[];
   reviews: { label: string; due: string; overdue: boolean }[];
   agreements: { label: string; status: string; ends: string | null }[];
@@ -481,6 +482,8 @@ function Panel({ client: c, onClose, schemes, showBudget }: { client: ListClient
                 <dd>{c.services.length ? c.services.join(", ") : "None yet"}</dd>
                 <dt className="text-muted">Managed by</dt>
                 <dd>{c.managers.length ? c.managers.map((m) => `${m.name} (${m.as})`).join(", ") : "Nobody assigned"}</dd>
+                <dt className="text-muted">Teams</dt>
+                <dd>{c.teams.length ? c.teams.join(", ") : "None"}</dd>
                 <dt className="text-muted">Safety alerts</dt>
                 <dd>{c.alerts ? `${c.alerts} active` : "None active"}</dd>
               </dl>

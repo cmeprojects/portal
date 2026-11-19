@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270406000001_chsp_scheme.sql
+-- Built from every migration up to: 20270407000001_programs_manager_admins.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -304,7 +304,8 @@ begin
     (166, '20270403000001_older_services_shift_types.sql'),
     (167, '20270404000001_incidents.sql'),
     (168, '20270405000001_sil_houses.sql'),
-    (169, '20270406000001_chsp_scheme.sql')
+    (169, '20270406000001_chsp_scheme.sql'),
+    (170, '20270407000001_programs_manager_admins.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -29937,5 +29938,46 @@ $$;
 
 $m169$;
   insert into public.install_log (name) values ('20270406000001_chsp_scheme.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270407000001_programs_manager_admins.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270407000001_programs_manager_admins.sql') then
+    return;
+  end if;
+  execute $m170$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 152): Programs and schemes are managed by the system admin
+-- and Manager Administrators (like the service catalogue and shift types), as a
+-- tile in Portal settings. People given the Care settings area keep their access.
+-- Nothing is deleted. No new security definer function. Safe to run again.
+
+insert into public.app_modules (id, parent_id, category, label, sensitivity, delegable, sort_order)
+values ('system.settings.programs', 'system.settings', 'system', 'Programs and schemes', 'normal', false, 1126)
+on conflict (id) do nothing;
+update public.app_modules set status = 'active' where id = 'system.settings.programs' and status = 'retired'; -- run again after an undo
+
+drop policy if exists "care settings add programs" on public.client_programs;
+create policy "care settings add programs" on public.client_programs
+  for insert to authenticated
+  with check ((select public.can_admin_area('care')) or (select public.is_manager_admin()));
+drop policy if exists "care settings change programs" on public.client_programs;
+create policy "care settings change programs" on public.client_programs
+  for update to authenticated
+  using ((select public.can_admin_area('care')) or (select public.is_manager_admin()))
+  with check ((select public.can_admin_area('care')) or (select public.is_manager_admin()));
+drop policy if exists "care settings change scheme wording" on public.client_schemes;
+create policy "care settings change scheme wording" on public.client_schemes
+  for update to authenticated
+  using ((select public.can_admin_area('care')) or (select public.is_manager_admin()))
+  with check ((select public.can_admin_area('care')) or (select public.is_manager_admin()));
+
+$m170$;
+  insert into public.install_log (name) values ('20270407000001_programs_manager_admins.sql');
 end;
 $part$;

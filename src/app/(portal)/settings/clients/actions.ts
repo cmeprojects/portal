@@ -2,7 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getMyAdminAreas } from "@/lib/settings";
+import { managesPrograms } from "@/lib/programs-access";
 import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
 
@@ -17,6 +17,23 @@ import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { checkAuPhone, checkDob, checkEmail, checkFullAddress } from "@/lib/validate";
 import { MAC_SCHEMES } from "@/lib/client-sections";
+
+// cmeprojects: which team(s) look after a client (people who manage staff).
+export async function setClientTeams(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(clientId)) return { error: "Choose a client." };
+  const teamIds = form.getAll("team_ids").map(String).filter((t) => /^[0-9a-f-]{36}$/.test(t));
+  const supabase = await createClient();
+  const { error: removeError } = await supabase.from("client_teams").delete().eq("client_id", clientId);
+  if (removeError) return { error: friendlyError(removeError) };
+  if (teamIds.length) {
+    const { error } = await supabase.from("client_teams").insert(teamIds.map((team_id) => ({ client_id: clientId, team_id })));
+    if (error) return { error: friendlyError(error) };
+  }
+  revalidatePath("/settings/clients");
+  return { message: teamIds.length ? "Teams saved." : "No team looks after this client now." };
+}
 
 const STATUSES = ["pending", "active", "suspended", "discharged"];
 const isId = (v: string) => /^[0-9a-f-]{36}$/.test(v);
@@ -78,7 +95,8 @@ const SCHEMES = ["ndis", "support_at_home", "chsp", "private", "other"];
 // settings area (the database checks too).
 async function requireCareSettings() {
   const session = await requireSession();
-  if (session.profile.role !== "system_admin" && !(await getMyAdminAreas(session.profile.role)).includes("care")) throw new Error("You can't change Care settings.");
+  // update 152: also Manager Administrators (the database checks too).
+  if (!(await managesPrograms())) throw new Error("You can't change programs and schemes.");
   return session;
 }
 
