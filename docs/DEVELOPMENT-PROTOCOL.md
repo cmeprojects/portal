@@ -45,6 +45,10 @@ Staff Portal · © cmeproject · Set by the owner on 11 November 2026. Applies t
 - **Performance:** no new optimisation projects. Stages 2–9 stay deferred (`docs/roadmap/performance-and-scalability.md`). Flag obvious new scalability problems with a focused fix.
 - **Failures:** find the actual error, fix the root cause, retest what's affected.
 - **Done means done:** no further changes once the outcome is achieved.
+- **Contact details are always checked (owner, 19 Nov 2026):** every form that saves an email, phone number or
+  address checks it on the server with `src/lib/validate.ts` (emails; Australian phone numbers, via `lib/phone.ts`;
+  Australian addresses: street number and name, suburb, state, and a postcode that belongs to that state). Saved in
+  one tidy format. New forms use the same checks; don't write new ones.
 
 ## Completion report (short, proportional)
 - **Completed:** what was built.

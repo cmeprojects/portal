@@ -17,6 +17,7 @@ import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { SECTION_FIELDS, type SectionTable } from "@/lib/client-sections";
 import { sydneyInstant } from "@/lib/sydney-time";
+import { checkAuPhone, checkEmail, checkFullAddress, checkPostcode, checkStreet, type Check } from "@/lib/validate";
 // "2026-11-19T14:30" (Sydney wall clock) -> an instant.
 const sydneyLocalToIso = (v: string) => sydneyInstant(v.slice(0, 10), v.slice(11, 16));
 
@@ -50,6 +51,29 @@ export async function saveClientSection(_: FormState, form: FormData): Promise<F
     else values[f.name] = raw.slice(0, f.max ?? 200);
     if (f.required && !values[f.name]) return { error: `Fill in ${f.label.toLowerCase()}.` };
   }
+
+  // cmeprojects (owner's standing rule): emails, Australian phone numbers and addresses are checked before saving.
+  const fix = (key: string, c: Check, what: string) => {
+    if (!c.ok) return `${what}: ${c.error}`;
+    if (key in values) values[key] = c.value;
+    return "";
+  };
+  const problems: string[] = [];
+  if ("phone" in values) problems.push(fix("phone", checkAuPhone(String(values.phone ?? "")), "Phone"));
+  if ("email" in values) problems.push(fix("email", checkEmail(String(values.email ?? "")), "Email"));
+  if (table === "client_details" && values.home_address) {
+    const a = checkFullAddress(String(values.home_address));
+    problems.push(fix("home_address", a, "Home address"));
+    const st = a.ok ? a.value.match(/ (NSW|VIC|QLD|WA|SA|TAS|ACT|NT) \d{4}$/)?.[1] : null;
+    if (st && values.state && values.state !== st) problems.push(`State: the home address is in ${st}, but ${values.state} is chosen.`);
+  }
+  if (table === "client_locations") {
+    problems.push(fix("address", checkStreet(String(values.address ?? "")), "Street address"));
+    if (!values.suburb || !values.state || !values.postcode) problems.push("Fill in the suburb, state and postcode too.");
+    else problems.push(fix("postcode", checkPostcode(String(values.state), String(values.postcode)), "Postcode"));
+  }
+  const problem = problems.filter(Boolean);
+  if (problem.length) return { error: problem.join(" ") };
 
   const supabase = await createClient();
   let error;
