@@ -1,9 +1,10 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
-import { useActionState, useEffect, useTransition } from "react";
+import { startTransition, useActionState, useEffect, useState, useTransition } from "react";
+import { UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Button, Notice, inputClass } from "@/components/ui";
+import { Button, Notice, buttonClass, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
@@ -242,22 +243,63 @@ export function SchemeRow({ scheme, canEdit, orgWord }: { scheme: Scheme; canEdi
 // care manager or support coordinator), when you may assign staff.
 export function AddCareClientForm({ staff, word, schemes = [] }: { staff: { id: string; name: string }[] | null; word: string; schemes?: [string, string][] }) {
   const [state, action, pending] = useActionState(addClientWithManager, null);
+  const [scheme, setScheme] = useState(() => {
+    try {
+      return (JSON.parse(window.localStorage.getItem("portal.newClientDraft") ?? "{}") as Record<string, string>).scheme ?? "";
+    } catch {
+      return "";
+    }
+  });
   const router = useRouter();
   // Added: straight on to their details.
   useEffect(() => {
     if (state?.spotlight) router.push(`/settings/clients/${state.spotlight}?edit=basic`);
   }, [state, router]);
+  // A draft of what's typed stays on this device until the client is added (closing loses nothing).
+  const DRAFT = "portal.newClientDraft";
+  const [draft] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(DRAFT) ?? "{}") as Record<string, string>;
+    } catch {
+      return {};
+    }
+  });
+  const keep = (f: HTMLFormElement) => {
+    try {
+      window.localStorage.setItem(DRAFT, JSON.stringify(Object.fromEntries([...new FormData(f).entries()].map(([k, v]) => [k, String(v)]))));
+    } catch {
+      /* private window: no draft */
+    }
+  };
+  useEffect(() => {
+    if (state?.spotlight)
+      try {
+        window.localStorage.removeItem(DRAFT);
+      } catch {
+        /* nothing to clear */
+      }
+  }, [state]);
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form
+      action={action}
+      onChange={(e) => keep(e.currentTarget)}
+      onSubmit={(e) => {
+        // Keep what was typed on screen if something needs fixing (React would clear the form).
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => action(data));
+      }}
+      className="flex flex-col gap-2"
+    >
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs font-medium">
           Name
-          <input name="name" required maxLength={80} className={inputClass} />
+          <input name="name" required maxLength={80} defaultValue={draft.name ?? ""} className={inputClass} />
         </label>
         {schemes.length ? (
           <label className="flex flex-col gap-1 text-xs font-medium">
             Funded by
-            <select name="scheme" required defaultValue="" className={inputClass}>
+            <select name="scheme" required value={scheme} onChange={(e) => setScheme(e.target.value)} className={inputClass}>
               <option value="" disabled>
                 Choose the scheme
               </option>
@@ -269,16 +311,27 @@ export function AddCareClientForm({ staff, word, schemes = [] }: { staff: { id: 
             </select>
           </label>
         ) : null}
+        {scheme === "ndis" ? (
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            NDIS number
+            <input name="ndis_number" required inputMode="numeric" pattern="\d{9}" maxLength={11} placeholder="9 digits" defaultValue={draft.ndis_number ?? ""} className={inputClass} />
+          </label>
+        ) : scheme === "support_at_home" ? (
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            My Aged Care ID
+            <input name="aged_care_id" required maxLength={12} placeholder="AC12345678" defaultValue={draft.aged_care_id ?? ""} className={inputClass} />
+          </label>
+        ) : null}
         <label className="flex flex-col gap-1 text-xs font-medium sm:col-span-2">
           ID from another system (optional)
-          <input name="reference" maxLength={60} placeholder="e.g. their number in your accounting or old client system" className={inputClass} />
+          <input name="reference" maxLength={60} placeholder="e.g. their number in your accounting or old client system" defaultValue={draft.reference ?? ""} className={inputClass} />
           <span className="font-normal text-muted">The portal gives them a CL- number anyway.</span>
         </label>
         {staff ? (
           <>
             <label className="flex flex-col gap-1 text-xs font-medium">
               Managed by
-              <select name="manager_id" defaultValue="" className={inputClass}>
+              <select name="manager_id" defaultValue={draft.manager_id ?? ""} className={inputClass}>
                 <option value="">Choose later</option>
                 {staff.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -289,7 +342,7 @@ export function AddCareClientForm({ staff, word, schemes = [] }: { staff: { id: 
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium">
               As
-              <select name="assigned_as" defaultValue="case_manager" className={inputClass}>
+              <select name="assigned_as" defaultValue={draft.assigned_as ?? "case_manager"} className={inputClass}>
                 <option value="case_manager">Care manager</option>
                 <option value="support_coordinator">Support coordinator</option>
               </select>
@@ -343,5 +396,43 @@ export function ArchiveClientForm({ clientId, name }: { clientId: string; name: 
         {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
       </div>
     </form>
+  );
+}
+
+// cmeprojects: "New participant" opens straight away (no page reload); the
+// form keeps a draft on this device, so closing it loses nothing.
+export function NewClientButton({ staff, word, schemes }: { staff: { id: string; name: string }[] | null; word: string; schemes: [string, string][] }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [open]);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={buttonClass("primary")}>
+        <UserPlus aria-hidden="true" className="size-4" />
+        New {word.toLowerCase()}
+      </button>
+      {open ? (
+        <>
+          <button type="button" aria-label="Close" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-black/30" />
+          <div role="dialog" aria-modal="true" aria-label={`New ${word.toLowerCase()}`} className="thin-scroll fixed inset-x-4 top-[8vh] z-50 mx-auto max-h-[84vh] max-w-xl overflow-y-auto rounded-xl bg-surface shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-line px-5 py-3">
+              <UserPlus aria-hidden="true" className="size-5 text-brand" />
+              <h2 className="heading-sm flex-1">New {word.toLowerCase()}</h2>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-page hover:text-ink">
+                <X aria-hidden="true" className="size-5" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3 p-5">
+              <p className="text-xs text-muted">Only the basics now. They&apos;re saved as &ldquo;To check&rdquo;, and their page lists what&apos;s left. What you type is kept as a draft if you close this.</p>
+              <AddCareClientForm staff={staff} word={word} schemes={schemes} />
+            </div>
+          </div>
+        </>
+      ) : null}
+    </>
   );
 }

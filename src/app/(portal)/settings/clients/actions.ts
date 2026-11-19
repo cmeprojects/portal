@@ -159,13 +159,25 @@ export async function addClientWithManager(_: FormState, form: FormData): Promis
   if (managerId && !isId(managerId)) return { error: "Choose who manages them." };
   if (!["case_manager", "support_coordinator"].includes(as)) return { error: "Choose care manager or support coordinator." };
   const supabase = await createClient();
-  // update 148: the scheme they're registered under (skipped before it runs).
+  // update 148: the scheme they're registered under (skipped before it runs), and its
+  // identifier, which is required: an NDIS number (9 digits) or a My Aged Care ID (AC + 8 digits).
   const scheme = String(form.get("scheme") ?? "");
+  const ndis = String(form.get("ndis_number") ?? "").replace(/\s/g, "");
+  const mac = String(form.get("aged_care_id") ?? "").replace(/\s/g, "").toUpperCase();
+  if (scheme === "ndis" && !/^\d{9}$/.test(ndis)) return { error: "Enter their NDIS number (9 digits)." };
+  if (scheme === "support_at_home" && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
   const row: Record<string, string> = { name, reference: String(form.get("reference") ?? "").trim().slice(0, 60) };
   let res = await supabase.from("car_clients").insert(/^[a-z_]{1,40}$/.test(scheme) ? { ...row, scheme } : row).select("id").single();
   if (res.error?.code === "42703" || res.error?.code === "PGRST204") res = await supabase.from("car_clients").insert(row).select("id").single();
   const { data, error } = res;
   if (error || !data) return { error: friendlyError(error) };
+  if (scheme === "ndis" || scheme === "support_at_home") {
+    const { error: dError } = await supabase.from("client_details").upsert({ client_id: data.id, ...(scheme === "ndis" ? { ndis_number: ndis } : { aged_care_id: mac }) }, { onConflict: "client_id" });
+    if (dError) {
+      revalidatePath("/settings/clients");
+      return { error: `${name} was added, but the ${scheme === "ndis" ? "NDIS number" : "My Aged Care ID"} wasn't saved: ${friendlyError(dError)} Add it on their page.`, spotlight: data.id };
+    }
+  }
   if (managerId) {
     const { error: aError } = await supabase.from("client_assignments").insert({ client_id: data.id, user_id: managerId, assigned_as: as });
     if (aError) {

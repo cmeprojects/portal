@@ -67,6 +67,16 @@ export async function saveClientSection(_: FormState, form: FormData): Promise<F
     const st = a.ok ? a.value.match(/ (NSW|VIC|QLD|WA|SA|TAS|ACT|NT) \d{4}$/)?.[1] : null;
     if (st && values.state && values.state !== st) problems.push(`State: the home address is in ${st}, but ${values.state} is chosen.`);
   }
+  if (table === "client_details") {
+    if (values.ndis_number) {
+      values.ndis_number = String(values.ndis_number).replace(/\s/g, "");
+      if (!/^\d{9}$/.test(String(values.ndis_number))) problems.push("NDIS number: it's 9 digits.");
+    }
+    if (values.aged_care_id) {
+      values.aged_care_id = String(values.aged_care_id).replace(/\s/g, "").toUpperCase();
+      if (!/^AC\d{8}$/.test(String(values.aged_care_id))) problems.push("My Aged Care ID: it's AC followed by 8 numbers (for example AC12345678).");
+    }
+  }
   if (table === "client_locations") {
     problems.push(fix("address", checkStreet(String(values.address ?? "")), "Street address"));
     if (!values.suburb || !values.state || !values.postcode) problems.push("Fill in the suburb, state and postcode too.");

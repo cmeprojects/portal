@@ -4,12 +4,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { seesClientsFor } from "@/lib/module-access";
-import { AddCareClientForm, ProgramRow, AddProgramForm, SchemeRow, type Scheme } from "./care-forms";
+import { NewClientButton, ProgramRow, AddProgramForm, SchemeRow, type Scheme } from "./care-forms";
 import { canDo } from "@/lib/module-access";
 import { getMyAdminAreas } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Notice, PageHeader, buttonClass } from "@/components/ui";
-import { UserPlus, X } from "lucide-react";
+import { Card, Notice, PageHeader } from "@/components/ui";
 import { ClientTeamsForm } from "./team-form";
 import { ClientList, type ListClient } from "./client-list";
 import { PLAN_MANAGEMENT } from "@/lib/client-sections";
@@ -65,7 +64,6 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
     supabase.from("client_teams").select("client_id, team_id"),
   ]);
   const setup = (await searchParams).view === "setup";
-  const adding = (await searchParams).add === "1";
 
   // cmeprojects (owner's client list concept): one row per client with what
   // this person may already see (each query is limited by the database; a
@@ -194,12 +192,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
         title={orgWord.endsWith("s") ? orgWord : `${orgWord}s`}
         intro="The people you support. Click a name to see a summary; open the full profile for everything else."
         action={
-          canAddClient && !setup ? (
-            <Link href="/settings/clients?add=1" scroll={false} className={buttonClass("primary")}>
-              <UserPlus aria-hidden="true" className="size-4" />
-              New {orgWord.toLowerCase()}
-            </Link>
-          ) : undefined
+          canAddClient && !setup ? <NewClientButton staff={staff} word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} /> : undefined
         }
       />
       <nav className="flex gap-1 border-b border-line text-sm" aria-label="Client pages">
@@ -268,23 +261,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
           ) : null}
         </Card>
       ) : null}
-      {canAddClient && adding ? (
-        <>
-          <Link href="/settings/clients" scroll={false} aria-label="Close" className="fixed inset-0 z-40 bg-black/30" />
-          <div role="dialog" aria-modal="true" aria-label={`New ${orgWord.toLowerCase()}`} className="thin-scroll fixed inset-x-4 top-[8vh] z-50 mx-auto max-h-[84vh] max-w-xl overflow-y-auto rounded-xl bg-surface shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-line px-5 py-3">
-              <UserPlus aria-hidden="true" className="size-5 text-brand" />
-              <h2 className="heading-sm flex-1">New {orgWord.toLowerCase()}</h2>
-              <Link href="/settings/clients" scroll={false} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-page hover:text-ink">
-                <X aria-hidden="true" className="size-5" />
-              </Link>
-            </div>
-            <div className="p-5">
-              <AddCareClientForm staff={staff} word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} />
-            </div>
-          </div>
-        </>
-      ) : null}
+
     </>
   );
 }
