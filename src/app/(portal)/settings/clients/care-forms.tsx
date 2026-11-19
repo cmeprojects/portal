@@ -240,7 +240,7 @@ export function SchemeRow({ scheme, canEdit, orgWord }: { scheme: Scheme; canEdi
 
 // cmeprojects (Care block): add a client and choose who manages them (their
 // care manager or support coordinator), when you may assign staff.
-export function AddCareClientForm({ staff, word }: { staff: { id: string; name: string }[] | null; word: string }) {
+export function AddCareClientForm({ staff, word, schemes = [] }: { staff: { id: string; name: string }[] | null; word: string; schemes?: [string, string][] }) {
   const [state, action, pending] = useActionState(addClientWithManager, null);
   const router = useRouter();
   // Added: straight on to their details.
@@ -254,9 +254,25 @@ export function AddCareClientForm({ staff, word }: { staff: { id: string; name: 
           Name
           <input name="name" required maxLength={80} className={inputClass} />
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Your own reference (optional)
-          <input name="reference" maxLength={60} className={inputClass} />
+        {schemes.length ? (
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Funded by
+            <select name="scheme" required defaultValue="" className={inputClass}>
+              <option value="" disabled>
+                Choose the scheme
+              </option>
+              {schemes.map(([k, l]) => (
+                <option key={k} value={k}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <label className="flex flex-col gap-1 text-xs font-medium sm:col-span-2">
+          ID from another system (optional)
+          <input name="reference" maxLength={60} placeholder="e.g. their number in your accounting or old client system" className={inputClass} />
+          <span className="font-normal text-muted">The portal gives them a CL- number anyway.</span>
         </label>
         {staff ? (
           <>

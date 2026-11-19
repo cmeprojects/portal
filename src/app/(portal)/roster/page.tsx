@@ -850,14 +850,16 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                   shift={draft}
                   workers={workerFit}
                   clients={((clients ?? []) as { id: string; name: string; status: string }[])
-                    .filter((c) => c.status === "active" || c.id === opened?.client_id)
-                    .map((c) => ({ id: c.id, name: c.status === "active" ? c.name : `${c.name} (not active)` }))}
+                    .filter((c) => c.status === "active" || c.status === "pending" || c.id === opened?.client_id)
+                    // Clients still being checked show, but can't be chosen until they're active.
+                    .map((c) => ({ id: c.id, name: c.status === "active" ? c.name : c.status === "pending" ? `${c.name} (to check: not ready to roster)` : `${c.name} (not active)`, disabled: c.status !== "active" && c.id !== opened?.client_id }))}
                   cars={((cars ?? []) as { id: string; name: string; rego: string }[]).map((c) => ({ id: c.id, name: `${c.name} (${c.rego})` }))}
                   locations={((locations ?? []) as { id: string; client_id: string; label: string; address: string; suburb?: string | null; state?: string | null; postcode?: string | null; access_notes?: string | null }[]).map((l) => ({ id: l.id, client_id: l.client_id, name: `${l.label}: ${l.address}`, address: l.address, suburb: l.suburb ?? "", state: l.state ?? "", postcode: l.postcode ?? "", access_notes: l.access_notes ?? "" }))}
                   services={((services ?? []) as { id: string; client_id: string; label: string; status: string; start_date: string; end_date: string | null; program_id: string; origin?: string; catalogue_id?: string | null; shift_types?: string[] }[]).map((v) => {
                     // What it covers: the catalogue entry's types, its own, or (older entries with none set, or before update 143) anything.
                     const own = v.catalogue_id ? (catTypes.get(v.catalogue_id) ?? []) : (v.shift_types ?? []);
-                    const open = !v.origin || (v.origin === "legacy" && !own.length);
+                    // Before update 143 there's no list at all: anything. After 148 every service needs its list.
+                    const open = !v.origin;
                     return { id: v.id, client_id: v.client_id, name: v.label, status: v.status, start_date: v.start_date, end_date: v.end_date, program: programName.get(v.program_id) ?? "", types: open ? null : own };
                   })}
                 />

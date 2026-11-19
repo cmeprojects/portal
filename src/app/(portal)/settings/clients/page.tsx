@@ -280,7 +280,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
               </Link>
             </div>
             <div className="p-5">
-              <AddCareClientForm staff={staff} word={orgWord} />
+              <AddCareClientForm staff={staff} word={orgWord} schemes={schemes.map((x) => [x.key, x.label] as [string, string])} />
             </div>
           </div>
         </>

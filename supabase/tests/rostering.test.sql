@@ -31,6 +31,8 @@ insert into public.client_locations (client_id, label, address, approved) select
 -- Update 130: client shifts need a service and a location.
 insert into public.client_services (client_id, program_id, label, status, start_date, location_id)
 select c.id, (select id from public.client_programs where name = 'Private'), 'Support', 'planned', current_date, l.id from public.car_clients c join public.client_locations l on l.client_id = c.id;
+-- Update 148: services list the shift types they cover (here: every client shift type).
+update public.client_services set shift_types = (select array_agg(key) from public.shift_types where used_for in ('client', 'both')) where origin = 'legacy' and cardinality(shift_types) = 0;
 insert into public.leave_periods (user_id, leave_type, start_date, end_date) values (test.pid('kim@example.com'), 'annual', current_date + 3, current_date + 4);
 
 -- Payroll & Rostering rosters Sam.

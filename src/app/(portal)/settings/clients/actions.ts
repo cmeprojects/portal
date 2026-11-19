@@ -159,7 +159,12 @@ export async function addClientWithManager(_: FormState, form: FormData): Promis
   if (managerId && !isId(managerId)) return { error: "Choose who manages them." };
   if (!["case_manager", "support_coordinator"].includes(as)) return { error: "Choose care manager or support coordinator." };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("car_clients").insert({ name, reference: String(form.get("reference") ?? "").trim().slice(0, 60) }).select("id").single();
+  // update 148: the scheme they're registered under (skipped before it runs).
+  const scheme = String(form.get("scheme") ?? "");
+  const row: Record<string, string> = { name, reference: String(form.get("reference") ?? "").trim().slice(0, 60) };
+  let res = await supabase.from("car_clients").insert(/^[a-z_]{1,40}$/.test(scheme) ? { ...row, scheme } : row).select("id").single();
+  if (res.error?.code === "42703" || res.error?.code === "PGRST204") res = await supabase.from("car_clients").insert(row).select("id").single();
+  const { data, error } = res;
   if (error || !data) return { error: friendlyError(error) };
   if (managerId) {
     const { error: aError } = await supabase.from("client_assignments").insert({ client_id: data.id, user_id: managerId, assigned_as: as });

@@ -21,6 +21,8 @@ insert into public.car_clients (name, status) values ('Ann', 'active'), ('Bob', 
 insert into public.client_locations (client_id, label, address, approved) select id, 'Home', name || ' St', true from public.car_clients;
 insert into public.client_services (client_id, program_id, label, status, start_date, location_id)
 select c.id, (select id from public.client_programs where name = 'Private'), 'Support', 'planned', current_date, l.id from public.car_clients c join public.client_locations l on l.client_id = c.id;
+-- Update 148: services list the shift types they cover (here: every client shift type).
+update public.client_services set shift_types = (select array_agg(key) from public.shift_types where used_for in ('client', 'both')) where origin = 'legacy' and cardinality(shift_types) = 0;
 insert into public.client_alerts (client_id, kind, severity, title, active) select id, 'safety', 'high', 'Dog', true from public.car_clients;
 insert into public.client_details (client_id, date_of_birth) select id, '1950-01-01' from public.car_clients;
 select test.act_as('boss@example.com');

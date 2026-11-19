@@ -121,7 +121,7 @@ export function ShiftForm({
 }: {
   shift: ShiftDraft;
   workers: WorkerFit[];
-  clients: Opt[];
+  clients: (Opt & { disabled?: boolean })[];
   locations: LocationOpt[];
   services: ServiceOpt[];
   shiftTypes: ShiftTypeOpt[];
@@ -330,7 +330,7 @@ export function ShiftForm({
             <select name="client_id" value={client} onChange={(e) => pickClient(e.target.value)} className={inputClass}>
               <option value="">No client: office, training or internal work</option>
               {clients.map((c) => (
-                <option key={c.id} value={c.id}>
+                <option key={c.id} value={c.id} disabled={c.disabled}>
                   {c.name}
                 </option>
               ))}

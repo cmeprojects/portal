@@ -632,3 +632,21 @@ export async function setFollowUpDone(form: FormData) {
   revalidatePath(`/settings/clients/${clientId}`);
   revalidatePath("/settings/clients");
 }
+
+// cmeprojects: the "To check" checklist's last step. Makes the client active,
+// then each pending service that's ready and has started (the database checks
+// every one). Says what couldn't be made active and why.
+export async function makeClientActive(form: FormData) {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  if (!isId(clientId)) return;
+  const supabase = await createClient();
+  const { error } = await supabase.from("car_clients").update({ status: "active" }).eq("id", clientId).eq("status", "pending");
+  if (!error) {
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+    const { data: pending } = await supabase.from("client_services").select("id").eq("client_id", clientId).eq("status", "planned").lte("start_date", today);
+    for (const s of (pending ?? []) as { id: string }[]) await supabase.from("client_services").update({ status: "active" }).eq("id", s.id);
+  }
+  revalidatePath(`/settings/clients/${clientId}`);
+  revalidatePath("/settings/clients");
+}

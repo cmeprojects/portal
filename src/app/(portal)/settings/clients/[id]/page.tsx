@@ -17,7 +17,7 @@ import { CommsForm, type Comms } from "./comms-form";
 import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow } from "./service-form";
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { ExtendAccessForm, GiveAccessForm } from "./practitioner-form";
-import { archiveClientDocument, promoteClientService, endPractitionerAccess, shareWithPractitioners, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
+import { archiveClientDocument, makeClientActive, promoteClientService, endPractitionerAccess, shareWithPractitioners, endAgreement, endFunding, endAssignment, setCareGoalStatus, setCarePlanStatus, setWorkerInstructionActive } from "./actions";
 import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
 import { AgreementForm, SignAgreementForm, type Agreement } from "./agreement-form";
 import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
@@ -231,6 +231,49 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     some_concerns: ["Some concerns", "bg-warn-soft"],
     unwell_or_distressed: ["Unwell or distressed", "bg-danger-soft text-danger"],
   };
+  // cmeprojects: the "To check" checklist (pending clients only): what's done and what's missing.
+  const checking = client.status === "pending";
+  const svcRows = ((services.data ?? []) as { id: string; label: string; status: string; program_id: string; location_id: string; consent_required: boolean; consent_given_on: string | null }[]).filter((v) => v.status !== "ended");
+  const gapRes = checking
+    ? await Promise.all([
+        supabase.rpc("client_gaps", { p_client: id, p_program: null, p_location: null, p_consent_required: false, p_consent_given: null }),
+        ...svcRows.map((v) => supabase.rpc("client_gaps", { p_client: id, p_program: v.program_id, p_location: v.location_id, p_consent_required: v.consent_required, p_consent_given: v.consent_given_on })),
+      ])
+    : [];
+  const allGaps = [...new Set(gapRes.flatMap((r) => ((r.data ?? []) as string[])))].filter((g) => !/isn't active yet/.test(g));
+  const has = (re: RegExp) => !allGaps.some((g) => re.test(g));
+  // update 148: the scheme chosen at registration (not asked before it runs).
+  const schemeRes = checking ? await supabase.from("car_clients").select("scheme").eq("id", id).maybeSingle() : null;
+  const regScheme = (schemeRes?.data as { scheme?: string | null } | null)?.scheme ?? null;
+  const checklist: [string, boolean, string, string][] = checking
+    ? [
+        ...(schemeRes && !schemeRes.error ? [["Funded by (NDIS, Support at Home, …)", !!regScheme, regScheme ? (schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme) : "Not chosen", `/settings/clients/${id}?edit=basic`] as [string, boolean, string, string]] : []),
+        ["At least one approved service", svcRows.length > 0, svcRows.length ? svcRows.map((v) => v.label).join(", ") : "None yet", `/settings/clients/${id}?tab=services`],
+        ["An approved service location", has(/location/i) && locationRows.some((l) => l.approved), locationRows.some((l) => l.approved) ? "Approved" : "Add and approve the address where support happens", `/settings/clients/${id}?tab=profile`],
+        ["An emergency contact", has(/emergency/i), has(/emergency/i) ? "Recorded" : "Add one under Emergency contacts", `/settings/clients/${id}?tab=profile`],
+        ["Safety answered", has(/safety/i), has(/safety/i) ? "Recorded" : "Add an alert, or record \"No known safety alerts\"", `/settings/clients/${id}?tab=profile`],
+        ["Date of birth (if the program needs it)", has(/date of birth/i), has(/date of birth/i) ? "Done" : "Needed for this program", `/settings/clients/${id}?edit=basic`],
+        ["NDIS number / My Aged Care ID", has(/NDIS number|My Aged Care/i), has(/NDIS number|My Aged Care/i) ? "Done" : allGaps.filter((g) => /NDIS number|My Aged Care/i.test(g)).join(" "), `/settings/clients/${id}?edit=basic`],
+        ["Consent (where a service needs it)", has(/consent/i), has(/consent/i) ? "Done" : "Record the consent date on the service", `/settings/clients/${id}?tab=services`],
+      ]
+    : [];
+  // The registered scheme also decides what's needed before any service is added.
+  if (checking && regScheme) {
+    const det0 = (details.data ?? null) as { date_of_birth?: string | null; ndis_number?: string | null; aged_care_id?: string | null } | null;
+    const { data: sc } = await supabase.from("client_schemes").select("needs_dob").eq("key", regScheme).maybeSingle();
+    const dobRow = checklist.find(([l]) => l.startsWith("Date of birth"));
+    if (dobRow && sc?.needs_dob && !det0?.date_of_birth) {
+      dobRow[1] = false;
+      dobRow[2] = `Needed for ${schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme}`;
+    }
+    const idRow = checklist.find(([l]) => l.startsWith("NDIS number"));
+    const idMissing = regScheme === "ndis" ? !det0?.ndis_number : regScheme === "support_at_home" ? !det0?.aged_care_id : false;
+    if (idRow && idMissing) {
+      idRow[1] = false;
+      idRow[2] = regScheme === "ndis" ? "The NDIS number is needed" : "The My Aged Care ID is needed";
+    }
+  }
+  const readyToActivate = checking && checklist.every(([, ok]) => ok);
   // cmeprojects (update 147): the communication log (the database decides who sees it).
   const [logRes, canWriteComms] = await Promise.all([
     supabase.from("client_communications").select("id, happened_at, method, direction, with_whom, summary, follow_up, follow_up_by, follow_up_done_at, author_id").eq("client_id", id).order("happened_at", { ascending: false }).limit(200),
@@ -570,6 +613,48 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           ) : (
             <p className="text-sm text-muted">No shifts in that time.</p>
           )}
+        </Card>
+      ) : null}
+      {checking && !step ? (
+        <Card className="flex flex-col gap-3 border-warn/50 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="heading-sm">To check: getting {client.preferred_name || client.name.split(" ")[0]} ready</h2>
+              <p className="text-sm text-muted">They show in lists but can&apos;t be rostered until they&apos;re active. Finish each step, then make them active.</p>
+            </div>
+            <span className="rounded-full bg-warn-soft px-2.5 py-0.5 text-xs font-semibold">
+              {checklist.filter(([, ok]) => ok).length} of {checklist.length} done
+            </span>
+          </div>
+          <ol className="flex flex-col divide-y divide-line rounded-lg border border-line text-sm">
+            {checklist.map(([label, ok, note, href]) => (
+              <li key={label} className="flex flex-wrap items-center gap-3 px-3 py-2">
+                <span aria-hidden="true" className={`flex size-5 items-center justify-center rounded-full text-xs font-bold ${ok ? "bg-good text-white" : "border-2 border-warn"}`}>
+                  {ok ? "✓" : ""}
+                </span>
+                <span className="min-w-48 flex-1">
+                  <span className="font-medium">{label}</span>
+                  <span className={`block text-xs ${ok ? "text-muted" : "text-warn"}`}>{note}</span>
+                </span>
+                {ok ? null : (
+                  <Link href={href} className="text-xs font-semibold text-brand underline">
+                    Do this
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ol>
+          {canEditClient ? (
+            readyToActivate ? (
+              <form action={makeClientActive} className="flex items-center gap-3">
+                <input type="hidden" name="client_id" value={id} />
+                <button className="rounded-lg bg-good px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Make active</button>
+                <span className="text-xs text-muted">Their pending services that have started become active too.</span>
+              </form>
+            ) : (
+              <p className="text-xs text-muted">&ldquo;Make active&rdquo; appears once every step is done.</p>
+            )
+          ) : null}
         </Card>
       ) : null}
       {inView("overview") ? (
