@@ -2,7 +2,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { ArrowUp, UserPlus, X } from "lucide-react";
+import { UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button, Notice, buttonClass, inputClass } from "@/components/ui";
 import { useSavableForm } from "@/components/page-save";
@@ -436,35 +436,12 @@ export function NewClientButton({ staff, word: orgWord, schemes, schemeWords = {
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
   }, [open]);
-  // Once the page scrolls, the button also floats at the bottom right (owner, 20 Nov 2026), with Back to top above it.
-  const [scrolled, setScrolled] = useState(0);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={buttonClass("primary")}>
         <UserPlus aria-hidden="true" className="size-4" />
         New {word.toLowerCase()}
       </button>
-      {scrolled > 160 && !open ? (
-        <div className="fixed right-4 bottom-4 z-30 flex flex-col items-end gap-2 md:right-8 md:bottom-6 print:hidden">
-          {scrolled > 600 ? (
-            <button
-              type="button"
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink shadow-lg hover:bg-page"
-            >
-              <ArrowUp aria-hidden="true" className="size-4" /> Back to top
-            </button>
-          ) : null}
-          <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-fg shadow-xl hover:opacity-90">
-            <UserPlus aria-hidden="true" className="size-4" /> New {word.toLowerCase()}
-          </button>
-        </div>
-      ) : null}
       {open ? (
         <>
           <button type="button" aria-label="Close" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-black/30" />

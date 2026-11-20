@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { pluralOf, storeClientTab, useClientTab, useStoredClientTab, wordForTab } from "./client-tab";
-import { ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
+import { Download, ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
 import { loadClientNotes, type ClientNotes } from "./notes-actions";
 import { CommsLogForm, CommsLogList } from "./[id]/comms-log";
 import { inputClass } from "@/components/ui";
@@ -25,6 +25,7 @@ export type ListClient = {
   age: number | null;
   ndisNumber: string;
   agedCareId: string;
+  gender: string;
   email: string;
   phone: string;
   suburb: string;
@@ -201,12 +202,11 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
 // holds what this person may already see (the database decides).
 const MAC = ["support_at_home", "chsp"];
 
-export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis, showBudget, showContact, backToTop = false }: { clients: ListClient[]; word: string; schemes: [string, string][]; schemeWords?: Record<string, string>; showNdis: boolean; showBudget: boolean; showContact: boolean; backToTop?: boolean }) {
+export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis, showBudget, showContact, addButton, canExport = false }: { clients: ListClient[]; word: string; schemes: [string, string][]; schemeWords?: Record<string, string>; showNdis: boolean; showBudget: boolean; showContact: boolean; addButton?: React.ReactNode; canExport?: boolean }) {
   const router = useRouter();
   // The notes pop-up (shift notes, practitioner notes, communications, log, reviews).
   const [notesFor, setNotesFor] = useState<{ client: ListClient; tab: NotesTab } | null>(null);
   const [alertsFor, setAlertsFor] = useState<ListClient | null>(null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [q, setQ] = useState("");
   // Scheme tabs (NDIS, Support at Home, CHSP …): the choice is kept on this device.
@@ -219,6 +219,9 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
     storeClientTab(v);
   };
   const [manager, setManager] = useState("");
+  const [gender, setGender] = useState("");
+  const [suburb, setSuburb] = useState("");
+  const [service, setService] = useState("");
   const [status, setStatus] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; up: boolean }>({ key: "name", up: true });
   const [open, setOpen] = useState<string | null>(null);
@@ -244,6 +247,9 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
         (!term || [c.name, c.preferredName, c.ref, c.reference, c.ndisNumber, c.agedCareId, c.email, c.suburb, ...c.services].some((v) => v.toLowerCase().includes(term))) &&
         (!scheme || c.schemes.includes(scheme)) &&
         (!manager || (manager === "-" ? c.managers.length === 0 : c.managers.some((m) => m.name === manager))) &&
+        (!gender || c.gender === gender) &&
+        (!suburb || c.suburb === suburb) &&
+        (!service || c.services.includes(service)) &&
         (!status || c.status === status),
     );
     const val = (c: ListClient): string | number => {
@@ -265,7 +271,36 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
       const y = val(b);
       return (x < y ? -1 : x > y ? 1 : 0) * (sort.up ? 1 : -1);
     });
-  }, [clients, tab, q, scheme, manager, status, sort]);
+  }, [clients, tab, q, scheme, manager, status, sort, gender, suburb, service]);
+  // Choices for the quick filters, from the clients in this list.
+  const suburbs = useMemo(() => [...new Set(clients.map((c) => c.suburb).filter(Boolean))].sort(), [clients]);
+  const serviceNames = useMemo(() => [...new Set(clients.flatMap((c) => c.services))].sort(), [clients]);
+  const filtering = Boolean(gender || suburb || service || manager || status || q);
+  const clearFilters = () => {
+    setGender("");
+    setSuburb("");
+    setService("");
+    setManager("");
+    setStatus("");
+    setQ("");
+  };
+  // Export what's on screen (these filters) as a spreadsheet file (CSV opens in Excel).
+  const exportList = () => {
+    const head = ["Name", "Reference", "Status", "Funded by", "NDIS number", "My Aged Care ID", "Age", "Gender", "Email", "Mobile", "Suburb", "Services", "Managed by", "Next review"];
+    const cell = (v: string | number | null | undefined) => {
+      const t = v === null || v === undefined ? "" : String(v);
+      return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+    };
+    const lines = rows.map((c) =>
+      [c.name, c.ref, c.status, c.schemes.map((k) => schemes.find(([x]) => x === k)?.[1] ?? k).join("; "), c.ndisNumber, c.agedCareId, c.age ?? "", GENDER_WORD[c.gender] ?? c.gender, c.email, c.phone, c.suburb, c.services.join("; "), c.managers.map((m) => m.name).join("; "), c.reviews[0] ? `${c.reviews[0].label} ${c.reviews[0].due}` : ""].map(cell).join(","),
+    );
+    const blob = new Blob([`\ufeff${[head.join(","), ...lines].join("\r\n")}`], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${tabPlural.toLowerCase()}-${new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
   const picked = clients.find((c) => c.id === open) ?? null;
 
   useEffect(() => {
@@ -276,16 +311,20 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
 
   return (
     <div className="shadow-card flex flex-col rounded-xl border border-line bg-surface">
-      {backToTop ? <BackToTop /> : null}
-      <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 pt-2">
+      <BackToTop />
+      {/* The tabs, filters and buttons stay at the top while the list scrolls (owner, 20 Nov 2026). */}
+      <div className="sticky top-0 z-20 rounded-t-xl bg-surface md:top-[var(--topbar-h,73px)]">
+      <div role="tablist" aria-label="Active or archived" className="flex flex-wrap items-center gap-1.5 px-3 pt-3">
         {(["active", "archived"] as const).map((t) => (
           <button
             key={t}
             type="button"
+            role="tab"
+            aria-selected={tab === t}
             onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${tab === t ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}
+            className={`rounded-lg px-4 py-1.5 text-sm font-semibold ${tab === t ? "bg-brand text-brand-fg shadow-sm" : "bg-page text-muted hover:text-ink"}`}
           >
-            {t === "active" ? "Active" : "Archived"} <span className="text-xs font-normal text-muted">{counts[t]}</span>
+            {t === "active" ? "Active" : "Archived"} <span className={`text-xs font-normal ${tab === t ? "text-brand-fg/80" : "text-muted"}`}>{counts[t]}</span>
           </button>
         ))}
       </div>
@@ -305,45 +344,38 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
           ))}
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center gap-2 p-3">
-        <button type="button" onClick={() => setFiltersOpen((o) => !o)} aria-expanded={filtersOpen} className={`inline-flex h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold md:h-10 ${filtersOpen || scheme || manager || status ? "border-brand bg-brand-soft text-ink" : "border-field text-muted hover:text-ink"}`}>
+      {/* One toolbar (owner, 20 Nov 2026): quick filters, search, refresh, then New and Export. */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted">
           <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
-        </button>
+        </span>
+        <QuickFilter label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
+        <QuickFilter label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
+        <QuickFilter label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
+        <QuickFilter label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
+        {tab === "active" ? <QuickFilter label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
         <label className="relative min-w-48 flex-1">
           <span className="sr-only">Search</span>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${tabPlural.toLowerCase()}: name, reference${showNdisCol || showIdCol ? ", NDIS number" : ""}${showMac || showIdCol ? ", My Aged Care ID" : ""}${showContact ? ", email, suburb" : ""} or service`} className={`${inputClass} pl-8`} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${tabPlural.toLowerCase()}: name, reference${showNdisCol || showIdCol ? ", NDIS number" : ""}${showMac || showIdCol ? ", My Aged Care ID" : ""}${showContact ? ", email, suburb" : ""} or service`} className={`${inputClass} h-10 pl-8`} />
         </label>
-        <button type="button" onClick={() => router.refresh()} title="Refresh" aria-label="Refresh" className="inline-flex size-11 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink md:size-10">
+        {filtering ? (
+          <button type="button" onClick={clearFilters} className="inline-flex h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink">
+            <X aria-hidden="true" className="size-4" /> Clear
+          </button>
+        ) : null}
+        <button type="button" onClick={() => router.refresh()} title="Refresh" aria-label="Refresh" className="inline-flex size-10 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink">
           <RefreshCw aria-hidden="true" className="size-4" />
         </button>
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          {addButton}
+          {canExport ? (
+            <button type="button" onClick={exportList} disabled={!rows.length} className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-field bg-surface px-3 text-sm font-semibold text-ink shadow-sm hover:bg-page disabled:opacity-50">
+              <Download aria-hidden="true" className="size-4" /> Export
+            </button>
+          ) : null}
+        </span>
       </div>
-      <div className={`${filtersOpen ? "flex" : "hidden"} flex-wrap items-center gap-2 px-3 pb-3`}>
-        <select aria-label="Scheme" value={scheme} onChange={(e) => setScheme(e.target.value)} className={`${inputClass.replace("w-full", "")} w-full sm:w-44`}>
-          <option value="">All schemes</option>
-          {schemes.map(([k, l]) => (
-            <option key={k} value={k}>
-              {l}
-            </option>
-          ))}
-        </select>
-        <select aria-label="Assigned manager" value={manager} onChange={(e) => setManager(e.target.value)} className={`${inputClass.replace("w-full", "")} w-full sm:w-44`}>
-          <option value="">Any manager</option>
-          <option value="-">Nobody assigned</option>
-          {managers.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-        {tab === "active" ? (
-          <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)} className={`${inputClass.replace("w-full", "")} w-full sm:w-44`}>
-            <option value="">Any status</option>
-            <option value="active">Active</option>
-            <option value="pending">To check</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        ) : null}
       </div>
       {rows.length ? (
         <div className="overflow-x-auto">
@@ -775,7 +807,7 @@ export function ClientsTitle({ word, schemeWords = {}, schemes }: { word: string
   return <>{pluralOf(wordForTab(tab, word, schemeWords))}</>;
 }
 
-// For people without the New button (it carries Back to top for everyone else).
+// Back to the top of a long list (the New button stays in the sticky toolbar).
 function BackToTop() {
   const [y, setY] = useState(0);
   useEffect(() => {
@@ -792,5 +824,26 @@ function BackToTop() {
     >
       <ArrowUp aria-hidden="true" className="size-4" /> Back to top
     </button>
+  );
+}
+
+const GENDER_WORD: Record<string, string> = { female: "Female", male: "Male", non_binary: "Non-binary", different_term: "Uses a different term", prefer_not_to_say: "Prefer not to say" };
+
+// A compact filter: shows its name until something is chosen, then stands out.
+function QuickFilter({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][] }) {
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`h-10 max-w-44 rounded-lg border px-2.5 text-sm font-medium ${value ? "border-brand bg-brand-soft text-ink" : "border-field bg-surface text-muted"}`}
+    >
+      <option value="">{label}</option>
+      {options.map(([k, l]) => (
+        <option key={k} value={k}>
+          {l}
+        </option>
+      ))}
+    </select>
   );
 }
