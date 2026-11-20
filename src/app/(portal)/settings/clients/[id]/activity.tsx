@@ -63,7 +63,7 @@ const TABLE: Record<string, [string, string]> = {
   client_practitioner_notes: ["a practitioner note", "Practitioner note"],
   client_external_access: ["practitioner access", "Practitioner access"],
 };
-const VERB: Record<string, string> = { added: "added", changed: "changed", removed: "removed", archived: "archived", restored: "restored", replaced: "uploaded a new version of" };
+const VERB: Record<string, string> = { approved: "approved", needs_approval: "changed the address of (needs approving again)", added: "added", changed: "changed", removed: "removed", archived: "archived", restored: "restored", replaced: "uploaded a new version of" };
 
 const fieldLabel = (k: string) => {
   const t = k.replace(/_id$/, "").replace(/_/g, " ");
@@ -74,6 +74,10 @@ function parseAction(action: string, details: Record<string, unknown>): { table:
   // Older entries: added_car_client / changed_car_client.
   const legacy = action.match(/^(added|changed)_car_client$/);
   if (legacy) return { table: "car_clients", verb: legacy[1] };
+  // Older entries from the location and status guards (before update 156).
+  const loc = action.match(/^client_location_(added|changed|approved|needs_approval)$/);
+  if (loc) return { table: "client_locations", verb: loc[1] };
+  if (action === "client_status") return { table: "car_clients", verb: "status" };
   const m = action.match(/^(.*)_(added|changed|removed|archived|restored|replaced)$/);
   if (m) return { table: typeof details.table === "string" ? details.table : m[1], verb: m[2] };
   return { table: "", verb: action.replace(/_/g, " ") };
@@ -110,7 +114,13 @@ export async function ClientActivity({ clientId, filter, isSystemAdmin }: { clie
     const d = r.details ?? {};
     const { table, verb } = parseAction(r.action, d);
     const [what, heading] = TABLE[table] ?? [table.replace(/^client_/, "").replace(/_/g, " ") || "a record", "Record"];
-    const text = table === "car_clients" && verb === "added" ? "created the client record" : `${VERB[verb] ?? verb} ${what}`;
+    const word = (v: unknown) => String(v ?? "").replace(/_/g, " ");
+    const text =
+      table === "car_clients" && verb === "added"
+        ? "created the client record"
+        : verb === "status"
+          ? `changed the status from ${word(d.from)} to ${word(d.to)}`
+          : `${VERB[verb] ?? verb} ${what}`;
     // Older entries kept the whole record as before/after.
     const legacyValues =
       d.before && d.after && typeof d.before === "object" && typeof d.after === "object"
@@ -128,7 +138,7 @@ export async function ClientActivity({ clientId, filter, isSystemAdmin }: { clie
       actorId: r.actor_id,
       cat: table === "client_documents" ? "document" : "change",
       text,
-      item: typeof d.item === "string" && d.item && table !== "car_clients" ? `${heading}: ${d.item}` : heading,
+      item: typeof d.item === "string" && d.item && table !== "car_clients" ? `${heading}: ${d.item}` : typeof d.location === "string" ? `${heading}: ${d.location}` : heading,
       fields,
       values,
       outcome: typeof d.outcome === "string" ? d.outcome : "success",

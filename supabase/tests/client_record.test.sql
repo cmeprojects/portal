@@ -51,7 +51,7 @@ set role authenticated;
 update public.car_clients set status = 'active' where name = 'Zara North';
 reset role;
 select test.ok((select status = 'active' and status_changed_by = test.pid('boss@example.com') and status_changed_at is not null from public.car_clients where name = 'Zara North'), 'a manager makes a client active (who and when kept)');
-select test.ok(exists (select 1 from public.audit_log where action = 'client_status' and details ->> 'to' = 'active' and details ->> 'from' = 'pending'), 'the status change is in the change log');
+select test.ok(exists (select 1 from public.audit_log a join public.client_audit_values v on v.audit_id = a.id where a.action = 'car_clients_changed' and v.changes -> 'status' = '["pending", "active"]'::jsonb), 'the status change is in the change log (with before and after, update 156)');
 select test.act_as('boss@example.com');
 set role authenticated;
 select test.refused($$update public.car_clients set status = 'archived' where name = 'Zara North'$$, 'only pending, active, suspended or discharged');

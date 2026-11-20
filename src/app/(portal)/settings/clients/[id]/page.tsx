@@ -61,7 +61,9 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   // page is recorded (at most once an hour each), after the page is sent.
   // (Cookies can't be read inside after() in a page, so the signed-in client is made first.)
   const since = new Date(Date.parse(new Date().toISOString()) - 3_600_000).toISOString();
+  // Opening the Activity tab is recorded there, as opening the audit trail (one event per click).
   after(async () => {
+    if (tab === "activity") return;
     // Page openings only (update 155 also records opening the audit trail here).
     let check = await supabase.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", viewer.id).eq("area", "profile").gte("viewed_at", since).limit(1);
     if (check.error) check = await supabase.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", viewer.id).gte("viewed_at", since).limit(1);

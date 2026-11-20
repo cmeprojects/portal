@@ -69,6 +69,14 @@ delete from public.client_assignments where client_id = test.cid('Zara North') a
 select test.ok(test.vals('client_assignments_removed') -> 'user_id' -> 0 is not null, 'removing an assignment is recorded, with what was removed');
 insert into public.client_assignments (client_id, user_id) values (test.cid('Zara North'), test.pid('cm@example.com'));
 
+-- Update 156: a location change and a status change are each recorded once.
+select test.ok((select count(*) from public.audit_log where entity_id = test.cid('Zara North')::text and action like 'client_location%') = 1, 'adding a location is one entry (update 156)');
+update public.client_locations set address = '2 Test St' where label = 'Home';
+select test.ok((select count(*) from public.audit_log where entity_id = test.cid('Zara North')::text and action like 'client_location%') = 2, 'changing it is one more entry');
+update public.car_clients set status = 'active' where name = 'Alex South';
+select test.ok((select count(*) from public.audit_log where entity_id = test.cid('Alex South')::text and (action = 'client_status' or (action = 'car_clients_changed' and details -> 'fields' ? 'status'))) = 1, 'a status change is one entry');
+select test.ok(test.vals('car_clients_changed') -> 'status' = '["pending", "active"]'::jsonb, 'with the before and after status');
+
 -- 4. Documents: uploaded, replaced, archived.
 insert into public.client_documents (client_id, doc_type, title, file_path, file_name, mime_type, size_bytes, version)
 values (test.cid('Zara North'), 'assessment', 'OT assessment', test.cid('Zara North') || '/ot.pdf', 'ot.pdf', 'application/pdf', 100, 1);
@@ -105,5 +113,26 @@ set role authenticated;
 insert into public.client_staff_views (client_id, area) values (test.cid('Zara North'), 'audit_trail');
 reset role;
 select test.ok((select count(*) from public.client_staff_views where area = 'audit_trail') = 1, 'opening the trail is recorded');
+-- Update 157: a repeat within the hour (a second request, a refresh) isn't recorded again;
+-- a different kind of opening, or another person, still is.
+select test.act_as('boss@example.com');
+set role authenticated;
+insert into public.client_staff_views (client_id, area) values (test.cid('Zara North'), 'audit_trail');
+insert into public.client_staff_views (client_id, area) values (test.cid('Zara North'), 'profile');
+insert into public.client_staff_views (client_id, area) values (test.cid('Zara North'), 'profile');
+reset role;
+select test.act_as('owner@example.com');
+set role authenticated;
+insert into public.client_staff_views (client_id, area) values (test.cid('Zara North'), 'audit_trail');
+reset role;
+select test.ok((select count(*) from public.client_staff_views where area = 'audit_trail' and user_id = test.pid('boss@example.com')) = 1, 'a repeat opening within the hour is not recorded twice (update 157)');
+select test.ok((select count(*) from public.client_staff_views where area = 'profile' and user_id = test.pid('boss@example.com')) = 1, 'the page opening is recorded once too');
+select test.ok((select count(*) from public.client_staff_views where area = 'audit_trail' and user_id = test.pid('owner@example.com')) = 1, 'another person''s opening is still recorded');
+update public.client_staff_views set viewed_at = now() - interval '2 hours' where user_id = test.pid('boss@example.com') and area = 'profile';
+select test.act_as('boss@example.com');
+set role authenticated;
+insert into public.client_staff_views (client_id, area) values (test.cid('Zara North'), 'profile');
+reset role;
+select test.ok((select count(*) from public.client_staff_views where area = 'profile' and user_id = test.pid('boss@example.com')) = 2, 'opening again after the hour is recorded');
 \o
 select 'All client audit trail tests passed.';

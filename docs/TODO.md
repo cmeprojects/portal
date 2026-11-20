@@ -157,5 +157,7 @@ the owner's brief:
   named; attempts with no client in the link show only under Portal settings, Downloads.
 - **Allied Health and Team Leaders**: they don't see client audit trails by default. Give "Activity and
   audit trail" on the Access page if wanted.
-- **Client incidents** keep their own record (incident created); changes to incidents aren't in the
-  client trail yet.
+- **Client incidents** are linked to their client and keep their own history (client_incident_events,
+  shown on the incident). They are not in the client's Activity tab. Checked 20 Nov 2026: updates
+  154-156 don't change incidents or who can see them. Adding incident activity to the client trail is
+  future work.

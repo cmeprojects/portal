@@ -35,7 +35,7 @@ select test.refused($$insert into public.client_locations (client_id, address, p
 select test.refused($$insert into public.client_locations (client_id, address, from_date, to_date) values (test.cid('Zara North'), '2 Bad St', current_date, current_date - 1)$$, 'the end can''t be before the start');
 reset role;
 select test.ok((select approved_by = test.pid('boss@example.com') and approved_at is not null from public.client_locations where label = 'Home'), 'approval records who really approved it (not a name sent in)');
-select test.ok(exists (select 1 from public.audit_log where action = 'client_location_added' and details ->> 'location' = 'Home'), 'adding a location is in the change log');
+select test.ok(exists (select 1 from public.audit_log where action = 'client_locations_added' and details ->> 'item' = 'Home'), 'adding a location is in the change log (one entry, update 156)');
 
 -- Approving, and an address change needing approval again.
 select test.act_as('boss@example.com');
@@ -44,13 +44,13 @@ update public.client_locations set approved = true where label = 'Day program';
 update public.client_locations set access_notes = 'Ring the bell' where label = 'Home';
 reset role;
 select test.ok((select approved from public.client_locations where label = 'Home'), 'changing access notes keeps it approved');
-select test.ok(exists (select 1 from public.audit_log where action = 'client_location_approved' and details ->> 'location' = 'Day program'), 'approving is in the change log');
+select test.ok(exists (select 1 from public.audit_log where action = 'client_locations_changed' and details ->> 'item' = 'Day program' and details -> 'fields' ? 'approved'), 'approving is in the change log');
 select test.act_as('boss@example.com');
 set role authenticated;
 update public.client_locations set address = '3 New St' where label = 'Home';
 reset role;
 select test.ok((select not approved and approved_by is null from public.client_locations where label = 'Home'), 'a new address needs approving again');
-select test.ok(exists (select 1 from public.audit_log where action = 'client_location_needs_approval'), 'and the change log says so');
+select test.ok(exists (select 1 from public.audit_log where action = 'client_locations_changed' and details -> 'fields' ? 'address' and details -> 'fields' ? 'approved'), 'and the change log says so (the address and approval both changed)');
 select test.act_as('boss@example.com');
 set role authenticated;
 update public.client_locations set approved = true where label = 'Home';
