@@ -216,7 +216,9 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
               {toCheck.length > 5 ? " and more" : ""}. Open them, check their details and set the status (for example Active).
             </Notice>
           ) : null}
-          <ClientList clients={listClients} word={orgWord} schemes={schemes.map((x) => [x.key, x.label])} schemeWords={Object.fromEntries(schemes.map((x) => [x.key, x.person_word ?? ""]))} showNdis={showNdis} showBudget={showBudget} showContact={showContact} />
+          <ClientList clients={listClients} word={orgWord} schemes={schemes.map((x) => [x.key, x.label])} schemeWords={Object.fromEntries(schemes.map((x) => [x.key, x.person_word ?? ""]))} showNdis={showNdis} showBudget={showBudget} showContact={showContact} backToTop={!canAddClient} />
+          {/* Room under the list so the floating buttons never cover the last row. */}
+          <div aria-hidden="true" className="h-16" />
         </>
       )}
       {setup && !linkError && clients.some((c) => c.active) ? (

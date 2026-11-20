@@ -201,7 +201,7 @@ function NotesPopup({ client, tab: firstTab, onClose }: { client: ListClient; ta
 // holds what this person may already see (the database decides).
 const MAC = ["support_at_home", "chsp"];
 
-export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis, showBudget, showContact }: { clients: ListClient[]; word: string; schemes: [string, string][]; schemeWords?: Record<string, string>; showNdis: boolean; showBudget: boolean; showContact: boolean }) {
+export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis, showBudget, showContact, backToTop = false }: { clients: ListClient[]; word: string; schemes: [string, string][]; schemeWords?: Record<string, string>; showNdis: boolean; showBudget: boolean; showContact: boolean; backToTop?: boolean }) {
   const router = useRouter();
   // The notes pop-up (shift notes, practitioner notes, communications, log, reviews).
   const [notesFor, setNotesFor] = useState<{ client: ListClient; tab: NotesTab } | null>(null);
@@ -276,6 +276,7 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
 
   return (
     <div className="shadow-card flex flex-col rounded-xl border border-line bg-surface">
+      {backToTop ? <BackToTop /> : null}
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 pt-2">
         {(["active", "archived"] as const).map((t) => (
           <button
@@ -772,4 +773,24 @@ function AlertsPopup({ client, onClose }: { client: ListClient; onClose: () => v
 export function ClientsTitle({ word, schemeWords = {}, schemes }: { word: string; schemeWords?: Record<string, string>; schemes: [string, string][] }) {
   const tab = useClientTab(schemes);
   return <>{pluralOf(wordForTab(tab, word, schemeWords))}</>;
+}
+
+// For people without the New button (it carries Back to top for everyone else).
+function BackToTop() {
+  const [y, setY] = useState(0);
+  useEffect(() => {
+    const onScroll = () => setY(window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  if (y < 600) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed right-4 bottom-4 z-30 inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink shadow-lg hover:bg-page md:right-8 md:bottom-6 print:hidden"
+    >
+      <ArrowUp aria-hidden="true" className="size-4" /> Back to top
+    </button>
+  );
 }
