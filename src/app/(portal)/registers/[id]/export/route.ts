@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { NextResponse, type NextRequest } from "next/server";
+import { logDownload } from "@/lib/download-log";
 import { getSession } from "@/lib/session";
 import { getBranding } from "@/lib/branding";
 import { getTimeZone } from "@/lib/settings";
@@ -68,6 +69,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/registers/[i
 
   const span = filter.from || filter.to ? `${filter.from || "start"}-to-${filter.to || today}` : today;
   const file = `${registry.name.replace(/[^A-Za-z0-9]+/g, "-")}-${span}.xlsx`;
+  await logDownload({ kind: "export", label: `Register: ${file}` });
   return new NextResponse(xlsx, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

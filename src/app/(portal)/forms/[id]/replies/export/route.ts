@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { NextResponse, type NextRequest } from "next/server";
+import { logDownload } from "@/lib/download-log";
 import { getSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getBranding } from "@/lib/branding";
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/forms/[id]/r
     logo: await fetchLogo(brand.logoUrl, request.nextUrl.origin),
   });
   const safe = def.form.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "form";
+  await logDownload({ kind: "export", label: `Form replies: ${safe}` });
   return new NextResponse(xlsx, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

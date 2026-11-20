@@ -48,10 +48,8 @@ export default async function PractitionerClientPage({ params }: PageProps<"/pra
   const instr = (instructions.data ?? []) as { id: string; title: string; instructions: string }[];
   const docs = (docsRes.data ?? []) as { id: string; title: string; doc_type: string; file_path: string; uploaded_by: string | null; created_at: string }[];
   const links = new Map<string, string>();
-  if (docs.length) {
-    const { data: signed } = await supabase.storage.from("client-docs").createSignedUrls(docs.map((x) => x.file_path), 600);
-    for (const s of signed ?? []) if (s.signedUrl && s.path) links.set(s.path, s.signedUrl);
-  }
+  // cmeprojects (update 154): recorded downloads.
+  for (const x of docs) links.set(x.file_path, `/download?k=client_doc&id=${x.id}&c=${id}`);
   const notes = (notesRes.data ?? []) as { id: string; author_id: string | null; note_date: string; body: string; created_at: string }[];
   const shown = client.preferred_name || client.name;
   const docType = (v: string) => DOC_TYPE_LABELS.find(([k]) => k === v)?.[1] ?? v;

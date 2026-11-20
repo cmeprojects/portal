@@ -2,6 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logDownload } from "@/lib/download-log";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
@@ -69,6 +70,7 @@ export async function openTaxForm(subject: string): Promise<{ url?: string; erro
   }
   if (subject !== profile.id) await log(subject, "download", "TFN declaration");
   const { data: signed } = await supabase.storage.from(RECORDS_BUCKET).createSignedUrl(data.form_path, 60);
+  if (signed) await logDownload({ kind: "record", label: "TFN declaration", personId: subject });
   return signed ? { url: signed.signedUrl } : { error: "The form couldn't be opened." };
 }
 

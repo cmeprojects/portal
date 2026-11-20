@@ -91,10 +91,10 @@ select test.ok((select count(*) from public.car_clients) = 0, 'staff admins don'
 reset role;
 
 -- Programs
-select test.ok((select string_agg(name || ':' || needs_dob, ',' order by sort_order) from public.client_programs) = 'NDIS:true,Support at Home:true,Private:false,Other:false', 'programs start with NDIS and Support at Home needing date of birth');
+select test.ok((select string_agg(name || ':' || needs_dob, ',' order by sort_order) from public.client_programs) = 'NDIS:true,Support at Home:true,CHSP:true,Private:false,Other:false', 'programs start with NDIS, Support at Home and CHSP needing date of birth');
 select test.act_as('boss@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.client_programs) = 4, 'members read the programs');
+select test.ok((select count(*) from public.client_programs) = 5, 'members read the programs');
 select test.refused($$insert into public.client_programs (name) values ('Brokerage')$$, 'a manager can''t add programs');
 reset role;
 select test.act_as('owner@example.com');
@@ -104,7 +104,7 @@ update public.client_programs set active = false where name = 'Other';
 delete from public.client_programs where name = 'Private';
 select test.refused($$insert into public.client_programs (name) values ('ndis')$$, 'program names are unique');
 reset role;
-select test.ok((select count(*) = 5 and bool_or(name = 'Brokerage') and bool_or(name = 'Private') and not bool_or(name = 'Other' and active) from public.client_programs), 'the system admin adds and deactivates programs; nobody deletes them');
+select test.ok((select count(*) = 6 and bool_or(name = 'Brokerage') and bool_or(name = 'Private') and not bool_or(name = 'Other' and active) from public.client_programs), 'the system admin adds and deactivates programs; nobody deletes them');
 
 \o
 \echo 'All client record tests passed.'

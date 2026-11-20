@@ -123,12 +123,8 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/tas
     supabase.rpc("clients_to_pick"),
   ]);
   const clients = (clientRows ?? []) as { id: string; name: string }[];
-  await Promise.all(
-    (files ?? []).map(async (f) => {
-      const { data } = await supabase.storage.from("task-files").createSignedUrl(f.file_path, 3600);
-      if (data?.signedUrl) fileLinks.set(f.id, data.signedUrl);
-    }),
-  );
+  // cmeprojects (update 154): recorded downloads.
+  for (const f of files ?? []) fileLinks.set(f.id, `/download?k=task_file&id=${f.id}`);
 
   const registry = registries.find((r) => r.id === task.registry_id);
   if (!registry) notFound();

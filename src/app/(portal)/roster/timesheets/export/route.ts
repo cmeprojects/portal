@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { NextResponse, type NextRequest } from "next/server";
+import { logDownload } from "@/lib/download-log";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
@@ -38,5 +39,6 @@ export async function GET(request: NextRequest) {
   const cell = (v: string) => `"${(/^[=+\-@]/.test(v) ? `'${v}` : v).replace(/"/g, '""')}"`;
   const lines = [["Employee ID", "Name", ...PAY_COLUMNS.map(([, l]) => l), "Mileage (km)", "Expenses ($)", "Allowances"].map(cell).join(",")];
   for (const [w, r] of tot) lines.push([empId.get(w) ?? "", name.get(w) ?? "", ...PAY_COLUMNS.map(([k]) => r[k].toFixed(2)), r.km.toFixed(1), r.expense.toFixed(2), r.allow.join("; ")].map(cell).join(","));
+  await logDownload({ kind: "export", label: `Timesheets, week of ${monday}` });
   return new NextResponse(lines.join("\r\n") + "\r\n", { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="timesheets-${monday}.csv"`, "Cache-Control": "no-store" } });
 }

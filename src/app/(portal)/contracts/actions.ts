@@ -2,6 +2,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { logDownload } from "@/lib/download-log";
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -212,9 +213,10 @@ export async function openSignedCopy(id: string): Promise<{ url?: string; error?
   await requireSession();
   if (!UUID.test(id)) return { error: "Something went wrong." };
   const supabase = await createClient();
-  const { data } = await supabase.from("contracts").select("signed_pdf_path").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("contracts").select("signed_pdf_path, title, user_id").eq("id", id).maybeSingle();
   if (!data?.signed_pdf_path) return { error: "There's no signed copy yet." };
   const { data: signed } = await supabase.storage.from(CONTRACTS_BUCKET).createSignedUrl(data.signed_pdf_path, 60, { download: true });
+  if (signed) await logDownload({ kind: "record", label: `Signed contract: ${data.title ?? "contract"}`, personId: data.user_id, details: { contract: id } });
   return signed ? { url: signed.signedUrl } : { error: "The signed copy couldn't be opened." };
 }
 

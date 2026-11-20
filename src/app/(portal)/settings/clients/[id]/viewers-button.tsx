@@ -1,15 +1,18 @@
 // Staff Portal · © cmeproject. All rights reserved.
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Eye, X } from "lucide-react";
 
 export type Viewer = { name: string; first: string; last: string; times: number };
+export type ClientDownload = { id: number; name: string; label: string; at: string };
 
 // cmeprojects (owner, 20 Nov 2026): who has opened this client's page, ever, in
 // a small pop-up from an icon next to Edit (only people who assign staff to
 // this client see it). Each person is recorded at most once an hour.
-export function ViewersButton({ viewers }: { viewers: Viewer[] }) {
+// cmeprojects (update 154): what was downloaded about them is listed underneath.
+export function ViewersButton({ viewers, downloads = [], clientId }: { viewers: Viewer[]; downloads?: ClientDownload[]; clientId?: string }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -56,6 +59,26 @@ export function ViewersButton({ viewers }: { viewers: Viewer[] }) {
               ) : (
                 <p className="text-sm text-muted">Nobody yet.</p>
               )}
+              <h3 className="mt-5 mb-2 text-sm font-semibold text-ink">Download links issued</h3>
+              {downloads.length ? (
+                <ul className="divide-y divide-line rounded-md border border-line text-sm">
+                  {downloads.map((d) => (
+                    <li key={d.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 px-3 py-2">
+                      <span>
+                        <span className="font-semibold">{d.name}</span> · {d.label}
+                      </span>
+                      <span className="text-xs text-muted">{d.at}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted">None yet.</p>
+              )}
+              {clientId ? (
+                <Link href={`/system/downloads?client=${clientId}`} className="mt-2 inline-block text-xs font-semibold text-brand hover:underline">
+                  Full download trail
+                </Link>
+              ) : null}
             </div>
           </div>
         </>

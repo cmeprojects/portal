@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/session";
 import { getNavAccess } from "@/lib/nav-access";
 import { navFor, sectionTabs } from "@/components/nav";
 import { seesExpiryFor } from "@/lib/module-access";
-import { managesPrograms } from "@/lib/programs-access";
+import { managesPrograms, seesDownloads } from "@/lib/programs-access";
 
 // cmeprojects: the pages this person can open, from the existing menu and
 // page-tab rules (the same checks the pages themselves use). The menu and the
@@ -27,5 +27,7 @@ export const getAllowedPages = cache(async () => {
   else if (features.compliance !== false && (await seesExpiryFor())) allowed.add("/compliance/expiry");
   // cmeprojects (update 152): Programs and schemes, in Portal settings.
   if (await managesPrograms()) allowed.add("/settings/clients/programs");
+  // cmeprojects (update 154): the download trail.
+  if (await seesDownloads()) allowed.add("/system/downloads");
   return { navAccess, groups, tabPages, searchPages, allowed };
 });

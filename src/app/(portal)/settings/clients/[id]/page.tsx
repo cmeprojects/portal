@@ -90,10 +90,8 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   ]);
   const docs = docsRes.error ? null : ((docsRes.data ?? []) as Doc[]);
   const docLinks = new Map<string, string>();
-  if (docs?.length) {
-    const { data: signed } = await supabase.storage.from("client-docs").createSignedUrls(docs.map((d) => d.file_path), 600);
-    for (const sgn of signed ?? []) if (sgn.signedUrl && sgn.path) docLinks.set(sgn.path, sgn.signedUrl);
-  }
+  // cmeprojects (update 154): links go through /download, which records who downloaded what.
+  for (const d of docs ?? []) docLinks.set(d.file_path, `/download?k=client_doc&id=${d.id}&c=${id}`);
   const showDocs = docs !== null && docsOn.data?.value !== false && (docs.length > 0 || canDocs);
   // cmeprojects (Care block C4): care plans, goals and worker instructions, if that section is on.
   type Goal = { id: string; plan_id: string; goal: string; measure: string; status: string };
@@ -420,6 +418,12 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const viewerName = new Map([...nameOfStaff, ...((moreNames ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => [p.id, p.full_name || p.email] as [string, string])]);
   const stamp = (iso: string) => new Date(iso).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
   const viewers = [...lastOpened].map(([u, v]) => ({ name: viewerName.get(u) ?? "Staff member", last: stamp(v.at), first: stamp(v.first), times: v.times }));
+  // cmeprojects (update 154): what was downloaded about this client, and by whom.
+  const { data: dlRows } = canSeeViews ? await supabase.from("download_log").select("id, user_id, label, created_at").eq("client_id", id).neq("action", "export").order("id", { ascending: false }).limit(200) : { data: [] };
+  const dlUsers = [...new Set(((dlRows ?? []) as { user_id: string }[]).map((r) => r.user_id))].filter((u) => !viewerName.has(u));
+  const { data: dlNames } = dlUsers.length ? await supabase.from("profiles").select("id, full_name, email").in("id", dlUsers) : { data: [] };
+  for (const p of (dlNames ?? []) as { id: string; full_name: string | null; email: string }[]) viewerName.set(p.id, p.full_name || p.email);
+  const downloads = ((dlRows ?? []) as { id: number; user_id: string; label: string; created_at: string }[]).map((r) => ({ id: r.id, name: viewerName.get(r.user_id) ?? "Staff member", label: r.label, at: stamp(r.created_at) }));
   const rosterBlocks: [string, string][] = [];
   // A service that starts later isn't a gap: they can be rostered from that day.
   let rosterFrom: { date: string; label: string } | null = null;
@@ -531,7 +535,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             </div>
           </div>
           <div className="flex items-center gap-2">
-          {canSeeViews ? <ViewersButton viewers={viewers} /> : null}
+          {canSeeViews ? <ViewersButton viewers={viewers} downloads={downloads} clientId={id} /> : null}
           {canEditClient ? (
             // The edit steps finish from the bar at the bottom (no "Done editing" up here).
             step ? null : !TAB_SECTIONS[tab] || tab === "overview" ? (

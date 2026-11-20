@@ -2,6 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logDownload } from "@/lib/download-log";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
@@ -47,6 +48,7 @@ export async function openRecordFile(subject: string, which: "choice" | "visa" |
   }
   const { data: signed, error } = await supabase.storage.from(RECORDS_BUCKET).createSignedUrl(path, 60);
   if (error || !signed) return { error: "The file couldn't be opened. Please try again." };
+  await logDownload({ kind: "record", label: which === "choice" ? "Choice of fund form" : which === "visa" ? "Visa grant notice" : "VEVO check", personId: subject });
   if (subject !== profile.id) await log(subject, area, "download", which === "choice" ? "Choice of fund form" : which === "visa" ? "Visa grant notice" : "VEVO check");
   return { url: signed.signedUrl };
 }

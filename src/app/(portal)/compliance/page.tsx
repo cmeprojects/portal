@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
-import { CATEGORY_LABELS, FILES_BUCKET, KIND_TAB, isDone, stateBadges, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
+import { CATEGORY_LABELS, KIND_TAB, isDone, stateBadges, type ComplianceItem, type ItemKind, type StatusRow } from "@/lib/compliance";
 import { formatDate } from "@/lib/registers";
 import { Badge, Card, Notice, PageHeader, Tabs, buttonClass } from "@/components/ui";
 import { ItemForm, ReviewForm } from "./forms";
@@ -323,12 +323,8 @@ async function ToCheck({ meId }: { meId: string }) {
   const who = new Map((people ?? []).map((p) => [p.id, p.full_name || p.email]));
   const what = new Map((itemRows ?? []).map((i) => [i.id, i]));
   const links = new Map<number, string>();
-  await Promise.all(
-    list.map(async (r) => {
-      const { data } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(r.file_path!, 900);
-      if (data?.signedUrl) links.set(r.id, data.signedUrl);
-    }),
-  );
+  // cmeprojects (update 154): recorded downloads.
+  for (const r of list) links.set(r.id, `/download?k=compliance&id=${r.id}`);
   if (!list.length) return <Notice tone="info">Nothing waiting to be checked. New uploads and certificates show here.</Notice>;
   return (
     <div className="flex flex-col gap-3">

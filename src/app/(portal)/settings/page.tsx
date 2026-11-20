@@ -11,6 +11,7 @@ import ProgramsPage from "./clients/programs/page";
 import { getAllowedPages } from "@/lib/allowed-pages";
 import { SystemSettings } from "../system/page";
 import { ChangeLog } from "../system/audit/page";
+import { DownloadTrail } from "../system/downloads/page";
 import SlaPage from "./sla/page";
 import RequestSettingsPage from "./requests/page";
 import BuilderPage from "../system/builder/page";
@@ -39,6 +40,8 @@ export default async function PortalSettingsPage({ searchParams }: PageProps<"/s
         return <SystemSettings searchParams={searchParams as never} base={base} />;
       case "system.audit":
         return <ChangeLog searchParams={searchParams as never} base={base} />;
+      case "system.downloads":
+        return <DownloadTrail searchParams={searchParams as never} base={base} />;
       case "workflows.sla":
         return <SlaPage />;
       case "workflows.request_rules":

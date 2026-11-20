@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { NextResponse, type NextRequest } from "next/server";
+import { logDownload } from "@/lib/download-log";
 import { getSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getBranding } from "@/lib/branding";
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/reports/f/[s
     brandColour: brand.colorPrimary,
     logo: await fetchLogo(brand.logoUrl, request.nextUrl.origin),
   });
+  await logDownload({ kind: "export", label: `${def.feature.slug} report (${f.kind}), ${f.period.from} to ${f.period.to}` });
   return new NextResponse(xlsx, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

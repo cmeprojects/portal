@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { NextResponse, type NextRequest } from "next/server";
+import { logDownload } from "@/lib/download-log";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
@@ -25,5 +26,6 @@ export async function GET(request: NextRequest) {
     const a = sydneyParts(s.starts_at);
     lines.push([a.date, a.time, sydneyParts(s.ends_at).time, String(s.break_minutes), shiftHours(s).toFixed(2), s.worker ? s.worker.full_name || s.worker.email : "Vacant", s.client?.name ?? "", s.status].map(cell).join(","));
   }
+  await logDownload({ kind: "export", label: `Roster, week of ${monday}` });
   return new NextResponse(lines.join("\r\n") + "\r\n", { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="roster-${monday}.csv"`, "Cache-Control": "no-store" } });
 }

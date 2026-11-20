@@ -67,8 +67,8 @@ select test.ok(test.n('office@example.com', '(select count(*) from public.client
 
 -- Required by scheme (readiness).
 select test.ok('The NDIS number is needed for an NDIS service.' = any(test.gaps('NDIS daily living')), 'NDIS service: needs the NDIS number');
-select test.ok(not ('The My Aged Care ID is needed for a Support at Home service.' = any(test.gaps('NDIS daily living'))), 'NDIS service: not the My Aged Care ID');
-select test.ok('The My Aged Care ID is needed for a Support at Home service.' = any(test.gaps('Home support')), 'Support at Home service: needs the My Aged Care ID');
+select test.ok(not ('The My Aged Care ID is needed for a Support at Home or CHSP service.' = any(test.gaps('NDIS daily living'))), 'NDIS service: not the My Aged Care ID');
+select test.ok('The My Aged Care ID is needed for a Support at Home or CHSP service.' = any(test.gaps('Home support')), 'Support at Home service: needs the My Aged Care ID');
 select test.ok(not ('The NDIS number is needed for an NDIS service.' = any(test.gaps('Home support'))), 'Support at Home service: not the NDIS number');
 update public.client_details set ndis_number = '431234567' where client_id = test.cid('Zara Northcott');
 select test.ok(not ('The NDIS number is needed for an NDIS service.' = any(test.gaps('NDIS daily living'))), 'with the number, that gap goes');

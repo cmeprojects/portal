@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { NextResponse, type NextRequest } from "next/server";
+import { logDownload } from "@/lib/download-log";
 import { requireSession } from "@/lib/session";
 import { seesAllRequestsFor } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
     const to = r.end_date > last ? last : r.end_date;
     lines.push([emp.get(r.user_id) ?? "", name.get(r.user_id) ?? "", LEAVE_LABEL[r.leave_type] ?? r.leave_type, from, to, String(weekdays(from, to))].map(cell).join(","));
   }
+  await logDownload({ kind: "export", label: `Leave, ${m}` });
   return new NextResponse(lines.join("\r\n") + "\r\n", {
     headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="leave-${m}.csv"`, "Cache-Control": "no-store" },
   });

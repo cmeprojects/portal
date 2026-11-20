@@ -7,6 +7,16 @@ import { createClient } from "@/lib/supabase/server";
 
 // cmeprojects (update 152): who manages programs and schemes: the system admin,
 // Manager Administrators, or people given the Care settings area. The database checks too.
+// cmeprojects (update 154): who reads the download trail: the system admin and
+// Manager Administrators (the database checks the same).
+export const seesDownloads = cache(async (): Promise<boolean> => {
+  const { profile } = await requireSession();
+  if (profile.role === "system_admin") return true;
+  if (profile.role !== "manager") return false;
+  const { data } = await (await createClient()).rpc("is_manager_admin");
+  return data === true;
+});
+
 export const managesPrograms = cache(async (): Promise<boolean> => {
   const { profile } = await requireSession();
   if (profile.role === "system_admin") return true;

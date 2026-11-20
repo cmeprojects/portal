@@ -8,6 +8,7 @@ import { FilterPanel, FilterSelect } from "@/components/filter-panel";
 import { pluralOf, storeClientTab, useClientTab, useStoredClientTab, wordForTab } from "./client-tab";
 import { Download, ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, X } from "lucide-react";
 import { loadClientNotes, type ClientNotes } from "./notes-actions";
+import { recordExport } from "../../download/actions";
 import { CommsLogForm, CommsLogList } from "./[id]/comms-log";
 import { inputClass } from "@/components/ui";
 import { INCIDENT_KINDS, INCIDENT_STATUS, label as incLabel } from "@/lib/incidents";
@@ -302,6 +303,7 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
     a.download = `${tabPlural.toLowerCase()}-${new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
+    void recordExport(`${tabPlural} list export`, rows.length);
   };
   const picked = clients.find((c) => c.id === open) ?? null;
 

@@ -66,8 +66,9 @@ export default async function PersonCompliancePage({ params }: PageProps<"/compl
     (records ?? [])
       .filter((r) => r.file_path)
       .map(async (r) => {
-        const { data: signed } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(r.file_path!, 600);
-        if (signed?.signedUrl)
+        // cmeprojects (update 154): recorded downloads.
+        const signed = { signedUrl: `/download?k=compliance&id=${r.id}` };
+        if (signed.signedUrl)
           fileLinks.set(r.id, {
             url: signed.signedUrl,
             name: r.file_name ?? "file",

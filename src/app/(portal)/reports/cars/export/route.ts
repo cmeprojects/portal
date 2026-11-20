@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import { NextResponse, type NextRequest } from "next/server";
+import { logDownload } from "@/lib/download-log";
 import { getSession } from "@/lib/session";
 import { getBranding } from "@/lib/branding";
 import { getTimeZone } from "@/lib/settings";
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
     brandColour: brand.colorPrimary,
     logo: await fetchLogo(brand.logoUrl, request.nextUrl.origin),
   });
+  await logDownload({ kind: "export", label: `CAR report (${f.kind}), ${f.period.from} to ${f.period.to}` });
   return new NextResponse(xlsx, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
