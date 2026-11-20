@@ -1,5 +1,6 @@
 // Staff Portal · © cmeproject. All rights reserved.
 import type { Metadata } from "next";
+import { OfferedSwitch } from "./offered-switch";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
@@ -17,11 +18,14 @@ export default async function ProgramsPage() {
   await requireSession();
   if (!(await managesPrograms())) notFound();
   const supabase = await createClient();
-  const [{ data: programRows }, schemeRes, { data: wordRow }] = await Promise.all([
+  const [{ data: programRows }, schemeRes, { data: wordRow }, offeredRes] = await Promise.all([
     supabase.from("client_programs").select("id, name, needs_dob, active, scheme").order("sort_order").order("name"),
     supabase.from("client_schemes").select("key, label, person_word, review_label, change_review_label, review_lead_days, needs_dob").order("sort_order"),
     supabase.from("app_settings").select("value").eq("key", "wording.client").maybeSingle(),
+    supabase.from("client_schemes").select("key, offered"),
   ]);
+  // update 158: which schemes are offered (not shown before it runs).
+  const offered = offeredRes.error ? null : new Map(((offeredRes.data ?? []) as { key: string; offered: boolean }[]).map((x) => [x.key, x.offered]));
   const programs = (programRows ?? []) as { id: string; name: string; needs_dob: boolean; active: boolean; scheme: string }[];
   const schemes = schemeRes.error ? [] : ((schemeRes.data ?? []) as Scheme[]);
   const orgWord = typeof wordRow?.value === "string" && wordRow.value ? wordRow.value : "Client";
@@ -37,6 +41,17 @@ export default async function ProgramsPage() {
           </Link>
         }
       />
+      {offered && schemes.length ? (
+        <Card className="p-4">
+          <h2 className="heading-sm">Schemes your organisation offers</h2>
+          <p className="mb-2 text-sm text-muted">Only offered schemes can be chosen for new clients, programs and services. Turning one off never changes or hides what&apos;s already recorded.</p>
+          <div className="divide-y divide-line">
+            {schemes.map((sc) => (
+              <OfferedSwitch key={sc.key} schemeKey={sc.key} label={sc.label} offered={offered.get(sc.key) !== false} />
+            ))}
+          </div>
+        </Card>
+      ) : null}
       <Card className="p-4">
         <h2 className="heading-sm">Programs</h2>
         <p className="mb-2 text-sm text-muted">Add or rename programs, or untick In use. A program is never deleted, and its scheme can&apos;t change once a service uses it.</p>

@@ -713,18 +713,130 @@ export async function makeClientActive(form: FormData) {
   revalidatePath("/settings/clients");
 }
 
-// cmeprojects (owner, 19 Nov 2026): who funds the client (NDIS, Support at Home …),
-// set from the To check list when it wasn't chosen at registration.
-export async function setClientScheme(_: FormState, form: FormData): Promise<FormState> {
-  await requireClients();
-  const clientId = String(form.get("client_id") ?? "");
-  const scheme = String(form.get("scheme") ?? "");
-  if (!isId(clientId)) return { error: "That didn't save. Please reload the page." };
-  if (!/^[a-z_]{1,40}$/.test(scheme)) return { error: "Choose who funds them." };
-  const { data, error } = await (await createClient()).from("car_clients").update({ scheme }).eq("id", clientId).select("id");
-  if (error) return { error: friendlyError(error) };
-  if (!data?.length) return { error: "You can't change this client." };
+// cmeprojects (update 158): a client's programs (enrolments). Add, pause,
+// resume, end and make main. The database checks who may, and the rules
+// (one open enrolment per program, nothing ends while services, agreements or
+// budgets are open, "Funded by" follows the main program), and records each change.
+const isDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+const sydToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+function enrolmentDone(clientId: string) {
   revalidatePath(`/settings/clients/${clientId}`);
   revalidatePath("/settings/clients");
-  return { message: "Saved." };
+}
+
+export async function addEnrolment(_: FormState, form: FormData): Promise<FormState> {
+  await requireClients();
+  const clientId = String(form.get("client_id") ?? "");
+  const programId = String(form.get("program_id") ?? "");
+  const startsOn = String(form.get("starts_on") ?? "") || sydToday();
+  if (!isId(clientId)) return { error: "That didn't save. Please reload the page." };
+  if (!isId(programId)) return { error: "Choose a program." };
+  if (!isDay(startsOn)) return { error: "Choose the start date." };
+  const supabase = await createClient();
+  // The ID the program's scheme needs (saved on their details, as before).
+  const { data: prog } = await supabase.from("client_programs").select("scheme").eq("id", programId).maybeSingle();
+  const scheme = (prog as { scheme?: string } | null)?.scheme ?? "";
+  const ndis = String(form.get("ndis_number") ?? "").replace(/\s/g, "");
+  const mac = String(form.get("aged_care_id") ?? "").replace(/\s/g, "").toUpperCase();
+  if (scheme === "ndis" && ndis && !/^\d{9}$/.test(ndis)) return { error: "Enter their NDIS number (9 digits)." };
+  if (MAC_SCHEMES_158.includes(scheme) && mac && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
+  const { error } = await supabase.from("client_enrolments").insert({ client_id: clientId, program_id: programId, starts_on: startsOn });
+  if (error) return { error: friendlyError(error) };
+  const idPatch: Record<string, string> = {};
+  if (scheme === "ndis" && ndis) idPatch.ndis_number = ndis;
+  if (MAC_SCHEMES_158.includes(scheme) && mac) idPatch.aged_care_id = mac;
+  if (Object.keys(idPatch).length) {
+    const { error: dError } = await supabase.from("client_details").update(idPatch).eq("client_id", clientId);
+    if (dError) {
+      enrolmentDone(clientId);
+      return { error: `The program was added, but the ID wasn't saved: ${friendlyError(dError)}` };
+    }
+  }
+  enrolmentDone(clientId);
+  return { message: "Program added." };
+}
+const MAC_SCHEMES_158 = ["support_at_home", "chsp"];
+
+async function changeEnrolment(id: string, patch: Record<string, unknown>, done: string): Promise<FormState> {
+  await requireClients();
+  if (!isId(id)) return { error: "That didn't save. Please reload the page." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("client_enrolments").update(patch).eq("id", id).select("client_id");
+  if (error) return { error: friendlyError(error) };
+  if (!data?.length) return { error: "You can't change this client's programs." };
+  enrolmentDone((data[0] as { client_id: string }).client_id);
+  return { message: done };
+}
+
+export async function pauseEnrolment(_: FormState, form: FormData): Promise<FormState> {
+  const from = String(form.get("paused_from") ?? "");
+  const until = String(form.get("paused_until") ?? "");
+  if (!isDay(from)) return { error: "Choose when the pause starts." };
+  if (until && !isDay(until)) return { error: "Choose a valid expected return date." };
+  return changeEnrolment(String(form.get("id") ?? ""), { status: "paused", paused_from: from, paused_until: until || null, pause_reason: String(form.get("pause_reason") ?? "").trim().slice(0, 300) }, "Program paused.");
+}
+
+export async function resumeEnrolment(id: string): Promise<FormState> {
+  return changeEnrolment(id, { status: "active" }, "Program resumed.");
+}
+
+export async function makeMainEnrolment(id: string): Promise<FormState> {
+  return changeEnrolment(id, { is_main: true }, "Main program changed.");
+}
+
+export async function endEnrolment(_: FormState, form: FormData): Promise<FormState> {
+  const endsOn = String(form.get("ends_on") ?? "");
+  const reason = String(form.get("end_reason") ?? "").trim().slice(0, 300);
+  if (!isDay(endsOn)) return { error: "Choose the end date." };
+  if (!reason) return { error: "Say why this program is ending." };
+  return changeEnrolment(String(form.get("id") ?? ""), { status: "ended", ends_on: endsOn, end_reason: reason }, "Program ended.");
+}
+
+export type OpenItem = { kind: "service" | "agreement" | "budget" | "review"; label: string; href: string };
+
+// What would stop a program ending on a date (reviews are shown, but don't stop it).
+export async function enrolmentOpenItems(id: string, endsOn: string): Promise<{ items: OpenItem[]; error?: string }> {
+  await requireClients();
+  if (!isId(id) || !isDay(endsOn)) return { items: [], error: "Choose the end date." };
+  const supabase = await createClient();
+  const { data: e } = await supabase.from("client_enrolments").select("client_id, program_id").eq("id", id).maybeSingle();
+  if (!e) return { items: [], error: "You can't see this program." };
+  const { client_id: clientId, program_id: programId } = e as { client_id: string; program_id: string };
+  const { data: svcs } = await supabase.from("client_services").select("id, label, status, end_date").eq("client_id", clientId).eq("program_id", programId);
+  const services = (svcs ?? []) as { id: string; label: string; status: string; end_date: string | null }[];
+  const ids = services.map((s) => s.id);
+  const name = new Map(services.map((s) => [s.id, s.label]));
+  const [ag, fu, rv] = ids.length
+    ? await Promise.all([
+        supabase.from("client_agreements").select("service_id").in("service_id", ids).neq("status", "ended"),
+        supabase.from("client_funding").select("service_id, period_end").in("service_id", ids).eq("status", "active"),
+        supabase.from("client_reviews").select("service_id, due_on").in("service_id", ids).eq("status", "open"),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const base = `/settings/clients/${clientId}`;
+  const items: OpenItem[] = [
+    ...services.filter((s) => s.status !== "ended" && (!s.end_date || s.end_date > endsOn)).map((s) => ({ kind: "service" as const, label: s.label, href: `${base}?tab=services#services` })),
+    ...((ag.data ?? []) as { service_id: string }[]).map((a) => ({ kind: "agreement" as const, label: `Agreement for ${name.get(a.service_id) ?? "a service"}`, href: `${base}?tab=agreements` })),
+    ...((fu.data ?? []) as { service_id: string; period_end: string | null }[]).filter((f) => !f.period_end || f.period_end > endsOn).map((f) => ({ kind: "budget" as const, label: `Budget for ${name.get(f.service_id) ?? "a service"}`, href: `${base}?tab=funding` })),
+    ...((rv.data ?? []) as { service_id: string; due_on: string }[]).map((r) => ({ kind: "review" as const, label: `Review for ${name.get(r.service_id) ?? "a service"}, due ${r.due_on.split("-").reverse().join("/")}`, href: `${base}?tab=reviews` })),
+  ];
+  return { items };
+}
+
+// Shifts already rostered in a pause (listed so they can be cancelled on the roster; never changed here).
+export async function shiftsInPause(id: string, from: string, until: string): Promise<{ count: number; first?: string }> {
+  await requireClients();
+  if (!isId(id) || !isDay(from) || (until && !isDay(until))) return { count: 0 };
+  const supabase = await createClient();
+  const { data: e } = await supabase.from("client_enrolments").select("client_id, program_id").eq("id", id).maybeSingle();
+  if (!e) return { count: 0 };
+  const { client_id: clientId, program_id: programId } = e as { client_id: string; program_id: string };
+  const { data: svcs } = await supabase.from("client_services").select("id").eq("client_id", clientId).eq("program_id", programId);
+  const ids = ((svcs ?? []) as { id: string }[]).map((s) => s.id);
+  if (!ids.length) return { count: 0 };
+  let q = supabase.from("shifts").select("starts_at").in("service_id", ids).neq("status", "cancelled").gte("starts_at", sydneyInstant(from, "00:00")).order("starts_at");
+  if (until) q = q.lte("starts_at", sydneyInstant(until, "23:59"));
+  const { data } = await q;
+  const rows = (data ?? []) as { starts_at: string }[];
+  return { count: rows.length, first: rows[0] ? new Date(rows[0].starts_at).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney" }) : undefined };
 }

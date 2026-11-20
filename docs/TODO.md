@@ -15,7 +15,10 @@ enrolments; (2) assessment templates and findings; (3) draft care plan, support 
 budget from assessments, each approved by a person; (4) billing foundations: rate tables, ledger,
 billing lines, Billing permission, financial audit; (5) claims and invoices; (6) tie into rostering.
 Before Phase 4, the billing guide corrections listed in the plan. Confirm the decisions table
-before each phase. Nothing built yet.
+before each phase. Phase 1 built (update 158). Out of Phase 1, for later: reminders for program end
+and pause-return dates; full roster integration; closing services, agreements and budgets when a
+client is discharged (the preview found open services on discharged clients); Funding and Agreement
+forms listing open services only.
 
 ## LATER: address auto-complete (owner, 19 Nov 2026)
 

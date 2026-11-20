@@ -64,3 +64,20 @@ begin
 end $$;
 drop trigger if exists test_fill_pay on public.profiles;
 create trigger test_fill_pay after insert on public.profiles for each row execute function test.fill_pay();
+
+-- cmeprojects (update 158): every test client is in every active program from
+-- 2000, so older tests that add services and shifts keep testing what they
+-- were written for. The program enrolment test switches this off.
+create or replace function test.auto_enrol() returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if to_regclass('public.client_enrolments') is not null then
+    insert into public.client_enrolments (client_id, program_id, starts_on)
+    select new.id, p.id, date '2000-01-01' from public.client_programs p
+     where p.active and not exists (select 1 from public.client_enrolments e where e.client_id = new.id and e.program_id = p.id and e.status <> 'ended')
+     order by p.sort_order;
+  end if;
+  return new;
+end $$;
+drop trigger if exists test_auto_enrol on public.car_clients;
+-- At the end of each statement, so a client added with its programs (create_client_full) keeps them.
+create constraint trigger test_auto_enrol after insert on public.car_clients deferrable initially deferred for each row execute function test.auto_enrol();

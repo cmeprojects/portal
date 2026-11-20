@@ -52,7 +52,17 @@ What the brief assumes, against what is built. This decides where each phase sta
 
 ## Phases
 
-**Phase 1: programs and enrolments.** Organisation turns each scheme on or off. Client form: choose
+**Phase 1: programs and enrolments. Built (update 158, 21 Nov 2026; preview-158.sql first).**
+Built as approved: enrolments per **named program** (decision A); main promotion includes paused
+enrolments (B); client shifts are checked against the program on the shift date, and a client shift
+can't leave out its service (already required since update 130), internal shifts without a client
+aren't checked, nothing historical is re-checked (C); open reviews are listed in the End dialog but
+don't block (D); one database per customer kept, tested through role and direct-request boundaries
+(E). Ending needs the person to see the client's services, agreements and budgets, so nothing open can
+be hidden from the check. Not in Phase 1 (recorded): reminders for end and pause-return dates, full
+roster integration, closing services when a client is discharged, Funding and Agreement forms listing
+open services only.
+Original scope: Organisation turns each scheme on or off. Client form: choose
 one or more programs (required). Program enrolment record per client and program (status, start
 and end, program identifiers such as NDIS number or My Aged Care ID). Link approved services,
 agreements and funding to an enrolment; check a service is allowed under that enrolment. Existing

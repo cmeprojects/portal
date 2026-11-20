@@ -20,9 +20,21 @@ const DRAFT = "portal.newClientDraft";
 
 // cmeprojects (owner, 19 Nov 2026): the full New participant form. What was
 // typed in the pop-up comes in already filled; nothing is saved until Save.
-export function NewClientFullForm({ initial, schemes, staff, word }: { initial: Record<string, string>; schemes: [string, string][]; staff: { id: string; name: string }[] | null; word: string }) {
+type ProgramChoice = { id: string; name: string; scheme: string; schemeLabel: string };
+
+export function NewClientFullForm({ initial, programs, staff, word }: { initial: Record<string, string>; schemes: [string, string][]; programs: ProgramChoice[]; staff: { id: string; name: string }[] | null; word: string }) {
   const [state, action, pending] = useActionState(createClientFull, null);
-  const [scheme, setScheme] = useState(initial.scheme ?? "");
+  // cmeprojects (update 158): one or more programs; the main one sets "Funded by".
+  const [picked, setPicked] = useState<string[]>(() => {
+    const first = programs.find((p) => p.scheme === initial.scheme);
+    return first ? [first.id] : [];
+  });
+  const [main, setMain] = useState("");
+  const pickedSchemes = programs.filter((p) => picked.includes(p.id)).map((p) => p.scheme);
+  const mainId = picked.includes(main) ? main : (picked[0] ?? "");
+  // The NDIS number and My Aged Care ID follow the programs ticked (any of them).
+  const needsNdis = pickedSchemes.includes("ndis");
+  const needsMac = pickedSchemes.some((k) => MAC_SCHEMES.includes(k));
   const [then, setThen] = useState<"continue" | "later">("continue");
   const { ref, dirty, markClean } = useDirty();
   const router = useRouter();
@@ -101,36 +113,68 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
       <section className="shadow-card flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
         <h2 className="heading-sm">Funding</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className={lab}>
-            <span>
-              Funded by
+          <fieldset className="flex flex-col gap-2 sm:col-span-2">
+            <legend className="mb-1 text-xs font-medium">
+              Programs
               <Req />
-            </span>
-            <select name="scheme" required value={scheme} onChange={(e) => setScheme(e.target.value)} className={inputClass}>
-              <option value="" disabled>
-                Choose the scheme
-              </option>
-              {schemes.map(([k, l]) => (
-                <option key={k} value={k}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </label>
+              <span className="ml-1 font-normal text-muted">Tick every program they&apos;re in.</span>
+            </legend>
+            {[...new Set(programs.map((p) => p.schemeLabel))].map((label) => (
+              <div key={label} className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="w-32 text-xs font-semibold text-muted">{label}</span>
+                {programs
+                  .filter((p) => p.schemeLabel === label)
+                  .map((p) => (
+                    <label key={p.id} className="inline-flex min-h-9 items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="program_ids"
+                        value={p.id}
+                        checked={picked.includes(p.id)}
+                        onChange={(e) => setPicked((now) => (e.target.checked ? [...now, p.id] : now.filter((x) => x !== p.id)))}
+                        className="size-4 accent-[var(--brand-primary)]"
+                      />
+                      {p.name}
+                    </label>
+                  ))}
+              </div>
+            ))}
+            {programs.length === 0 ? <p className="text-sm text-warn">No programs are offered yet. A Manager Administrator sets them up in Portal settings, Programs and schemes.</p> : null}
+            <input type="hidden" name="main_program" value={mainId} />
+            {picked.length > 1 ? (
+              <label className={`${lab} max-w-sm`}>
+                Main program
+                <select value={mainId} onChange={(e) => setMain(e.target.value)} className={inputClass}>
+                  {programs
+                    .filter((p) => picked.includes(p.id))
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </select>
+                <span className="font-normal text-muted">Shown as &ldquo;Funded by&rdquo; and used for the page wording.</span>
+              </label>
+            ) : null}
+            <label className={`${lab} max-w-xs`}>
+              In these programs from
+              <DateInput name="programs_from" defaultValue={new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })} />
+            </label>
+          </fieldset>
           {/* Both IDs show; the one that doesn't apply is greyed out (owner, 19 Nov 2026). */}
           <label className={lab}>
             <span>
               NDIS number
-              {scheme === "ndis" ? <Req /> : <NotApplicable chosen={Boolean(scheme)} />}
+              {needsNdis ? <Req /> : <NotApplicable chosen={picked.length > 0} />}
             </span>
-            <IdInput kind="ndis" name="ndis_number" required={scheme === "ndis"} disabled={scheme !== "ndis"} placeholder={scheme === "ndis" ? "9 digits" : ""} defaultValue={initial.ndis_number ?? ""} />
+            <IdInput kind="ndis" name="ndis_number" required={needsNdis} disabled={!needsNdis} placeholder={needsNdis ? "9 digits" : ""} defaultValue={initial.ndis_number ?? ""} />
           </label>
           <label className={lab}>
             <span>
               My Aged Care ID
-              {MAC_SCHEMES.includes(scheme) ? <Req /> : <NotApplicable chosen={Boolean(scheme)} />}
+              {needsMac ? <Req /> : <NotApplicable chosen={picked.length > 0} />}
             </span>
-            <IdInput kind="mac" name="aged_care_id" required={MAC_SCHEMES.includes(scheme)} disabled={!MAC_SCHEMES.includes(scheme)} placeholder={MAC_SCHEMES.includes(scheme) ? "AC12345678" : ""} defaultValue={initial.aged_care_id ?? ""} />
+            <IdInput kind="mac" name="aged_care_id" required={needsMac} disabled={!needsMac} placeholder={needsMac ? "AC12345678" : ""} defaultValue={initial.aged_care_id ?? ""} />
             <span className="font-normal text-muted">For Support at Home and CHSP</span>
           </label>
           <label className={`${lab} sm:col-span-2`}>

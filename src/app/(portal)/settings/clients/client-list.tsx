@@ -32,6 +32,8 @@ export type ListClient = {
   phone: string;
   suburb: string;
   schemes: string[];
+  // update 158: their open programs (names); undefined before update 158 runs.
+  programs?: string[];
   services: string[];
   managers: { name: string; as: string }[];
   teams: string[];
@@ -289,13 +291,13 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
   };
   // Export what's on screen (these filters) as a spreadsheet file (CSV opens in Excel).
   const exportList = () => {
-    const head = ["Name", "Reference", "Status", "Funded by", "NDIS number", "My Aged Care ID", "Age", "Gender", "Email", "Mobile", "Suburb", "Services", "Managed by", "Next review"];
+    const head = ["Name", "Reference", "Status", "Programs", "NDIS number", "My Aged Care ID", "Age", "Gender", "Email", "Mobile", "Suburb", "Services", "Managed by", "Next review"];
     const cell = (v: string | number | null | undefined) => {
       const t = v === null || v === undefined ? "" : String(v);
       return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
     };
     const lines = rows.map((c) =>
-      [c.name, c.ref, c.status, c.schemes.map((k) => schemes.find(([x]) => x === k)?.[1] ?? k).join("; "), c.ndisNumber, c.agedCareId, c.age ?? "", GENDER_WORD[c.gender] ?? c.gender, c.email, c.phone, c.suburb, c.services.join("; "), c.managers.map((m) => m.name).join("; "), c.reviews[0] ? `${c.reviews[0].label} ${c.reviews[0].due}` : ""].map(cell).join(","),
+      [c.name, c.ref, c.status, (c.programs ?? c.schemes.map((k) => schemes.find(([x]) => x === k)?.[1] ?? k)).join("; ") || "No active program", c.ndisNumber, c.agedCareId, c.age ?? "", GENDER_WORD[c.gender] ?? c.gender, c.email, c.phone, c.suburb, c.services.join("; "), c.managers.map((m) => m.name).join("; "), c.reviews[0] ? `${c.reviews[0].label} ${c.reviews[0].due}` : ""].map(cell).join(","),
     );
     const blob = new Blob([`\ufeff${[head.join(","), ...lines].join("\r\n")}`], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -404,7 +406,7 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
                 {showMac ? <HeadCell sort={sort} setSort={setSort}>My Aged Care ID</HeadCell> : null}
                 {showIdCol ? <HeadCell sort={sort} setSort={setSort}>NDIS / My Aged Care ID</HeadCell> : null}
                 {showContact ? <HeadCell sort={sort} setSort={setSort}>Suburb</HeadCell> : null}
-                <HeadCell sort={sort} setSort={setSort}>Services</HeadCell>
+                <HeadCell sort={sort} setSort={setSort}>Programs</HeadCell>
                 <HeadCell sort={sort} setSort={setSort} k="manager">Assigned manager</HeadCell>
                 {showBudget ? <HeadCell sort={sort} setSort={setSort} k="used" className="w-36">Funds used</HeadCell> : null}
                 <HeadCell sort={sort} setSort={setSort} k="review">Next review</HeadCell>
@@ -434,12 +436,12 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
                     {showContact ? <td className="px-3 py-2 text-muted">{c.suburb}</td> : null}
                     <td className="px-3 py-2">
                       <span className="flex flex-wrap gap-1">
-                        {c.schemes.map((s) => (
+                        {(c.programs ?? c.schemes.map((s) => schemes.find(([k]) => k === s)?.[1] ?? s)).map((s) => (
                           <span key={s} className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">
-                            {schemes.find(([k]) => k === s)?.[1] ?? s}
+                            {s}
                           </span>
                         ))}
-                        {!c.schemes.length ? <span className="text-xs text-muted">None yet</span> : null}
+                        {!(c.programs ?? c.schemes).length ? <span className="text-xs text-muted">{c.programs ? "No active program" : "None yet"}</span> : null}
                       </span>
                     </td>
                     <td className="px-3 py-2">{c.managers.length ? c.managers.map((m) => m.name).join(", ") : <span className="text-muted">Nobody</span>}</td>
@@ -540,11 +542,12 @@ function Panel({ client: c, onClose, schemes, showBudget }: { client: ListClient
             </p>
             <div className="mt-1 flex flex-wrap gap-1">
               <ClientStatusChip status={c.status} />
-              {c.schemes.map((s) => (
+              {(c.programs ?? c.schemes.map((s) => schemes.find(([k]) => k === s)?.[1] ?? s)).map((s) => (
                 <span key={s} className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold">
-                  {schemes.find(([k]) => k === s)?.[1] ?? s}
+                  {s}
                 </span>
               ))}
+              {c.programs && !c.programs.length ? <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">No active program</span> : null}
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-muted hover:bg-page hover:text-ink">

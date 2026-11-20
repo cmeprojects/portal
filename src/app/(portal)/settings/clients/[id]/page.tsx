@@ -16,7 +16,7 @@ import { AssignForm } from "./assign-form";
 import { CommsForm, type Comms } from "./comms-form";
 import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow } from "./service-form";
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
-import { SchemePicker } from "./scheme-picker";
+import { ProgramsCard, type AddableProgram, type Enrolment } from "./programs-card";
 import { ViewersButton } from "./viewers-button";
 import { ClientActivity } from "./activity";
 import { PageSave, type PageSaveConfig } from "@/components/page-save";
@@ -180,6 +180,25 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     supabase.from("client_programs").select("id, name, active, scheme").order("sort_order"),
     supabase.rpc("client_readiness", { p_client: id }),
   ]);
+  // cmeprojects (update 158): their programs (enrolments); empty before update 158 runs.
+  const [enrolRes, offeredRes] = await Promise.all([
+    supabase.from("client_enrolments").select("id, program_id, scheme, status, starts_on, paused_from, paused_until, pause_reason, ends_on, end_reason, is_main").eq("client_id", id).order("status").order("starts_on"),
+    supabase.from("client_schemes").select("key, label, offered").order("sort_order"),
+  ]);
+  const enrolmentsOn = !enrolRes.error;
+  type EnrolRow = { id: string; program_id: string; scheme: string; status: Enrolment["status"]; starts_on: string; paused_from: string | null; paused_until: string | null; pause_reason: string; ends_on: string | null; end_reason: string; is_main: boolean };
+  const enrolRows = (enrolRes.data ?? []) as EnrolRow[];
+  const schemeInfo = new Map(((offeredRes.data ?? []) as { key: string; label: string; offered?: boolean }[]).map((x) => [x.key, x]));
+  const programRows = (programs.data ?? []) as { id: string; name: string; active: boolean; scheme?: string }[];
+  const programName = new Map(programRows.map((p) => [p.id, p.name]));
+  const enrolments: Enrolment[] = enrolRows
+    .map((e) => ({ id: e.id, program: programName.get(e.program_id) ?? "Program", scheme: e.scheme, schemeLabel: schemeInfo.get(e.scheme)?.label ?? e.scheme, status: e.status, startsOn: e.starts_on, pausedFrom: e.paused_from, pausedUntil: e.paused_until, pauseReason: e.pause_reason, endsOn: e.ends_on, endReason: e.end_reason, isMain: e.is_main }))
+    .sort((a, b) => Number(b.isMain) - Number(a.isMain) || a.startsOn.localeCompare(b.startsOn));
+  const openProgramIds = new Set(enrolRows.filter((e) => e.status !== "ended").map((e) => e.program_id));
+  const activeProgramIds = new Set(enrolRows.filter((e) => e.status === "active").map((e) => e.program_id));
+  const addablePrograms: AddableProgram[] = programRows
+    .filter((p) => p.active && !openProgramIds.has(p.id) && schemeInfo.get(p.scheme ?? "")?.offered !== false)
+    .map((p) => ({ id: p.id, name: p.name, scheme: p.scheme ?? "other", schemeLabel: schemeInfo.get(p.scheme ?? "")?.label ?? p.scheme ?? "Other" }));
   const ready = readiness.error ? null : (readiness.data as { ready: boolean; gaps: string[]; services: { id: string; label: string; gaps: string[] }[] });
   const noteOf = new Map(((notes.data ?? []) as { alert_id: string; details: string }[]).map((n) => [n.alert_id, n.details]));
   const programScheme = new Map(((programs.data ?? []) as { id: string; scheme?: string }[]).map((p) => [p.id, p.scheme ?? "other"]));
@@ -270,7 +289,9 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const regScheme = (schemeRes?.data as { scheme?: string | null } | null)?.scheme ?? null;
   const checklist: [string, boolean, string, string][] = checking
     ? [
-        ...(!schemeRes.error ? [["Funded by (NDIS, Support at Home, …)", !!regScheme, regScheme ? (schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme) : "Not chosen", `/settings/clients/${id}#to-check`] as [string, boolean, string, string]] : []),
+        ...(enrolmentsOn
+          ? [["A program (NDIS, Support at Home, …)", openProgramIds.size > 0, openProgramIds.size ? enrolments.filter((e) => e.status !== "ended").map((e) => e.program).join(", ") : "No active program", `/settings/clients/${id}?tab=profile#programs`] as [string, boolean, string, string]]
+          : !schemeRes.error ? [["Funded by (NDIS, Support at Home, …)", !!regScheme, regScheme ? (schemeWords.find((w) => w.key === regScheme)?.label ?? regScheme) : "Not chosen", `/settings/clients/${id}#to-check`] as [string, boolean, string, string]] : []),
         ["At least one approved service", svcRows.length > 0, svcRows.length ? svcRows.map((v) => v.label).join(", ") : "None yet", `/settings/clients/${id}?tab=services#services`],
         [
           "An approved service location",
@@ -818,9 +839,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                   <span className="font-medium">{label}</span>
                   <span className={`block text-xs ${ok ? "text-muted" : "text-warn"}`}>{note}</span>
                 </span>
-                {ok ? null : label.startsWith("Funded by") && canEditClient ? (
-                  <SchemePicker clientId={id} schemes={schemeWords.map((w) => [w.key, w.label] as [string, string])} />
-                ) : (
+                {ok ? null : (
                   <Link href={href} className="text-xs font-semibold text-brand underline">
                     Do this
                   </Link>
@@ -1408,6 +1427,16 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
         </Card>
       ) : null}
 
+      {inView("details") && enrolmentsOn ? (
+        <ProgramsCard
+          clientId={id}
+          enrolments={enrolments}
+          addable={addablePrograms}
+          canEdit={canEditClient}
+          hasNdis={Boolean((details.data as { ndis_number?: string } | null)?.ndis_number)}
+          hasMac={Boolean((details.data as { aged_care_id?: string } | null)?.aged_care_id)}
+        />
+      ) : null}
       {inView("details") ? (
       <Section anchor="details" title="Details" intro="Status and preferred name, then contact details, date of birth and identifiers (managers only).">
         {canEditClient ? <RequiredLegend /> : null}
@@ -1576,11 +1605,19 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               <p className="text-sm text-muted">No approved services yet.</p>
             )}
             {canEditServices ? (
-              locationChoices.length ? (
+              enrolmentsOn && activeProgramIds.size === 0 ? (
+                <p className="text-sm text-muted">
+                  Add a program first:{" "}
+                  <Link href={`/settings/clients/${id}?tab=profile#programs`} className="font-semibold text-brand underline">
+                    Profile, Programs
+                  </Link>
+                  {openProgramIds.size ? " (their programs are paused)" : ""}.
+                </p>
+              ) : locationChoices.length ? (
                 <AddServicePanel
                   clientId={id}
                   catalogue={catalogueAll.filter((c) => c.active)}
-                  programs={((programs.data ?? []) as { id: string; name: string; active: boolean; scheme?: string }[]).filter((x) => x.active).map((x) => [x.id, x.name, x.scheme ?? "other"] as [string, string, string])}
+                  programs={programRows.filter((x) => x.active && (!enrolmentsOn || activeProgramIds.has(x.id))).map((x) => [x.id, x.name, x.scheme ?? "other"] as [string, string, string])}
                   locations={locationChoices}
                   shiftTypes={clientShiftTypes}
                 />

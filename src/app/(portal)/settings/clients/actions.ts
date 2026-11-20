@@ -126,6 +126,19 @@ export async function saveProgram(_: FormState, form: FormData): Promise<FormSta
 }
 
 // A scheme's wording and rules (Care settings). The list of schemes is fixed.
+// cmeprojects (update 158): which schemes the organisation offers (only stops new use).
+export async function setSchemeOffered(key: string, offered: boolean): Promise<FormState> {
+  await requireCareSettings();
+  if (!SCHEMES.includes(key)) return { error: "Choose a scheme." };
+  const { data, error } = await (await createClient()).from("client_schemes").update({ offered }).eq("key", key).select("key");
+  if (error) return { error: friendlyError(error) };
+  if (!data?.length) return { error: "You can't change this." };
+  revalidatePath("/settings/clients");
+  revalidatePath("/settings/clients/programs");
+  revalidatePath("/settings/clients/new");
+  return { message: "Saved." };
+}
+
 export async function saveScheme(_: FormState, form: FormData): Promise<FormState> {
   await requireCareSettings();
   const key = String(form.get("key") ?? "");
@@ -205,12 +218,21 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
   const family = t("family_name", 40);
   if (!given || !family) return { error: "Fill in the first and last name." };
   const title = t("title", 10);
-  const scheme = t("scheme", 40);
-  if (!/^[a-z_]{1,40}$/.test(scheme)) return { error: "Choose who funds them." };
+  // cmeprojects (update 158): one or more programs; the main one sets "Funded by".
+  const programIds = [...new Set(form.getAll("program_ids").map(String).filter((v) => /^[0-9a-f-]{36}$/.test(v)))].slice(0, 20);
+  if (!programIds.length) return { error: "Choose at least one program." };
+  const mainProgram = programIds.includes(t("main_program", 36)) ? t("main_program", 36) : programIds[0];
+  const programsFrom = /^\d{4}-\d{2}-\d{2}$/.test(t("programs_from", 10)) ? t("programs_from", 10) : null;
+  const { data: progRows } = await (await createClient()).from("client_programs").select("id, scheme").in("id", programIds);
+  const schemesPicked = ((progRows ?? []) as { id: string; scheme: string }[]).map((p) => p.scheme);
+  if (schemesPicked.length !== programIds.length) return { error: "One of those programs isn't available. Reload the page and choose again." };
+  const scheme = ((progRows ?? []) as { id: string; scheme: string }[]).find((p) => p.id === mainProgram)?.scheme ?? schemesPicked[0];
   const ndis = t("ndis_number", 20).replace(/\s/g, "");
   const mac = t("aged_care_id", 20).replace(/\s/g, "").toUpperCase();
-  if (scheme === "ndis" && !/^\d{9}$/.test(ndis)) return { error: "Enter their NDIS number (9 digits)." };
-  if (MAC_SCHEMES.includes(scheme) && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
+  const needsNdis = schemesPicked.includes("ndis");
+  const needsMac = schemesPicked.some((k) => MAC_SCHEMES.includes(k));
+  if (needsNdis && !/^\d{9}$/.test(ndis)) return { error: "Enter their NDIS number (9 digits)." };
+  if (needsMac && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
   const phone = checkAuPhone(t("phone", 30));
   const email = checkEmail(t("email", 120));
   // The address comes in parts (street, suburb, state, postcode) and is saved as one line.
@@ -242,7 +264,6 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
     family_name: family,
     preferred_name: t("preferred_name", 80),
     reference: t("reference", 60),
-    scheme,
   };
   const details: Record<string, string | null> = {
     date_of_birth: /^\d{4}-\d{2}-\d{2}$/.test(dob) ? dob : null,
@@ -252,17 +273,17 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
     home_address: address.ok ? address.value : "",
     state: state || inAddress || "",
   };
-  if (scheme === "ndis") details.ndis_number = ndis;
-  if (MAC_SCHEMES.includes(scheme)) details.aged_care_id = mac;
+  if (needsNdis) details.ndis_number = ndis;
+  if (needsMac) details.aged_care_id = mac;
   // update 153: saved together; if any part is refused (an NDIS number in use, say), nothing is saved.
-  const together = await supabase.rpc("create_client_full", { p_client: client, p_details: details, p_manager: managerId || null, p_as: as });
+  const together = await supabase.rpc("create_client_full", { p_client: client, p_details: details, p_manager: managerId || null, p_as: as, p_programs: programIds, p_main: mainProgram, p_starts: programsFrom });
   if (!together.error) {
     revalidatePath("/settings/clients");
     return { message: `${given} ${family} added.`, spotlight: together.data as string };
   }
   if (together.error.code !== "PGRST202") return { error: friendlyError(together.error) };
-  // Before update 153: one part at a time.
-  const { data, error } = await supabase.from("car_clients").insert(client).select("id").single();
+  // Before update 158 (or 153): one part at a time, with "Funded by" as before.
+  const { data, error } = await supabase.from("car_clients").insert({ ...client, scheme }).select("id").single();
   if (error || !data) return { error: friendlyError(error) };
   const { error: dError } = await supabase.from("client_details").upsert({ client_id: data.id, ...details }, { onConflict: "client_id" });
   if (dError) {

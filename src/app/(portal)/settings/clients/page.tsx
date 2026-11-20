@@ -122,6 +122,10 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
   // update 148: the scheme chosen when they were added (none before it runs).
   const schemeCol = await supabase.from("car_clients").select("id, scheme");
   const regScheme = new Map(schemeCol.error ? [] : ((schemeCol.data ?? []) as { id: string; scheme: string | null }[]).filter((r) => r.scheme).map((r) => [r.id, r.scheme as string]));
+  // update 158: open programs (main first) decide the tabs, counts and the Programs column.
+  const enrolRes = await supabase.from("client_enrolments").select("client_id, scheme, is_main, status, client_programs(name)").neq("status", "ended").order("is_main", { ascending: false }).order("starts_on");
+  type OpenEnrol = { client_id: string; scheme: string; is_main: boolean; client_programs: { name: string } | null };
+  const openEnrol = enrolRes.error ? null : ((enrolRes.data ?? []) as unknown as OpenEnrol[]);
   const details = new Map(((detailsRes?.data ?? []) as { client_id: string; date_of_birth: string | null; ndis_number: string | null; aged_care_id?: string | null; gender?: string | null; email: string | null; phone: string | null; home_address: string | null }[]).map((d) => [d.client_id, d]));
   const listClients: ListClient[] = clients.map((c) => {
     const mine = services.filter((v) => v.client_id === c.id);
@@ -142,7 +146,10 @@ export default async function ClientsPage({ searchParams }: PageProps<"/settings
       // The suburb only (the part before the state or postcode), not the full address.
       suburb: suburbOf(details.get(c.id)?.home_address ?? ""),
       // Who funds them: the scheme chosen at registration, and their services' schemes.
-      schemes: [...new Set([...(regScheme.get(c.id) ? [regScheme.get(c.id) as string] : []), ...mine.map((v) => v.client_programs?.scheme ?? "other")])],
+      schemes: openEnrol
+        ? [...new Set(openEnrol.filter((e) => e.client_id === c.id).map((e) => e.scheme))]
+        : [...new Set([...(regScheme.get(c.id) ? [regScheme.get(c.id) as string] : []), ...mine.map((v) => v.client_programs?.scheme ?? "other")])],
+      programs: openEnrol ? openEnrol.filter((e) => e.client_id === c.id).map((e) => e.client_programs?.name ?? "Program") : undefined,
       services: mine.map((v) => v.label),
       managers: ((assignRes?.data ?? []) as { client_id: string; user_id: string; assigned_as: string; starts_on: string; ends_on: string | null }[])
         .filter((a) => a.client_id === c.id && a.starts_on <= today && (!a.ends_on || a.ends_on >= today))
