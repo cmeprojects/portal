@@ -407,7 +407,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           next: stepAt < STEPS.length - 1 ? `/settings/clients/${id}?edit=${STEPS[stepAt + 1][0]}` : `/settings/clients/${id}`,
           // The last step: Finish saves too.
           nextLabel: stepAt === STEPS.length - 1 ? "Save and finish" : undefined,
-          cancel: `/settings/clients/${id}`,
+          cancel: "/settings/clients",
         }
       : canEditClient && !step && tab === "profile"
         ? { mode: "tab" }
@@ -1527,7 +1527,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm hover:border-muted hover:bg-page group-open:hidden">
                                   <Pencil aria-hidden="true" className="size-3.5" /> View and edit details
                                 </span>
-                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm hover:border-muted hover:bg-page hidden group-open:inline-flex">
+                                <span className="hidden items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm group-open:inline-flex hover:border-muted hover:bg-page">
                                   <X aria-hidden="true" className="size-3.5" /> Close
                                 </span>
                               </summary>
@@ -1708,7 +1708,7 @@ function Items({ rows, line, form }: { rows: Row[]; line: (r: Row) => string; fo
               <span className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm hover:border-muted hover:bg-page group-open:hidden">
                 <Pencil aria-hidden="true" className="size-3.5" /> Edit
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm hover:border-muted hover:bg-page hidden group-open:inline-flex">
+              <span className="hidden items-center gap-1.5 rounded-lg border border-field bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm group-open:inline-flex hover:border-muted hover:bg-page">
                 <X aria-hidden="true" className="size-3.5" /> Close
               </span>
             </summary>

@@ -3,7 +3,7 @@
 
 import { createContext, startTransition, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, LogOut, Save, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, LogOut, Save, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDirty } from "@/components/use-dirty";
 import { ToastOnMount } from "@/components/toast";
@@ -20,7 +20,7 @@ const Ctx = createContext<Registry | null>(null);
 
 export type PageSaveConfig = {
   mode: "steps" | "tab";
-  // Steps: where Save and continue and Exit go (no Back: the step names at the top switch steps).
+  // Steps: Back goes to the step before (or, on step 1, to the client list: cancel).
   back?: string;
   next?: string;
   nextLabel?: string;
@@ -112,8 +112,9 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
               {problem || (dirtyCount ? `${dirtyCount} unsaved change${dirtyCount === 1 ? "" : "s"}` : "No unsaved changes")}
             </p>
             {steps && config.cancel ? (
-              <Link href={config.cancel} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink">
-                <LogOut aria-hidden="true" className="size-4" /> Exit
+              // Step 1: back to the client list; later steps: back to the step before (owner, 20 Nov 2026).
+              <Link href={config.back ?? config.cancel} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink">
+                <ArrowLeft aria-hidden="true" className="size-4" /> {config.back ? "Back" : "Back to client list"}
               </Link>
             ) : null}
             {steps ? (
