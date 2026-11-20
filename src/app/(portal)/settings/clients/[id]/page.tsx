@@ -18,7 +18,6 @@ import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow }
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { SchemePicker } from "./scheme-picker";
 import { ViewersButton } from "./viewers-button";
-import { ClientFloat } from "./client-float";
 import { PageSave, type PageSaveConfig } from "@/components/page-save";
 import { RequiredLegend } from "@/components/required";
 import { ReportIncidentForm } from "../../../incidents/forms";
@@ -32,6 +31,7 @@ import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from
 import { DocumentForm } from "./document-form";
 import { canDo, canDoFor } from "@/lib/module-access";
 import { ALERT_KINDS, ARCHIVE_REASONS, MAC_SCHEMES, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, CLIENT_STATUS, COMMS_CONTACT_WAYS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, type SectionTable } from "@/lib/client-sections";
+import { PageFloat } from "@/components/page-float";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -1683,7 +1683,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
         </>
       ) : null}
       {/* Floating icons when viewing (the edit steps have their own). */}
-      {step ? null : <ClientFloat editHref={canEditClient && client.status !== "discharged" ? `/settings/clients/${id}?edit=basic` : undefined} />}
+      {step ? null : <PageFloat list={{ href: "/settings/clients", label: "Back to client list" }} edit={canEditClient && client.status !== "discharged" ? { href: `/settings/clients/${id}?edit=basic`, label: "Edit details" } : undefined} />}
     </PageSave>
   );
 }

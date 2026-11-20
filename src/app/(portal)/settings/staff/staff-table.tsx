@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { Eye, Pencil, Search } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { inputClass } from "@/components/ui";
+import { FilterPanel, FilterSelect } from "@/components/filter-panel";
 
 export type StaffRow = {
   id: string;
@@ -51,6 +52,16 @@ export function StaffTable({ rows, selected, showTeams, showRoster = false }: { 
   const params = useSearchParams();
   const [q, setQ] = useState("");
   const [show, setShow] = useState<"current" | "onboarding" | "action" | "deactivated" | "all">("current");
+  // Floating filters (owner, 20 Nov 2026): role, team, employment, compliance.
+  const [role, setRole] = useState("");
+  const [team, setTeam] = useState("");
+  const [employment, setEmployment] = useState("");
+  const [checks, setChecks] = useState("");
+  const roles = useMemo(() => [...new Set(rows.map((r) => r.role).filter(Boolean))].sort(), [rows]);
+  const teams = useMemo(() => [...new Set(rows.flatMap((r) => r.team.split(",").map((t) => t.trim())).filter((t) => t && t !== "—"))].sort(), [rows]);
+  const employments = useMemo(() => [...new Set(rows.map((r) => r.employment).filter(Boolean))].sort(), [rows]);
+  const filtersOn = [role, team, employment, checks].filter(Boolean).length;
+  const checkState = (r: StaffRow) => (r.expired ? "action" : r.expiring ? "expiring" : r.todo ? "onboarding" : "current");
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
     return rows.filter(
@@ -60,9 +71,13 @@ export function StaffTable({ rows, selected, showTeams, showRoster = false }: { 
           (show === "deactivated" && r.status === "Deactivated") ||
           (show === "onboarding" && r.status !== "Deactivated" && r.status !== "Active") ||
           (show === "action" && r.status !== "Deactivated" && (r.expired > 0 || r.expiring > 0 || r.waiting || !!r.leaving))) &&
-        (!term || [r.name, r.email, r.role, r.sub, r.team].some((v) => v.toLowerCase().includes(term))),
+        (!term || [r.name, r.email, r.role, r.sub, r.team].some((v) => v.toLowerCase().includes(term))) &&
+        (!role || r.role === role) &&
+        (!team || r.team.split(",").map((t) => t.trim()).includes(team)) &&
+        (!employment || r.employment === employment) &&
+        (!checks || checkState(r) === checks),
     );
-  }, [rows, q, show]);
+  }, [rows, q, show, role, team, employment, checks]);
   const open = (id: string) => {
     const next = new URLSearchParams(params.toString());
     next.set("p", id);
@@ -72,6 +87,22 @@ export function StaffTable({ rows, selected, showTeams, showRoster = false }: { 
   return (
     <div className="shadow-card flex flex-col rounded-xl border border-line bg-surface">
       <div className="flex flex-wrap items-center gap-2 p-3">
+        <FilterPanel
+          count={filtersOn}
+          results={list.length}
+          resultWord="people"
+          onClear={() => {
+            setRole("");
+            setTeam("");
+            setEmployment("");
+            setChecks("");
+          }}
+        >
+          <FilterSelect label="Role" value={role} onChange={setRole} options={roles.map((x) => [x, x])} />
+          {showTeams ? <FilterSelect label="Team" value={team} onChange={setTeam} options={teams.map((x) => [x, x])} /> : null}
+          <FilterSelect label="Employment" value={employment} onChange={setEmployment} options={employments.map((x) => [x, x])} />
+          <FilterSelect label="Compliance" value={checks} onChange={setChecks} options={[["action", "Checks need action"], ["expiring", "Expiring soon"], ["onboarding", "Onboarding to do"], ["current", "All checks current"]]} />
+        </FilterPanel>
         <label className="relative min-w-48 flex-1">
           <span className="sr-only">Search staff</span>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />

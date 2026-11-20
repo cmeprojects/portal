@@ -3,9 +3,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { FilterPanel, FilterSelect } from "@/components/filter-panel";
 import { pluralOf, storeClientTab, useClientTab, useStoredClientTab, wordForTab } from "./client-tab";
-import { Download, ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
+import { Download, ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, X } from "lucide-react";
 import { loadClientNotes, type ClientNotes } from "./notes-actions";
 import { CommsLogForm, CommsLogList } from "./[id]/comms-log";
 import { inputClass } from "@/components/ui";
@@ -350,6 +351,8 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
         {/* Filters open in a floating panel, like the side menu (owner, 20 Nov 2026): nothing on the page moves. */}
         <FilterPanel
           count={activeFilters}
+          results={rows.length}
+          resultWord={tabPlural.toLowerCase()}
           onClear={() => {
             setGender("");
             setSuburb("");
@@ -358,11 +361,11 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
             setStatus("");
           }}
         >
-          <QuickFilter label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
-          <QuickFilter label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
-          <QuickFilter label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
-          <QuickFilter label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
-          {tab === "active" ? <QuickFilter label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
+          <FilterSelect label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
+          <FilterSelect label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
+          <FilterSelect label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
+          <FilterSelect label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
+          {tab === "active" ? <FilterSelect label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
         </FilterPanel>
         <label className="relative min-w-48 flex-1">
           <span className="sr-only">Search</span>
@@ -839,67 +842,4 @@ function BackToTop() {
 
 const GENDER_WORD: Record<string, string> = { female: "Female", male: "Male", non_binary: "Non-binary", different_term: "Uses a different term", prefer_not_to_say: "Prefer not to say" };
 
-// A compact filter: shows its name until something is chosen, then stands out.
-function QuickFilter({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][] }) {
-  return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`h-10 w-full rounded-lg border px-2.5 text-sm font-medium ${value ? "border-brand bg-brand-soft text-ink" : "border-field bg-surface text-muted"}`}
-    >
-      <option value="">{label}</option>
-      {options.map(([k, l]) => (
-        <option key={k} value={k}>
-          {l}
-        </option>
-      ))}
-    </select>
-  );
-}
 
-// The Filters button and its floating panel (closes on a click outside or Esc).
-function FilterPanel({ count, onClear, children }: { count: number; onClear: () => void; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => {
-      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
-    };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", away);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", away);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [open]);
-  return (
-    <div ref={box} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold ${open || count ? "border-brand bg-brand-soft text-ink" : "border-field text-muted hover:text-ink"}`}
-      >
-        <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
-        {count ? <span className="rounded-full bg-brand px-1.5 text-xs leading-5 font-bold text-brand-fg">{count}</span> : null}
-      </button>
-      {open ? (
-        <div role="dialog" aria-label="Filters" className="absolute top-full left-0 z-40 mt-2 flex w-72 flex-col gap-2 rounded-xl border border-line bg-surface p-3 shadow-2xl">
-          <p className="text-xs font-semibold tracking-wider text-muted uppercase">Filters</p>
-          {children}
-          <div className="mt-1 flex items-center justify-between border-t border-line pt-2">
-            <button type="button" onClick={onClear} disabled={!count} className="rounded-md px-2 py-1 text-sm font-semibold text-muted hover:bg-page disabled:opacity-40">
-              Clear
-            </button>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-md bg-brand px-3 py-1 text-sm font-semibold text-brand-fg hover:opacity-90">
-              Done
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}

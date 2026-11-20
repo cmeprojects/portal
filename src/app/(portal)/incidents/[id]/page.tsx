@@ -10,6 +10,7 @@ import { Button, Card, PageHeader } from "@/components/ui";
 import { INCIDENT_KINDS, INCIDENT_SEVERITY, INCIDENT_STAGES, INCIDENT_STATUS, REPORTABLE, label } from "@/lib/incidents";
 import { reopenIncident } from "../actions";
 import { ActionAddForm, ActionDoneForm, CommissionForm, IncidentNoteForm, InvestigationForm, SignOffForm, TriageForm, type IncidentRow } from "../forms";
+import { PageFloat } from "@/components/page-float";
 
 export const metadata: Metadata = { title: "Incident" };
 
@@ -293,6 +294,8 @@ export default async function IncidentPage({ params }: PageProps<"/incidents/[id
           </ol>
         </Card>
       </div>
+      {/* Floating icons (owner, 20 Nov 2026). */}
+      <PageFloat list={{ href: "/incidents", label: "Back to incidents" }} />
     </div>
   );
 }

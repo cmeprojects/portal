@@ -19,6 +19,7 @@ import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyToday } from "@/lib
 import { canHelpSignIn, canInvite, getPeopleRules } from "@/lib/settings";
 import { decideChangeRequest } from "./actions";
 import { FormPending } from "@/components/form-pending";
+import { PageFloat } from "@/components/page-float";
 
 export const metadata: Metadata = { title: "Staff" };
 
@@ -513,6 +514,8 @@ export default async function StaffPage({ searchParams }: PageProps<"/settings/s
           </aside>
         </>
       ) : null}
+      {/* Floating icons (owner, 20 Nov 2026). */}
+      <PageFloat />
     </>
   );
 }

@@ -24,6 +24,7 @@ import { HoldReviewForm, PlanReviewForm } from "./review-forms";
 import { REVIEW_KINDS, REVIEW_OUTCOMES } from "@/lib/hr-lists";
 import { AddStepForm, OffboardingForm, StartOffboardingForm } from "./offboarding-forms";
 import { LEAVING_REASONS } from "@/lib/hr-lists";
+import { PageFloat } from "@/components/page-float";
 
 export const metadata: Metadata = { title: "Staff member" };
 
@@ -698,6 +699,8 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
           </span>
         </div>
       ) : null}
+      {/* Floating icons (owner, 20 Nov 2026). */}
+      <PageFloat list={{ href: "/settings/staff", label: "Back to staff list" }} />
     </>
   );
 }

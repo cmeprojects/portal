@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { houseKind } from "@/lib/houses";
 import { HouseActiveForm, HouseForm, MoveInForm, MoveOutForm, RoomForm, type House } from "../forms";
+import { PageFloat } from "@/components/page-float";
 
 export const metadata: Metadata = { title: "House" };
 
@@ -154,6 +155,8 @@ export default async function HousePage({ params }: PageProps<"/houses/[id]">) {
           ) : null}
         </div>
       </div>
+      {/* Floating icons (owner, 20 Nov 2026). */}
+      <PageFloat list={{ href: "/houses", label: "Back to houses" }} />
     </div>
   );
 }
