@@ -109,11 +109,13 @@ begin
   foreach t in array array['client_agreements', 'client_alert_notes', 'client_alerts', 'client_care_goals', 'client_care_plans', 'client_comms',
     'client_details', 'client_documents', 'client_external_access', 'client_funding', 'client_people', 'client_practitioner_notes',
     'client_reviews', 'client_services', 'client_worker_instructions', 'client_assignments', 'client_locations', 'client_communications', 'car_clients'] loop
+    continue when to_regclass('public.' || t) is null; -- a part not set up yet (for example update 147)
     execute format('drop trigger if exists log_client_removed on public.%I', t); -- an earlier draft
     execute format('drop trigger if exists log_client_audit on public.%I', t);
     execute format('create trigger log_client_audit after insert or update or delete on public.%I for each row execute function public.log_client_change()', t);
   end loop;
   foreach t in array array['client_assignments', 'client_locations', 'client_communications'] loop
+    continue when to_regclass('public.' || t) is null; -- a part not set up yet (for example update 147)
     execute format('drop trigger if exists log_client_change on public.%I', t);
     execute format('create trigger log_client_change before insert or update on public.%I for each row execute function public.log_client_change()', t);
   end loop;
