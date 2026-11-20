@@ -20,9 +20,8 @@ const Ctx = createContext<Registry | null>(null);
 
 export type PageSaveConfig = {
   mode: "steps" | "tab";
-  // Steps: Back goes to the step before; on step 1, to the list. Exit (cancel) leaves the edit steps.
+  // Steps: Back goes to the step before (none on step 1). Exit (cancel) leaves the edit steps.
   back?: string;
-  list?: string;
   next?: string;
   nextLabel?: string;
   cancel?: string;
@@ -112,10 +111,10 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
             <p className={`min-w-0 flex-1 text-sm ${problem ? "font-medium text-danger" : "text-muted"}`} role={problem ? "alert" : "status"}>
               {problem || (dirtyCount ? `${dirtyCount} unsaved change${dirtyCount === 1 ? "" : "s"}` : "No unsaved changes")}
             </p>
-            {/* Back, next to the other buttons (owner, 20 Nov 2026): to the step before, or on step 1 to the client list. */}
-            {steps && (config.back || config.list) ? (
-              <Link href={config.back ?? config.list ?? "/"} className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page">
-                <ArrowLeft aria-hidden="true" className="size-4" /> {config.back ? "Back" : "Back to client list"}
+            {/* Back, next to the other buttons (owner, 20 Nov 2026): to the step before (none on step 1). */}
+            {steps && config.back ? (
+              <Link href={config.back} className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page">
+                <ArrowLeft aria-hidden="true" className="size-4" /> Back
               </Link>
             ) : null}
             {steps && config.cancel ? (
