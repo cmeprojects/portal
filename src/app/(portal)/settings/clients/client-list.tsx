@@ -276,6 +276,8 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
   const suburbs = useMemo(() => [...new Set(clients.map((c) => c.suburb).filter(Boolean))].sort(), [clients]);
   const serviceNames = useMemo(() => [...new Set(clients.flatMap((c) => c.services))].sort(), [clients]);
   const filtering = Boolean(gender || suburb || service || manager || status || q);
+  const activeFilters = [gender, suburb, service, manager, status].filter(Boolean).length;
+  const [showFilters, setShowFilters] = useState(false);
   const clearFilters = () => {
     setGender("");
     setSuburb("");
@@ -346,14 +348,25 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
       ) : null}
       {/* One toolbar (owner, 20 Nov 2026): quick filters, search, refresh, then New and Export. */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted">
+        {/* Filters stay hidden until asked for (owner, 20 Nov 2026); the button shows how many are on. */}
+        <button
+          type="button"
+          onClick={() => setShowFilters((o) => !o)}
+          aria-expanded={showFilters}
+          className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold ${showFilters || activeFilters ? "border-brand bg-brand-soft text-ink" : "border-field text-muted hover:text-ink"}`}
+        >
           <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
-        </span>
-        <QuickFilter label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
-        <QuickFilter label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
-        <QuickFilter label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
-        <QuickFilter label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
-        {tab === "active" ? <QuickFilter label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
+          {activeFilters ? <span className="rounded-full bg-brand px-1.5 text-xs leading-5 font-bold text-brand-fg">{activeFilters}</span> : null}
+        </button>
+        {showFilters ? (
+          <>
+            <QuickFilter label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
+            <QuickFilter label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
+            <QuickFilter label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
+            <QuickFilter label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
+            {tab === "active" ? <QuickFilter label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
+          </>
+        ) : null}
         <label className="relative min-w-48 flex-1">
           <span className="sr-only">Search</span>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
