@@ -18,6 +18,7 @@ import { PrintLandscape } from "@/components/print-landscape";
 import { SectionTabs } from "@/components/section-tabs";
 import { LiveRefresh } from "@/components/live-refresh";
 import { FormPending } from "@/components/form-pending";
+import { DateInput } from "@/components/date-input";
 
 export async function generateMetadata({ params }: PageProps<"/reports/f/[slug]">): Promise<Metadata> {
   const def = await loadFeature({ slug: (await params).slug });
@@ -133,11 +134,11 @@ export default async function FeatureReportPage({ params, searchParams }: PagePr
             </div>
             <label className={field}>
               <span className="font-semibold">From (your own dates)</span>
-              <input type="date" name="from" defaultValue={f.period.key === "custom" ? f.period.from : ""} className={inputClass} />
+              <DateInput name="from" defaultValue={f.period.key === "custom" ? f.period.from : ""} className={inputClass} />
             </label>
             <label className={field}>
               <span className="font-semibold">To</span>
-              <input type="date" name="to" defaultValue={f.period.key === "custom" ? f.period.to : ""} className={inputClass} />
+              <DateInput name="to" defaultValue={f.period.key === "custom" ? f.period.to : ""} className={inputClass} />
             </label>
           </div>
           <p className="text-xs text-muted">Fill in both dates to use your own dates instead of the period.</p>

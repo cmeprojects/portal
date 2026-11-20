@@ -7,6 +7,7 @@ import { toast } from "@/components/toast";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import type { Option } from "@/components/field-input";
 import { addFollowUpAction } from "../actions";
+import { DateInput } from "@/components/date-input";
 
 export function FollowUpForm({ parentId, people, today }: { parentId: string; people: Option[]; today: string }) {
   const [state, action, pending] = useActionState(addFollowUpAction, null);
@@ -33,7 +34,7 @@ export function FollowUpForm({ parentId, people, today }: { parentId: string; pe
           </select>
         </Field>
         <Field label="By when? (optional)" htmlFor="a-due">
-          <input id="a-due" name="due_date" type="date" min={today} className={inputClass} />
+          <DateInput id="a-due" name="due_date" min={today} className={inputClass} />
         </Field>
       </div>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}

@@ -3,6 +3,7 @@
 
 import { Field, inputClass } from "@/components/ui";
 import type { RegistryField } from "@/lib/registers";
+import { DateInput } from "@/components/date-input";
 
 export type Option = { id: string; label: string };
 
@@ -86,7 +87,7 @@ export function FieldInput({
       );
       break;
     case "date":
-      input = <input id={id} name={name} type="date" defaultValue={str.slice(0, 10)} required={field.required} className={inputClass} />;
+      input = <DateInput id={id} name={name} defaultValue={str.slice(0, 10)} required={field.required} className={inputClass} />;
       break;
     case "choice":
       input = (

@@ -11,6 +11,7 @@ import type { FormState } from "@/lib/form";
 import { toast } from "@/components/toast";
 import { useValid } from "@/components/use-valid";
 import { acknowledgePolicy, completeTraining, openItem, signAgreement, submitDocument } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 // cmeprojects: the steps on My onboarding. Each one saves on its own, so
 // people can do a bit, leave, and carry on later.
@@ -142,7 +143,7 @@ export function TrainingStep({
         <p className="text-sm font-medium">When you&apos;ve finished it, record it here.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Date completed" htmlFor={`done-${itemId}`}>
-            <input id={`done-${itemId}`} name="completed_on" type="date" max={today()} required className={inputClass} />
+            <DateInput id={`done-${itemId}`} name="completed_on" max={today()} required className={inputClass} />
           </Field>
           <Field label="Provider (optional)" htmlFor={`prov-${itemId}`}>
             <input id={`prov-${itemId}`} name="provider" maxLength={120} placeholder="e.g. NDIS Commission" className={inputClass} />
@@ -165,7 +166,7 @@ export function TrainingStep({
             </Field>
             {needsExpiry && file ? (
               <Field label="Certificate expiry" htmlFor={`cexp-${itemId}`}>
-                <input id={`cexp-${itemId}`} name="expires_on" type="date" min={today()} required className={inputClass} />
+                <DateInput id={`cexp-${itemId}`} name="expires_on" min={today()} required className={inputClass} />
               </Field>
             ) : null}
           </div>
@@ -221,12 +222,12 @@ export function DocumentStep({
           ) : null}
           {needsIssue || askIssue ? (
             <Field label={needsIssue ? "Issue date" : "Issue date (optional)"} htmlFor={`iss-${itemId}`}>
-              <input id={`iss-${itemId}`} name="issued_on" type="date" max={today()} required={needsIssue} className={inputClass} />
+              <DateInput id={`iss-${itemId}`} name="issued_on" max={today()} required={needsIssue} className={inputClass} />
             </Field>
           ) : null}
           {needsExpiry ? (
             <Field label="Expiry date" htmlFor={`exp-${itemId}`}>
-              <input id={`exp-${itemId}`} name="expires_on" type="date" min={today()} required className={inputClass} />
+              <DateInput id={`exp-${itemId}`} name="expires_on" min={today()} required className={inputClass} />
             </Field>
           ) : null}
         </div>

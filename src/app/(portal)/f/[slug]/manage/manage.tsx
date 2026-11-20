@@ -7,6 +7,7 @@ import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { TargetsEditor } from "@/components/feature-targets";
 import type { Answers, Feature, FeatureField, Option } from "@/lib/feature-types";
 import { fixEntry, saveOptions } from "../../actions";
+import { DateInput } from "@/components/date-input";
 
 export type ManageEntry = {
   id: number;
@@ -234,11 +235,13 @@ function Input({ f, id, value, onChange, ctx }: { f: FeatureField; id: string; v
       return <textarea id={id} rows={3} value={v} maxLength={2000} onChange={(e) => onChange(e.target.value)} className={inputClass} />;
     case "photo":
       return <p className="text-sm text-muted">{v ? "Photo kept as it is." : "No photo."}</p>;
+    case "date":
+      return <DateInput id={id} value={v} onChange={(e) => onChange(e.target.value)} />;
     default:
       return (
         <input
           id={id}
-          type={f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
+          type={f.type === "time" ? "time" : "text"}
           inputMode={f.type === "number" ? "decimal" : undefined}
           value={v}
           maxLength={200}

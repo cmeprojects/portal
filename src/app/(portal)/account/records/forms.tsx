@@ -8,6 +8,7 @@ import { useDirty } from "@/components/use-dirty";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { RECORDS_BUCKET, WORK_STATUS, type Bank, type Super, type WorkRights } from "@/lib/staff-records";
 import { saveBank, saveSuper, saveWorkRights } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 // cmeprojects: submit without the browser form reset, so a refused save
 // (for example a mistyped BSB) keeps what the person typed.
@@ -133,7 +134,7 @@ export function WorkRightsForm({ wr, userId }: { wr: WorkRights | null; userId: 
             <input id="w-sub" name="visa_subclass" required defaultValue={wr?.visa_subclass ?? ""} maxLength={20} className={inputClass} />
           </Field>
           <Field label="Visa expiry date" htmlFor="w-exp">
-            <input id="w-exp" name="visa_expiry" type="date" defaultValue={wr?.visa_expiry ?? ""} className={inputClass} />
+            <DateInput id="w-exp" name="visa_expiry" defaultValue={wr?.visa_expiry ?? ""} className={inputClass} />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Work conditions (optional)" htmlFor="w-cond" hint="For example: work limited to 48 hours a fortnight.">
@@ -147,7 +148,7 @@ export function WorkRightsForm({ wr, userId }: { wr: WorkRights | null; userId: 
             <FileUpload id="w-vevo-doc" bucket={RECORDS_BUCKET} folder={`identity_docs/${userId}`} name="vevo_doc" onUploaded={() => setUploaded(true)} />
           </Field>
           <Field label="Date of the VEVO check (optional)" htmlFor="w-vevo-on">
-            <input id="w-vevo-on" name="vevo_checked_on" type="date" defaultValue={wr?.vevo_checked_on ?? ""} className={inputClass} />
+            <DateInput id="w-vevo-on" name="vevo_checked_on" defaultValue={wr?.vevo_checked_on ?? ""} className={inputClass} />
           </Field>
         </div>
       ) : null}

@@ -7,6 +7,7 @@ import { FileUpload } from "@/components/file-upload";
 import { FILES_BUCKET } from "@/lib/compliance";
 import type { FormState } from "@/lib/form";
 import { confirmItem, submitUpload } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 function Result({ state }: { state: FormState }) {
   if (state?.error) return <Notice tone="error">{state.error}</Notice>;
@@ -38,7 +39,7 @@ export function UploadForm({ itemId, userId, needsExpiry, again }: { itemId: str
         </Field>
         {needsExpiry ? (
           <Field label="Expiry date" htmlFor={`exp-${itemId}`}>
-            <input id={`exp-${itemId}`} name="expires_on" type="date" required className={inputClass} />
+            <DateInput id={`exp-${itemId}`} name="expires_on" required className={inputClass} />
           </Field>
         ) : null}
       </div>

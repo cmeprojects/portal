@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { buttonClass, inputClass } from "@/components/ui";
 import { FormPending } from "@/components/form-pending";
+import { DateInput } from "@/components/date-input";
 
 type Range = { from: string; to: string };
 
@@ -96,11 +97,11 @@ export function ExportPanel({
             <div className="grid grid-cols-2 gap-2">
               <label className="flex flex-col gap-1 text-xs font-medium">
                 From
-                <input type="date" name="from" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} className={inputClass} />
+                <DateInput name="from" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} className={inputClass} />
               </label>
               <label className="flex flex-col gap-1 text-xs font-medium">
                 To
-                <input type="date" name="to" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} className={inputClass} />
+                <DateInput name="to" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} className={inputClass} />
               </label>
             </div>
             {badRange ? <p className="text-xs font-semibold text-danger">The From date is after the To date.</p> : null}

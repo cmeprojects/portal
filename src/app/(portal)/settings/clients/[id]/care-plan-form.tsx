@@ -6,6 +6,7 @@ import { Button, Notice, inputClass } from "@/components/ui";
 import { saveCareGoal, saveCarePlan, saveWorkerInstruction } from "./actions";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { useDirty } from "@/components/use-dirty";
+import { DateInput } from "@/components/date-input";
 
 export type CarePlan = { id: string; title: string; status: string; assessed_on: string | null; starts_on: string | null; review_by: string | null; summary: string; document_id: string | null };
 
@@ -40,15 +41,15 @@ export function CarePlanForm({ clientId, plan, documents }: { clientId: string; 
       <div className="grid gap-2 sm:grid-cols-3">
         <label className={field}>
           Assessed on
-          <input type="date" name="assessed_on" defaultValue={plan?.assessed_on ?? ""} className={inputClass} />
+          <DateInput name="assessed_on" defaultValue={plan?.assessed_on ?? ""} className={inputClass} />
         </label>
         <label className={field}>
           Starts on
-          <input type="date" name="starts_on" defaultValue={plan?.starts_on ?? ""} className={inputClass} />
+          <DateInput name="starts_on" defaultValue={plan?.starts_on ?? ""} className={inputClass} />
         </label>
         <label className={field}>
           Review by
-          <input type="date" name="review_by" defaultValue={plan?.review_by ?? ""} className={inputClass} />
+          <DateInput name="review_by" defaultValue={plan?.review_by ?? ""} className={inputClass} />
         </label>
       </div>
       <label className={field}>

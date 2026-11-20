@@ -11,6 +11,7 @@ import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } fr
 import type { FormState } from "@/lib/form";
 import { clearCarPin,
   removePersonPhoto, giveConditionalRole, invitePerson, resendInvite, deleteUnstarted, resetTwoFactor, savePerson, sendResetLink, setActive, setMfaExempt, signOutEverywhere } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 type Team = { id: string; name: string };
 
@@ -420,7 +421,7 @@ function ConditionalRoleForm({
           </select>
         </Field>
         <Field label="Finish onboarding by" htmlFor={`cdeadline-${person.id}`}>
-          <input id={`cdeadline-${person.id}`} name="deadline" type="date" required defaultValue={inDays(14)} min={inDays(0)} className={inputClass} />
+          <DateInput id={`cdeadline-${person.id}`} name="deadline" required defaultValue={inDays(14)} min={inDays(0)} className={inputClass} />
         </Field>
       </div>
       {teams.length ? (

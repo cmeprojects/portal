@@ -7,6 +7,7 @@ import { Button, Notice, inputClass } from "@/components/ui";
 import { SERVICE_STATUS } from "@/lib/client-sections";
 import { addClientService, updateClientService } from "./actions";
 import { useSavableForm } from "@/components/page-save";
+import { DateInput } from "@/components/date-input";
 
 export type CatalogueItem = { id: string; name: string; description: string; schemes: string[]; shift_types: string[] };
 export type ServiceRow = {
@@ -63,11 +64,11 @@ function Details({ s, programs, locations }: { s?: ServiceRow; programs: (Choice
       </label>
       <label className={field}>
         <span className={lab}>Start date</span>
-        <input type="date" name="start_date" required defaultValue={s?.start_date ?? ""} className={inputClass} />
+        <DateInput name="start_date" required defaultValue={s?.start_date ?? ""} className={inputClass} />
       </label>
       <label className={field}>
         <span className={lab}>End date (optional)</span>
-        <input type="date" name="end_date" defaultValue={s?.end_date ?? ""} className={inputClass} />
+        <DateInput name="end_date" defaultValue={s?.end_date ?? ""} className={inputClass} />
       </label>
       <label className={field}>
         <span className={lab}>Status</span>
@@ -91,7 +92,7 @@ function Details({ s, programs, locations }: { s?: ServiceRow; programs: (Choice
         <>
           <label className={field}>
             <span className={lab}>Consent given on</span>
-            <input type="date" name="consent_given_on" defaultValue={s?.consent_given_on ?? ""} className={inputClass} />
+            <DateInput name="consent_given_on" defaultValue={s?.consent_given_on ?? ""} className={inputClass} />
           </label>
           <label className={field}>
             <span className={lab}>Consent note</span>

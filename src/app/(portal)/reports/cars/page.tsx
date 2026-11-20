@@ -19,6 +19,7 @@ import { PrintLandscape } from "@/components/print-landscape";
 import { clearCarReportView, saveCarReportView } from "./actions";
 import { seesCarReportFor } from "@/lib/module-access";
 import { FormPending } from "@/components/form-pending";
+import { DateInput } from "@/components/date-input";
 
 export const metadata: Metadata = { title: "Car reports" };
 
@@ -148,11 +149,11 @@ export default async function CarReportsPage({ searchParams }: PageProps<"/repor
             </label>
             <label className={field}>
               <span className="font-semibold">From (your own dates)</span>
-              <input type="date" name="from" defaultValue={f.period.key === "custom" ? f.period.from : ""} className={inputClass} />
+              <DateInput name="from" defaultValue={f.period.key === "custom" ? f.period.from : ""} className={inputClass} />
             </label>
             <label className={field}>
               <span className="font-semibold">To</span>
-              <input type="date" name="to" defaultValue={f.period.key === "custom" ? f.period.to : ""} className={inputClass} />
+              <DateInput name="to" defaultValue={f.period.key === "custom" ? f.period.to : ""} className={inputClass} />
             </label>
             <div className="flex items-end">
               <button className={buttonClass("primary", "h-11 w-full")}>Show report<FormPending /></button>

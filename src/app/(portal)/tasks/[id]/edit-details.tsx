@@ -10,6 +10,7 @@ import { FieldInput, type Option } from "@/components/field-input";
 import type { Details, Registry, RegistryField } from "@/lib/registers";
 import { PriorityPicker } from "../new/form";
 import { updateTaskDetails } from "../actions";
+import { DateInput } from "@/components/date-input";
 
 export type EditableTask = {
   id: string;
@@ -59,14 +60,14 @@ export function EditDetailsForm({
       </Field>
       <div className="grid gap-5 md:grid-cols-3">
         <Field label="Date reported" htmlFor="e-reported">
-          <input id="e-reported" name="date_reported" type="date" defaultValue={task.date_reported} className={inputClass} />
+          <DateInput id="e-reported" name="date_reported" defaultValue={task.date_reported} className={inputClass} />
         </Field>
         <Field label="Due date" htmlFor="e-due">
-          <input id="e-due" name="due_date" type="date" defaultValue={task.due_date ?? ""} className={inputClass} />
+          <DateInput id="e-due" name="due_date" defaultValue={task.due_date ?? ""} className={inputClass} />
         </Field>
         {registry.show_review_date && !task.isAction ? (
           <Field label={registry.review_label} htmlFor="e-review">
-            <input id="e-review" name="review_date" type="date" defaultValue={task.review_date ?? ""} className={inputClass} />
+            <DateInput id="e-review" name="review_date" defaultValue={task.review_date ?? ""} className={inputClass} />
           </Field>
         ) : (
           <input type="hidden" name="review_date" value={task.review_date ?? ""} />

@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { addOffboardingStep, saveOffboarding, startOffboarding } from "./offboarding-actions";
 import { LEAVING_REASONS } from "@/lib/hr-lists";
+import { DateInput } from "@/components/date-input";
 
 const field = "flex flex-col gap-1 text-xs font-medium";
 
@@ -33,7 +34,7 @@ export function StartOffboardingForm({ userId, name }: { userId: string; name: s
         </label>
         <label className={field}>
           Last day
-          <input type="date" name="last_day" required className={inputClass} />
+          <DateInput name="last_day" required className={inputClass} />
         </label>
       </div>
       <label className={field}>
@@ -59,7 +60,7 @@ export function OffboardingForm({ id, userId, lastDay, exitNotes, allDone }: { i
       <div className="grid gap-2 sm:grid-cols-2">
         <label className={field}>
           Last day
-          <input type="date" name="last_day" defaultValue={lastDay} className={inputClass} />
+          <DateInput name="last_day" defaultValue={lastDay} className={inputClass} />
         </label>
         <label className={field}>
           Status

@@ -9,6 +9,7 @@ import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { FormFiller } from "@/components/form-filler";
 import { QTYPES, blankQuestion, hasOptions, type FormInfo, type FormQuestion, type QType } from "@/lib/form-types";
 import { publishForm, saveForm } from "../../actions";
+import { DateInput } from "@/components/date-input";
 
 const tick = "h-5 w-5 shrink-0 accent-[var(--brand-primary)]";
 
@@ -255,10 +256,10 @@ export function FormEditor({
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Due date (optional)" htmlFor="fm-due" hint="Shown on the form and in the email.">
-                <input id="fm-due" type="date" value={form.due_date ?? ""} onChange={(e) => set("due_date", e.target.value || null)} className={inputClass} />
+                <DateInput id="fm-due" value={form.due_date ?? ""} onChange={(e) => set("due_date", e.target.value || null)} className={inputClass} />
               </Field>
               <Field label="Stop taking replies after (optional)" htmlFor="fm-close">
-                <input id="fm-close" type="date" value={form.closes_on ?? ""} onChange={(e) => set("closes_on", e.target.value || null)} className={inputClass} />
+                <DateInput id="fm-close" value={form.closes_on ?? ""} onChange={(e) => set("closes_on", e.target.value || null)} className={inputClass} />
               </Field>
             </div>
           </fieldset>

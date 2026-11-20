@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { HOUSE_KINDS } from "@/lib/houses";
 import { moveIn, moveOut, saveHouse, setHouseActive, setRoom } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 const lab = "text-xs font-semibold text-ink";
 const area = `${inputClass} h-auto py-2`;
@@ -141,7 +142,7 @@ export function MoveInForm({ houseId, clients }: { houseId: string; clients: Opt
       </label>
       <label className="flex flex-col gap-1">
         <span className={lab}>Moving in on</span>
-        <input type="date" name="moved_in" required defaultValue={today()} className={inputClass} />
+        <DateInput name="moved_in" required defaultValue={today()} className={inputClass} />
       </label>
       <Button size="sm" disabled={pending}>
         {pending ? "Saving…" : "Move in"}
@@ -167,7 +168,7 @@ export function MoveOutForm({ id, movedIn }: { id: string; movedIn: string }) {
       <input type="hidden" name="id" value={id} />
       <label className="flex flex-col gap-1">
         <span className={lab}>Moving out on</span>
-        <input type="date" name="moved_out" required min={movedIn} defaultValue={today()} className={inputClass} />
+        <DateInput name="moved_out" required min={movedIn} defaultValue={today()} className={inputClass} />
       </label>
       <label className="flex min-w-56 flex-1 flex-col gap-1">
         <span className={lab}>Why</span>

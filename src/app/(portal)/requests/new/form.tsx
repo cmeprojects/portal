@@ -6,6 +6,7 @@ import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { submitRequest } from "../actions";
 import { LEAVE_TYPES, REQUEST_TYPES } from "@/lib/requests-shared";
 import { DAYS, SHIFTS } from "@/lib/profiles-shared";
+import { DateInput } from "@/components/date-input";
 
 // cmeprojects: pick a request type, then fill in its short form.
 export type Route = { first: string[]; second: string[]; escalateDays: number; escalateTo: string[] };
@@ -92,10 +93,10 @@ export function NewRequestForm({
             <input type="checkbox" name="part_day" className="h-5 w-5 accent-[var(--brand-primary)]" /> Part of a day only
           </label>
           <Field label="First day" htmlFor="rq-start">
-            <input id="rq-start" name="start_date" type="date" min={today} required className={inputClass} />
+            <DateInput id="rq-start" name="start_date" min={today} required className={inputClass} />
           </Field>
           <Field label="Last day" htmlFor="rq-end" hint="Leave blank for one day.">
-            <input id="rq-end" name="end_date" type="date" min={today} className={inputClass} />
+            <DateInput id="rq-end" name="end_date" min={today} className={inputClass} />
           </Field>
           <div className="sm:col-span-2">{reason}</div>
         </div>
@@ -104,7 +105,7 @@ export function NewRequestForm({
       {type === "swap" ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Date of the shift" htmlFor="rq-start">
-            <input id="rq-start" name="start_date" type="date" min={today} required className={inputClass} />
+            <DateInput id="rq-start" name="start_date" min={today} required className={inputClass} />
           </Field>
           <Field label="Your shift" htmlFor="rq-shift" hint="For example: 3 pm to 11 pm at Unit 4.">
             <input id="rq-shift" name="my_shift" required className={inputClass} />
@@ -130,7 +131,7 @@ export function NewRequestForm({
       {type === "shift" ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Date of the shift" htmlFor="rq-start">
-            <input id="rq-start" name="start_date" type="date" min={today} required className={inputClass} />
+            <DateInput id="rq-start" name="start_date" min={today} required className={inputClass} />
           </Field>
           <span />
           <Field label="Current shift" htmlFor="rq-cur">
@@ -146,7 +147,7 @@ export function NewRequestForm({
       {type === "availability" ? (
         <div className="flex flex-col gap-4">
           <Field label="Starting from" htmlFor="rq-start">
-            <input id="rq-start" name="start_date" type="date" min={today} required className={`${inputClass} sm:max-w-56`} />
+            <DateInput id="rq-start" name="start_date" min={today} required className={`${inputClass} sm:max-w-56`} />
           </Field>
           <fieldset>
             <legend className="mb-1 text-sm font-medium">When can you usually work?</legend>
@@ -186,7 +187,7 @@ export function NewRequestForm({
       {type === "timesheet" ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Date worked" htmlFor="rq-wd">
-            <input id="rq-wd" name="work_date" type="date" max={today} required className={inputClass} />
+            <DateInput id="rq-wd" name="work_date" max={today} required className={inputClass} />
           </Field>
           <span />
           <Field label="What's wrong" htmlFor="rq-wrong">

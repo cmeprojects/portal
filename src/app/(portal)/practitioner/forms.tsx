@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
 import { saveNote, uploadReport } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 const field = "flex flex-col gap-1 text-xs font-medium";
 
@@ -51,7 +52,7 @@ export function NoteForm({ clientId, today, note }: { clientId: string; today: s
       {note ? <input type="hidden" name="id" value={note.id} /> : null}
       <label className={`${field} max-w-48`}>
         Date of the session or contact
-        <input type="date" name="note_date" max={today} defaultValue={note?.note_date ?? today} className={inputClass} />
+        <DateInput name="note_date" max={today} defaultValue={note?.note_date ?? today} className={inputClass} />
       </label>
       <label className={field}>
         Note

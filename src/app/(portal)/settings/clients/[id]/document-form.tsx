@@ -6,6 +6,7 @@ import { Button, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
 import { DOC_TYPE_LABELS } from "@/lib/client-sections";
 import { uploadClientDocument } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 // cmeprojects (Care block C3): add a client document, or a new version of one.
 export function DocumentForm({ clientId, replaces }: { clientId: string; replaces?: { id: string; title: string; doc_type: string } }) {
@@ -35,7 +36,7 @@ export function DocumentForm({ clientId, replaces }: { clientId: string; replace
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium">
           Expires (optional)
-          <input type="date" name="expires_on" className={inputClass} />
+          <DateInput name="expires_on" className={inputClass} />
         </label>
       </div>
       <div className="flex flex-wrap items-center gap-3">

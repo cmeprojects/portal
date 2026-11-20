@@ -12,6 +12,7 @@ import { CATEGORY_LABELS, FILES_BUCKET, LIBRARY_BUCKET, type ComplianceItem, typ
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
 import { changeClearance, reviewUpload, saveItem, uploadForPerson } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 function Result({ state }: { state: FormState }) {
   if (state?.error) return <Notice tone="error">{state.error}</Notice>;
@@ -263,7 +264,7 @@ export function UploadForPersonForm({
         </Field>
         {needsExpiry ? (
           <Field label="Expiry date" htmlFor={`for-exp-${itemId}`}>
-            <input id={`for-exp-${itemId}`} name="expires_on" type="date" required className={inputClass} />
+            <DateInput id={`for-exp-${itemId}`} name="expires_on" required className={inputClass} />
           </Field>
         ) : null}
       </div>
@@ -337,7 +338,7 @@ export function ClearancePanel({
           </Field>
           {mode === "override" ? (
             <Field label="Until (up to 30 days)" htmlFor={`clr-until-${userId}`}>
-              <input id={`clr-until-${userId}`} name="until" type="date" required max={maxDate} className={inputClass} />
+              <DateInput id={`clr-until-${userId}`} name="until" required max={maxDate} className={inputClass} />
             </Field>
           ) : null}
           <div className="flex gap-2">

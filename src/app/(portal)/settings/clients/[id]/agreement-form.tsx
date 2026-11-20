@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { useSavableForm } from "@/components/page-save";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { saveAgreement } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 export type Agreement = { id: string; service_id: string; scheme: string; status: string; starts_on: string; ends_on: string | null; signed_on: string | null; signed_by_name: string; document_id: string | null; notes: string };
 const field = "flex flex-col gap-1 text-xs font-medium";
@@ -56,11 +57,11 @@ export function AgreementForm({ clientId, agreement, services, documents }: { cl
         </label>
         <label className={field}>
           Starts on
-          <input type="date" name="starts_on" required defaultValue={agreement?.starts_on ?? ""} className={inputClass} />
+          <DateInput name="starts_on" required defaultValue={agreement?.starts_on ?? ""} className={inputClass} />
         </label>
         <label className={field}>
           Ends on (optional)
-          <input type="date" name="ends_on" defaultValue={agreement?.ends_on ?? ""} className={inputClass} />
+          <DateInput name="ends_on" defaultValue={agreement?.ends_on ?? ""} className={inputClass} />
         </label>
         <Doc documents={documents} value={agreement?.document_id} />
       </div>
@@ -91,7 +92,7 @@ export function SignAgreementForm({ clientId, agreementId, documents }: { client
       <div className="grid gap-2 sm:grid-cols-3">
         <label className={field}>
           Signed on
-          <input type="date" name="signed_on" required className={inputClass} />
+          <DateInput name="signed_on" required className={inputClass} />
         </label>
         <label className={field}>
           Signed by

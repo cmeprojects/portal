@@ -6,6 +6,7 @@ import { Button, Notice, inputClass } from "@/components/ui";
 import { saveFunding } from "./actions";
 import { useSavableForm } from "@/components/page-save";
 import { PLAN_MANAGEMENT } from "@/lib/client-sections";
+import { DateInput } from "@/components/date-input";
 
 export type Funding = { id: string; service_id: string; scheme: string; period_start: string; period_end: string; total_amount: number; used_amount: number; used_as_of: string | null; plan_management: string | null; classification: number | null; status: string; notes: string };
 const field = "flex flex-col gap-1 text-xs font-medium";
@@ -76,11 +77,11 @@ function FundingFormInner({ clientId, services, onAdded }: FundingProps & { onAd
         ) : null}
         <label className={field}>
           Period starts
-          <input type="date" name="period_start" required className={inputClass} />
+          <DateInput name="period_start" required className={inputClass} />
         </label>
         <label className={field}>
           Period ends
-          <input type="date" name="period_end" required className={inputClass} />
+          <DateInput name="period_end" required className={inputClass} />
         </label>
         <label className={field}>
           Total for the period (AUD)
@@ -109,7 +110,7 @@ export function FundingUsedForm({ clientId, funding }: { clientId: string; fundi
         </label>
         <label className={field}>
           As at
-          <input type="date" name="used_as_of" defaultValue={funding.used_as_of ?? ""} className={inputClass} />
+          <DateInput name="used_as_of" defaultValue={funding.used_as_of ?? ""} className={inputClass} />
         </label>
       </div>
       <label className={field}>

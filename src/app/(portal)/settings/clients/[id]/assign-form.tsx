@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { assignStaff } from "./actions";
 import { ASSIGNED_AS } from "@/lib/client-sections";
+import { DateInput } from "@/components/date-input";
 
 // cmeprojects (Stage 5): assign a staff member to this client, with dates.
 export function AssignForm({ clientId, staff }: { clientId: string; staff: { id: string; name: string }[] }) {
@@ -38,11 +39,11 @@ export function AssignForm({ clientId, staff }: { clientId: string; staff: { id:
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium">
           From
-          <input type="date" name="starts_on" className={inputClass} />
+          <DateInput name="starts_on" className={inputClass} />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium">
           Until (optional)
-          <input type="date" name="ends_on" className={inputClass} />
+          <DateInput name="ends_on" className={inputClass} />
         </label>
       </div>
       <label className="flex flex-col gap-1 text-xs font-medium">

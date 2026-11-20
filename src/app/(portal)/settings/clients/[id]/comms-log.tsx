@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Mail, MessageSquare, Phone, Users, Video, FileText, MoreHorizontal, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { addCommunication, setFollowUpDone } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 export type CommEntry = {
   id: string;
@@ -77,7 +78,7 @@ export function CommsLogForm({ clientId, onDone }: { clientId: string; onDone?: 
           </label>
           <label className="flex flex-col gap-1">
             <span className={lab}>By</span>
-            <input type="date" name="follow_up_by" className={inputClass} />
+            <DateInput name="follow_up_by" className={inputClass} />
           </label>
         </div>
       ) : null}

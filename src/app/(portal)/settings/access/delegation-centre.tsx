@@ -9,6 +9,7 @@ import { toast } from "@/components/toast";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { changeNomination, nominateAdmin, saveModuleAccess, type ModuleEntry } from "./delegation-actions";
 import { unsupportedDelegation } from "@/lib/access-by-role";
+import { DateInput } from "@/components/date-input";
 
 type Option = { id: string; name: string };
 
@@ -36,7 +37,7 @@ export function NominateForm({ managers }: { managers: Option[] }) {
         </select>
       </Field>
       <Field label="Ends (optional)" htmlFor="na-end">
-        <input id="na-end" type="date" name="expires" className={inputClass} />
+        <DateInput id="na-end" name="expires" className={inputClass} />
       </Field>
       <Field label="Note (optional)" htmlFor="na-note">
         <input id="na-note" name="note" maxLength={300} placeholder="For example: looks after HR" className={inputClass} />
@@ -469,7 +470,7 @@ export function ModuleAccessEditor({
               </select>
             </Field>
             <Field label="Ends (optional)" htmlFor="ma-end">
-              <input id="ma-end" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} className={inputClass} />
+              <DateInput id="ma-end" value={expires} onChange={(e) => setExpires(e.target.value)} className={inputClass} />
             </Field>
             {scope !== "all" ? (
               <div className="flex max-h-56 flex-wrap gap-x-4 gap-y-2 overflow-y-auto text-sm sm:col-span-2">

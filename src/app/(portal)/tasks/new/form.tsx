@@ -8,6 +8,7 @@ import { FieldInput, type Option } from "@/components/field-input";
 import { PRIORITIES, PRIORITY_LABELS, parseSla, slaDueDate, type Priority, type Sla } from "@/lib/tasks";
 import type { Registry, RegistryField } from "@/lib/registers";
 import { createTask } from "../actions";
+import { DateInput } from "@/components/date-input";
 
 export function PriorityPicker({ value = "medium", onChange }: { value?: string; onChange?: (p: Priority) => void }) {
   return (
@@ -127,10 +128,9 @@ export function NewTaskForm({
 
       <div className="grid gap-5 md:grid-cols-3">
         <Field label="Date reported" htmlFor="date_reported">
-          <input
+          <DateInput
             id="date_reported"
             name="date_reported"
-            type="date"
             value={reported}
             max={today}
             onChange={(e) => setReported(e.target.value)}
@@ -154,10 +154,9 @@ export function NewTaskForm({
               ) : undefined
             }
           >
-            <input
+            <DateInput
               id="due_date"
               name="due_date"
-              type="date"
               min={today}
               value={dueValue}
               onChange={(e) => {
@@ -170,7 +169,7 @@ export function NewTaskForm({
         ) : null}
         {registry?.show_review_date ? (
           <Field label={`${registry.review_label} (optional)`} htmlFor="review_date">
-            <input id="review_date" name="review_date" type="date" className={inputClass} />
+            <DateInput id="review_date" name="review_date" className={inputClass} />
           </Field>
         ) : null}
       </div>

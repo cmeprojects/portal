@@ -10,6 +10,7 @@ import { correctTrip, movePurpose, returnForSomeone, saveCar, saveClient, saveCl
 import { CAR_FILES } from "@/lib/car-types";
 import type { FormState } from "@/lib/form";
 import { FormPending } from "@/components/form-pending";
+import { DateInput } from "@/components/date-input";
 
 function Result({ state }: { state: FormState }) {
   if (state?.error) return <Notice tone="error">{state.error}</Notice>;
@@ -71,10 +72,10 @@ export function CarForm({ car }: { car?: CarRow }) {
           <input id={`o-${p}`} name="odometer" inputMode="numeric" required={!car} defaultValue={car?.odometer} className={`${inputClass} tabular-nums`} />
         </Field>
         <Field label="Rego expires (optional)" htmlFor={`re-${p}`} hint="Car managers are reminded 30 days before.">
-          <input id={`re-${p}`} name="rego_expires" type="date" defaultValue={car?.rego_expires ?? ""} className={inputClass} />
+          <DateInput id={`re-${p}`} name="rego_expires" defaultValue={car?.rego_expires ?? ""} className={inputClass} />
         </Field>
         <Field label="Next service by date (optional)" htmlFor={`sd-${p}`}>
-          <input id={`sd-${p}`} name="service_due_date" type="date" defaultValue={car?.service_due_date ?? ""} className={inputClass} />
+          <DateInput id={`sd-${p}`} name="service_due_date" defaultValue={car?.service_due_date ?? ""} className={inputClass} />
         </Field>
         <Field label="Next service at (km, optional)" htmlFor={`sk-${p}`} hint="Reminded 500 km before.">
           <input id={`sk-${p}`} name="service_due_km" inputMode="numeric" defaultValue={car?.service_due_km ?? ""} className={`${inputClass} tabular-nums`} />

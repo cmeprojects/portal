@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { INCIDENT_KINDS, INCIDENT_SEVERITY, REPORTABLE } from "@/lib/incidents";
 import { addIncidentAction, addIncidentNote, reportIncident, saveCommissionReport, saveInvestigation, setActionDone, signOffIncident, triageIncident } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 const lab = "text-xs font-semibold text-ink";
 const nowLocal = () => new Date().toLocaleString("sv-SE", { timeZone: "Australia/Sydney" }).slice(0, 16).replace(" ", "T");
@@ -338,7 +339,7 @@ export function ActionAddForm({ incidentId, staff }: { incidentId: string; staff
       </label>
       <label className="flex flex-col gap-1">
         <span className={lab}>Due</span>
-        <input type="date" name="due_on" required min={today} className={inputClass} />
+        <DateInput name="due_on" required min={today} className={inputClass} />
       </label>
       <Button size="sm" variant="outline" disabled={pending}>
         {pending ? "Adding…" : "Add"}

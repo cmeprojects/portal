@@ -12,6 +12,7 @@ import { useAfterSuccess } from "@/components/use-after-success";
 import { SignaturePad } from "@/app/(portal)/onboarding/steps";
 import { CONSENT_TEXT } from "@/lib/contracts";
 import { cancelContract, checkSignedCopy, deleteDraft, finishContract, openSignedCopy, saveDraft, sendContract, signContract } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 type Person = { id: string; name: string };
 
@@ -70,7 +71,7 @@ export function DraftForm({
           <input id="c-title" name="title" required minLength={2} maxLength={200} defaultValue={draft?.title ?? defaults?.title ?? "Employment contract"} className={inputClass} />
         </Field>
         <Field label="Sign by (optional)" htmlFor="c-signby" hint="Unsigned after this: expired.">
-          <input id="c-signby" name="sign_by" type="date" defaultValue={draft?.sign_by ?? ""} className={inputClass} />
+          <DateInput id="c-signby" name="sign_by" defaultValue={draft?.sign_by ?? ""} className={inputClass} />
         </Field>
       </div>
       <Field label="Contract wording" htmlFor="c-body" hint="Exactly what they'll read and sign. Once sent, it can't be changed: make a new version instead.">

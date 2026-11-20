@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { PRACTITIONER_SECTIONS } from "@/lib/client-sections";
 import { extendPractitionerAccess, givePractitionerAccess } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 const field = "flex flex-col gap-1 text-xs font-medium";
 
@@ -43,11 +44,11 @@ export function GiveAccessForm({ clientId, people, documents, today, defaultEnd,
         </label>
         <label className={field}>
           Access ends (6 months suggested, 12 at most)
-          <input type="date" name="ends_on" required min={today} max={maxEnd} defaultValue={defaultEnd} className={inputClass} />
+          <DateInput name="ends_on" required min={today} max={maxEnd} defaultValue={defaultEnd} className={inputClass} />
         </label>
         <label className={field}>
           Date the client (or their representative) agreed
-          <input type="date" name="consent_on" required max={today} defaultValue={today} className={inputClass} />
+          <DateInput name="consent_on" required max={today} defaultValue={today} className={inputClass} />
         </label>
         <label className={field}>
           Consent document (optional)
@@ -85,7 +86,7 @@ export function ExtendAccessForm({ id, clientId, endsOn, sections, today, maxEnd
       <input type="hidden" name="client_id" value={clientId} />
       <label className={`${field} max-w-60`}>
         Access ends (12 months from today at most)
-        <input type="date" name="ends_on" required min={today} max={maxEnd} defaultValue={endsOn} className={inputClass} />
+        <DateInput name="ends_on" required min={today} max={maxEnd} defaultValue={endsOn} className={inputClass} />
       </label>
       <Sections chosen={sections} />
       <div className="flex flex-wrap items-center gap-3">

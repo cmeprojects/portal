@@ -12,6 +12,7 @@ import { Req, RequiredLegend } from "@/components/required";
 import { IdInput } from "@/components/id-input";
 import { GENDERS, MAC_SCHEMES, STATES, TITLES } from "@/lib/client-sections";
 import { createClientFull } from "../actions";
+import { DateInput } from "@/components/date-input";
 
 const lab = "flex flex-col gap-1 text-xs font-medium";
 const DRAFT = "portal.newClientDraft";
@@ -140,7 +141,7 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
               Date of birth
               <Req />
             </span>
-            <input type="date" name="date_of_birth" required max={new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })} className={inputClass} />
+            <DateInput name="date_of_birth" required max={new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })} className={inputClass} />
           </label>
           <label className={lab}>
             Gender (optional)

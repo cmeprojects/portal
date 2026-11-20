@@ -10,6 +10,7 @@ import { Button, Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { TimeField, niceTime } from "./time-field";
 import { bulkShifts, copyLastWeek, copyToNextWeek, saveShift } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 export type ShiftDraft = {
   id?: string;
@@ -499,7 +500,7 @@ export function ShiftForm({
           </label>
           <label className={field}>
             <span className={label}>Date</span>
-            <input type="date" name="date" required value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
+            <DateInput name="date" required value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
           </label>
           <div className="grid grid-cols-2 gap-2">
             <TimeField name="start" label="Start" value={start} onChange={setStart} invalid={Boolean(timeError)} />
@@ -635,7 +636,7 @@ export function ShiftForm({
                   ) : (
                     <label className={field}>
                       <span className={label}>End date</span>
-                      <input type="date" name="repeat_until" min={date} value={until} onChange={(e) => setUntil(e.target.value)} className={inputClass} />
+                      <DateInput name="repeat_until" min={date} value={until} onChange={(e) => setUntil(e.target.value)} className={inputClass} />
                     </label>
                   )}
                 </div>

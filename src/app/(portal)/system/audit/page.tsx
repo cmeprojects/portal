@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, EmptyState, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { KIND_LABEL, describeAudit, type AuditRow, type Kind } from "@/lib/audit-describe";
 import { FormPending } from "@/components/form-pending";
+import { DateInput } from "@/components/date-input";
 
 export const metadata: Metadata = { title: "Change log" };
 
@@ -92,11 +93,11 @@ export async function ChangeLog({ searchParams, base = "/system/audit" }: { sear
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold">
           From
-          <input type="date" name="from" defaultValue={from} className={inputClass} />
+          <DateInput name="from" defaultValue={from} className={inputClass} />
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold">
           To
-          <input type="date" name="to" defaultValue={to} className={inputClass} />
+          <DateInput name="to" defaultValue={to} className={inputClass} />
         </label>
         <div className="flex items-end gap-2">
           <button className={buttonClass("primary", "h-11")}>Filter<FormPending /></button>

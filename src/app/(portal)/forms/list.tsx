@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Badge, Button, Field, Notice, buttonClass, inputClass } from "@/components/ui";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { copyForm, createForm, deleteForm, formOutOfCompliance, formToCompliance, remindForm, sendForm, setFormOn, shareForm } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 export type ManagedForm = {
   id: string;
@@ -311,7 +312,7 @@ function SendPanel({ f, people, teams, pending, run }: { f: ManagedForm; people:
         <p className="text-muted">Everyone active in the portal.</p>
       )}
       <Field label="Due date (optional)" htmlFor={`due-${f.id}`}>
-        <input id={`due-${f.id}`} type="date" value={due} onChange={(e) => setDue(e.target.value)} className={`${inputClass} max-w-56`} />
+        <DateInput id={`due-${f.id}`} value={due} onChange={(e) => setDue(e.target.value)} className={`${inputClass} max-w-56`} />
       </Field>
       <p className="text-xs text-muted">They get a bell note and an email with the link{due ? " and the due date" : ""}.</p>
       <Button

@@ -9,6 +9,7 @@ import { addDocument, saveAssistantSettings, testAiConnection } from "./actions"
 import { useDirty } from "@/components/use-dirty";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { SaveResult } from "../system/forms";
+import { DateInput } from "@/components/date-input";
 
 const box = "h-5 w-5 shrink-0 accent-[var(--brand-primary)]";
 const tick = (name: string, on: boolean, label: string) => (
@@ -134,7 +135,7 @@ export function LimitsForm({ s }: { s: AssistantSettings & { credit_aud?: number
           <input id="credit_aud" name="credit_aud" type="number" min={0} step="0.01" defaultValue={s.credit_aud ?? 0} className={inputClass} />
         </Field>
         <Field label="Bought on" htmlFor="credit_since">
-          <input id="credit_since" name="credit_since" type="date" defaultValue={s.credit_since ?? ""} className={inputClass} />
+          <DateInput id="credit_since" name="credit_since" defaultValue={s.credit_since ?? ""} className={inputClass} />
         </Field>
       </div>
       {tick("log_questions", s.log_questions, "Keep a log of the questions asked (no names), to see what's missing")}

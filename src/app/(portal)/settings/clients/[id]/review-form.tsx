@@ -4,6 +4,7 @@
 import { useActionState, useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { addClientReview, closeClientReview } from "./actions";
+import { DateInput } from "@/components/date-input";
 
 export type SchemeWords = { key: string; label: string; review_label: string; change_review_label: string };
 const field = "flex flex-col gap-1 text-xs font-medium";
@@ -48,7 +49,7 @@ export function ReviewForm({ clientId, kind, services, schemes }: { clientId: st
         {kind === "scheduled" ? (
           <label className={field}>
             Due on
-            <input type="date" name="due_on" required className={inputClass} />
+            <DateInput name="due_on" required className={inputClass} />
           </label>
         ) : null}
       </div>
@@ -92,7 +93,7 @@ export function CloseReviewForm({ clientId, reviewId, documents }: { clientId: s
         {status === "completed" ? (
           <label className={field}>
             Completed on
-            <input type="date" name="completed_on" className={inputClass} />
+            <DateInput name="completed_on" className={inputClass} />
           </label>
         ) : null}
         {documents.length ? (

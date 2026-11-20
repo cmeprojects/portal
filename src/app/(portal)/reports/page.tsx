@@ -10,6 +10,7 @@ import { Card, PageHeader, Tabs, buttonClass, inputClass } from "@/components/ui
 import { DataTable } from "@/components/data-table";
 import { seesTaskReportFor } from "@/lib/module-access";
 import { FormPending } from "@/components/form-pending";
+import { DateInput } from "@/components/date-input";
 
 export const metadata: Metadata = { title: "Reports" };
 
@@ -79,11 +80,11 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
         <form className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-semibold">From</span>
-            <input type="date" name="from" defaultValue={period.key === "custom" ? period.from : ""} required className={inputClass} />
+            <DateInput name="from" defaultValue={period.key === "custom" ? period.from : ""} required className={inputClass} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-semibold">To</span>
-            <input type="date" name="to" defaultValue={period.key === "custom" ? period.to : ""} required className={inputClass} />
+            <DateInput name="to" defaultValue={period.key === "custom" ? period.to : ""} required className={inputClass} />
           </label>
           <button className={buttonClass("outline", "h-11")}>Show these dates<FormPending /></button>
         </form>

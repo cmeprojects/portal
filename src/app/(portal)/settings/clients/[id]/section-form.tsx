@@ -6,6 +6,7 @@ import { Button, Notice, inputClass } from "@/components/ui";
 import { useSavableForm } from "@/components/page-save";
 import { NeededTag, Req } from "@/components/required";
 import { IdInput } from "@/components/id-input";
+import { DateInput } from "@/components/date-input";
 
 const CHECKED: Record<string, "phone" | "email" | "ndis" | "mac"> = { phone: "phone", email: "email", ndis_number: "ndis", aged_care_id: "mac" };
 // "3/22 Banksia Road, Dulwich Hill NSW 2203" -> street, suburb, postcode (older addresses: all in the street).
@@ -121,8 +122,10 @@ function SectionFormInner({ table, clientId, fields, item, choices = {}, submit,
               ) : CHECKED[f.name] ? (
                 // Checked as it's typed: Australian numbers, emails, NDIS number, My Aged Care ID.
                 <IdInput id={id} kind={CHECKED[f.name]} name={f.name} required={f.required} disabled={notApplicable.includes(f.name)} defaultValue={value(f)} />
+              ) : f.type === "date" ? (
+                <DateInput id={id} name={f.name} required={f.required} disabled={notApplicable.includes(f.name)} max={f.name === "date_of_birth" ? new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) : undefined} defaultValue={value(f)} />
               ) : (
-                <input id={id} name={f.name} type={f.type === "date" ? "date" : "text"} required={f.required} disabled={notApplicable.includes(f.name)} maxLength={f.max} max={f.name === "date_of_birth" ? new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) : undefined} defaultValue={value(f)} className={inputClass} />
+                <input id={id} name={f.name} type="text" required={f.required} disabled={notApplicable.includes(f.name)} maxLength={f.max} max={f.name === "date_of_birth" ? new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) : undefined} defaultValue={value(f)} className={inputClass} />
               )}
               {f.hint ? <span className="font-normal text-muted">{f.hint}</span> : null}
             </label>

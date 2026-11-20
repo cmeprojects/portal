@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { closeReview, planReview } from "./review-actions";
 import { REVIEW_KINDS, REVIEW_OUTCOMES } from "@/lib/hr-lists";
+import { DateInput } from "@/components/date-input";
 
 const field = "flex flex-col gap-1 text-xs font-medium";
 function Result({ state }: { state: { error?: string; message?: string } | null }) {
@@ -29,7 +30,7 @@ export function PlanReviewForm({ userId, reviewers, me }: { userId: string; revi
         </label>
         <label className={field}>
           Due on
-          <input type="date" name="due_on" required className={inputClass} />
+          <DateInput name="due_on" required className={inputClass} />
         </label>
         <label className={field}>
           Reviewer
@@ -71,7 +72,7 @@ export function HoldReviewForm({ id, userId, kind, today }: { id: string; userId
           <>
             <label className={field}>
               Held on
-              <input type="date" name="held_on" required defaultValue={today} max={today} className={inputClass} />
+              <DateInput name="held_on" required defaultValue={today} max={today} className={inputClass} />
             </label>
             <label className={field}>
               Outcome

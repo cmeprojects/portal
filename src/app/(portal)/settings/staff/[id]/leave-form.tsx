@@ -4,6 +4,7 @@
 import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { setLeaveBalance } from "./leave-actions";
+import { DateInput } from "@/components/date-input";
 
 const field = "flex flex-col gap-1 text-xs font-medium";
 
@@ -32,7 +33,7 @@ export function LeaveBalanceForm({ userId, today }: { userId: string; today: str
         </label>
         <label className={field}>
           Correct as at
-          <input type="date" name="as_at" required defaultValue={today} className={inputClass} />
+          <DateInput name="as_at" required defaultValue={today} className={inputClass} />
         </label>
       </div>
       <p className="text-xs text-muted">Full-time: 20 days annual and 10 days personal a year (part-time pro rata; casuals none). Approved leave since the date is taken off automatically.</p>

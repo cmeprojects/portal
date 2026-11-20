@@ -9,6 +9,7 @@ import { useAfterSuccess } from "@/components/use-after-success";
 import { saveProfile } from "@/app/(portal)/people/actions";
 import type { PersonCard } from "@/lib/profiles";
 import { DAYS, EMPLOYMENT, SHIFTS } from "@/lib/profiles-shared";
+import { DateInput } from "@/components/date-input";
 
 // cmeprojects: edit a staff profile. Save stays greyed out until something
 // changes; employment details only show for people who manage staff.
@@ -65,7 +66,7 @@ export function ProfileForm({ person, employment }: { person: PersonCard; employ
             </select>
           </Field>
           <Field label="Start date" htmlFor="pf-start">
-            <input id="pf-start" name="start_date" type="date" defaultValue={p?.start_date ?? ""} className={inputClass} />
+            <DateInput id="pf-start" name="start_date" defaultValue={p?.start_date ?? ""} className={inputClass} />
           </Field>
           <Field label="Employee ID" htmlFor="pf-eid">
             <input id="pf-eid" name="employee_id" defaultValue={p?.employee_id ?? ""} maxLength={40} className={inputClass} />

@@ -7,6 +7,7 @@ import { Button, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
 import type { FormAnswers, FormInfo, FormQuestion } from "@/lib/form-types";
 import { askFormQuestion, submitReply } from "@/app/(portal)/forms/actions";
+import { DateInput } from "@/components/date-input";
 
 type Props = {
   form: Pick<FormInfo, "id" | "title" | "intro" | "repeatable" | "anonymous" | "show_header" | "show_contact" | "due_date">;
@@ -239,7 +240,7 @@ function Answer({ q, value, set, userId, preview }: { q: FormQuestion; value: st
         </div>
       );
     case "date":
-      return <input id={id} type="date" value={v} onChange={(e) => set(e.target.value)} className={`${inputClass} max-w-56`} />;
+      return <DateInput id={id} value={v} onChange={(e) => set(e.target.value)} className={`${inputClass} max-w-56`} />;
     case "number":
       return <input id={id} inputMode="decimal" value={v} onChange={(e) => set(e.target.value.replace(/[^\d.-]/g, ""))} className={`${inputClass} max-w-56`} />;
     case "file":

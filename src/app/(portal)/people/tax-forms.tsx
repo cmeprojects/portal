@@ -11,6 +11,7 @@ import { toast } from "@/components/toast";
 import { useAfterSuccess } from "@/components/use-after-success";
 import { RECORDS_BUCKET } from "@/lib/staff-records";
 import { deletePrivateRecords, deleteTaxForm, openTaxForm, openTfnTemplate, saveTaxForm, saveTfnTemplate, updateTax } from "./tax-actions";
+import { DateInput } from "@/components/date-input";
 
 export type Tax = { user_id: string; form_path: string; form_name: string; uploaded_at: string | null; lodged_on: string | null; verified_at: string | null };
 
@@ -114,7 +115,7 @@ export function TaxAdmin({ subject, tax }: { subject: string; tax: Tax }) {
         <label className="flex items-end gap-2">
           <span className="flex flex-col gap-1 text-xs font-semibold">
             Sent to the ATO on
-            <input type="date" value={lodged} onChange={(e) => setLodged(e.target.value)} className={`${inputClass} h-9 md:h-8`} />
+            <DateInput value={lodged} onChange={(e) => setLodged(e.target.value)} className={`${inputClass} h-9 md:h-8`} />
           </span>
           <Button type="button" variant="outline" size="sm" disabled={pending || !lodged || lodged === tax.lodged_on} onClick={() => start(async () => done(await updateTax(subject, { lodgedOn: lodged })))}>
             <Send aria-hidden="true" /> Save date
