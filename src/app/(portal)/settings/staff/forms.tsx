@@ -2,10 +2,9 @@
 "use client";
 
 import { toast } from "@/components/toast";
-import { useAfterSuccess } from "@/components/use-after-success";
-import { useDirty } from "@/components/use-dirty";
+import { useSavableForm } from "@/components/page-save";
 import { confirmSubmit } from "@/components/confirm";
-import { startTransition, useActionState } from "react";
+import { useActionState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 import { ROLE_LABELS, inCoreTeam, roleChoiceValue, type JobTitle, type Role } from "@/lib/roles";
 import type { FormState } from "@/lib/form";
@@ -155,9 +154,8 @@ export function PersonEditor({
   // Staff admins' role changes go to a manager for approval.
   needsApproval: boolean;
 }) {
-  const [saveState, saveAction, saving] = useActionState(savePerson, null);
-  const { ref: dirtyRef, dirty, markClean } = useDirty();
-  useAfterSuccess(saveState, markClean);
+  // cmeprojects (owner, 20 Nov 2026): saved by its own button, or by the page's one Save bar.
+  const { state: saveState, pending: saving, ref: dirtyRef, dirty, onSubmit: onSave, pageSave } = useSavableForm(savePerson, { label: "Role and access" });
   const [activeState, activeAction, toggling] = useActionState(setActive, null);
   const [inviteState, inviteAction, resending] = useActionState(resendInvite, null);
   // The person's card disappears once they're deleted, so say so with a toast.
@@ -187,13 +185,7 @@ export function PersonEditor({
       {/* cmeprojects: name, teams and role save together with one button. */}
       <form
         ref={dirtyRef}
-        action={saveAction}
-        onSubmit={(e) => {
-          // Keep what was typed on screen (React resets a form after its action).
-          e.preventDefault();
-          const data = new FormData(e.currentTarget);
-          startTransition(() => saveAction(data));
-        }}
+        onSubmit={onSave}
         className="flex flex-col gap-4"
       >
         <input type="hidden" name="id" value={person.id} />
@@ -278,9 +270,11 @@ export function PersonEditor({
             <input id={`reason-${person.id}`} name="reason" className={inputClass} />
           </Field>
         ) : null}
-        <Button className="self-start" disabled={saving || !dirty}>
-          {saving ? "Saving…" : "Save changes"}
-        </Button>
+        {pageSave ? null : (
+          <Button className="self-start" disabled={saving || !dirty}>
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
+        )}
       </form>
       {conditional ? (
         <ConditionalRoleForm person={person} roles={offered.filter((r) => r !== "new_starter")} titles={titles} teams={teams} isManager={isManager} />

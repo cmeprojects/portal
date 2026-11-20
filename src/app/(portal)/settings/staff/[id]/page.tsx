@@ -25,6 +25,7 @@ import { REVIEW_KINDS, REVIEW_OUTCOMES } from "@/lib/hr-lists";
 import { AddStepForm, OffboardingForm, StartOffboardingForm } from "./offboarding-forms";
 import { LEAVING_REASONS } from "@/lib/hr-lists";
 import { PageFloat } from "@/components/page-float";
+import { PageSave, type PageSaveConfig } from "@/components/page-save";
 
 export const metadata: Metadata = { title: "Staff member" };
 
@@ -220,13 +221,29 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
     </>
   );
 
+  // cmeprojects (owner, 20 Nov 2026): editing a staff record works like a
+  // client's: one bar to Save for later or Save and continue (Back from step 2),
+  // with Exit and Back to staff list as floating icons.
+  const stepAt = step ? STEPS.findIndex(([k]) => k === step) : -1;
+  const pageSave: PageSaveConfig | null = step
+    ? {
+        mode: "steps",
+        back: stepAt > 0 ? `/settings/staff/${id}?edit=${STEPS[stepAt - 1][0]}` : undefined,
+        next: stepAt < STEPS.length - 1 ? `/settings/staff/${id}?edit=${STEPS[stepAt + 1][0]}` : `/settings/staff/${id}`,
+        nextLabel: stepAt === STEPS.length - 1 ? "Save and finish" : undefined,
+        cancel: `/settings/staff/${id}`,
+        list: "/settings/staff",
+        listLabel: "Back to staff list",
+        cancelLabel: "Exit to this staff member's page",
+      }
+    : null;
   return (
-    <>
-      <p className="text-sm">
+    <PageSave config={pageSave}>
+      {step ? null : <p className="text-sm">
         <Link href="/settings/staff" className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">
           <ArrowLeft aria-hidden="true" className="size-4" /> All staff
         </Link>
-      </p>
+      </p>}
       <Card className="flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-start gap-4">
           <Avatar name={person.name} src={person.photo} size={56} className="bg-brand-soft text-lg text-brand" />
@@ -259,11 +276,7 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
             </div>
           </div>
           {canEdit ? (
-            step ? (
-              <Link href={`/settings/staff/${id}`} className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold hover:bg-page">
-                Done editing
-              </Link>
-            ) : (
+            step ? null : (
               <Link href={`/settings/staff/${id}?edit=info`} className="inline-flex items-center gap-1 rounded-lg border border-brand px-3 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft">
                 <Pencil aria-hidden="true" className="size-4" /> Edit
               </Link>
@@ -674,34 +687,9 @@ export default async function StaffMemberPage({ params, searchParams }: PageProp
         </div>
       )}
 
-      {step ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {STEPS.findIndex(([k]) => k === step) > 0 ? (
-            <Link href={`/settings/staff/${id}?edit=${STEPS[STEPS.findIndex(([k]) => k === step) - 1][0]}`} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-page">
-              ← Back
-            </Link>
-          ) : (
-            <span />
-          )}
-          <span className="flex gap-2">
-            <Link href={`/settings/staff/${id}`} className="rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page">
-              Cancel
-            </Link>
-            {STEPS.findIndex(([k]) => k === step) < STEPS.length - 1 ? (
-              <Link href={`/settings/staff/${id}?edit=${STEPS[STEPS.findIndex(([k]) => k === step) + 1][0]}`} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90">
-                Next →
-              </Link>
-            ) : (
-              <Link href={`/settings/staff/${id}`} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg hover:opacity-90">
-                Finish
-              </Link>
-            )}
-          </span>
-        </div>
-      ) : null}
       {/* Floating icons (owner, 20 Nov 2026). */}
-      <PageFloat list={{ href: "/settings/staff", label: "Back to staff list" }} />
-    </>
+      {step ? null : <PageFloat list={{ href: "/settings/staff", label: "Back to staff list" }} />}
+    </PageSave>
   );
 }
 

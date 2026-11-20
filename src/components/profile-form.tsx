@@ -2,10 +2,8 @@
 "use client";
 
 import { PhoneField } from "@/components/phone-field";
-import { useActionState, useTransition } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
-import { useDirty } from "@/components/use-dirty";
-import { useAfterSuccess } from "@/components/use-after-success";
+import { useSavableForm } from "@/components/page-save";
 import { saveProfile } from "@/app/(portal)/people/actions";
 import type { PersonCard } from "@/lib/profiles";
 import { DAYS, EMPLOYMENT, SHIFTS } from "@/lib/profiles-shared";
@@ -14,21 +12,15 @@ import { DateInput } from "@/components/date-input";
 // cmeprojects: edit a staff profile. Save stays greyed out until something
 // changes; employment details only show for people who manage staff.
 export function ProfileForm({ person, employment }: { person: PersonCard; employment: boolean }) {
-  const [state, action, pending] = useActionState(saveProfile, null);
-  const { ref, dirty, markClean } = useDirty();
-  const [, start] = useTransition();
-  useAfterSuccess(state, markClean);
+  // cmeprojects (owner, 20 Nov 2026): saved by its own button, or by the page's
+  // one Save bar when editing a staff record step by step.
+  const { state, pending, ref, dirty, onSubmit, pageSave } = useSavableForm(saveProfile, { label: "Employee information" });
   const d = person.directory;
   const p = person.private;
   return (
     <form
       ref={ref}
-      onSubmit={(e) => {
-        // Keep what was typed on screen, even if saving fails (React clears a form after its action).
-        e.preventDefault();
-        const data = new FormData(e.currentTarget);
-        start(() => action(data));
-      }}
+      onSubmit={onSubmit}
       className="flex flex-col gap-5"
     >
       <input type="hidden" name="user_id" value={person.id} />
@@ -124,9 +116,11 @@ export function ProfileForm({ person, employment }: { person: PersonCard; employ
       </fieldset>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
-      <Button className="self-start" disabled={pending || !dirty}>
-        {pending ? "Saving…" : "Save profile"}
-      </Button>
+      {pageSave ? null : (
+        <Button className="self-start" disabled={pending || !dirty}>
+          {pending ? "Saving…" : "Save profile"}
+        </Button>
+      )}
     </form>
   );
 }

@@ -26,6 +26,9 @@ export type PageSaveConfig = {
   next?: string;
   nextLabel?: string;
   cancel?: string;
+  // The floating icons' names (default: the client pages' wording).
+  listLabel?: string;
+  cancelLabel?: string;
 };
 
 export function PageSave({ config, children }: { config: PageSaveConfig | null; children: ReactNode }) {
@@ -109,8 +112,8 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
       {/* Client list and Exit as small floating icons, named on hover (owner, 20 Nov 2026). */}
       {steps && (config.list || config.cancel) ? (
         <div className="fixed right-4 bottom-24 z-30 flex flex-col items-end gap-2 md:right-8 print:hidden">
-          {config.list ? <FloatIcon href={config.list} label="Back to client list" icon={<List aria-hidden="true" className="size-4" />} /> : null}
-          {config.cancel ? <FloatIcon href={config.cancel} label="Exit to this client's page" icon={<LogOut aria-hidden="true" className="size-4" />} /> : null}
+          {config.list ? <FloatIcon href={config.list} label={config.listLabel ?? "Back to client list"} icon={<List aria-hidden="true" className="size-4" />} /> : null}
+          {config.cancel ? <FloatIcon href={config.cancel} label={config.cancelLabel ?? "Exit to this client's page"} icon={<LogOut aria-hidden="true" className="size-4" />} /> : null}
         </div>
       ) : null}
       {steps || dirtyCount || problem ? (
