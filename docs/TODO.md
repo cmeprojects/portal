@@ -7,6 +7,16 @@ Which live updates each copy has: see supabase/live-updates/README.md. Start wit
 
 **Documentation register (start here):** docs/00-governance/GOV-002-documentation-register.md lists every document with its ID, owner role, status and path; decisions are in docs/11-decisions-and-change-history/DEC-001-decision-register.md.
 
+## NEXT: programs, assessments and billing (owner, 21 Nov 2026)
+
+Plan: docs/roadmap/programs-assessments-billing-plan.md (owner's consolidated recommendations).
+Six phases: (1) programs offered by the organisation, more than one program per client, program
+enrolments; (2) assessment templates and findings; (3) draft care plan, support plan and proposed
+budget from assessments, each approved by a person; (4) billing foundations: rate tables, ledger,
+billing lines, Billing permission, financial audit; (5) claims and invoices; (6) tie into rostering.
+Before Phase 4, the billing guide corrections listed in the plan. Confirm the decisions table
+before each phase. Nothing built yet.
+
 ## LATER: address auto-complete (owner, 19 Nov 2026)
 
 The owner wants every address (clients, houses, staff, contacts) to auto-complete and fill the
