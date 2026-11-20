@@ -3,7 +3,7 @@
 
 import { createContext, startTransition, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, LogOut, Save, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, List, LogOut, Save, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDirty } from "@/components/use-dirty";
 import { ToastOnMount } from "@/components/toast";
@@ -106,14 +106,16 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
     <Ctx.Provider value={registry}>
       {children}
       {saved ? <ToastOnMount key={saved} text="Saved." /> : null}
+      {/* Client list and Exit as small floating icons, named on hover (owner, 20 Nov 2026). */}
+      {steps && (config.list || config.cancel) ? (
+        <div className="fixed right-4 bottom-24 z-30 flex flex-col items-end gap-2 md:right-8 print:hidden">
+          {config.list ? <FloatIcon href={config.list} label="Back to client list" icon={<List aria-hidden="true" className="size-4" />} /> : null}
+          {config.cancel ? <FloatIcon href={config.cancel} label="Exit to this client's page" icon={<LogOut aria-hidden="true" className="size-4" />} /> : null}
+        </div>
+      ) : null}
       {steps || dirtyCount || problem ? (
         <div className="sticky bottom-0 z-30 -mx-4 mt-2 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)] backdrop-blur md:-mx-8 md:px-8 print:hidden">
           <div className="flex flex-wrap items-center gap-2">
-            {steps && config.list ? (
-              <Link href={config.list} className="inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-ink hover:underline">
-                <ArrowLeft aria-hidden="true" className="size-3.5" /> Client list
-              </Link>
-            ) : null}
             <p className={`min-w-0 flex-1 text-sm ${problem ? "font-medium text-danger" : "text-muted"}`} role={problem ? "alert" : "status"}>
               {problem || (dirtyCount ? `${dirtyCount} unsaved change${dirtyCount === 1 ? "" : "s"}` : "No unsaved changes")}
             </p>
@@ -121,11 +123,6 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
             {steps && config.back ? (
               <Link href={config.back} className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page">
                 <ArrowLeft aria-hidden="true" className="size-4" /> Back
-              </Link>
-            ) : null}
-            {steps && config.cancel && config.back ? (
-              <Link href={config.cancel} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink">
-                <LogOut aria-hidden="true" className="size-4" /> Exit
               </Link>
             ) : null}
             {steps ? (
@@ -151,12 +148,6 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
                   {busy ? "Saving…" : (config.nextLabel ?? "Save and continue")}
                   {config.nextLabel ? <Check aria-hidden="true" className="size-4" /> : <ArrowRight aria-hidden="true" className="size-4" />}
                 </button>
-                {/* Step 1: Exit comes last, back to this client's page (owner, 20 Nov 2026). */}
-                {config.cancel && !config.back ? (
-                  <Link href={config.cancel} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink">
-                    <LogOut aria-hidden="true" className="size-4" /> Exit
-                  </Link>
-                ) : null}
               </>
             ) : (
               <button
@@ -273,4 +264,25 @@ export function useSavableForm(
     void save();
   };
   return { state, pending, ref, dirty, onSubmit, pageSave: registry !== null };
+}
+
+// A round floating link with its name shown on hover or keyboard focus.
+export function FloatIcon({ href, label, icon, onClick }: { href?: string; label: string; icon: ReactNode; onClick?: () => void }) {
+  const cls = "peer inline-flex size-11 items-center justify-center rounded-full border border-line bg-surface text-muted shadow-lg hover:bg-page hover:text-ink";
+  return (
+    <span className="relative flex items-center">
+      {href ? (
+        <Link href={href} aria-label={label} title={label} className={cls}>
+          {icon}
+        </Link>
+      ) : (
+        <button type="button" onClick={onClick} aria-label={label} title={label} className={cls}>
+          {icon}
+        </button>
+      )}
+      <span role="tooltip" className="pointer-events-none absolute right-full mr-2 hidden rounded-md bg-ink px-2 py-1 text-xs font-semibold whitespace-nowrap text-white shadow peer-hover:block peer-focus-visible:block">
+        {label}
+      </span>
+    </span>
+  );
 }
