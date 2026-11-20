@@ -17,6 +17,7 @@ import { CommsForm, type Comms } from "./comms-form";
 import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow } from "./service-form";
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { SchemePicker } from "./scheme-picker";
+import { ViewersButton } from "./viewers-button";
 import { PageSave, type PageSaveConfig } from "@/components/page-save";
 import { RequiredLegend } from "@/components/required";
 import { ReportIncidentForm } from "../../../incidents/forms";
@@ -62,12 +63,13 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     const { data: recent, error } = await supabase.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", viewer.id).gte("viewed_at", since).limit(1);
     if (!error && !recent?.length) await supabase.from("client_staff_views").insert({ client_id: id });
   });
-  const viewsRes = await supabase.from("client_staff_views").select("user_id, viewed_at").eq("client_id", id).gte("viewed_at", new Date(Date.parse(new Date().toISOString()) - 30 * 86_400_000).toISOString()).order("viewed_at", { ascending: false }).limit(200);
+  // Everyone who has opened it, not just recently (owner, 20 Nov 2026).
+  const viewsRes = await supabase.from("client_staff_views").select("user_id, viewed_at").eq("client_id", id).order("viewed_at", { ascending: false }).limit(5000);
   const canSeeViews = !viewsRes.error && (await canDoFor("clients.assign", "edit", id));
-  const lastOpened = new Map<string, { at: string; times: number }>();
+  const lastOpened = new Map<string, { at: string; first: string; times: number }>();
   for (const v of canSeeViews ? ((viewsRes.data ?? []) as { user_id: string; viewed_at: string }[]) : []) {
     const was = lastOpened.get(v.user_id);
-    lastOpened.set(v.user_id, { at: was?.at ?? v.viewed_at, times: (was?.times ?? 0) + 1 });
+    lastOpened.set(v.user_id, { at: was?.at ?? v.viewed_at, first: v.viewed_at, times: (was?.times ?? 0) + 1 });
   }
   const sp = await searchParams;
   // cmeprojects (owner's concept): View shows one tab at a time; Edit walks
@@ -410,6 +412,12 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
       : canEditClient && !step && tab === "profile"
         ? { mode: "tab" }
         : null;
+  // Who opened this page: names for everyone (also people no longer with the organisation).
+  const unknownViewers = [...lastOpened.keys()].filter((u) => !nameOfStaff.has(u));
+  const { data: moreNames } = unknownViewers.length ? await supabase.from("profiles").select("id, full_name, email").in("id", unknownViewers) : { data: [] };
+  const viewerName = new Map([...nameOfStaff, ...((moreNames ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => [p.id, p.full_name || p.email] as [string, string])]);
+  const stamp = (iso: string) => new Date(iso).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+  const viewers = [...lastOpened].map(([u, v]) => ({ name: viewerName.get(u) ?? "Staff member", last: stamp(v.at), first: stamp(v.first), times: v.times }));
   const rosterBlocks: [string, string][] = [];
   // A service that starts later isn't a gap: they can be rostered from that day.
   let rosterFrom: { date: string; label: string } | null = null;
@@ -520,6 +528,8 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               ) : null}
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          {canSeeViews ? <ViewersButton viewers={viewers} /> : null}
           {canEditClient ? (
             // The edit steps finish from the bar at the bottom (no "Done editing" up here).
             step ? null : !TAB_SECTIONS[tab] || tab === "overview" ? (
@@ -529,6 +539,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               </Link>
             ) : null
           ) : null}
+          </div>
         </div>
         {client.status === "discharged" ? (
           <Notice tone="info">
@@ -1329,26 +1340,6 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               ) : null}
             </dl>
           ) : null}
-        </Card>
-      ) : null}
-      {inView("staff") && canSeeViews ? (
-        <Card className="flex flex-col gap-2 p-4">
-          <h2 className="heading-sm">Who opened this page (last 30 days)</h2>
-          <p className="text-xs text-muted">Recorded at most once an hour for each person. Only people who assign staff to this client see this.</p>
-          {lastOpened.size ? (
-            <ul className="divide-y divide-line rounded-md border border-line text-sm">
-              {[...lastOpened].map(([u, v]) => (
-                <li key={u} className="flex flex-wrap justify-between gap-2 px-3 py-1.5">
-                  <span className="font-semibold">{nameOfStaff.get(u) ?? "Staff member"}</span>
-                  <span className="text-muted">
-                    last {new Date(v.at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · {v.times} time{v.times === 1 ? "" : "s"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted">Nobody yet.</p>
-          )}
         </Card>
       ) : null}
       {inView("staff") && assignments ? (
