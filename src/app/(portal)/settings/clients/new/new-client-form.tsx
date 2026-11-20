@@ -3,7 +3,7 @@
 
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, LogOut, Save } from "lucide-react";
 import { useClientTab, wordForTab } from "../client-tab";
 import { Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
@@ -245,9 +245,21 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
                 router.push("/settings/clients");
               }
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page"
           >
             <ArrowLeft aria-hidden="true" className="size-4" /> Back to client list
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!dirty || (await askConfirm(`Leave without adding this ${word.toLowerCase()}? What you typed here isn't saved.`, { action: "Leave" }))) {
+                markClean();
+                router.push("/settings/clients");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink"
+          >
+            <LogOut aria-hidden="true" className="size-4" /> Exit
           </button>
           <button type="submit" onClick={() => setThen("later")} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page disabled:opacity-50">
             <Save aria-hidden="true" className="size-4" /> {pending && then === "later" ? "Saving…" : "Save for later"}
