@@ -54,6 +54,20 @@ export async function saveClientSection(_: FormState, form: FormData): Promise<F
     if (f.required && !values[f.name]) return { error: `Fill in ${f.label.toLowerCase()}.` };
   }
 
+  // The home address in parts (owner, 20 Nov 2026): street, suburb, state, postcode, saved as one line.
+  if (table === "client_details" && form.has("home_street")) {
+    const street = String(form.get("home_street") ?? "").trim().slice(0, 200);
+    const suburb = String(form.get("home_suburb") ?? "").trim().slice(0, 60);
+    const pc = String(form.get("home_postcode") ?? "").trim().slice(0, 4);
+    const st = String(values.state ?? "");
+    const need = [!street && "street address", !suburb && "suburb", !pc && "postcode", !st && "state"].filter(Boolean);
+    if (need.length) return { error: `Fill in the ${need.join(", ")}.` };
+    const sCheck = checkStreet(street);
+    if (!sCheck.ok) return { error: `Street address: ${sCheck.error}` };
+    const pCheck = checkPostcode(st, pc);
+    if (!pCheck.ok) return { error: `Postcode: ${pCheck.error}` };
+    values.home_address = `${sCheck.value}, ${suburb} ${st} ${pc}`;
+  }
   // cmeprojects (owner's standing rule): emails, Australian phone numbers and addresses are checked before saving.
   const fix = (key: string, c: Check, what: string) => {
     if (!c.ok) return `${what}: ${c.error}`;

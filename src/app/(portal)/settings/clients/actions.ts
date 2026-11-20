@@ -15,7 +15,7 @@ async function requireClients() {
 import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
-import { checkAuPhone, checkDob, checkEmail, checkFullAddress } from "@/lib/validate";
+import { checkAuPhone, checkDob, checkEmail, checkFullAddress, checkPostcode, checkStreet } from "@/lib/validate";
 import { MAC_SCHEMES } from "@/lib/client-sections";
 
 // cmeprojects: which team(s) look after a client (people who manage staff).
@@ -213,9 +213,13 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
   if (MAC_SCHEMES.includes(scheme) && !/^AC\d{8}$/.test(mac)) return { error: "Enter their My Aged Care ID (AC followed by 8 numbers, for example AC12345678)." };
   const phone = checkAuPhone(t("phone", 30));
   const email = checkEmail(t("email", 120));
-  const address = checkFullAddress(t("home_address", 300));
+  // The address comes in parts (street, suburb, state, postcode) and is saved as one line.
+  const street = checkStreet(t("home_street", 200));
+  const postcode = checkPostcode(t("state", 3), t("home_postcode", 4));
+  const homeLine = form.has("home_street") ? `${street.ok ? street.value : t("home_street", 200)}, ${t("home_suburb", 60)} ${t("state", 3)} ${t("home_postcode", 4)}` : t("home_address", 300);
+  const address = form.has("home_street") && (!street.ok || !postcode.ok) ? (street.ok ? postcode : street) : checkFullAddress(homeLine);
   // Mandatory (owner, 19 Nov 2026): date of birth, mobile, email, home address and state.
-  const missing = [["date_of_birth", "date of birth"], ["phone", "mobile"], ["email", "email"], ["home_address", "home address"], ["state", "state"]].filter(([k]) => !t(k)).map(([, l]) => l);
+  const missing = [["date_of_birth", "date of birth"], ["phone", "mobile"], ["email", "email"], ...(form.has("home_street") ? [["home_street", "street address"], ["home_suburb", "suburb"], ["home_postcode", "postcode"]] : [["home_address", "home address"]]), ["state", "state"]].filter(([k]) => !t(k)).map(([, l]) => l);
   if (missing.length) return { error: `Fill in the ${missing.join(", ")}. If they don't have a mobile or email, enter the family carer's or the person assisting them.` };
   const dobCheck = checkDob(t("date_of_birth", 10));
   const problems = [dobCheck.ok ? "" : `Date of birth: ${dobCheck.error}`, phone.ok ? "" : `Phone: ${phone.error}`, email.ok ? "" : `Email: ${email.error}`, address.ok ? "" : `Home address: ${address.error}`].filter(Boolean);

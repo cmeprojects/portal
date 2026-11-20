@@ -157,7 +157,7 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
               Mobile
               <Req />
             </span>
-            <input name="phone" type="tel" required maxLength={30} placeholder="0412 345 678" className={inputClass} />
+            <IdInput kind="phone" name="phone" required placeholder="0412 345 678" />
             <span className="font-normal text-muted">If they don&apos;t have one, enter the mobile of the family carer or person assisting them.</span>
           </label>
           <label className={lab}>
@@ -165,29 +165,45 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
               Email
               <Req />
             </span>
-            <input name="email" type="email" required maxLength={120} className={inputClass} />
+            <IdInput kind="email" name="email" required placeholder="name@example.com" />
             <span className="font-normal text-muted">If they don&apos;t have one, enter the email of the family carer or person assisting them.</span>
           </label>
-          <label className={lab}>
+          <label className={`${lab} sm:col-span-2`}>
             <span>
-              Home address
+              Street address
               <Req />
             </span>
-            <input name="home_address" required maxLength={300} placeholder="12 Smith Street, Dulwich Hill NSW 2203" className={inputClass} />
+            <input name="home_street" required maxLength={200} placeholder="Unit 3/22 Banksia Road" className={inputClass} />
           </label>
           <label className={lab}>
             <span>
-              State
+              Suburb
               <Req />
             </span>
-            <select name="state" required defaultValue="" className={inputClass}>
-              {STATES.map(([k, l]) => (
-                <option key={k} value={k}>
-                  {l}
-                </option>
-              ))}
-            </select>
+            <input name="home_suburb" required maxLength={60} placeholder="Dulwich Hill" className={inputClass} />
           </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className={lab}>
+              <span>
+                State
+                <Req />
+              </span>
+              <select name="state" required defaultValue="" className={inputClass}>
+                {STATES.map(([k, l]) => (
+                  <option key={k} value={k}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={lab}>
+              <span>
+                Postcode
+                <Req />
+              </span>
+              <input name="home_postcode" required inputMode="numeric" pattern="\d{4}" maxLength={4} placeholder="2203" title="4 numbers" className={inputClass} />
+            </label>
+          </div>
         </div>
       </section>
 
