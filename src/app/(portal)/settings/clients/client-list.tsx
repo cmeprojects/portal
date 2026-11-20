@@ -358,15 +358,6 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
           <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
           {activeFilters ? <span className="rounded-full bg-brand px-1.5 text-xs leading-5 font-bold text-brand-fg">{activeFilters}</span> : null}
         </button>
-        {showFilters ? (
-          <>
-            <QuickFilter label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
-            <QuickFilter label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
-            <QuickFilter label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
-            <QuickFilter label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
-            {tab === "active" ? <QuickFilter label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
-          </>
-        ) : null}
         <label className="relative min-w-48 flex-1">
           <span className="sr-only">Search</span>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
@@ -389,6 +380,16 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
           ) : null}
         </span>
       </div>
+      {showFilters ? (
+        // Filters open on their own row, so New and Export stay where they are (owner, 20 Nov 2026).
+        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-page/40 px-3 py-3">
+            <QuickFilter label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
+            <QuickFilter label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
+            <QuickFilter label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
+            <QuickFilter label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
+            {tab === "active" ? <QuickFilter label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
+        </div>
+      ) : null}
       </div>
       {rows.length ? (
         <div className="overflow-x-auto">
