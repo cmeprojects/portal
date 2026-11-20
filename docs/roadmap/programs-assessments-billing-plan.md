@@ -52,7 +52,7 @@ What the brief assumes, against what is built. This decides where each phase sta
 
 ## Phases
 
-**Phase 1: programs and enrolments. Built (update 158, 21 Nov 2026; preview-158.sql first).**
+**Phase 1: programs and enrolments. DONE: built (update 158), run on Dev and verified 21 Nov 2026 (15 enrolments, one main each, "Funded by" in step); approved by the owner.**
 Built as approved: enrolments per **named program** (decision A); main promotion includes paused
 enrolments (B); client shifts are checked against the program on the shift date, and a client shift
 can't leave out its service (already required since update 130), internal shifts without a client
