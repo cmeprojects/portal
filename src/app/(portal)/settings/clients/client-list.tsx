@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { pluralOf, storeClientTab, useClientTab, useStoredClientTab, wordForTab } from "./client-tab";
 import { Download, ArrowDown, ArrowUp, Bell, Eye, Loader2, NotebookText, Pencil, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
 import { loadClientNotes, type ClientNotes } from "./notes-actions";
@@ -277,7 +277,6 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
   const serviceNames = useMemo(() => [...new Set(clients.flatMap((c) => c.services))].sort(), [clients]);
   const filtering = Boolean(gender || suburb || service || manager || status || q);
   const activeFilters = [gender, suburb, service, manager, status].filter(Boolean).length;
-  const [showFilters, setShowFilters] = useState(false);
   const clearFilters = () => {
     setGender("");
     setSuburb("");
@@ -348,16 +347,23 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
       ) : null}
       {/* One toolbar (owner, 20 Nov 2026): quick filters, search, refresh, then New and Export. */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-        {/* Filters stay hidden until asked for (owner, 20 Nov 2026); the button shows how many are on. */}
-        <button
-          type="button"
-          onClick={() => setShowFilters((o) => !o)}
-          aria-expanded={showFilters}
-          className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold ${showFilters || activeFilters ? "border-brand bg-brand-soft text-ink" : "border-field text-muted hover:text-ink"}`}
+        {/* Filters open in a floating panel, like the side menu (owner, 20 Nov 2026): nothing on the page moves. */}
+        <FilterPanel
+          count={activeFilters}
+          onClear={() => {
+            setGender("");
+            setSuburb("");
+            setService("");
+            setManager("");
+            setStatus("");
+          }}
         >
-          <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
-          {activeFilters ? <span className="rounded-full bg-brand px-1.5 text-xs leading-5 font-bold text-brand-fg">{activeFilters}</span> : null}
-        </button>
+          <QuickFilter label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
+          <QuickFilter label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
+          <QuickFilter label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
+          <QuickFilter label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
+          {tab === "active" ? <QuickFilter label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
+        </FilterPanel>
         <label className="relative min-w-48 flex-1">
           <span className="sr-only">Search</span>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
@@ -380,16 +386,6 @@ export function ClientList({ clients, word, schemes, schemeWords = {}, showNdis,
           ) : null}
         </span>
       </div>
-      {showFilters ? (
-        // Filters open on their own row, so New and Export stay where they are (owner, 20 Nov 2026).
-        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-page/40 px-3 py-3">
-            <QuickFilter label="Gender" value={gender} onChange={setGender} options={Object.entries(GENDER_WORD)} />
-            <QuickFilter label="Suburb" value={suburb} onChange={setSuburb} options={suburbs.map((x) => [x, x])} />
-            <QuickFilter label="Managed by" value={manager} onChange={setManager} options={[["-", "Nobody assigned"], ...managers.map((m) => [m, m] as [string, string])]} />
-            <QuickFilter label="Service" value={service} onChange={setService} options={serviceNames.map((x) => [x, x])} />
-            {tab === "active" ? <QuickFilter label="Status" value={status} onChange={setStatus} options={[["active", "Active"], ["pending", "To check"], ["suspended", "Suspended"]]} /> : null}
-        </div>
-      ) : null}
       </div>
       {rows.length ? (
         <div className="overflow-x-auto">
@@ -850,7 +846,7 @@ function QuickFilter({ label, value, onChange, options }: { label: string; value
       aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`h-10 max-w-44 rounded-lg border px-2.5 text-sm font-medium ${value ? "border-brand bg-brand-soft text-ink" : "border-field bg-surface text-muted"}`}
+      className={`h-10 w-full rounded-lg border px-2.5 text-sm font-medium ${value ? "border-brand bg-brand-soft text-ink" : "border-field bg-surface text-muted"}`}
     >
       <option value="">{label}</option>
       {options.map(([k, l]) => (
@@ -859,5 +855,51 @@ function QuickFilter({ label, value, onChange, options }: { label: string; value
         </option>
       ))}
     </select>
+  );
+}
+
+// The Filters button and its floating panel (closes on a click outside or Esc).
+function FilterPanel({ count, onClear, children }: { count: number; onClear: () => void; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  return (
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold ${open || count ? "border-brand bg-brand-soft text-ink" : "border-field text-muted hover:text-ink"}`}
+      >
+        <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
+        {count ? <span className="rounded-full bg-brand px-1.5 text-xs leading-5 font-bold text-brand-fg">{count}</span> : null}
+      </button>
+      {open ? (
+        <div role="dialog" aria-label="Filters" className="absolute top-full left-0 z-40 mt-2 flex w-72 flex-col gap-2 rounded-xl border border-line bg-surface p-3 shadow-2xl">
+          <p className="text-xs font-semibold tracking-wider text-muted uppercase">Filters</p>
+          {children}
+          <div className="mt-1 flex items-center justify-between border-t border-line pt-2">
+            <button type="button" onClick={onClear} disabled={!count} className="rounded-md px-2 py-1 text-sm font-semibold text-muted hover:bg-page disabled:opacity-40">
+              Clear
+            </button>
+            <button type="button" onClick={() => setOpen(false)} className="rounded-md bg-brand px-3 py-1 text-sm font-semibold text-brand-fg hover:opacity-90">
+              Done
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
