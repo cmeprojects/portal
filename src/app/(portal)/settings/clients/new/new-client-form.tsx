@@ -3,7 +3,7 @@
 
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, LogOut, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, LogOut, Save } from "lucide-react";
 import { useClientTab, wordForTab } from "../client-tab";
 import { Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
@@ -236,7 +236,25 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
 
       <div className="sticky bottom-0 z-30 -mx-4 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)] backdrop-blur md:-mx-8 md:px-8">
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              if (!dirty || (await askConfirm(`Leave without adding this ${word.toLowerCase()}? What you typed here isn't saved.`, { action: "Leave" }))) {
+                markClean();
+                router.push("/settings/clients");
+              }
+            }}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-ink hover:underline"
+          >
+            <ArrowLeft aria-hidden="true" className="size-3.5" /> Client list
+          </button>
           <p className="min-w-0 flex-1 text-sm text-muted">Not saved yet. They&apos;re added as &ldquo;To check&rdquo; when you save.</p>
+          <button type="submit" onClick={() => setThen("later")} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page disabled:opacity-50">
+            <Save aria-hidden="true" className="size-4" /> {pending && then === "later" ? "Saving…" : "Save for later"}
+          </button>
+          <button type="submit" onClick={() => setThen("continue")} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm hover:opacity-90 disabled:opacity-50">
+            {pending && then === "continue" ? "Saving…" : "Save and continue"} <ArrowRight aria-hidden="true" className="size-4" />
+          </button>
           <button
             type="button"
             onClick={async () => {
@@ -248,12 +266,6 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
             className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink"
           >
             <LogOut aria-hidden="true" className="size-4" /> Exit
-          </button>
-          <button type="submit" onClick={() => setThen("later")} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg border border-field bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-page disabled:opacity-50">
-            <Save aria-hidden="true" className="size-4" /> {pending && then === "later" ? "Saving…" : "Save for later"}
-          </button>
-          <button type="submit" onClick={() => setThen("continue")} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm hover:opacity-90 disabled:opacity-50">
-            {pending && then === "continue" ? "Saving…" : "Save and continue"} <ArrowRight aria-hidden="true" className="size-4" />
           </button>
         </div>
         {state?.error ? (

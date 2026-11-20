@@ -408,6 +408,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           // The last step: Finish saves too.
           nextLabel: stepAt === STEPS.length - 1 ? "Save and finish" : undefined,
           cancel: `/settings/clients/${id}`,
+          list: "/settings/clients",
         }
       : canEditClient && !step && tab === "profile"
         ? { mode: "tab" }

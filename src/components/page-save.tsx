@@ -20,8 +20,9 @@ const Ctx = createContext<Registry | null>(null);
 
 export type PageSaveConfig = {
   mode: "steps" | "tab";
-  // Steps: Back goes to the step before (none on step 1). Exit (cancel) leaves the edit steps.
+  // Steps: Back goes to the step before (none on step 1). Exit (cancel) leaves the edit steps; list is the client list.
   back?: string;
+  list?: string;
   next?: string;
   nextLabel?: string;
   cancel?: string;
@@ -108,6 +109,11 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
       {steps || dirtyCount || problem ? (
         <div className="sticky bottom-0 z-30 -mx-4 mt-2 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)] backdrop-blur md:-mx-8 md:px-8 print:hidden">
           <div className="flex flex-wrap items-center gap-2">
+            {steps && config.list ? (
+              <Link href={config.list} className="inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-ink hover:underline">
+                <ArrowLeft aria-hidden="true" className="size-3.5" /> Client list
+              </Link>
+            ) : null}
             <p className={`min-w-0 flex-1 text-sm ${problem ? "font-medium text-danger" : "text-muted"}`} role={problem ? "alert" : "status"}>
               {problem || (dirtyCount ? `${dirtyCount} unsaved change${dirtyCount === 1 ? "" : "s"}` : "No unsaved changes")}
             </p>
@@ -117,7 +123,7 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
                 <ArrowLeft aria-hidden="true" className="size-4" /> Back
               </Link>
             ) : null}
-            {steps && config.cancel ? (
+            {steps && config.cancel && config.back ? (
               <Link href={config.cancel} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink">
                 <LogOut aria-hidden="true" className="size-4" /> Exit
               </Link>
@@ -145,6 +151,12 @@ function PageSaveOn({ config, children }: { config: PageSaveConfig; children: Re
                   {busy ? "Saving…" : (config.nextLabel ?? "Save and continue")}
                   {config.nextLabel ? <Check aria-hidden="true" className="size-4" /> : <ArrowRight aria-hidden="true" className="size-4" />}
                 </button>
+                {/* Step 1: Exit comes last, back to this client's page (owner, 20 Nov 2026). */}
+                {config.cancel && !config.back ? (
+                  <Link href={config.cancel} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-muted hover:bg-page hover:text-ink">
+                    <LogOut aria-hidden="true" className="size-4" /> Exit
+                  </Link>
+                ) : null}
               </>
             ) : (
               <button
