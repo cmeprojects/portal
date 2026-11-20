@@ -8,6 +8,9 @@ export function friendlyError(error: PostgrestError | null, fallback = "That did
   // cmeprojects: point people to where the missing answers go.
   if (error.code === "P0001" && error.message.startsWith("Fill these in first:")) return `${error.message}. Open Edit details on this task to add them.`;
   if (error.code === "P0001") return error.message;
+  // cmeprojects (update 153): one client per NDIS number and My Aged Care ID.
+  if (error.code === "23505" && error.message.includes("client_details_ndis_unique")) return "That NDIS number is already recorded for another client. Search the client list for it: they may already be in the portal (or archived).";
+  if (error.code === "23505" && error.message.includes("client_details_aged_care_unique")) return "That My Aged Care ID is already recorded for another client. Search the client list for it: they may already be in the portal (or archived).";
   if (error.code === "23505") return "That name (or prefix) is already in use.";
   if (error.code === "42501") return "You don't have permission to do that.";
   return fallback;

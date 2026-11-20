@@ -230,21 +230,16 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
   if (!["case_manager", "support_coordinator"].includes(as)) return { error: "Choose care manager or support coordinator." };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("car_clients")
-    .insert({
-      name: `${given} ${family}`.slice(0, 80),
-      title: ["", "mr", "mrs", "ms", "miss", "mx", "dr"].includes(title) ? title : "",
-      given_name: given,
-      middle_name: t("middle_name", 40),
-      family_name: family,
-      preferred_name: t("preferred_name", 80),
-      reference: t("reference", 60),
-      scheme,
-    })
-    .select("id")
-    .single();
-  if (error || !data) return { error: friendlyError(error) };
+  const client = {
+    name: `${given} ${family}`.slice(0, 80),
+    title: ["", "mr", "mrs", "ms", "miss", "mx", "dr"].includes(title) ? title : "",
+    given_name: given,
+    middle_name: t("middle_name", 40),
+    family_name: family,
+    preferred_name: t("preferred_name", 80),
+    reference: t("reference", 60),
+    scheme,
+  };
   const details: Record<string, string | null> = {
     date_of_birth: /^\d{4}-\d{2}-\d{2}$/.test(dob) ? dob : null,
     gender: t("gender", 30),
@@ -255,6 +250,16 @@ export async function createClientFull(_: FormState, form: FormData): Promise<Fo
   };
   if (scheme === "ndis") details.ndis_number = ndis;
   if (MAC_SCHEMES.includes(scheme)) details.aged_care_id = mac;
+  // update 153: saved together; if any part is refused (an NDIS number in use, say), nothing is saved.
+  const together = await supabase.rpc("create_client_full", { p_client: client, p_details: details, p_manager: managerId || null, p_as: as });
+  if (!together.error) {
+    revalidatePath("/settings/clients");
+    return { message: `${given} ${family} added.`, spotlight: together.data as string };
+  }
+  if (together.error.code !== "PGRST202") return { error: friendlyError(together.error) };
+  // Before update 153: one part at a time.
+  const { data, error } = await supabase.from("car_clients").insert(client).select("id").single();
+  if (error || !data) return { error: friendlyError(error) };
   const { error: dError } = await supabase.from("client_details").upsert({ client_id: data.id, ...details }, { onConflict: "client_id" });
   if (dError) {
     revalidatePath("/settings/clients");
