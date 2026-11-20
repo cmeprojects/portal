@@ -141,3 +141,21 @@ Still to do (agreed, not built yet):
   overview read other staff's check records, which only people who manage onboarding (`can_manage_compliance`,
   hr.onboarding approve) may read. Giving Payroll the page needs a new read rule for those records (for example
   expiring items only, title and date, no files). Owner to decide; then add it as its own update.
+
+## Audit trails: future development (owner, 20 Nov 2026)
+
+The client audit trail (update 155) and the download trail (update 154) are done. Not built yet, by
+the owner's brief:
+
+- **Staff audit trail**, **rostering audit trail** and **system audit trail** (each in its own area).
+- **A global audit console** (one place across all areas), **audit analytics or anomaly detection**, and
+  **advanced audit reporting or exports**.
+- **Audit retention automation** (how long entries are kept; links to SEC-004).
+- **Confirmed downloads.** Today a document download is recorded as "download link issued" (a one-minute
+  link). Confirming the file arrived would mean sending files through the portal itself; decide if needed.
+- **Refused document attempts for other clients.** A refused attempt is linked to the client the link
+  named; attempts with no client in the link show only under Portal settings, Downloads.
+- **Allied Health and Team Leaders**: they don't see client audit trails by default. Give "Activity and
+  audit trail" on the Access page if wanted.
+- **Client incidents** keep their own record (incident created); changes to incidents aren't in the
+  client trail yet.

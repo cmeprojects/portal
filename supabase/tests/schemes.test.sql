@@ -12,8 +12,8 @@ insert into auth.users (email) values ('boss@example.com'), ('boss2@example.com'
 create function test.pid(p_email text) returns uuid language sql security definer as $$ select id from public.profiles where email = p_email $$;
 grant execute on all functions in schema test to authenticated;
 
-select test.ok((select string_agg(key, ',' order by sort_order) from public.client_schemes) = 'ndis,support_at_home,private,other', 'four fixed schemes');
-select test.ok((select string_agg(name || '=' || scheme, ',' order by name) from public.client_programs) = 'NDIS=ndis,Other=other,Private=private,Support at Home=support_at_home', 'existing programs matched to their scheme');
+select test.ok((select string_agg(key, ',' order by sort_order) from public.client_schemes) = 'ndis,support_at_home,chsp,private,other', 'five fixed schemes (CHSP from update 151)');
+select test.ok((select string_agg(name || '=' || scheme, ',' order by name) from public.client_programs) = 'CHSP=chsp,NDIS=ndis,Other=other,Private=private,Support at Home=support_at_home', 'existing programs matched to their scheme');
 select test.ok((select review_label from public.client_schemes where key = 'ndis') = 'Plan review' and (select review_label from public.client_schemes where key = 'support_at_home') = 'Re-assessment', 'each scheme has its own review wording');
 
 -- Who changes them: Care settings.
@@ -51,7 +51,7 @@ select test.ok((select scheme from public.client_programs where name = 'Private'
 -- Staff read schemes and programs (labels only).
 select test.act_as('sam@example.com');
 set role authenticated;
-select test.ok((select count(*) from public.client_schemes) = 4, 'members read the schemes');
+select test.ok((select count(*) from public.client_schemes) = 5, 'members read the schemes');
 reset role;
 
 \o

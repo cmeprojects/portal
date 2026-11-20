@@ -96,6 +96,7 @@ export const MODULES: ModuleDef[] = [
   { id: "clients.alerts", category: "clients", parent: "clients.list", label: "Alerts", icon: "HeartHandshake", href: "", delegable: true },
   { id: "clients.notes", category: "clients", parent: "clients.list", label: "Risk notes", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
   { id: "clients.services", category: "clients", parent: "clients.list", label: "Services", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },
+  { id: "clients.audit", category: "clients", parent: "clients.list", label: "Activity and audit trail", icon: "History", href: "", sensitivity: "sensitive", delegable: true, description: "A client's activity: who opened, changed, uploaded and downloaded what (update 155)." },
   { id: "clients.assign", category: "clients", parent: "clients.list", label: "Assigning staff", icon: "HeartHandshake", href: "", delegable: true },
   { id: "clients.comms", category: "clients", parent: "clients.list", label: "Communication preferences", icon: "HeartHandshake", href: "", delegable: true },
   { id: "clients.documents", category: "clients", parent: "clients.list", label: "Client documents", icon: "HeartHandshake", href: "", sensitivity: "sensitive", delegable: true },

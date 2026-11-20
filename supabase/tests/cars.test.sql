@@ -37,7 +37,7 @@ insert into public.car_purposes (name, sort_order) values ('Respite outing', 60)
 select test.refused($$insert into public.cars (name, rego) values ('Copy', '1ec4kc')$$, 'the same rego can''t be added twice');
 select test.refused($$delete from public.cars$$, 'cars are switched off, never deleted');
 reset role;
-select test.ok((select count(*) from public.audit_log where action in ('added_car', 'added_car_client', 'added_car_purpose')) = 5,
+select test.ok((select count(*) from public.audit_log where action in ('added_car', 'added_car_client', 'car_clients_added', 'added_car_purpose')) = 5,
   'adding cars, clients and purposes goes in the change log');
 
 -- Staff see cars and client names, but not client references.

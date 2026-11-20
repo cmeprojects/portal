@@ -18,6 +18,7 @@ import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow }
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { SchemePicker } from "./scheme-picker";
 import { ViewersButton } from "./viewers-button";
+import { ClientActivity } from "./activity";
 import { PageSave, type PageSaveConfig } from "@/components/page-save";
 import { RequiredLegend } from "@/components/required";
 import { ReportIncidentForm } from "../../../incidents/forms";
@@ -61,11 +62,15 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   // (Cookies can't be read inside after() in a page, so the signed-in client is made first.)
   const since = new Date(Date.parse(new Date().toISOString()) - 3_600_000).toISOString();
   after(async () => {
-    const { data: recent, error } = await supabase.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", viewer.id).gte("viewed_at", since).limit(1);
+    // Page openings only (update 155 also records opening the audit trail here).
+    let check = await supabase.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", viewer.id).eq("area", "profile").gte("viewed_at", since).limit(1);
+    if (check.error) check = await supabase.from("client_staff_views").select("id").eq("client_id", id).eq("user_id", viewer.id).gte("viewed_at", since).limit(1);
+    const { data: recent, error } = check;
     if (!error && !recent?.length) await supabase.from("client_staff_views").insert({ client_id: id });
   });
   // Everyone who has opened it, not just recently (owner, 20 Nov 2026).
-  const viewsRes = await supabase.from("client_staff_views").select("user_id, viewed_at").eq("client_id", id).order("viewed_at", { ascending: false }).limit(5000);
+  let viewsRes = await supabase.from("client_staff_views").select("user_id, viewed_at").eq("client_id", id).eq("area", "profile").order("viewed_at", { ascending: false }).limit(5000);
+  if (viewsRes.error) viewsRes = await supabase.from("client_staff_views").select("user_id, viewed_at").eq("client_id", id).order("viewed_at", { ascending: false }).limit(5000);
   const canSeeViews = !viewsRes.error && (await canDoFor("clients.assign", "edit", id));
   const lastOpened = new Map<string, { at: string; first: string; times: number }>();
   for (const v of canSeeViews ? ((viewsRes.data ?? []) as { user_id: string; viewed_at: string }[]) : []) {
@@ -195,6 +200,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     comms: ["commslog"],
     incidents: ["incidents"],
     practitioners: ["practitioners"],
+    activity: ["activity"],
   };
   const STEP_SECTIONS: Record<string, string[]> = {
     basic: ["details", "locations", "staff"],
@@ -362,6 +368,11 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     d.setMonth(d.getMonth() + n);
     return d.toISOString().slice(0, 10);
   };
+  const canAudit =
+    viewer.role === "system_admin" ||
+    canSeeViews ||
+    (await canDoFor("clients.audit", "view", id)) ||
+    (viewer.role === "manager" && (await supabase.rpc("is_manager_admin")).data === true);
   const tabs: [string, string, boolean][] = [
     ["overview", "Overview", true],
     ["profile", "Profile", true],
@@ -376,6 +387,8 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["comms", "Communication log", !!commsLog && (commsLog.length > 0 || canWriteComms)],
     ["incidents", "Incidents", !!incidents && (incidents.length > 0 || canReportIncident)],
     ["practitioners", "Practitioners", !!practitionerAccess],
+    // cmeprojects (update 155): the client's activity and audit trail.
+    ["activity", "Activity", canAudit],
   ];
   const canEditClient = await canDoFor("clients.list", "edit", id);
   // cmeprojects (update 143): the service catalogue, client shift types, and who may edit or promote services.
@@ -608,6 +621,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           <span className="font-semibold">Can be rostered from {day(rosterFrom.date)}</span>, when &ldquo;{rosterFrom.label}&rdquo; starts. Shifts before then aren&apos;t allowed.
         </div>
       ) : null}
+      {inView("activity") && canAudit ? <ClientActivity clientId={id} filter={typeof sp.f === "string" ? sp.f : ""} isSystemAdmin={viewer.role === "system_admin"} /> : null}
       {inView("practitioners") && practitionerAccess ? (
         <Card className="flex flex-col gap-3 p-4">
           <div>
