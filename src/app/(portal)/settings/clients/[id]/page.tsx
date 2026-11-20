@@ -18,6 +18,7 @@ import { AddServicePanel, ServiceEditForm, type CatalogueItem, type ServiceRow }
 import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { SchemePicker } from "./scheme-picker";
 import { ViewersButton } from "./viewers-button";
+import { ClientFloat } from "./client-float";
 import { PageSave, type PageSaveConfig } from "@/components/page-save";
 import { RequiredLegend } from "@/components/required";
 import { ReportIncidentForm } from "../../../incidents/forms";
@@ -1681,6 +1682,8 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           </aside>
         </>
       ) : null}
+      {/* Floating icons when viewing (the edit steps have their own). */}
+      {step ? null : <ClientFloat editHref={canEditClient && client.status !== "discharged" ? `/settings/clients/${id}?edit=basic` : undefined} />}
     </PageSave>
   );
 }
