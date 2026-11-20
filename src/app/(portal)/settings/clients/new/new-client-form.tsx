@@ -9,6 +9,7 @@ import { Notice, inputClass } from "@/components/ui";
 import { askConfirm } from "@/components/confirm";
 import { useDirty } from "@/components/use-dirty";
 import { Req, RequiredLegend } from "@/components/required";
+import { IdInput } from "@/components/id-input";
 import { GENDERS, MAC_SCHEMES, STATES, TITLES } from "@/lib/client-sections";
 import { createClientFull } from "../actions";
 
@@ -107,25 +108,22 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
               ))}
             </select>
           </label>
-          {scheme === "ndis" ? (
-            <label className={lab}>
-              <span>
-                NDIS number
-                <Req />
-              </span>
-              <input name="ndis_number" required inputMode="numeric" maxLength={11} placeholder="9 digits" defaultValue={initial.ndis_number ?? ""} className={inputClass} />
-            </label>
-          ) : MAC_SCHEMES.includes(scheme) ? (
-            <label className={lab}>
-              <span>
-                My Aged Care ID
-                <Req />
-              </span>
-              <input name="aged_care_id" required maxLength={12} placeholder="AC12345678" defaultValue={initial.aged_care_id ?? ""} className={inputClass} />
-            </label>
-          ) : (
-            <span />
-          )}
+          {/* Both IDs show; the one that doesn't apply is greyed out (owner, 19 Nov 2026). */}
+          <label className={lab}>
+            <span>
+              NDIS number
+              {scheme === "ndis" ? <Req /> : <NotApplicable chosen={Boolean(scheme)} />}
+            </span>
+            <IdInput kind="ndis" name="ndis_number" required={scheme === "ndis"} disabled={scheme !== "ndis"} placeholder={scheme === "ndis" ? "9 digits" : ""} defaultValue={initial.ndis_number ?? ""} />
+          </label>
+          <label className={lab}>
+            <span>
+              My Aged Care ID
+              {MAC_SCHEMES.includes(scheme) ? <Req /> : <NotApplicable chosen={Boolean(scheme)} />}
+            </span>
+            <IdInput kind="mac" name="aged_care_id" required={MAC_SCHEMES.includes(scheme)} disabled={!MAC_SCHEMES.includes(scheme)} placeholder={MAC_SCHEMES.includes(scheme) ? "AC12345678" : ""} defaultValue={initial.aged_care_id ?? ""} />
+            <span className="font-normal text-muted">For Support at Home and CHSP</span>
+          </label>
           <label className={`${lab} sm:col-span-2`}>
             ID from another system (optional)
             <input name="reference" maxLength={60} defaultValue={initial.reference ?? ""} placeholder="e.g. their number in your accounting or old client system" className={inputClass} />
@@ -256,4 +254,9 @@ export function NewClientFullForm({ initial, schemes, staff, word }: { initial: 
 export function NewClientHeading({ word, schemes, schemeWords = {} }: { word: string; schemes: [string, string][]; schemeWords?: Record<string, string> }) {
   const tab = useClientTab(schemes);
   return <>New {wordForTab(tab, word, schemeWords).toLowerCase()}</>;
+}
+
+// Shown on the ID that doesn't apply to the chosen scheme (or until one is chosen).
+function NotApplicable({ chosen }: { chosen: boolean }) {
+  return <span className="ml-1.5 rounded-full bg-line px-1.5 py-0.5 text-[10px] font-semibold text-muted">{chosen ? "Not applicable" : "Choose Funded by first"}</span>;
 }

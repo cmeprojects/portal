@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button, Notice, buttonClass, inputClass } from "@/components/ui";
 import { useSavableForm } from "@/components/page-save";
 import { Req } from "@/components/required";
+import { IdInput } from "@/components/id-input";
 import { useClientTab, wordForTab } from "./client-tab";
 import { askConfirm } from "@/components/confirm";
 import { useAfterSuccess } from "@/components/use-after-success";
@@ -334,7 +335,7 @@ export function AddCareClientForm({ staff, schemes = [], defaultScheme = "" }: {
               NDIS number
               <Req />
             </span>
-            <input name="ndis_number" required inputMode="numeric" pattern="\d{9}" maxLength={11} placeholder="9 digits" defaultValue={draft.ndis_number ?? ""} className={inputClass} />
+            <IdInput kind="ndis" name="ndis_number" required placeholder="9 digits" defaultValue={draft.ndis_number ?? ""} />
           </label>
         ) : MAC_SCHEMES.includes(scheme) ? (
           <label className="flex flex-col gap-1 text-xs font-medium">
@@ -342,7 +343,7 @@ export function AddCareClientForm({ staff, schemes = [], defaultScheme = "" }: {
               My Aged Care ID
               <Req />
             </span>
-            <input name="aged_care_id" required maxLength={12} placeholder="AC12345678" defaultValue={draft.aged_care_id ?? ""} className={inputClass} />
+            <IdInput kind="mac" name="aged_care_id" required placeholder="AC12345678" defaultValue={draft.aged_care_id ?? ""} />
           </label>
         ) : null}
         <label className="flex flex-col gap-1 text-xs font-medium sm:col-span-2">
