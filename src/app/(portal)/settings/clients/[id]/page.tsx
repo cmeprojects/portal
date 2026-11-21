@@ -30,6 +30,7 @@ import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
 import { AgreementForm, SignAgreementForm, type Agreement } from "./agreement-form";
 import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
+import { AgreementBox, BudgetLines, CareItems, DocHeader, DocStatus, DocSteps, DocTrail, StartDocForm, SupportLines, type Agreement as DocAgreement, type BudgetLine, type FundingFit, type SupportLine, type Trail } from "./care-docs";
 import { DocumentForm } from "./document-form";
 import { canDo, canDoFor } from "@/lib/module-access";
 import { ALERT_KINDS, ARCHIVE_REASONS, MAC_SCHEMES, ASSIGNED_AS, DOC_TYPE_LABELS, GENDERS, LIVING, PERSON_KINDS, PLAN_MANAGEMENT, PRACTITIONER_SECTIONS, CLIENT_STATUS, COMMS_CONTACT_WAYS, TIME_ZONES, TITLES, SECTION_FIELDS, SECTION_UPDATE, type SectionTable } from "@/lib/client-sections";
@@ -197,6 +198,87 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     .sort((a, b) => Number(b.isMain) - Number(a.isMain) || a.startsOn.localeCompare(b.startsOn));
   const openProgramIds = new Set(enrolRows.filter((e) => e.status !== "ended").map((e) => e.program_id));
   const activeProgramIds = new Set(enrolRows.filter((e) => e.status === "active").map((e) => e.program_id));
+  // cmeprojects (update 160): care plan items and steps, support plans, proposed
+  // budgets and agreements. Before update 160 runs these queries fail and the
+  // extra parts stay hidden (the care plans card works as before).
+  type PlanMeta = { id: string; created_by: string | null; created_at: string; made_current_by: string | null; made_current_at: string | null; archived_at: string | null; submitted_by: string | null; submitted_at: string | null; reviewed_by: string | null; reviewed_at: string | null; review_note: string; enrolment_id: string | null; source_assessment_id: string | null };
+  type DocRow = { id: string; title: string; status: string; enrolment_id: string | null; source_assessment_id: string | null; created_by: string | null; created_at: string; submitted_by: string | null; submitted_at: string | null; reviewed_by: string | null; reviewed_at: string | null; review_note: string; approved_by: string | null; approved_at: string | null; superseded_at: string | null };
+  type SupportRow = DocRow & { summary: string; starts_on: string | null; review_by: string | null };
+  type BudgetRow = DocRow & { period_start: string; period_end: string; notes: string; support_plan_id: string | null };
+  type ItemRow = { id: string; plan_id: string; section: string; text: string; detail: string; edited: boolean; source_finding_id: string | null };
+  type SLineRow = SupportLine & { plan_id: string; source_finding_id: string | null };
+  type BLineRow = Omit<BudgetLine, "fromSupport"> & { proposal_id: string; source_line_id: string | null };
+  type AgreeRow = { care_plan_id: string | null; support_plan_id: string | null; agreed_by: string; agreed_name: string; method: string; agreed_on: string; recorded_by: string | null; recorded_at: string; notes: string; document_id: string | null };
+  const [planMetaRes, itemsRes, spRes, spLinesRes, bpRes, bpLinesRes, agreeRes, instrSrcRes, srcRes, canApprovePlans, canApproveFunding] = await Promise.all([
+    supabase.from("client_care_plans").select("id, created_by, created_at, made_current_by, made_current_at, archived_at, submitted_by, submitted_at, reviewed_by, reviewed_at, review_note, enrolment_id, source_assessment_id").eq("client_id", id),
+    supabase.from("client_care_plan_items").select("id, plan_id, section, text, detail, edited, source_finding_id").eq("client_id", id).order("sort_order").order("created_at"),
+    supabase.from("client_support_plans").select("*").eq("client_id", id).order("created_at", { ascending: false }),
+    supabase.from("client_support_plan_lines").select("*").eq("client_id", id).order("sort_order").order("created_at"),
+    supabase.from("client_budget_proposals").select("*").eq("client_id", id).order("created_at", { ascending: false }),
+    supabase.from("client_budget_lines").select("*").eq("client_id", id).order("sort_order").order("created_at"),
+    supabase.from("client_plan_agreements").select("care_plan_id, support_plan_id, agreed_by, agreed_name, method, agreed_on, recorded_by, recorded_at, notes, document_id").eq("client_id", id),
+    supabase.from("client_worker_instructions").select("source_item_id").eq("client_id", id).not("source_item_id", "is", null),
+    supabase.from("client_assessments").select("id, assessed_on, completed_at, assessment_templates(name), assessment_versions(version)").eq("client_id", id).in("status", ["completed", "superseded"]),
+    canDoFor("clients.care_plans", "approve", id),
+    canDoFor("clients.funding", "approve", id),
+  ]);
+  const docsOn160 = !planMetaRes.error && !itemsRes.error;
+  const planMeta = new Map(((planMetaRes.data ?? []) as PlanMeta[]).map((m) => [m.id, m]));
+  const careItems = (itemsRes.data ?? []) as ItemRow[];
+  const supportPlans = spRes.error ? null : ((spRes.data ?? []) as SupportRow[]);
+  const supportLines = (spLinesRes.data ?? []) as SLineRow[];
+  const budgets = bpRes.error ? null : ((bpRes.data ?? []) as BudgetRow[]);
+  const budgetLines = (bpLinesRes.data ?? []) as BLineRow[];
+  const planAgreements = (agreeRes.data ?? []) as AgreeRow[];
+  const instructedItems = new Set(((instrSrcRes.data ?? []) as { source_item_id: string }[]).map((r) => r.source_item_id));
+  const sourceLabel = new Map(
+    ((srcRes.data ?? []) as unknown as { id: string; assessed_on: string | null; completed_at: string | null; assessment_templates: { name: string } | null; assessment_versions: { version: number } | null }[]).map((a) => [
+      a.id,
+      `${a.assessment_templates?.name ?? "Assessment"} (template version ${a.assessment_versions?.version ?? "?"}), assessed ${day(a.assessed_on ?? a.completed_at?.slice(0, 10))}`,
+    ]),
+  );
+  const enrolLabel = (eid: string | null) => {
+    const e = eid ? enrolRows.find((r) => r.id === eid) : null;
+    return e ? `${programName.get(e.program_id) ?? "Program"} (${schemeInfo.get(e.scheme)?.label ?? e.scheme})` : null;
+  };
+  const who = (uid: string | null) => (uid ? (nameOfStaff.get(uid) ?? "someone") : "someone");
+  const when = (t: string | null) => (t ? day(t.slice(0, 10)) : "");
+  const trailOf = (d: { status: string; created_by: string | null; created_at: string; submitted_by: string | null; submitted_at: string | null; reviewed_by: string | null; reviewed_at: string | null; review_note: string; approved_by?: string | null; approved_at?: string | null; source_assessment_id: string | null; enrolment_id: string | null }): Trail => ({
+    status: d.status,
+    source: d.source_assessment_id ? (sourceLabel.get(d.source_assessment_id) ?? "an assessment") : null,
+    program: enrolLabel(d.enrolment_id),
+    made: `Made by ${who(d.created_by)} ${when(d.created_at)}`,
+    submitted: d.submitted_by ? `sent for review by ${who(d.submitted_by)} ${when(d.submitted_at)}` : null,
+    reviewed: d.reviewed_by ? `reviewed by ${who(d.reviewed_by)} ${when(d.reviewed_at)}` : null,
+    approved: d.approved_by ? `approved by ${who(d.approved_by)} ${when(d.approved_at ?? null)}` : null,
+    reviewNote: d.review_note,
+  });
+  const agreementOf = (a: AgreeRow | undefined): DocAgreement | null =>
+    a ? { agreed_name: a.agreed_name, agreed_by: a.agreed_by, method: a.method, agreed_on: day(a.agreed_on), recorded: `by ${who(a.recorded_by)} ${when(a.recorded_at)}`, notes: a.notes, document: a.document_id ? (docs ?? []).find((d) => d.id === a.document_id)?.title ?? "archived" : null } : null;
+  const mineOf = (d: { created_by: string | null; submitted_by: string | null }) => d.created_by === viewer.id || d.submitted_by === viewer.id;
+  const peopleChoices: [string, string][] = ((people.data ?? []) as { id: string; name: string; kind: string; active: boolean }[]).filter((x) => x.active).map((x) => [x.id, `${x.name} (${label(PERSON_KINDS, x.kind)})`]);
+  const enrolChoices: [string, string][] = enrolRows.filter((e) => e.status !== "ended").map((e) => [e.id, enrolLabel(e.id) ?? "Program"]);
+  const budgetFits = new Map<string, FundingFit[]>();
+  if (budgets?.length) {
+    const fits = await Promise.all(budgets.filter((b) => b.status !== "superseded").map((b) => supabase.rpc("budget_funding", { p_proposal: b.id })));
+    budgets.filter((b) => b.status !== "superseded").forEach((b, i) => budgetFits.set(b.id, (fits[i].data ?? []) as FundingFit[]));
+  }
+  const fitDays: Record<string, string> = {};
+  for (const rows of budgetFits.values()) for (const r of rows) for (const d of [r.funding_start, r.funding_end]) if (d) fitDays[d] = day(d);
+  // Waiting on someone: reviews for approvers, agreements once approved.
+  const waiting: string[] = [];
+  if (docsOn160) {
+    for (const p of plans ?? []) {
+      const m = planMeta.get(p.id);
+      if (p.status === "pending_review" && canApprovePlans && m && !mineOf(m)) waiting.push(`Care plan "${p.title}" is waiting for your review.`);
+      if (p.status === "current" && m?.source_assessment_id && !planAgreements.some((a) => a.care_plan_id === p.id)) waiting.push(`Care plan "${p.title}" is approved; the client's agreement isn't recorded yet.`);
+    }
+    for (const sp of supportPlans ?? []) {
+      if (sp.status === "pending_review" && canApprovePlans && !mineOf(sp)) waiting.push(`Support plan "${sp.title}" is waiting for your review.`);
+      if (sp.status === "approved" && !planAgreements.some((a) => a.support_plan_id === sp.id)) waiting.push(`Support plan "${sp.title}" is approved; the client's agreement isn't recorded yet.`);
+    }
+    for (const b of budgets ?? []) if (b.status === "pending_review" && canApproveFunding && !mineOf(b)) waiting.push(`Proposed budget "${b.title}" is waiting for your review.`);
+  }
   const addablePrograms: AddableProgram[] = programRows
     .filter((p) => p.active && !openProgramIds.has(p.id) && schemeInfo.get(p.scheme ?? "")?.offered !== false)
     .map((p) => ({ id: p.id, name: p.name, scheme: p.scheme ?? "other", schemeLabel: schemeInfo.get(p.scheme ?? "")?.label ?? p.scheme ?? "Other" }));
@@ -410,7 +492,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["care", "Care plans", plansSectionOn && !!plans && (plans.length > 0 || canPlans)],
     ["reviews", "Reviews", showReviews],
     ["agreements", "Agreements", showAgreements],
-    ["funding", "Funding", showFunding],
+    ["funding", "Funding", showFunding || (docsOn160 && !!budgets?.length)],
     ["staff", "Assigned staff", !!assignments],
     ["shifts", "Shifts and notes", !!clientShifts || !!shiftNotes],
     ["comms", "Communication log", !!commsLog && (commsLog.length > 0 || canWriteComms)],
@@ -1080,24 +1162,44 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
         <Card className="flex flex-col gap-3 p-4">
           <div>
             <h2 className="heading-sm">Care plans</h2>
-            <p className="text-sm text-muted">Start a draft, add its goals, then make it current (the old plan is archived). A current plan&apos;s wording is fixed: start a new draft to change it. Progress on goals can be updated any time.</p>
+            <p className="text-sm text-muted">
+              {docsOn160
+                ? "Start a draft (or make one from a completed assessment), add its items and goals, then send it for review. Someone with the right to approve care plans, who didn't make or send it, approves it or says what needs changing. An approved plan's wording is fixed (the earlier one is superseded and kept); goal progress can be updated any time."
+                : "Start a draft, add its goals, then make it current (the old plan is archived). A current plan's wording is fixed: start a new draft to change it. Progress on goals can be updated any time."}
+            </p>
           </div>
+          {waiting.length ? (
+            <div role="status" className="rounded-lg border border-brand/20 bg-brand-soft px-4 py-3 text-sm text-brand">
+              <p className="font-semibold">Waiting</p>
+              <ul className="list-disc pl-5">
+                {waiting.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {plans.length ? (
             <ul className="divide-y divide-line rounded-md border border-line text-sm">
               {plans.map((p) => {
                 const planGoals = goals.filter((g) => g.plan_id === p.id);
                 return (
                   <li key={p.id} className={`px-3 py-2 ${p.status === "archived" ? "text-muted" : ""}`}>
-                    <details name="care-plan" open={p.status === "current"}>
+                    <details name="care-plan" open={p.status === "current" || p.status === "pending_review" || p.status === "changes_required"}>
                       <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 [&::-webkit-details-marker]:hidden">
                         <span className="min-w-40 flex-1 font-semibold">{p.title}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.status === "current" ? "bg-good-soft" : p.status === "draft" ? "bg-warn-soft" : "bg-line"}`}>
-                          {p.status === "current" ? "Current" : p.status === "draft" ? "Draft" : "Archived"}
-                        </span>
+                        {docsOn160 ? (
+                          <DocStatus status={p.status} withdrawn={p.status === "archived" && !planMeta.get(p.id)?.made_current_at} />
+                        ) : (
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.status === "current" ? "bg-good-soft" : p.status === "draft" ? "bg-warn-soft" : "bg-line"}`}>
+                            {p.status === "current" ? "Current" : p.status === "draft" ? "Draft" : "Archived"}
+                          </span>
+                        )}
+                        {planMeta.get(p.id)?.source_assessment_id ? <span className="text-xs text-muted">from an assessment</span> : null}
                         {p.review_by ? <span className="text-xs text-muted">review by {day(p.review_by)}</span> : null}
                       </summary>
                       <div className="mt-2 flex flex-col gap-2">
-                        {canPlans && p.status === "draft" ? (
+                        {docsOn160 && planMeta.get(p.id) ? <DocTrail t={trailOf({ ...planMeta.get(p.id)!, status: p.status, approved_by: planMeta.get(p.id)!.made_current_by, approved_at: planMeta.get(p.id)!.made_current_at })} /> : null}
+                        {canPlans && (p.status === "draft" || p.status === "changes_required") ? (
                           <CarePlanForm clientId={id} plan={p} documents={docChoices} />
                         ) : (
                           <>
@@ -1109,6 +1211,18 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                             {p.summary ? <p className="whitespace-pre-line">{p.summary}</p> : null}
                           </>
                         )}
+                        {docsOn160 ? (
+                          <CareItems
+                            planId={p.id}
+                            clientId={id}
+                            canEdit={canPlans}
+                            editable={p.status === "draft" || p.status === "changes_required"}
+                            approved={p.status === "current"}
+                            items={careItems
+                              .filter((i) => i.plan_id === p.id)
+                              .map((i) => ({ id: i.id, section: i.section, text: i.text, detail: i.detail, edited: i.edited, source: i.source_finding_id ? (sourceLabel.get(planMeta.get(p.id)?.source_assessment_id ?? "") ?? "an assessment") : null, instructionAdded: instructedItems.has(i.id) }))}
+                          />
+                        ) : null}
                         <h3 className="text-xs font-semibold uppercase text-muted">Goals</h3>
                         {planGoals.length ? (
                           <ul className="flex flex-col gap-1">
@@ -1138,10 +1252,16 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                         ) : (
                           <p className="text-xs text-muted">No goals yet.</p>
                         )}
-                        {canPlans && p.status === "draft" ? <Add label="Add a goal"><CareGoalForm clientId={id} planId={p.id} /></Add> : null}
-                        {canPlans && p.status !== "archived" ? (
+                        {canPlans && (p.status === "draft" || p.status === "changes_required") ? <Add label="Add a goal"><CareGoalForm clientId={id} planId={p.id} /></Add> : null}
+                        {docsOn160 ? (
+                          <DocSteps kind="care" id={p.id} status={p.status} canEdit={canPlans} canApprove={canApprovePlans} mine={planMeta.get(p.id) ? mineOf(planMeta.get(p.id)!) : true} />
+                        ) : null}
+                        {docsOn160 && p.status === "current" ? (
+                          <AgreementBox kind="care" planId={p.id} clientId={id} agreement={agreementOf(planAgreements.find((a) => a.care_plan_id === p.id))} people={peopleChoices} documents={docChoices} canEdit={canPlans} dayText={todaySyd} />
+                        ) : null}
+                        {canPlans && (docsOn160 ? p.status === "current" : p.status !== "archived") ? (
                           <div className="flex flex-wrap gap-3">
-                            {p.status === "draft" ? (
+                            {p.status === "draft" && !docsOn160 ? (
                               <form action={setCarePlanStatus}>
                                 <input type="hidden" name="id" value={p.id} />
                                 <input type="hidden" name="client_id" value={id} />
@@ -1153,7 +1273,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                               <input type="hidden" name="id" value={p.id} />
                               <input type="hidden" name="client_id" value={id} />
                               <input type="hidden" name="status" value="archived" />
-                              <button className="text-xs font-semibold text-brand underline">Archive</button>
+                              <button className="text-xs font-semibold text-brand underline">{docsOn160 ? "Mark as superseded (no longer in use)" : "Archive"}</button>
                             </form>
                           </div>
                         ) : null}
@@ -1167,6 +1287,60 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             <p className="text-sm text-muted">No care plans yet.</p>
           )}
           {canPlans ? <Add label="Start a new draft"><CarePlanForm clientId={id} documents={docChoices} /></Add> : null}
+        </Card>
+      ) : null}
+      {inView("plans") && plansSectionOn && docsOn160 && supportPlans && (supportPlans.length || canPlans) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Support plans</h2>
+            <p className="text-sm text-muted">Our support plan for this client: what support we provide, how often, how and by whom. It&apos;s the provider&apos;s plan, not an NDIA or government plan. Same steps as care plans.</p>
+          </div>
+          {supportPlans.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {supportPlans.map((sp) => {
+                const editable = sp.status === "draft" || sp.status === "changes_required";
+                return (
+                  <li key={sp.id} className={`px-3 py-2 ${sp.status === "superseded" ? "text-muted" : ""}`}>
+                    <details name="support-plan" open={sp.status === "approved" || sp.status === "pending_review" || sp.status === "changes_required"}>
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 [&::-webkit-details-marker]:hidden">
+                        <span className="min-w-40 flex-1 font-semibold">{sp.title}</span>
+                        <DocStatus status={sp.status} />
+                        {sp.review_by ? <span className="text-xs text-muted">review by {day(sp.review_by)}</span> : null}
+                      </summary>
+                      <div className="mt-2 flex flex-col gap-3">
+                        <DocTrail t={trailOf(sp)} />
+                        {editable && canPlans ? (
+                          <DocHeader kind="support" id={sp.id} clientId={id} values={{ title: sp.title, summary: sp.summary, starts_on: sp.starts_on ?? "", review_by: sp.review_by ?? "" }} />
+                        ) : (
+                          <>
+                            <p className="text-xs text-muted">
+                              {sp.starts_on ? `Starts ${day(sp.starts_on)}` : "Start date not set"}
+                              {sp.review_by ? ` · review by ${day(sp.review_by)}` : ""}
+                            </p>
+                            {sp.summary ? <p className="whitespace-pre-line">{sp.summary}</p> : null}
+                          </>
+                        )}
+                        <SupportLines
+                          planId={sp.id}
+                          clientId={id}
+                          editable={editable && canPlans}
+                          services={agreementServices}
+                          lines={supportLines.filter((l) => l.plan_id === sp.id).map((l) => ({ ...l, source: l.source_finding_id ? (sourceLabel.get(sp.source_assessment_id ?? "") ?? "an assessment") : null }))}
+                        />
+                        <DocSteps kind="support" id={sp.id} status={sp.status} canEdit={canPlans} canApprove={canApprovePlans} mine={mineOf(sp)} />
+                        {sp.status === "approved" ? (
+                          <AgreementBox kind="support" planId={sp.id} clientId={id} agreement={agreementOf(planAgreements.find((a) => a.support_plan_id === sp.id))} people={peopleChoices} documents={docChoices} canEdit={canPlans} dayText={todaySyd} />
+                        ) : null}
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No support plans yet. Make one from a completed assessment, or start one here.</p>
+          )}
+          {canPlans ? <Add label="Start a support plan"><StartDocForm kind="support" clientId={id} enrolments={enrolChoices} supportPlans={[]} today={todaySyd} /></Add> : null}
         </Card>
       ) : null}
       {inView("instructions") && plansSectionOn && instructions && (instructions.length || canPlans) ? (
@@ -1363,6 +1537,60 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             ) : (
               <p className="text-sm text-muted">Add a service first.</p>
             )
+          ) : null}
+        </Card>
+      ) : null}
+      {inView("funding") && docsOn160 && budgets && fundingOn.data?.value !== false && (budgets.length || canFunding) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Proposed budgets</h2>
+            <p className="text-sm text-muted">Estimates of what supports may cost (AUD), compared with recorded funding. Never treated as funding or billing. Approved separately by someone with the right to approve budgets.</p>
+          </div>
+          {budgets.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {budgets.map((b) => {
+                const editable = b.status === "draft" || b.status === "changes_required";
+                return (
+                  <li key={b.id} className={`px-3 py-2 ${b.status === "superseded" ? "text-muted" : ""}`}>
+                    <details name="budget" open={b.status === "approved" || b.status === "pending_review" || b.status === "changes_required"}>
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 [&::-webkit-details-marker]:hidden">
+                        <span className="min-w-40 flex-1 font-semibold">{b.title}</span>
+                        <DocStatus status={b.status} />
+                        <span className="text-xs text-muted">
+                          {day(b.period_start)} to {day(b.period_end)}
+                        </span>
+                      </summary>
+                      <div className="mt-2 flex flex-col gap-3">
+                        <DocTrail t={trailOf(b)} />
+                        {b.support_plan_id ? <p className="text-xs text-muted">Support plan: {supportPlans?.find((x) => x.id === b.support_plan_id)?.title ?? "not visible to you"}</p> : null}
+                        {editable && canFunding ? (
+                          <DocHeader kind="budget" id={b.id} clientId={id} values={{ title: b.title, period_start: b.period_start, period_end: b.period_end, notes: b.notes }} />
+                        ) : b.notes ? (
+                          <p className="whitespace-pre-line">{b.notes}</p>
+                        ) : null}
+                        <BudgetLines
+                          proposalId={b.id}
+                          clientId={id}
+                          editable={editable && canFunding}
+                          services={agreementServices}
+                          fits={budgetFits.get(b.id) ?? []}
+                          day={fitDays}
+                          lines={budgetLines.filter((l) => l.proposal_id === b.id).map((l) => ({ ...l, fromSupport: !!l.source_line_id }))}
+                        />
+                        <DocSteps kind="budget" id={b.id} status={b.status} canEdit={canFunding} canApprove={canApproveFunding} mine={mineOf(b)} />
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No proposed budgets yet. Make one from a completed assessment, or start one here.</p>
+          )}
+          {canFunding ? (
+            <Add label="Start a proposed budget">
+              <StartDocForm kind="budget" clientId={id} enrolments={enrolChoices} supportPlans={(supportPlans ?? []).filter((x) => x.status !== "superseded").map((x) => [x.id, x.title])} today={todaySyd} />
+            </Add>
           ) : null}
         </Card>
       ) : null}

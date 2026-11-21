@@ -57,22 +57,38 @@ insert into public.client_assignments (client_id, user_id) values (test.cid('Zar
 reset role;
 select test.ok(test.n('cm@example.com', '(select count(*) from public.client_care_plans)') = 1, 'assigned case manager: sees the plan');
 
--- The case manager makes it current; then the wording is fixed.
+-- The case manager submits it (update 160: plans are reviewed and approved by
+-- someone with the approve right who didn't make or submit it); then the wording is fixed.
 select test.act_as('cm@example.com');
 set role authenticated;
+select test.refused($$update public.client_care_plans set status = 'current' where title = 'Plan 2026'$$, 'a draft isn''t approved without review');
+update public.client_care_plans set status = 'pending_review' where title = 'Plan 2026';
+reset role;
+select test.act_as('owner@example.com');
+set role authenticated;
 update public.client_care_plans set status = 'current' where title = 'Plan 2026';
+reset role;
+select test.act_as('cm@example.com');
+set role authenticated;
 select test.refused($$update public.client_care_plans set summary = 'changed' where title = 'Plan 2026'$$, 'a current plan''s wording is fixed');
 select test.refused($$update public.client_care_plans set status = 'draft' where title = 'Plan 2026'$$, 'a current plan doesn''t go back to draft');
 select test.refused($$update public.client_care_goals set goal = 'changed'$$, 'a current plan''s goals are fixed');
 update public.client_care_goals set status = 'achieved';
 insert into public.client_care_plans (client_id, title) values (test.cid('Zara North'), 'Plan 2027');
+update public.client_care_plans set status = 'pending_review' where title = 'Plan 2027';
+reset role;
+select test.act_as('boss@example.com');
+set role authenticated;
 update public.client_care_plans set status = 'current' where title = 'Plan 2027';
+reset role;
+select test.act_as('cm@example.com');
+set role authenticated;
 select test.refused($$update public.client_care_plans set status = 'current' where title = 'Plan 2026'$$, 'an archived plan stays archived');
 select test.refused($$delete from public.client_care_plans$$, 'plans are never deleted');
 reset role;
 select test.ok((select status from public.client_care_goals limit 1) = 'achieved', 'progress can still be updated on a current plan');
 select test.ok((select status from public.client_care_plans where title = 'Plan 2026') = 'archived', 'making a new plan current archives the old one');
-select test.ok((select made_current_by = test.pid('cm@example.com') from public.client_care_plans where title = 'Plan 2027'), 'records who made it current');
+select test.ok((select made_current_by = test.pid('boss@example.com') and submitted_by = test.pid('cm@example.com') from public.client_care_plans where title = 'Plan 2027'), 'records who submitted and who approved it');
 select test.ok((select count(*) from public.client_care_plans where status = 'current') = 1, 'one current plan per client');
 
 \o

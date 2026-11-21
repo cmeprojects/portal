@@ -89,7 +89,20 @@ and optional, conditional questions, sections switched on or off, versions with 
 (needs, goals, risks, functional limits, supports, frequency, equipment, preferences). Owner's
 separate assessment-question document to be reviewed first.
 
-**Phase 3: drafts from assessments.** Rules-based first: findings → draft care plan, support plan
+**Phase 3: drafts from assessments. BUILT (update 160), waiting for the owner to run it on Dev.** As approved
+(sections 1 to 15 and the four template version-control safeguards): one-step generation from a completed
+assessment's active findings (need -> needs; risk -> risks and safety; limitation, support, equipment -> care
+requirements; intervention -> interventions; goal -> goals; preference -> preferences; support, intervention,
+frequency, equipment, preference -> support plan lines; support, intervention, equipment lines -> budget lines
+with hours and rates left blank), repeatable without duplicates or overwriting drafts. Care plans (extended),
+support plans and proposed budgets each go Draft -> Pending review -> Changes required / Approved -> Superseded,
+approved on their own by someone with the new "approve" right who didn't make or submit it. Source assessment,
+template version and program enrolment kept on each document; items keep their finding. Agreement recorded
+after approval and never changed. Budgets are estimates compared only with funding whose period fits, never
+funding. "Add to worker instructions" once per approved instruction item. Template sections in the change log;
+version history and "what changed" on the template page. Not in Phase 3: notifications, AI wording, PDF export
+of plans, withdrawing draft support plans and budgets, reassessment reminders.
+Original scope: Rules-based first: findings → draft care plan, support plan
 and proposed budget. Each draft: Draft → Pending review → Changes required → Approved →
 Superseded, approved on its own, with its source assessment and version, who generated, changed,
 reviewed and approved it, and earlier versions kept. The support plan is the provider's, never

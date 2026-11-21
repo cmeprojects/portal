@@ -6,7 +6,8 @@ import { ArrowLeft } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { canDoFor } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui";
+import { Card, PageHeader } from "@/components/ui";
+import { GenerateDrafts, DocStatus } from "../../care-docs";
 import type { AQuestion, ASection, Answers } from "@/lib/assessment-rules";
 import type { Reused } from "@/components/assessment-form";
 import { AssessmentFill, type Finding } from "./assessment-fill";
@@ -41,6 +42,20 @@ export default async function AssessmentPage({ params }: PageProps<"/settings/cl
     fromIds.length ? supabase.from("client_assessments").select("id, completed_at, assessment_templates(name)").in("id", fromIds) : Promise.resolve({ data: [] }),
     canDoFor("clients.assessments", "edit", clientId),
   ]);
+  // cmeprojects (update 160): drafts made from this assessment (empty before update 160 runs).
+  const [cpRes, spRes, bpRes, canPlans] = await Promise.all([
+    supabase.from("client_care_plans").select("id, title, status").eq("source_assessment_id", aid),
+    supabase.from("client_support_plans").select("id, title, status").eq("source_assessment_id", aid),
+    supabase.from("client_budget_proposals").select("id, title, status").eq("source_assessment_id", aid),
+    canDoFor("clients.care_plans", "edit", clientId),
+  ]);
+  const docsOn = !cpRes.error;
+  type D = { id: string; title: string; status: string };
+  const made: [string, string, D][] = [
+    ...((cpRes.data ?? []) as D[]).map((d): [string, string, D] => ["Care plan", "care", d]),
+    ...((spRes.data ?? []) as D[]).map((d): [string, string, D] => ["Support plan", "care", d]),
+    ...((bpRes.data ?? []) as D[]).map((d): [string, string, D] => ["Proposed budget", "funding", d]),
+  ];
   const day = (v: string | null) => (v ? new Date(v).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric" }) : "");
   const reusedFrom = Object.fromEntries(((fromRows ?? []) as unknown as { id: string; completed_at: string | null; assessment_templates: { name: string } | null }[]).map((r) => [r.id, `${r.assessment_templates?.name ?? "assessment"} of ${day(r.completed_at)}`]));
   const statusWord = { draft: "Draft", completed: `Completed ${day(row.completed_at)}`, superseded: "Superseded (a newer assessment replaced it)", cancelled: `Cancelled: ${row.cancel_reason}` }[row.status];
@@ -62,6 +77,24 @@ export default async function AssessmentPage({ params }: PageProps<"/settings/cl
             Open the assessment that replaced it
           </Link>
         </p>
+      ) : null}
+      {docsOn && row.status === "completed" && (canPlans || made.length) ? (
+        <Card className="flex flex-col gap-3 p-4 print:hidden">
+          <h2 className="heading-sm">Care plan, support plan and budget</h2>
+          {made.length ? (
+            <ul className="flex flex-col gap-1 text-sm">
+              {made.map(([what, tab, d]) => (
+                <li key={d.id} className="flex flex-wrap items-center gap-2">
+                  <Link href={`/settings/clients/${clientId}?tab=${tab}`} className="font-semibold text-brand underline">
+                    {what}: {d.title}
+                  </Link>
+                  <DocStatus status={d.status} />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {canPlans ? <GenerateDrafts assessmentId={row.id} existing={null} /> : null}
+        </Card>
       ) : null}
       <AssessmentFill
         id={row.id}
