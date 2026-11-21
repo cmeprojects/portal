@@ -21,6 +21,12 @@ and pause-return dates; full roster integration; closing services, agreements an
 client is discharged (the preview found open services on discharged clients); Funding and Agreement
 forms listing open services only.
 
+## Review later: Intake & Assessment Officer access to assessments (owner, 21 Nov 2026)
+
+Update 159 gave "Assessments" the same access as care plans (owner's Option A): Intake & Assessment
+Officers can view assessments for all clients but not start or change them. If the workflow needs it,
+give them edit on "Assessments" on the Access page (no code change).
+
 ## LATER: address auto-complete (owner, 19 Nov 2026)
 
 The owner wants every address (clients, houses, staff, contacts) to auto-complete and fill the

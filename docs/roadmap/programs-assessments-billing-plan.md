@@ -69,7 +69,7 @@ agreements and funding to an enrolment; check a service is allowed under that en
 clients get an enrolment made from their current "Funded by" and their services' programs.
 *Outcome:* an agreed data model, nothing rebuilt.
 
-**Phase 2: assessments. Built (update 159, 21 Nov 2026; preview-159.sql first).** Templates with versions
+**Phase 2: assessments. DONE: built (update 159), run on Dev, verified and browser-checked 21 Nov 2026; approved by the owner.** Templates with versions
 (published versions, their questions, options, rules and finding mappings never change; a new version is a
 copy); client assessments that keep their exact version; draft -> completed (immutable) or cancelled with a
 reason; corrections and reassessments are new assessments that supersede the old one (kept). Findings come
