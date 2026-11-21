@@ -7,6 +7,8 @@
 --   source, care goals' source findings, and which worker instructions came from
 --   which approved plan item. Change-log entries stay as they are.
 -- Then the new tables, columns and rules are removed and the "approve" right ends.
+-- Undo does NOT restore anything later. Bringing kept records back is a separate, manual
+-- step (recover-160-kept.sql), described in docs/03-database-and-data/UPDATE-160-UNDO-RECOVERY.md.
 -- What stays as it is: care plans (title, wording, dates, approved and
 -- superseded plans), goals, all worker instructions (including ones added from an
 -- approved plan, with their wording), assessments, funding.
@@ -37,7 +39,7 @@ begin
     execute 'insert into undo_160_kept.care_plan_review
              select id, status, enrolment_id, source_assessment_id, source_version_id, submitted_by, submitted_at, reviewed_by, reviewed_at, review_note, now()
                from public.client_care_plans
-              where status in (''pending_review'', ''changes_required'') or enrolment_id is not null or source_assessment_id is not null or submitted_by is not null or reviewed_by is not null';
+              where status in (''pending_review'', ''changes_required'') or enrolment_id is not null or source_assessment_id is not null or submitted_at is not null or reviewed_at is not null';
   end if;
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'client_care_goals' and column_name = 'source_finding_id') then
     execute 'create table if not exists undo_160_kept.care_goal_source (id uuid, source_finding_id uuid, kept_at timestamptz)';

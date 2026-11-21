@@ -685,7 +685,7 @@ export function AgreementBox({ kind, planId, clientId, agreement, people, docume
           <label className={field}>
             Who agreed
             <select name="who" required defaultValue="client" className={inputClass}>
-              <option value="client">The client</option>
+              <option value="client">The client, personally</option>
               {people.map(([id, l]) => (
                 <option key={id} value={id}>
                   {l}
@@ -725,7 +725,10 @@ export function AgreementBox({ kind, planId, clientId, agreement, people, docume
           Notes (optional)
           <input name="notes" maxLength={1000} className={inputClass} />
         </label>
-        <p className="text-xs text-muted">A recorded agreement can&apos;t be changed later.</p>
+        <p className="text-xs text-muted">
+          {people.length ? "" : "No contact can agree on the client's behalf yet. "}
+          Only a contact recorded as an authorised representative, guardian or nominee, with their authority written on their contact record, can agree on the client&apos;s behalf. An emergency contact or next of kin alone can&apos;t. A recorded agreement can&apos;t be changed later.
+        </p>
         <div className="flex flex-wrap items-center gap-3">
           <Button size="sm" disabled={pending}>
             {pending ? "Saving…" : "Record agreement"}

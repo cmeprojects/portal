@@ -256,7 +256,11 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   const agreementOf = (a: AgreeRow | undefined): DocAgreement | null =>
     a ? { agreed_name: a.agreed_name, agreed_by: a.agreed_by, capacity: a.agreed_capacity, authority: a.agreed_authority, method: a.method, agreed_on: day(a.agreed_on), recorded: `by ${who(a.recorded_by)} ${when(a.recorded_at)}`, notes: a.notes, document: a.document_id ? (docs ?? []).find((d) => d.id === a.document_id)?.title ?? "archived" : null } : null;
   const mineOf = (d: { created_by: string | null; submitted_by: string | null }) => d.created_by === viewer.id || d.submitted_by === viewer.id;
-  const peopleChoices: [string, string][] = ((people.data ?? []) as { id: string; name: string; kind: string; active: boolean }[]).filter((x) => x.active).map((x) => [x.id, `${x.name} (${label(PERSON_KINDS, x.kind)})`]);
+  // Owner's policy: only active authorised representatives, guardians or nominees with
+  // their authority recorded can agree for the client (the database checks the same).
+  const peopleChoices: [string, string][] = ((people.data ?? []) as { id: string; name: string; kind: string; active: boolean; relationship: string; authority: string }[])
+    .filter((x) => x.active && ["representative", "guardian", "nominee"].includes(x.kind) && (x.authority ?? "").trim() !== "")
+    .map((x) => [x.id, `${x.name} (${label(PERSON_KINDS, x.kind)}${x.relationship ? `, ${x.relationship}` : ""}) on the client's behalf`]);
   const enrolChoices: [string, string][] = enrolRows.filter((e) => e.status !== "ended").map((e) => [e.id, enrolLabel(e.id) ?? "Program"]);
   const budgetFits = new Map<string, FundingFit[]>();
   if (budgets?.length) {

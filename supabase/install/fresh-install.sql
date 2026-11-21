@@ -32133,9 +32133,14 @@ begin
              || case when coalesce(trim(p.relationship), '') <> '' then ' (' || trim(p.relationship) || ')' else '' end,
            coalesce(p.authority, '')
       into new.agreed_name, new.agreed_capacity, new.agreed_authority
-      from public.client_people p where p.id = new.person_id and p.client_id = new.client_id;
+      from public.client_people p
+     where p.id = new.person_id and p.client_id = new.client_id
+       -- Owner's policy (21 Nov 2026): only an active contact recorded as an authorised
+       -- representative or decision-maker (guardian, nominee), with their authority
+       -- written on their contact record. Emergency contact or next of kin alone isn't enough.
+       and p.active and p.kind in ('representative', 'guardian', 'nominee') and length(trim(p.authority)) > 0;
     if not found then
-      raise exception 'Choose one of the client''s contacts or representatives.';
+      raise exception 'Only a contact recorded as an authorised representative, guardian or nominee, with their authority written on their contact record, can agree on the client''s behalf.';
     end if;
   end if;
   if new.document_id is not null and not exists (select 1 from public.client_documents d where d.id = new.document_id and d.client_id = new.client_id) then
