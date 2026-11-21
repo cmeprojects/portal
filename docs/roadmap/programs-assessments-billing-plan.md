@@ -69,7 +69,21 @@ agreements and funding to an enrolment; check a service is allowed under that en
 clients get an enrolment made from their current "Funded by" and their services' programs.
 *Outcome:* an agreed data model, nothing rebuilt.
 
-**Phase 2: assessments.** Templates: common questions plus questions for each program, required
+**Phase 2: assessments. Built (update 159, 21 Nov 2026; preview-159.sql first).** Templates with versions
+(published versions, their questions, options, rules and finding mappings never change; a new version is a
+copy); client assessments that keep their exact version; draft -> completed (immutable) or cancelled with a
+reason; corrections and reassessments are new assessments that supersede the old one (kept). Findings come
+from mapped answers (no duplicates on re-save, one answer can make several, withdrawn not deleted, edited ones
+flagged when their answer changes) and can be added by the assessor; fixed on completion; kept apart from
+the answers with their source question and answer. Reused answers only where key and type match, marked with
+their source, confirmed before completing. Two people on one draft: the later save is refused ("changed by
+someone else"). Viewing recorded once an hour, printing every time. Access: "Assessments" (same defaults
+and reach as care plans), templates by Manager Administrators and the care settings area; no support worker
+or practitioner access. All checks in the database; no new SECURITY DEFINER function. Staff Forms unchanged
+(the answer inputs are shared). The owner's real assessment-question document is configured later in the
+template editor, with no rebuild. Not in Phase 2: care plan, support plan and budget generation (Phase 3),
+reassessment reminders, practitioner access, assessment reports and exports, file and signature questions.
+Original scope: Templates: common questions plus questions for each program, required
 and optional, conditional questions, sections switched on or off, versions with effective dates
 (a completed assessment keeps the version it used). Answers turned into structured findings
 (needs, goals, risks, functional limits, supports, frequency, equipment, preferences). Owner's

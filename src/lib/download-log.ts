@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 // update 154 is run), the file still comes.
 export type DownloadKind = "export" | "document" | "record";
 
-export async function logDownload(entry: { kind: DownloadKind; label: string; action?: "export" | "download_link_issued" | "download_denied"; clientId?: string | null; personId?: string | null; details?: Record<string, unknown> }) {
+export async function logDownload(entry: { kind: DownloadKind; label: string; action?: "export" | "download_link_issued" | "download_denied" | "print"; clientId?: string | null; personId?: string | null; details?: Record<string, unknown> }) {
   try {
     const supabase = await createClient();
     await supabase.from("download_log").insert({

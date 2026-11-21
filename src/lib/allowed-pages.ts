@@ -26,7 +26,10 @@ export const getAllowedPages = cache(async () => {
   // cmeprojects step 4: just the Expiry list, given on the Access page.
   else if (features.compliance !== false && (await seesExpiryFor())) allowed.add("/compliance/expiry");
   // cmeprojects (update 152): Programs and schemes, in Portal settings.
-  if (await managesPrograms()) allowed.add("/settings/clients/programs");
+  if (await managesPrograms()) {
+    allowed.add("/settings/clients/programs");
+    allowed.add("/settings/assessments"); // update 159: assessment templates, same people
+  }
   // cmeprojects (update 154): the download trail.
   if (await seesDownloads()) allowed.add("/system/downloads");
   return { navAccess, groups, tabPages, searchPages, allowed };

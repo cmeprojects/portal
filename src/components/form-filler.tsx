@@ -2,12 +2,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { QuestionInput } from "@/components/question-input";
 import { useRouter } from "next/navigation";
 import { Button, Notice, inputClass } from "@/components/ui";
 import { FileUpload } from "@/components/file-upload";
 import type { FormAnswers, FormInfo, FormQuestion } from "@/lib/form-types";
 import { askFormQuestion, submitReply } from "@/app/(portal)/forms/actions";
-import { DateInput } from "@/components/date-input";
 
 type Props = {
   form: Pick<FormInfo, "id" | "title" | "intro" | "repeatable" | "anonymous" | "show_header" | "show_contact" | "due_date">;
@@ -195,54 +195,8 @@ function ContactFooter({ formId, contact, preview }: { formId: string; contact: 
 function Answer({ q, value, set, userId, preview }: { q: FormQuestion; value: string | string[] | undefined; set: (v: string | string[]) => void; userId: string; preview: boolean }) {
   const id = `fq-${q.id}`;
   const v = typeof value === "string" ? value : "";
-  const chip = (on: boolean) =>
-    `min-h-11 rounded-full border px-4 text-sm font-medium ${on ? "border-brand bg-brand text-brand-fg" : "border-line bg-surface text-ink hover:border-muted"}`;
+  // The answer types shared with client assessments (update 159).
   switch (q.type) {
-    case "long":
-      return <textarea id={id} rows={4} maxLength={5000} value={v} onChange={(e) => set(e.target.value)} className={`${inputClass} min-h-28 py-3`} />;
-    case "choice":
-      return (
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={id}>
-          {q.options.map((o, n) => (
-            <button key={o} id={n === 0 ? id : undefined} type="button" role="radio" aria-checked={v === o} onClick={() => set(v === o ? "" : o)} className={chip(v === o)}>
-              {o}
-            </button>
-          ))}
-        </div>
-      );
-    case "multi": {
-      const list = Array.isArray(value) ? value : [];
-      return (
-        <div className="flex flex-col gap-1">
-          {q.options.map((o, n) => (
-            <label key={o} className="flex min-h-10 items-center gap-2 text-sm">
-              <input
-                id={n === 0 ? id : undefined}
-                type="checkbox"
-                checked={list.includes(o)}
-                onChange={(e) => set(e.target.checked ? [...list, o] : list.filter((x) => x !== o))}
-                className="h-5 w-5 accent-[var(--brand-primary)]"
-              />
-              {o}
-            </label>
-          ))}
-        </div>
-      );
-    }
-    case "yesno":
-      return (
-        <div className="flex gap-2">
-          {["Yes", "No"].map((o, n) => (
-            <button key={o} id={n === 0 ? id : undefined} type="button" aria-pressed={v === o} onClick={() => set(v === o ? "" : o)} className={chip(v === o)}>
-              {o}
-            </button>
-          ))}
-        </div>
-      );
-    case "date":
-      return <DateInput id={id} value={v} onChange={(e) => set(e.target.value)} className={`${inputClass} max-w-56`} />;
-    case "number":
-      return <input id={id} inputMode="decimal" value={v} onChange={(e) => set(e.target.value.replace(/[^\d.-]/g, ""))} className={`${inputClass} max-w-56`} />;
     case "file":
       return preview ? (
         <p className="text-sm text-muted">Staff can add a photo or file here.</p>
@@ -257,6 +211,6 @@ function Answer({ q, value, set, userId, preview }: { q: FormQuestion; value: st
         </div>
       );
     default:
-      return <input id={id} value={v} maxLength={300} onChange={(e) => set(e.target.value)} className={inputClass} />;
+      return <QuestionInput id={id} type={q.type} options={q.options} value={value} set={set} />;
   }
 }

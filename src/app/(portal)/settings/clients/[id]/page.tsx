@@ -19,6 +19,7 @@ import { CommsLogForm, CommsLogList, type CommEntry } from "./comms-log";
 import { ProgramsCard, type AddableProgram, type Enrolment } from "./programs-card";
 import { ViewersButton } from "./viewers-button";
 import { ClientActivity } from "./activity";
+import { AssessmentsTab } from "./assessments-tab";
 import { PageSave, type PageSaveConfig } from "@/components/page-save";
 import { RequiredLegend } from "@/components/required";
 import { ReportIncidentForm } from "../../../incidents/forms";
@@ -222,6 +223,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     incidents: ["incidents"],
     practitioners: ["practitioners"],
     activity: ["activity"],
+    assessments: ["assessments"],
   };
   const STEP_SECTIONS: Record<string, string[]> = {
     basic: ["details", "locations", "staff"],
@@ -396,11 +398,15 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     canSeeViews ||
     (await canDoFor("clients.audit", "view", id)) ||
     (viewer.role === "manager" && (await supabase.rpc("is_manager_admin")).data === true);
+  const canAssess = await canDoFor("clients.assessments", "view", id);
+  const canEditAssessments = canAssess && (await canDoFor("clients.assessments", "edit", id));
   const tabs: [string, string, boolean][] = [
     ["overview", "Overview", true],
     ["profile", "Profile", true],
     ["services", "Services", true],
     ["documents", "Documents", showDocs],
+    // cmeprojects (update 159): assessments, for people with the Assessments part.
+    ["assessments", "Assessments", canAssess],
     ["care", "Care plans", plansSectionOn && !!plans && (plans.length > 0 || canPlans)],
     ["reviews", "Reviews", showReviews],
     ["agreements", "Agreements", showAgreements],
@@ -644,6 +650,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           <span className="font-semibold">Can be rostered from {day(rosterFrom.date)}</span>, when &ldquo;{rosterFrom.label}&rdquo; starts. Shifts before then aren&apos;t allowed.
         </div>
       ) : null}
+      {inView("assessments") && canAssess ? <AssessmentsTab clientId={id} canEdit={canEditAssessments} /> : null}
       {inView("activity") && canAudit ? <ClientActivity clientId={id} filter={typeof sp.f === "string" ? sp.f : ""} isSystemAdmin={viewer.role === "system_admin"} /> : null}
       {inView("practitioners") && practitionerAccess ? (
         <Card className="flex flex-col gap-3 p-4">
