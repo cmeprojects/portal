@@ -110,7 +110,25 @@ reviewed and approved it, and earlier versions kept. The support plan is the pro
 shown as an NDIA or government plan. AI may later help word drafts, spot gaps and inconsistencies,
 always traceable to the assessment and never approving anything.
 
-**Phase 4: billing foundations.** Correct and finalise the billing guide (see below). Rate tables
+**Phase 4: billing foundations. Plan approved in principle 21 Nov 2026; in two updates (4A set-up, 4B billing).**
+Owner's corrections (binding): billing rate bands are set per price list, independent of payroll (the
+calculation code may be shared); rounding (unit, nearest/up/down, minimum) is explicit and configurable per
+price-list version; a manager's delivery override needs a reason and is audited (4B); a shift crossing rate
+bands can give one legitimate line per band, never duplicates (4B: unique per shift, terms version and band);
+CHSP, Private, Other and regulatory calculations stay off until their rules are confirmed (scheme rules
+register; each listed figure verified with source and "as at" date); the Support at Home quarterly budget and
+an append-only ledger stay traceable (4B); Billing permissions are separate from Funding; the ledger opening
+balance goes through a controlled, approved step (4B); billing terms approval is separate from care plan and
+funding approval.
+4A (update 161), BUILT, waiting for the owner to preview and run it on Dev: "Billing" access part (view,
+prepare, approve, prices, export; default managers), scheme rules and verification register, versioned price
+lists with their own rate bands, rounding, minimum and band-crossing rule, public holidays by state, client
+contribution rates (dated), billing terms for approved services (dated versions linked to the enrolment,
+funding record, agreement, price list and support plan line; approved by Billing approve, not the preparer),
+cancellation details (charge decided by Billing approve, with a reason). Nothing is calculated or billed.
+4B (not started; needs approval): billing lines with snapshots and void/correct, delivery overrides, Support at
+Home quarterly budget, append-only ledger with an approved opening balance, exceptions, CSV export.
+Original scope: Correct and finalise the billing guide (see below). Rate tables
 (client prices, versioned, kept apart from worker pay rates; the same time boundaries for both).
 Public holidays by state. Contribution calculations. Quarterly budget ledger (Support at Home):
 opening balance, allocations, charges, contributions, claims, payments, adjustments; never an

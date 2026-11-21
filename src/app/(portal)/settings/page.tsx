@@ -9,6 +9,7 @@ import { ModuleIcon } from "@/components/module-icons";
 import { MODULES } from "@/lib/modules";
 import ProgramsPage from "./clients/programs/page";
 import AssessmentTemplatesPage from "./assessments/page";
+import BillingSetupPage from "./billing/page";
 import { getAllowedPages } from "@/lib/allowed-pages";
 import { SystemSettings } from "../system/page";
 import { ChangeLog } from "../system/audit/page";
@@ -55,6 +56,8 @@ export default async function PortalSettingsPage({ searchParams }: PageProps<"/s
         return <ProgramsPage />;
       case "system.settings.assessments":
         return <AssessmentTemplatesPage />;
+      case "system.settings.billing":
+        return <BillingSetupPage />;
       default:
         return null;
     }

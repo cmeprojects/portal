@@ -30,6 +30,7 @@ import { FundingForm, FundingUsedForm, type Funding } from "./funding-form";
 import { AgreementForm, SignAgreementForm, type Agreement } from "./agreement-form";
 import { CloseReviewForm, ReviewForm, type SchemeWords } from "./review-form";
 import { CareGoalForm, CarePlanForm, WorkerInstructionForm, type CarePlan } from "./care-plan-form";
+import { ContributionRates, ServiceTermsPanel, type Rate, type Terms } from "./billing-panels";
 import { AgreementBox, BudgetLines, CareItems, DocHeader, DocStatus, DocSteps, DocTrail, StartDocForm, SupportLines, type Agreement as DocAgreement, type BudgetLine, type FundingFit, type SupportLine, type Trail } from "./care-docs";
 import { DocumentForm } from "./document-form";
 import { canDo, canDoFor } from "@/lib/module-access";
@@ -269,6 +270,29 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   }
   const fitDays: Record<string, string> = {};
   for (const rows of budgetFits.values()) for (const r of rows) for (const d of [r.funding_start, r.funding_end]) if (d) fitDays[d] = day(d);
+  // cmeprojects (update 161): billing terms for services and contribution rates
+  // (the Billing part, separate from Funding). Hidden before update 161 runs.
+  type TermsRow = Omit<Terms, "trail" | "mine"> & { service_id: string; created_by: string | null; created_at: string; submitted_by: string | null; submitted_at: string | null; approved_by: string | null; approved_at: string | null; reviewed_by: string | null; reviewed_at: string | null };
+  const [termsRes, plRes, rateRes, billView, billPrepare, billApprove] = await Promise.all([
+    supabase.from("client_service_terms").select("*").eq("client_id", id).order("version", { ascending: false }),
+    supabase.from("price_lists").select("id, scheme, name, active").eq("active", true).order("name"),
+    supabase.from("client_contribution_rates").select("id, enrolment_id, category, rate_pct, contribution_group, effective_from, effective_to, source").eq("client_id", id).order("effective_from", { ascending: false }),
+    canDoFor("clients.billing", "view", id),
+    canDoFor("clients.billing", "prepare", id),
+    canDoFor("clients.billing", "approve", id),
+  ]);
+  const billingOn = !termsRes.error && billView;
+  const allTerms = (termsRes.data ?? []) as TermsRow[];
+  const priceListRows = (plRes.data ?? []) as { id: string; scheme: string; name: string }[];
+  const termsFor = (serviceId: string): Terms[] =>
+    allTerms.filter((t) => t.service_id === serviceId).map((t) => ({
+      ...t,
+      mine: t.created_by === viewer.id || t.submitted_by === viewer.id,
+      trail: [`Made by ${who(t.created_by)} ${when(t.created_at)}`, t.submitted_by ? `sent for review by ${who(t.submitted_by)} ${when(t.submitted_at)}` : "", t.approved_by ? `approved by ${who(t.approved_by)} ${when(t.approved_at)}` : t.status === "changes_required" && t.reviewed_by ? `sent back by ${who(t.reviewed_by)} ${when(t.reviewed_at)}` : ""].filter(Boolean).join(" · "),
+    }));
+  const sahEnrolments: [string, string][] = enrolRows.filter((e) => e.scheme === "support_at_home").map((e) => [e.id, enrolLabel(e.id) ?? "Support at Home"]);
+  const rates: Rate[] = ((rateRes.data ?? []) as (Omit<Rate, "enrolment"> & { enrolment_id: string })[]).map((r) => ({ ...r, enrolment: enrolLabel(r.enrolment_id) ?? "Support at Home" }));
+  const supportLineChoices: [string, string][] = supportLines.map((l) => [l.id, `${supportPlans?.find((x) => x.id === l.plan_id)?.title ?? "Support plan"}: ${l.support}`]);
   // Waiting on someone: reviews for approvers, agreements once approved.
   const waiting: string[] = [];
   if (docsOn160) {
@@ -496,7 +520,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     ["care", "Care plans", plansSectionOn && !!plans && (plans.length > 0 || canPlans)],
     ["reviews", "Reviews", showReviews],
     ["agreements", "Agreements", showAgreements],
-    ["funding", "Funding", showFunding || (docsOn160 && !!budgets?.length)],
+    ["funding", "Funding", showFunding || (docsOn160 && !!budgets?.length) || (billingOn && rates.length > 0)],
     ["staff", "Assigned staff", !!assignments],
     ["shifts", "Shifts and notes", !!clientShifts || !!shiftNotes],
     ["comms", "Communication log", !!commsLog && (commsLog.length > 0 || canWriteComms)],
@@ -1544,6 +1568,15 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
           ) : null}
         </Card>
       ) : null}
+      {inView("funding") && billingOn && (rates.length || (billPrepare && sahEnrolments.length)) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Support at Home contribution rates</h2>
+            <p className="text-sm text-muted">The client&apos;s contribution for each service category, from their Services Australia letter, with the dates they apply. Not used for any calculation until Support at Home billing rules are confirmed.</p>
+          </div>
+          <ContributionRates clientId={id} rates={rates} enrolments={sahEnrolments} documents={docChoices} canPrepare={billPrepare} />
+        </Card>
+      ) : null}
       {inView("funding") && docsOn160 && budgets && fundingOn.data?.value !== false && (budgets.length || canFunding) ? (
         <Card className="flex flex-col gap-3 p-4">
           <div>
@@ -1808,6 +1841,22 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                             <li key={g}>{g}</li>
                           ))}
                         </ul>
+                      ) : null}
+                      {billingOn ? (
+                        <ServiceTermsPanel
+                          clientId={id}
+                          serviceId={sv.id}
+                          scheme={programRows.find((x) => x.id === sv.program_id)?.scheme ?? "other"}
+                          terms={termsFor(sv.id)}
+                          enrolments={enrolRows.filter((e) => e.program_id === sv.program_id).map((e) => [e.id, enrolLabel(e.id) ?? "Program"])}
+                          funding={(funding ?? []).filter((x) => x.service_id === sv.id).map((x) => [x.id, `${day(x.period_start)} to ${day(x.period_end)}, ${aud(x.total_amount)}${x.status === "ended" ? " (ended)" : ""}`])}
+                          agreements={(agreements ?? []).filter((x) => x.service_id === sv.id).map((x) => [x.id, `${AGREEMENT_STATUS[x.status] ?? x.status} from ${day(x.starts_on)}`])}
+                          priceLists={priceListRows.filter((x) => x.scheme === (programRows.find((p) => p.id === sv.program_id)?.scheme ?? "")).map((x) => [x.id, x.name])}
+                          supportLines={supportLineChoices}
+                          canPrepare={billPrepare}
+                          canApprove={billApprove}
+                          today={todaySyd}
+                        />
                       ) : null}
                       {canEditServices || (canPromote && sv.origin === "custom") ? (
                         <div className="mt-2 flex flex-wrap items-center gap-3">

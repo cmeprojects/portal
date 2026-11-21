@@ -11,6 +11,7 @@ import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday 
 import { PAY_COLUMNS, payColumns, shortTime, type PayKey } from "@/lib/roster";
 import { decideTimesheet } from "../actions";
 import { TimesheetForm } from "./timesheet-form";
+import { CancellationForm, type Cancellation } from "../../settings/clients/[id]/billing-panels";
 
 export const metadata: Metadata = { title: "Timesheets" };
 
@@ -62,6 +63,15 @@ export default async function TimesheetsPage({ searchParams }: PageProps<"/roste
   const editing = str("edit") ? shifts.find((s) => s.id === str("edit")) : undefined;
   const weekLabel = `${new Date(`${days[0]}T12:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" })} – ${new Date(`${days[6]}T12:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}`;
   const base = `/roster/timesheets?w=${monday}`;
+  // cmeprojects (update 161): cancelled client shifts this week, with their
+  // cancellation details (notice, who, reason, reasonable grounds, charge decision).
+  const [cancelledRes, cdRes, canDecide] = await Promise.all([
+    supabase.from("shifts").select("id, worker_id, starts_at, ends_at, client_id, service_id").eq("status", "cancelled").not("client_id", "is", null).gte("starts_at", sydneyInstant(monday)).lt("starts_at", sydneyInstant(addDays(monday, 7))).order("starts_at"),
+    supabase.from("shift_cancellations").select("shift_id, notified_at, cancelled_by, reason, reasonable_grounds, charge, charge_note, decided_by, decided_at"),
+    canDo("clients.billing", "approve"),
+  ]);
+  const cancelled = cdRes.error ? [] : ((cancelledRes.data ?? []) as (Omit<Shift, "worker_id" | "break_minutes"> & { worker_id: string | null })[]);
+  const details = new Map(((cdRes.data ?? []) as (Omit<Cancellation, "decided"> & { shift_id: string; decided_by: string | null; decided_at: string | null })[]).map((c) => [c.shift_id, c]));
 
   return (
     <>
@@ -245,6 +255,36 @@ export default async function TimesheetsPage({ searchParams }: PageProps<"/roste
         {!workers.length ? <p className="p-6 text-center text-sm text-muted">No worked shifts in this week yet.</p> : null}
       </Card>
       <p className="text-xs text-muted">Pay periods follow the award time bands; public holidays come from Due dates. Approved hours go into the payroll export.</p>
+      {cancelled.length ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Cancelled client shifts this week</h2>
+            <p className="text-sm text-muted">Record when and how each was cancelled. Whether the client is charged is decided by someone with the Billing approve right, with a reason. Nothing is billed from here.</p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {cancelled.map((c) => {
+              const d = details.get(c.id);
+              return (
+                <li key={c.id} className="rounded-md border border-line px-3 py-2 text-sm">
+                  <p className="font-semibold">
+                    {clientName.get(c.client_id ?? "") ?? "Client"} · {c.service_id ? serviceName.get(c.service_id) : "No service"} · {auDate(sydneyParts(c.starts_at).date)} {shortTime(c.starts_at)}
+                    {c.worker_id ? ` · ${name.get(c.worker_id)}` : ""}
+                  </p>
+                  {canEdit || canDecide ? (
+                    <details open={!d} className="mt-1">
+                      <summary className="cursor-pointer text-xs font-semibold text-brand">{d ? `Cancelled by ${d.cancelled_by}: ${d.reason} · charge: ${d.charge === "charge" ? "yes" : d.charge === "no_charge" ? "no" : "not decided"}` : "Record cancellation details"}</summary>
+                      <div className="mt-2">
+                        <CancellationForm shiftId={c.id} canDecide={canDecide}
+                          c={d ? { ...d, decided: d.decided_by ? `decided by ${name.get(d.decided_by) ?? "someone"}${d.decided_at ? ` on ${new Date(d.decided_at).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney" })}` : ""}` : "" } : null} />
+                      </div>
+                    </details>
+                  ) : d ? <p className="text-xs text-muted">Cancelled by {d.cancelled_by}: {d.reason}</p> : null}
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      ) : null}
 
       {editing && canEdit ? (
         <>
