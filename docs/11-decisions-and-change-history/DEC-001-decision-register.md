@@ -5,7 +5,7 @@
 | Document ID | DEC-001 |
 | Title | Decision Register |
 | Category | 11 Decisions and change history |
-| Version | 0.10 |
+| Version | 0.11 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Product Owner / Technical Lead / Product Owner |
 | Created | 16 Nov 2026 |
@@ -119,3 +119,4 @@ end with the next number.
 | 0.8 | 21 Nov 2026 | Technical Lead (prepared by Claude) | D-060 | Not approved |
 | 0.9 | 21 Nov 2026 | Technical Lead (prepared by Claude) | D-061 | Not approved |
 | 0.10 | 21 Nov 2026 | Technical Lead (prepared by Claude) | D-062 | Not approved |
+| 0.11 | 21 Nov 2026 | Technical Lead (prepared by Claude) | D-062: update 160 run on Dev, browser-checked; Phase 3 approved by the owner | Product Owner (session) |

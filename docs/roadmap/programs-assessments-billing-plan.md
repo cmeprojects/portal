@@ -89,7 +89,7 @@ and optional, conditional questions, sections switched on or off, versions with 
 (needs, goals, risks, functional limits, supports, frequency, equipment, preferences). Owner's
 separate assessment-question document to be reviewed first.
 
-**Phase 3: drafts from assessments. BUILT (update 160), waiting for the owner to run it on Dev.** As approved
+**Phase 3: drafts from assessments. DONE: built (update 160), run on Dev, browser-checked and approved by the owner 21 Nov 2026.** As approved
 (sections 1 to 15 and the four template version-control safeguards): one-step generation from a completed
 assessment's active findings (need -> needs; risk -> risks and safety; limitation, support, equipment -> care
 requirements; intervention -> interventions; goal -> goals; preference -> preferences; support, intervention,
