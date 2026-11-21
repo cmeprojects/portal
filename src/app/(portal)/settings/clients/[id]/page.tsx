@@ -208,7 +208,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   type ItemRow = { id: string; plan_id: string; section: string; text: string; detail: string; edited: boolean; source_finding_id: string | null };
   type SLineRow = SupportLine & { plan_id: string; source_finding_id: string | null };
   type BLineRow = Omit<BudgetLine, "fromSupport"> & { proposal_id: string; source_line_id: string | null };
-  type AgreeRow = { care_plan_id: string | null; support_plan_id: string | null; agreed_by: string; agreed_name: string; method: string; agreed_on: string; recorded_by: string | null; recorded_at: string; notes: string; document_id: string | null };
+  type AgreeRow = { care_plan_id: string | null; support_plan_id: string | null; agreed_by: string; agreed_name: string; agreed_capacity: string; agreed_authority: string; method: string; agreed_on: string; recorded_by: string | null; recorded_at: string; notes: string; document_id: string | null };
   const [planMetaRes, itemsRes, spRes, spLinesRes, bpRes, bpLinesRes, agreeRes, instrSrcRes, srcRes, canApprovePlans, canApproveFunding] = await Promise.all([
     supabase.from("client_care_plans").select("id, created_by, created_at, made_current_by, made_current_at, archived_at, submitted_by, submitted_at, reviewed_by, reviewed_at, review_note, enrolment_id, source_assessment_id").eq("client_id", id),
     supabase.from("client_care_plan_items").select("id, plan_id, section, text, detail, edited, source_finding_id").eq("client_id", id).order("sort_order").order("created_at"),
@@ -216,7 +216,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     supabase.from("client_support_plan_lines").select("*").eq("client_id", id).order("sort_order").order("created_at"),
     supabase.from("client_budget_proposals").select("*").eq("client_id", id).order("created_at", { ascending: false }),
     supabase.from("client_budget_lines").select("*").eq("client_id", id).order("sort_order").order("created_at"),
-    supabase.from("client_plan_agreements").select("care_plan_id, support_plan_id, agreed_by, agreed_name, method, agreed_on, recorded_by, recorded_at, notes, document_id").eq("client_id", id),
+    supabase.from("client_plan_agreements").select("care_plan_id, support_plan_id, agreed_by, agreed_name, agreed_capacity, agreed_authority, method, agreed_on, recorded_by, recorded_at, notes, document_id").eq("client_id", id),
     supabase.from("client_worker_instructions").select("source_item_id").eq("client_id", id).not("source_item_id", "is", null),
     supabase.from("client_assessments").select("id, assessed_on, completed_at, assessment_templates(name), assessment_versions(version)").eq("client_id", id).in("status", ["completed", "superseded"]),
     canDoFor("clients.care_plans", "approve", id),
@@ -254,7 +254,7 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     reviewNote: d.review_note,
   });
   const agreementOf = (a: AgreeRow | undefined): DocAgreement | null =>
-    a ? { agreed_name: a.agreed_name, agreed_by: a.agreed_by, method: a.method, agreed_on: day(a.agreed_on), recorded: `by ${who(a.recorded_by)} ${when(a.recorded_at)}`, notes: a.notes, document: a.document_id ? (docs ?? []).find((d) => d.id === a.document_id)?.title ?? "archived" : null } : null;
+    a ? { agreed_name: a.agreed_name, agreed_by: a.agreed_by, capacity: a.agreed_capacity, authority: a.agreed_authority, method: a.method, agreed_on: day(a.agreed_on), recorded: `by ${who(a.recorded_by)} ${when(a.recorded_at)}`, notes: a.notes, document: a.document_id ? (docs ?? []).find((d) => d.id === a.document_id)?.title ?? "archived" : null } : null;
   const mineOf = (d: { created_by: string | null; submitted_by: string | null }) => d.created_by === viewer.id || d.submitted_by === viewer.id;
   const peopleChoices: [string, string][] = ((people.data ?? []) as { id: string; name: string; kind: string; active: boolean }[]).filter((x) => x.active).map((x) => [x.id, `${x.name} (${label(PERSON_KINDS, x.kind)})`]);
   const enrolChoices: [string, string][] = enrolRows.filter((e) => e.status !== "ended").map((e) => [e.id, enrolLabel(e.id) ?? "Program"]);

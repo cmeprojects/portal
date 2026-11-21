@@ -98,8 +98,9 @@ with hours and rates left blank), repeatable without duplicates or overwriting d
 support plans and proposed budgets each go Draft -> Pending review -> Changes required / Approved -> Superseded,
 approved on their own by someone with the new "approve" right who didn't make or submit it. Source assessment,
 template version and program enrolment kept on each document; items keep their finding. Agreement recorded
-after approval and never changed. Budgets are estimates compared only with funding whose period fits, never
-funding. "Add to worker instructions" once per approved instruction item. Template sections in the change log;
+after approval and never changed, recording the client agreeing personally or a contact agreeing on their behalf
+(role, relationship and authority kept as at that date). Budgets are estimates; funding that covers the whole
+budget period is shown with its own balance (not prorated), partial overlaps shown but not counted; never funding. "Add to worker instructions" once per approved instruction item. Template sections in the change log;
 version history and "what changed" on the template page. Not in Phase 3: notifications, AI wording, PDF export
 of plans, withdrawing draft support plans and budgets, reassessment reminders.
 Original scope: Rules-based first: findings → draft care plan, support plan

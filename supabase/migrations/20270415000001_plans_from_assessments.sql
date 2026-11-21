@@ -403,6 +403,10 @@ create table if not exists public.client_plan_agreements (
   agreed_by text not null check (agreed_by in ('client', 'person')),
   person_id uuid references public.client_people (id),
   agreed_name text not null check (length(trim(agreed_name)) between 1 and 120),
+  -- Capacity at the time: "The client, personally", or the contact's role and relationship
+  -- (e.g. "Authorised representative (Daughter)") and any authority recorded for them.
+  agreed_capacity text not null default '' check (length(agreed_capacity) <= 200),
+  agreed_authority text not null default '' check (length(agreed_authority) <= 500),
   method text not null check (method in ('signed', 'written', 'verbal')),
   agreed_on date not null,
   document_id uuid references public.client_documents (id),
@@ -412,7 +416,7 @@ create table if not exists public.client_plan_agreements (
   updated_by uuid,
   updated_at timestamptz not null default now(),
   constraint client_plan_agreements_one_plan check ((care_plan_id is null) <> (support_plan_id is null)),
-  constraint client_plan_agreements_person check (agreed_by = 'client' or person_id is not null)
+  constraint client_plan_agreements_person check ((agreed_by = 'client') = (person_id is null))
 );
 create or replace function public.guard_plan_agreement() returns trigger
 language plpgsql set search_path = '' as $$
@@ -426,8 +430,25 @@ begin
   if new.support_plan_id is not null and not exists (select 1 from public.client_support_plans p where p.id = new.support_plan_id and p.client_id = new.client_id and p.status = 'approved') then
     raise exception 'Agreement is recorded once the support plan is approved.';
   end if;
-  if new.person_id is not null and not exists (select 1 from public.client_people p where p.id = new.person_id and p.client_id = new.client_id) then
-    raise exception 'Choose one of the client''s contacts or representatives.';
+  -- Who agreed, and in what capacity, comes from the records, not from what was typed.
+  if new.agreed_by = 'client' then
+    if new.person_id is not null then
+      raise exception 'Choose either the client agreeing personally, or a contact agreeing on their behalf.';
+    end if;
+    new.agreed_name := coalesce((select c.name from public.car_clients c where c.id = new.client_id), new.agreed_name);
+    new.agreed_capacity := 'The client, personally';
+    new.agreed_authority := '';
+  else
+    select p.name,
+           case p.kind when 'emergency' then 'Emergency contact' when 'next_of_kin' then 'Next of kin' when 'nominee' then 'Nominee'
+                       when 'guardian' then 'Guardian' when 'representative' then 'Authorised representative' else p.kind end
+             || case when coalesce(trim(p.relationship), '') <> '' then ' (' || trim(p.relationship) || ')' else '' end,
+           coalesce(p.authority, '')
+      into new.agreed_name, new.agreed_capacity, new.agreed_authority
+      from public.client_people p where p.id = new.person_id and p.client_id = new.client_id;
+    if not found then
+      raise exception 'Choose one of the client''s contacts or representatives.';
+    end if;
   end if;
   if new.document_id is not null and not exists (select 1 from public.client_documents d where d.id = new.document_id and d.client_id = new.client_id) then
     raise exception 'That document belongs to another client.';
@@ -472,9 +493,11 @@ begin
 end;
 $$;
 
--- 6. Funding comparison: per service, funding records whose period fits the budget
--- period are counted; records that only partly overlap are listed but not counted
--- (so available funding is never overstated).
+-- 6. Funding comparison, per service. A funding record "covers" the budget when
+-- its period starts on or before the budget's start and ends on or after the
+-- budget's end; any other overlap is "partial" (shown, never counted); records
+-- that don't overlap at all are left out. Amounts are the funding record's own
+-- figures for its whole period: nothing is prorated.
 create or replace function public.budget_funding(p_proposal uuid)
 returns table (service_id uuid, service_label text, estimated_cost numeric, funding_id uuid, funding_start date, funding_end date,
                total numeric, used numeric, remaining numeric, fit text)
@@ -486,7 +509,7 @@ language sql stable set search_path = '' as $$
   select c.service_id, s.label, c.cost, f.id, f.period_start, f.period_end, f.total_amount, f.used_amount,
          case when f.id is not null then greatest(f.total_amount - f.used_amount, 0) end,
          case when f.id is null then 'none'
-              when f.period_start >= b.period_start and f.period_end <= b.period_end then 'within'
+              when f.period_start <= b.period_start and f.period_end >= b.period_end then 'covers'
               else 'partial' end
     from costs c cross join b
     left join public.client_services s on s.id = c.service_id

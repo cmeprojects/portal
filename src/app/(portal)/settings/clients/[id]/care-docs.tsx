@@ -454,7 +454,7 @@ export function SupportLines({ planId, clientId, lines, services, editable }: { 
   );
 }
 
-export type FundingFit = { service_id: string | null; service_label: string | null; estimated_cost: number; funding_id: string | null; funding_start: string | null; funding_end: string | null; total: number | null; used: number | null; remaining: number | null; fit: "within" | "partial" | "none" };
+export type FundingFit = { service_id: string | null; service_label: string | null; estimated_cost: number; funding_id: string | null; funding_start: string | null; funding_end: string | null; total: number | null; used: number | null; remaining: number | null; fit: "covers" | "partial" | "none" };
 
 export function BudgetLines({ proposalId, clientId, lines, services, editable, fits, day }: { proposalId: string; clientId: string; lines: BudgetLine[]; services: Svc[]; editable: boolean; fits: FundingFit[]; day: Record<string, string> }) {
   const { pending, state, run } = useRun();
@@ -556,30 +556,29 @@ export function BudgetLines({ proposalId, clientId, lines, services, editable, f
           <ul className="flex flex-col gap-1 text-xs">
             {[...byService.entries()].map(([svc, rows]) => {
               const cost = Number(rows[0]?.estimated_cost ?? 0);
-              const within = rows.filter((r) => r.fit === "within");
+              const covers = rows.filter((r) => r.fit === "covers");
               const partial = rows.filter((r) => r.fit === "partial");
-              const left = within.reduce((t, r) => t + Number(r.remaining ?? 0), 0);
+              const period = (r: FundingFit) => `${day[r.funding_start ?? ""] ?? r.funding_start} to ${day[r.funding_end ?? ""] ?? r.funding_end}`;
               const name = svc ? svcName.get(svc) ?? rows[0]?.service_label ?? "Service" : "Lines not linked to a service";
               return (
                 <li key={svc || "none"} className="rounded-md border border-line px-2 py-1">
                   <span className="font-semibold">{name}</span>: estimate {aud(cost)}
                   {!svc ? (
                     <span className="block text-muted">Link these lines to a service to compare them with funding.</span>
-                  ) : within.length === 0 && partial.length === 0 ? (
+                  ) : covers.length === 0 && partial.length === 0 ? (
                     <span className="block font-semibold text-warn">No verified funding recorded for this period.</span>
                   ) : (
                     <>
-                      {within.length ? (
-                        <span className={`block ${left < cost ? "font-semibold text-danger" : "text-good"}`}>
-                          Funding within the period: {aud(left)} left ({within.map((r) => `${day[r.funding_start ?? ""] ?? r.funding_start} to ${day[r.funding_end ?? ""] ?? r.funding_end}`).join("; ")}) ·{" "}
-                          {left < cost ? `${aud(cost - left)} more than recorded funding` : `${aud(left - cost)} to spare`}
+                      {covers.length === 0 ? <span className="block font-semibold text-warn">No funding record covers the whole budget period.</span> : null}
+                      {covers.map((r) => (
+                        <span key={r.funding_id} className="block">
+                          <span className="font-semibold">Covers the whole budget period:</span> funding {period(r)}, {aud(Number(r.remaining ?? 0))} left of {aud(Number(r.total ?? 0))} for that whole funding period (not prorated to this budget period).
+                          {cost > Number(r.remaining ?? 0) ? <span className="block font-semibold text-danger">The estimate is more than what&apos;s left in this funding record.</span> : null}
                         </span>
-                      ) : (
-                        <span className="block font-semibold text-warn">No funding record sits inside this period.</span>
-                      )}
+                      ))}
                       {partial.map((r) => (
                         <span key={r.funding_id} className="block text-muted">
-                          Not counted: funding {day[r.funding_start ?? ""] ?? r.funding_start} to {day[r.funding_end ?? ""] ?? r.funding_end} ({aud(Number(r.remaining ?? 0))} left) only partly overlaps this period.
+                          <span className="font-semibold">Partly overlaps, not counted:</span> funding {period(r)}, {aud(Number(r.remaining ?? 0))} left of {aud(Number(r.total ?? 0))} for that funding period.
                         </span>
                       ))}
                     </>
@@ -653,7 +652,7 @@ export function DocHeader({ kind, id, clientId, values }: { kind: "support" | "b
 }
 
 // ---- Agreement ----
-export type Agreement = { agreed_name: string; agreed_by: string; method: string; agreed_on: string; recorded: string; notes: string; document?: string | null };
+export type Agreement = { agreed_name: string; agreed_by: string; capacity: string; authority: string; method: string; agreed_on: string; recorded: string; notes: string; document?: string | null };
 const METHODS: [string, string][] = [
   ["signed", "Signed"],
   ["written", "In writing (email or letter)"],
@@ -667,7 +666,8 @@ export function AgreementBox({ kind, planId, clientId, agreement, people, docume
       <p className="flex flex-wrap items-center gap-1 rounded-md bg-good-soft px-2 py-1 text-xs">
         <CheckCircle2 aria-hidden="true" className="size-3.5" />
         Agreed by {agreement.agreed_name}
-        {agreement.agreed_by === "client" ? " (the client)" : ""} · {METHODS.find(([k]) => k === agreement.method)?.[1].toLowerCase()} on {agreement.agreed_on} · recorded {agreement.recorded}
+        {agreement.agreed_by === "client" ? " (the client, personally)" : ` on the client's behalf, as ${agreement.capacity || "a contact"}`}
+        {agreement.authority ? ` · authority: ${agreement.authority}` : ""} · {METHODS.find(([k]) => k === agreement.method)?.[1].toLowerCase()} on {agreement.agreed_on} · recorded {agreement.recorded}
         {agreement.document ? ` · document: ${agreement.document}` : ""}
         {agreement.notes ? ` · ${agreement.notes}` : ""}
       </p>

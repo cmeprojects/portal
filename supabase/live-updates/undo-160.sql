@@ -1,10 +1,61 @@
 -- Staff Portal · © cmeproject. All rights reserved.
 -- Undo update 160 (care plans, support plans and proposed budgets from assessments). Safe to run again.
--- Removes support plans, proposed budgets, care plan items, agreements and the
--- "approve" right (their change-log entries stay). Care plans and worker
--- instructions stay; plans waiting for review or needing changes go back to draft;
--- worker instructions lose only the note of which plan they came from.
+-- Nothing is lost: before anything is removed, every record update 160 added is
+-- copied to a locked schema, undo_160_kept, that only the database owner can read:
+--   support plans and lines, proposed budgets and lines, care plan items,
+--   client or representative agreements, each care plan's review details and
+--   source, care goals' source findings, and which worker instructions came from
+--   which approved plan item. Change-log entries stay as they are.
+-- Then the new tables, columns and rules are removed and the "approve" right ends.
+-- What stays as it is: care plans (title, wording, dates, approved and
+-- superseded plans), goals, all worker instructions (including ones added from an
+-- approved plan, with their wording), assessments, funding.
+-- What changes: care plans waiting for review or needing changes go back to Draft
+-- (their review details are in undo_160_kept); access rules that gave only
+-- "approve" are ended; "approve" is removed from other rules.
 begin;
+
+-- 1. Keep a copy of everything update 160 added.
+create schema if not exists undo_160_kept;
+revoke all on schema undo_160_kept from public;
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['client_support_plans', 'client_support_plan_lines', 'client_budget_proposals', 'client_budget_lines', 'client_care_plan_items', 'client_plan_agreements'] loop
+    if to_regclass('public.' || t) is not null then
+      if to_regclass('undo_160_kept.' || t) is null then
+        execute format('create table undo_160_kept.%I as table public.%I', t, t);
+      else
+        execute format('insert into undo_160_kept.%I select * from public.%I p where not exists (select 1 from undo_160_kept.%I k where k.id = p.id)', t, t, t);
+      end if;
+    end if;
+  end loop;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'client_care_plans' and column_name = 'submitted_by') then
+    execute 'create table if not exists undo_160_kept.care_plan_review (id uuid, status_before_undo text, enrolment_id uuid, source_assessment_id uuid, source_version_id uuid,
+               submitted_by uuid, submitted_at timestamptz, reviewed_by uuid, reviewed_at timestamptz, review_note text, kept_at timestamptz)';
+    execute 'insert into undo_160_kept.care_plan_review
+             select id, status, enrolment_id, source_assessment_id, source_version_id, submitted_by, submitted_at, reviewed_by, reviewed_at, review_note, now()
+               from public.client_care_plans
+              where status in (''pending_review'', ''changes_required'') or enrolment_id is not null or source_assessment_id is not null or submitted_by is not null or reviewed_by is not null';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'client_care_goals' and column_name = 'source_finding_id') then
+    execute 'create table if not exists undo_160_kept.care_goal_source (id uuid, source_finding_id uuid, kept_at timestamptz)';
+    execute 'insert into undo_160_kept.care_goal_source select id, source_finding_id, now() from public.client_care_goals where source_finding_id is not null';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'client_worker_instructions' and column_name = 'source_item_id') then
+    execute 'create table if not exists undo_160_kept.worker_instruction_source (id uuid, source_plan_id uuid, source_item_id uuid, added_by uuid, added_at timestamptz, kept_at timestamptz)';
+    execute 'insert into undo_160_kept.worker_instruction_source select id, source_plan_id, source_item_id, added_by, added_at, now() from public.client_worker_instructions where source_item_id is not null';
+  end if;
+end $$;
+revoke all on all tables in schema undo_160_kept from public;
+do $$ begin
+  execute 'revoke all on schema undo_160_kept from anon, authenticated';
+  execute 'revoke all on all tables in schema undo_160_kept from anon, authenticated';
+exception when undefined_object then null;
+end $$;
+
+-- 2. Remove update 160.
 drop trigger if exists guard_instruction_source on public.client_worker_instructions;
 drop index if exists public.client_worker_instructions_one_per_item;
 alter table public.client_worker_instructions
