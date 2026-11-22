@@ -5,7 +5,7 @@
 | Document ID | DEC-001 |
 | Title | Decision Register |
 | Category | 11 Decisions and change history |
-| Version | 0.16 |
+| Version | 0.17 |
 | Status | **Draft** |
 | Owner / Reviewer / Approver | Product Owner / Technical Lead / Product Owner |
 | Created | 16 Nov 2026 |
@@ -128,4 +128,5 @@ end with the next number.
 | 0.13 | 22 Nov 2026 | Technical Lead (prepared by Claude) | D-063: default Billing access, Billing menu module, draft price change log | Not approved |
 | 0.14 | 22 Nov 2026 | Technical Lead (prepared by Claude) | D-063: 4A run on Dev and approved; D-064 | Not approved |
 | 0.15 | 22 Nov 2026 | Technical Lead (prepared by Claude) | D-064: 4B run on Dev and approved; D-065 | Product Owner (session) |
-| 0.16 | 22 Nov 2026 | Technical Lead (prepared by Claude) | D-066 | Product Owner (session), final plan to approve |
+| 0.16 | 22 Nov 2026 | Technical Lead (prepared by Claude) | D-066 | Product Owner (session) |
+| 0.17 | 22 Nov 2026 | Technical Lead (prepared by Claude) | D-066: final Phase 5 plan approved; 5A started | Product Owner (session) |

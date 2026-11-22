@@ -152,8 +152,8 @@ opening balance, allocations, charges, contributions, claims, payments, adjustme
 overwritten balance. Billing lines from delivered services. Billing permission. Financial audit
 (prices, rates, contributions, budgets, lines, approvals, exports).
 
-**Phase 5: claims, invoices, payments. Plan approved in principle 22 Nov 2026 (D-066); final plan
-waiting for approval. Built one stage at a time (preview, deployment, tests, approval each).**
+**Phase 5: claims, invoices, payments. Final plan approved by the owner 22 Nov 2026 (D-066). Built one
+stage at a time (preview, deployment, tests, approval each). 5A in progress (update 163).**
 - 5A Claims and client invoices, with the NDIS catalogue foundation and price-limit validation;
   business details (setup wizard and Portal settings) and payers; claim lines locked once claimed
   or invoiced (an additive rule, Phase 4 not reopened).
