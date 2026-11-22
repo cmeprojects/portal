@@ -171,3 +171,51 @@ export async function setHolidayActive(id: string, active: boolean): Promise<For
   done();
   return { message: active ? "Switched on." : "Switched off." };
 }
+
+// cmeprojects (update 167): the price grid. One row per catalogue service (or client service not in
+// the catalogue, priced by name) and a price per rate band; new prices are added, changed ones
+// updated, all in the draft version (published versions never change).
+type GridRow = { catalogue_id: string; label: string; unit: string; gst_code: string; sah_category: string; ndis_item: string; prices: Record<string, string>; ids: Record<string, string> };
+export async function savePriceGrid(versionId: string, listId: string, rows: GridRow[]): Promise<FormState> {
+  await requireSession();
+  if (!isId(versionId)) return { error: "Something went wrong." };
+  const supabase = await createClient();
+  const { data: list } = await supabase.from("price_lists").select("scheme").eq("id", listId).maybeSingle();
+  // Client services decide how a catalogue service's price must be saved for billing to find it:
+  // linked to the catalogue (client services linked to it) and/or by name (same-named client
+  // services not linked yet). Until every client service is linked, both can be needed.
+  const { data: svc } = await supabase.from("client_services").select("label, catalogue_id, client_programs!inner(scheme)").neq("status", "ended").eq("client_programs.scheme", list?.scheme ?? "");
+  const svcs = (svc ?? []) as { label: string; catalogue_id: string | null }[];
+  const { data: existing } = await supabase.from("price_items").select("id, catalogue_id, label, band_key").eq("version_id", versionId);
+  const ex = (existing ?? []) as { id: string; catalogue_id: string | null; label: string; band_key: string | null }[];
+  let added = 0, changed = 0;
+  for (const r of (Array.isArray(rows) ? rows : []).slice(0, 500)) {
+    const catId = isId(r.catalogue_id) ? r.catalogue_id : null;
+    const name = clip(r.label, 160);
+    const byName = !catId || svcs.some((v) => !v.catalogue_id && v.label.trim().toLowerCase() === name.toLowerCase());
+    const linked = !!catId && (svcs.some((v) => v.catalogue_id === catId) || !byName);
+    for (const [band, raw] of Object.entries(r.prices ?? {})) {
+      const txt = String(raw ?? "").trim();
+      const bandKey = band === "_any" ? null : band;
+      const mineLinked = catId ? ex.find((i) => i.catalogue_id === catId && (i.band_key ?? null) === bandKey) : undefined;
+      const mineName = ex.find((i) => !i.catalogue_id && i.label.toLowerCase() === name.toLowerCase() && (i.band_key ?? null) === bandKey);
+      if (!txt) continue;
+      const price = Number(txt.replace(/[$,\s]/g, ""));
+      if (!Number.isFinite(price) || price < 0 || price > 100000) return { error: `Check the price for ${name}: an amount from $0 to $100,000.` };
+      const values = { price: Math.round(price * 100) / 100, unit: ["hour", "visit", "each", "km", "day"].includes(r.unit) ? r.unit : "hour", gst_code: ["gst_free", "taxable", "input_taxed"].includes(r.gst_code) ? r.gst_code : "gst_free",
+        sah_category: ["clinical", "independence", "everyday_living"].includes(r.sah_category) ? r.sah_category : null, ndis_item: clip(r.ndis_item, 40) };
+      const targets: { id?: string; catalogue_id: string | null }[] = [];
+      if (linked || mineLinked) targets.push({ id: mineLinked?.id, catalogue_id: catId });
+      if (byName || mineName) targets.push({ id: mineName?.id, catalogue_id: null });
+      for (const t of targets) {
+        const { error } = t.id
+          ? await supabase.from("price_items").update(values).eq("id", t.id)
+          : await supabase.from("price_items").insert({ ...values, version_id: versionId, catalogue_id: t.catalogue_id, label: name, band_key: bandKey });
+        if (error) return { error: `${added} added, ${changed} changed, then ${name}: ${friendlyError(error)}` };
+        if (t.id) changed++; else added++;
+      }
+    }
+  }
+  done(listId);
+  return { message: `${added} price(s) added, ${changed} updated.` };
+}

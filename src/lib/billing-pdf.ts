@@ -136,16 +136,16 @@ export async function statementPdf(st: { month: string; snapshot: Snap }) {
     const head = () => {
       w.need(30);
       w.page.drawRectangle({ x: 40, y: w.y - 4, width: 515, height: 16, color: light });
-      for (const k of cols) k.right ? w.right(k.h, k.x + k.wd, 8, true) : w.text(k.h, k.x, 8, true);
+      for (const k of cols) { if (k.right) w.right(k.h, k.x + k.wd, 8, true); else w.text(k.h, k.x, 8, true); }
       w.y -= 16;
     };
     head();
     for (const r of rows) {
       if (w.y < 80) { w.newPage(); head(); }
-      r.forEach((v, i) => { const k = cols[i]; const t = w.fit(v, k.wd, 8.5); k.right ? w.right(t, k.x + k.wd, 8.5) : w.text(t, k.x, 8.5); });
+      r.forEach((v, i) => { const k = cols[i]; const t = w.fit(v, k.wd, 8.5); if (k.right) w.right(t, k.x + k.wd, 8.5); else w.text(t, k.x, 8.5); });
       w.y -= 13;
     }
-    if (total) { w.line(); w.y -= 11; total.forEach((v, i) => { if (!v) return; const k = cols[i]; k.right ? w.right(v, k.x + k.wd, 8.5, true) : w.text(v, k.x, 8.5, true); }); w.y -= 16; }
+    if (total) { w.line(); w.y -= 11; total.forEach((v, i) => { if (!v) return; const k = cols[i]; if (k.right) w.right(v, k.x + k.wd, 8.5, true); else w.text(v, k.x, 8.5, true); }); w.y -= 16; }
   };
 
   // Page 1: summary.
@@ -223,7 +223,7 @@ export async function statementPdf(st: { month: string; snapshot: Snap }) {
      { h: "Rate type", x: 394, wd: 64 }, { h: "Amount", x: 460, wd: 44, right: true }, { h: "Your share", x: 506, wd: 46, right: true }],
     svc.map((l) => {
       sa += Number(l.amount); sc += Number(l.client_share ?? 0);
-      return [dmy(l.date), `${l.service ?? l.band}${l.kind === "cancellation" ? " (late cancellation)" : ""}`, l.category ? `${CAT[String(l.category)] ?? l.category} (${Number(l.pct ?? 0).toFixed(2)}%)` : "",
+      return [dmy(l.date), `${l.code ? `${l.code} ` : ""}${l.service ?? l.band}${l.kind === "cancellation" ? " (late cancellation)" : ""}`, l.category ? `${CAT[String(l.category)] ?? l.category} (${Number(l.pct ?? 0).toFixed(2)}%)` : "",
         Number(l.quantity).toFixed(2), l.rate !== undefined ? aud(l.rate) : "", String(l.band ?? ""), aud(l.amount), aud(l.client_share ?? 0)];
     }),
     ["", "", "", "", "", "Subtotal", aud(sa), aud(sc)],

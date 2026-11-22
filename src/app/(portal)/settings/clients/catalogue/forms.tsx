@@ -3,10 +3,10 @@
 
 import { useActionState } from "react";
 import { Button, Notice, inputClass } from "@/components/ui";
-import { saveCatalogueService } from "./actions";
+import { saveCatalogueService, saveCodePrefix } from "./actions";
 
 type Choice = [string, string];
-export type CatalogueRow = { id: string; name: string; description: string; classification: string; schemes: string[]; shift_types: string[]; active: boolean };
+export type CatalogueRow = { id: string; name: string; description: string; classification: string; schemes: string[]; shift_types: string[]; active: boolean; code?: string | null; sah_service_type?: string; billed?: boolean };
 const lab = "text-xs font-semibold text-ink";
 
 export function CatalogueForm({ item, schemes, shiftTypes }: { item?: CatalogueRow; schemes: Choice[]; shiftTypes: Choice[] }) {
@@ -15,6 +15,14 @@ export function CatalogueForm({ item, schemes, shiftTypes }: { item?: CatalogueR
     <form action={action} className="flex flex-col gap-3">
       {item ? <input type="hidden" name="id" value={item.id} /> : null}
       <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1">
+          <span className={lab}>Service code {item?.billed ? "(locked: already billed)" : "(given automatically; can be changed until first billed)"}</span>
+          <input name="code" maxLength={21} defaultValue={item?.code ?? ""} placeholder="Given automatically, for example SERV-0019" readOnly={item?.billed} pattern="[A-Za-z0-9]{1,10}-[A-Za-z0-9]{1,10}" className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={lab}>Support at Home service type (for claims; to be verified)</span>
+          <input name="sah_service_type" maxLength={200} defaultValue={item?.sah_service_type ?? ""} placeholder="As named in the Support at Home service list" className={inputClass} />
+        </label>
         <label className="flex flex-col gap-1">
           <span className={lab}>Service name</span>
           <input name="name" required maxLength={80} defaultValue={item?.name ?? ""} className={inputClass} />
@@ -60,6 +68,21 @@ export function CatalogueForm({ item, schemes, shiftTypes }: { item?: CatalogueR
         {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
         {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
       </div>
+    </form>
+  );
+}
+
+export function CodePrefixForm({ prefix }: { prefix: string }) {
+  const [state, action, pending] = useActionState(saveCodePrefix, null);
+  return (
+    <form action={action} className="flex flex-wrap items-end gap-2">
+      <label className="flex flex-col gap-1">
+        <span className={lab}>Service code prefix</span>
+        <input name="prefix" defaultValue={prefix} maxLength={10} pattern="[A-Za-z0-9]{1,10}" className={`${inputClass} w-32 uppercase`} />
+      </label>
+      <Button size="sm" variant="outline" disabled={pending}>{pending ? "Saving…" : "Save prefix"}</Button>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.message ? <Notice tone="success">{state.message}</Notice> : null}
     </form>
   );
 }

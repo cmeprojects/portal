@@ -183,6 +183,7 @@ async function ComplianceSections() {
         {canPrices ? <details className="rounded-md border border-dashed border-line px-3 py-2"><summary className="cursor-pointer text-xs font-semibold text-brand">Upload an official template</summary><div className="mt-2"><TemplateUpload /></div></details> : null}
       </Card>
       <MarkupRules canPrices={canPrices} />
+      <NotPriced />
       <Card className="flex flex-col gap-3 p-4">
         <div>
           <h2 className="heading-sm">NDIS Support Catalogue</h2>
@@ -218,6 +219,31 @@ async function MarkupRules({ canPrices }: { canPrices: boolean }) {
         </ul>
       ) : <p className="text-sm text-muted">No markup rules yet (charges from supplier costs then have no markup unless a reason is given).</p>}
       {canPrices ? <MarkupRuleForm /> : null}
+    </Card>
+  );
+}
+
+// cmeprojects (update 167): services that have no price yet in an active price list.
+async function NotPriced() {
+  const { data, error } = await (await createClient()).from("services_not_priced").select("price_list_id, price_list, version, status, kind, code, service").order("price_list").order("service");
+  if (error) return null;
+  const rows = (data ?? []) as { price_list_id: string; price_list: string; version: number; status: string; kind: string; code: string | null; service: string }[];
+  const lists = [...new Set(rows.map((r) => r.price_list_id))];
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <div>
+        <h2 className="heading-sm">Not priced yet</h2>
+        <p className="text-sm text-muted">Catalogue services offered under a price list&apos;s scheme with no price in its latest version, and client services not in the catalogue with no price of their name. Lines for them can&apos;t be billed until they&apos;re priced.</p>
+      </div>
+      {lists.length ? lists.map((id) => {
+        const mine = rows.filter((r) => r.price_list_id === id);
+        return (
+          <div key={id} className="text-sm">
+            <Link href={`/settings/billing/prices/${id}`} className="font-semibold text-brand underline">{mine[0].price_list}</Link> <span className="text-xs text-muted">(version {mine[0].version}, {mine[0].status})</span>
+            <p className="text-xs">{mine.map((r) => `${r.code ? `${r.code} ` : ""}${r.service}${r.kind === "client_service" ? " (client service, not in the catalogue)" : ""}`).join(" · ")}</p>
+          </div>
+        );
+      }) : <p className="text-sm text-muted">Every service is priced.</p>}
     </Card>
   );
 }

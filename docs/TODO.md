@@ -68,6 +68,15 @@ assessment, approval, access credentials (for example PRODA/myID and RAM, Servic
 registration) and its own implementation plan. Manual submission must remain available as a
 fallback, with the same records kept.
 
+## LATER: rostering uses the service catalogue (owner, 23 Nov 2026)
+
+Recommended with updates 167 and 168 and noted for later by the owner. Today the roster's "shift
+types" are a fixed list in the code that overlaps the service catalogue (Gardening, Domestic
+assistance, Personal care appear in both). Later, make the roster use catalogue services directly
+so there's one list: shifts pick a catalogue service (with its code), payroll and pay rules map
+from it, and existing shifts keep their shift type. It touches rostering, timesheets and payroll,
+so it needs its own review, plan and approval before any work.
+
 ## LATER: rostering improvements from a reference screenshot (owner, 22 Nov 2026)
 
 Not now. The owner shared a screenshot of another product's weekly schedule as ideas for our

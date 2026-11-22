@@ -6,7 +6,8 @@ import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
-import { BandForm, ItemForm, RemovePart, VersionButtons, VersionSettings, type Version } from "../../forms";
+import { BandForm, RemovePart, VersionButtons, VersionSettings, type Version } from "../../forms";
+import { PriceGrid, type GridService } from "../../price-grid";
 
 export const metadata: Metadata = { title: "Price list" };
 
@@ -26,7 +27,7 @@ export default async function PriceListPage({ params, searchParams }: PageProps<
   const [{ data: list }, { data: verRows }, { data: catRows }, { data: schemeRows }, canPrices] = await Promise.all([
     supabase.from("price_lists").select("id, scheme, name, description").eq("id", id).maybeSingle(),
     supabase.from("price_list_versions").select("id, version, status, effective_from, unit_minutes, rounding, minimum_minutes, crossing, notes, published_by, published_at").eq("price_list_id", id).order("version", { ascending: false }),
-    supabase.from("service_catalogue").select("id, name").eq("active", true).order("name"),
+    supabase.from("service_catalogue").select("*").eq("active", true).order("sort_order").order("name"),
     supabase.from("client_schemes").select("key, label"),
     canBill("prices"),
   ]);
@@ -67,6 +68,21 @@ export default async function PriceListPage({ params, searchParams }: PageProps<
     if (prev.rounding !== shown.rounding || prev.unit_minutes !== shown.unit_minutes || prev.minimum_minutes !== shown.minimum_minutes || prev.crossing !== shown.crossing) changes.push("Rounding, unit, minimum or band-crossing rule changed");
   }
   const t = (x: string | null) => (x ? x.slice(0, 5) : "");
+  // cmeprojects (update 167): the grid of services (from the catalogue, plus client services not in it) by band.
+  const cat = ((catRows ?? []) as { id: string; name: string; code: string | null; schemes: string[] }[]).filter((c) => !c.schemes?.length || c.schemes.includes(list.scheme));
+  const { data: clientSvc } = await supabase.from("client_services").select("label, client_programs!inner(scheme)").is("catalogue_id", null).neq("status", "ended").eq("client_programs.scheme", list.scheme);
+  const gridOf = (key: string, catalogueId: string, code: string, label: string, match: (i: Item) => boolean, fromClient = false): GridService => {
+    const mine = items.filter(match);
+    const first = mine[0];
+    return { key, catalogue_id: catalogueId, code, label, fromClient, unit: first?.unit ?? "hour", gst_code: first?.gst_code ?? "gst_free", sah_category: first?.sah_category ?? "", ndis_item: first?.ndis_item ?? "",
+      prices: Object.fromEntries(mine.map((i) => [i.band_key ?? "_any", String(Number(i.price))])), ids: Object.fromEntries(mine.map((i) => [i.band_key ?? "_any", i.id])) };
+  };
+  const clientLabels = [...new Set(((clientSvc ?? []) as { label: string }[]).map((c) => c.label.trim()))].filter((l) => !cat.some((c) => c.name.toLowerCase() === l.toLowerCase()));
+  const otherItemLabels = [...new Set(items.filter((i) => !i.catalogue_id && !cat.some((c) => c.name.toLowerCase() === i.label.toLowerCase())).map((i) => i.label))].filter((l) => !clientLabels.some((c) => c.toLowerCase() === l.toLowerCase()));
+  const grid: GridService[] = [
+    ...cat.map((c) => gridOf(c.id, c.id, c.code ?? "", c.name, (i) => i.catalogue_id === c.id || (!i.catalogue_id && i.label.toLowerCase() === c.name.toLowerCase()))),
+    ...[...clientLabels, ...otherItemLabels].map((l) => gridOf(`label:${l}`, "", "", l, (i) => !i.catalogue_id && i.label.toLowerCase() === l.toLowerCase(), true)),
+  ];
   return (
     <div className="flex flex-col gap-4">
       <PageHeader eyebrow={`Billing set-up · ${schemeLabel}`} title={list.name} intro={list.description || undefined} action={<Link href="/settings/billing" className="text-sm font-semibold text-brand underline">Billing set-up</Link>} />
@@ -115,27 +131,19 @@ export default async function PriceListPage({ params, searchParams }: PageProps<
             {editable ? <details className="rounded-md border border-dashed border-line px-3 py-2"><summary className="cursor-pointer text-xs font-semibold text-brand">Add a band</summary><div className="mt-2"><BandForm versionId={shown.id} listId={list.id} /></div></details> : null}
           </Card>
           <Card className="flex flex-col gap-3 p-4">
-            <h2 className="heading-sm">Prices</h2>
-            {items.length ? (
-              <div className="relative overflow-x-auto">
-                <table className="w-full min-w-[36rem] text-left text-sm">
-                  <thead className="text-xs text-muted"><tr><th className="py-1 pr-2">Service</th><th className="py-1 pr-2">Band</th><th className="py-1 pr-2 text-right">Price</th><th className="py-1 pr-2">GST</th><th className="py-1 pr-2">{list.scheme === "support_at_home" ? "Category" : list.scheme === "ndis" ? "Item" : ""}</th>{editable ? <th><span className="sr-only">Remove</span></th> : null}</tr></thead>
-                  <tbody className="divide-y divide-line">
-                    {items.map((i) => (
-                      <tr key={i.id}>
-                        <td className="py-1 pr-2">{i.label}</td>
-                        <td className="py-1 pr-2 text-xs">{i.band_key ? bandName.get(i.band_key) ?? i.band_key : "Any time"}</td>
-                        <td className="py-1 pr-2 text-right font-semibold">{aud(i.price)} <span className="text-xs font-normal text-muted">/{i.unit}</span></td>
-                        <td className="py-1 pr-2 text-xs">{GST[i.gst_code]}</td>
-                        <td className="py-1 pr-2 text-xs">{list.scheme === "support_at_home" ? `${CAT[i.sah_category ?? ""] ?? "Not set"}${i.personal_care ? " · personal care" : ""}` : i.ndis_item}</td>
-                        {editable ? <td className="py-1 text-right"><RemovePart kind="item" id={i.id} listId={list.id} label={i.label} /></td> : null}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : <p className="text-sm text-muted">No prices yet.</p>}
-            {editable ? <details className="rounded-md border border-dashed border-line px-3 py-2"><summary className="cursor-pointer text-xs font-semibold text-brand">Add a price</summary><div className="mt-2"><ItemForm versionId={shown.id} listId={list.id} bands={bands.map((b) => [b.key, b.label])} catalogue={((catRows ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name])} scheme={list.scheme} /></div></details> : null}
+            <div>
+              <h2 className="heading-sm">Prices</h2>
+              <p className="text-sm text-muted">Every service in the catalogue offered under {schemeLabel}, with its code. Type the price for each rate band. Services added to the catalogue appear here (and in &quot;not priced yet&quot;) automatically.</p>
+            </div>
+            <PriceGrid key={shown.id} versionId={shown.id} listId={list.id} scheme={list.scheme} bands={bands.map((b) => [b.key, b.label])} services={grid} editable={editable} />
+            {editable && items.length ? (
+              <details className="rounded-md border border-dashed border-line px-3 py-2">
+                <summary className="cursor-pointer text-xs font-semibold text-brand">Remove a price</summary>
+                <ul className="mt-2 divide-y divide-line text-sm">
+                  {items.map((i) => <li key={i.id} className="flex flex-wrap items-center gap-2 py-1"><span className="flex-1">{i.label}{i.band_key ? ` · ${bandName.get(i.band_key) ?? i.band_key}` : ""} · {aud(i.price)}/{i.unit} · {GST[i.gst_code]}{list.scheme === "support_at_home" && i.sah_category ? ` · ${CAT[i.sah_category]}` : ""}</span><RemovePart kind="item" id={i.id} listId={list.id} label={i.label} /></li>)}
+                </ul>
+              </details>
+            ) : null}
           </Card>
         </>
       ) : null}
