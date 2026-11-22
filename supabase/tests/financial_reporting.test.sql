@@ -434,3 +434,14 @@ select r.line_id, r.client_id, 'client', (select id from public.billing_payers w
   from public.line_recoveries r where r.payer_role = 'funding' and r.line_id is not null and not exists (select 1 from public.line_recoveries x where x.line_id = r.line_id and x.payer_role = 'client') limit 1;
 set session_replication_role = origin;
 select test.ok((select problem_count = 1 from public.billing_integrity_checks() where check_name = 'Recoveries above the service value'), 'a recovery above the service value is reported');
+-- 14. Statement detail (owner's sample layout): the August statement issued in 5C carries it.
+select test.ok((select jsonb_array_length(snapshot -> 'quarter_months') = 2
+                   and (snapshot -> 'quarter_months' -> 0 ->> 'subsidy')::numeric = 3369.57
+                   and (snapshot -> 'month_income' ->> 'subsidy')::numeric = 3369.57
+                   and (snapshot -> 'month_expenditure' ->> 'other_charges')::numeric = 115
+                   and (snapshot -> 'month_expenditure' ->> 'care_management')::numeric = 336.96
+                   and (snapshot ->> 'period_days')::int = 31
+                   and jsonb_array_length(snapshot -> 'charge_lines') = 1
+                   and snapshot -> 'charge_lines' -> 0 ->> 'category' = 'everyday_living'
+                 from public.client_statements where month = '2026-08-01'),
+  'August statement: July and August of the quarter ($3,369.57 subsidy each, by day), the walker charge, care management $336.96');

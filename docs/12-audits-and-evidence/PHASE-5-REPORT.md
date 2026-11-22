@@ -12,7 +12,7 @@ not been run on Dev. Nothing is deployed. The owner reviews all of Phase 5 now.
 | 163 | preview-163.sql, update-163.sql (done 22 Nov 2026), undo-163.sql | Claims, client invoices, statements, compliance register |
 | 164 | preview-164.sql, then update-164.sql; undo-164.sql if needed | Claim results, payments, receipts, credit notes, refunds, write-offs, bank reconciliation |
 | 165 | preview-165.sql, then update-165.sql; undo-165.sql if needed | Suppliers, client charges with markup, pathway budgets |
-| 166 | preview-166.sql, then update-166.sql; undo-166.sql if needed | Financial reports (read-only view and checks) |
+| 166 | preview-166.sql, then update-166.sql; undo-166.sql if needed | Financial reports (read-only view and checks) and statement detail |
 
 - Run each preview first (read only), then its update. Each update is safe to run again.
 - Undo goes in reverse order (166, then 165, then 164). Each undo keeps everything it removes in a
@@ -99,6 +99,12 @@ not been run on Dev. Nothing is deployed. The owner reviews all of Phase 5 now.
   - integrity checks.
 - A CSV for each section (export right; recorded in the download trail).
 - A financial summary on the client's Funding tab.
+- **Monthly statement layout** following the owner's sample (branding and colours not copied):
+  - funds carried in;
+  - the quarter month by month (subsidy against expenditure and what's left);
+  - this month's income and expenditure;
+  - detail tables for services, other charges and care management, with each line's category,
+    contribution rate and the client's share.
 
 ## 3. Rights (Billing module)
 
@@ -116,7 +122,7 @@ not been run on Dev. Nothing is deployed. The owner reviews all of Phase 5 now.
 
 | Check | Result |
 |---|---|
-| Database tests, new | 163: 57 · 164: 47 · 165: 31 · 166: 5 (all passing; each refusal checked for the right reason) |
+| Database tests, new | 163: 57 · 164: 47 · 165: 31 · 166: 6 (all passing; each refusal checked for the right reason) |
 | Full database suite | All files passing (see the final run in the chat report) |
 | Round trips (preview, update x2, undo x2, schema identical, update again) | 163, 164, 165, 166 clean |
 | Undo with data | 164 and 165 keep everything in their undo schema; updates re-run cleanly |

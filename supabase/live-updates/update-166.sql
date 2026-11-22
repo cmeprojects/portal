@@ -1,6 +1,7 @@
 -- Staff Portal · © cmeproject. All rights reserved.
--- Update 166: consolidated financial reporting (Phase 5D): a read-only revenue view and integrity
--- checks. Changes no record. Safe to run again. Undo: undo-166.sql.
+-- Update 166: consolidated financial reporting (Phase 5D): a read-only revenue view, integrity
+-- checks and full detail on new monthly Support at Home statements. Changes no existing record.
+-- Safe to run again. Undo: undo-166.sql.
 begin;
 create or replace view public.billing_revenue with (security_invoker = true) as
   select 'line'::text as source, l.id, l.client_id, l.service_date, l.scheme, l.funding_stream, l.kind as detail, l.amount, l.client_share, l.government_share,
@@ -61,6 +62,66 @@ language sql stable set search_path = '' as $$
          + (select count(*) from public.billing_lines where status = 'draft' and generated_at < now() - interval '14 days'),
          'Draft claims, invoices, charges or billing lines waiting more than two weeks.'
 $$;
+
+create or replace function public.statement_add_detail() returns trigger
+language plpgsql set search_path = '' as $$
+declare
+  v_end date := (new.month + interval '1 month' - interval '1 day')::date;
+  b public.client_quarter_budgets;
+  v_days integer;
+  v_m date;
+  v_months jsonb := '[]';
+  v_from date;
+  v_to date;
+  v_sub numeric;
+  v_exp numeric;
+  v_cm numeric;
+  v_svc numeric;
+  v_chg numeric;
+  v_month_sub numeric := 0;
+  v_month_cm numeric := 0;
+begin
+  select * into b from public.client_quarter_budgets q where q.enrolment_id = new.enrolment_id and q.quarter_start <= new.month and q.quarter_end >= new.month and q.status <> 'draft';
+  if b.id is not null then
+    v_days := b.quarter_end - b.start_date + 1;
+    v_m := date_trunc('month', b.quarter_start)::date;
+    while v_m <= new.month loop
+      v_from := greatest(v_m, b.start_date);
+      v_to := least((v_m + interval '1 month' - interval '1 day')::date, b.quarter_end);
+      -- The quarter's amount and care management spread by day (the budget's own days).
+      v_sub := case when v_to < v_from then 0 else round(b.prorated_amount * (v_to - v_from + 1) / v_days, 2) end;
+      v_cm := case when v_to < v_from then 0 else round(b.care_management * (v_to - v_from + 1) / v_days, 2) end;
+      select coalesce(sum(amount), 0) into v_svc from public.billing_lines where quarter_budget_id = b.id and status = 'approved' and service_date between v_m and v_to;
+      select coalesce(sum(amount), 0) into v_chg from public.client_charges where quarter_budget_id = b.id and status = 'approved' and service_date between v_m and v_to;
+      v_months := v_months || jsonb_build_object('month', v_m, 'days', greatest(v_to - v_from + 1, 0), 'subsidy', v_sub, 'services', v_svc, 'charges', v_chg, 'care_management', v_cm, 'expenditure', v_svc + v_chg + v_cm);
+      if v_m = new.month then v_month_sub := v_sub; v_month_cm := v_cm; end if;
+      v_m := (v_m + interval '1 month')::date;
+    end loop;
+  end if;
+  new.snapshot := new.snapshot || jsonb_build_object(
+    'period_days', v_end - new.month + 1,
+    'carried_in', jsonb_build_object(
+      'rollover', coalesce(b.carryover_in, 0),
+      'unspent_hcp', (select coalesce(sum(p.amount), 0) from public.client_pathway_budgets p where p.enrolment_id = new.enrolment_id and p.stream = 'hcp_unspent' and p.status <> 'draft' and p.starts_on <= v_end and p.ends_on >= new.month)),
+    'quarter_months', v_months,
+    'month_income', jsonb_build_object('subsidy', v_month_sub),
+    'month_expenditure', jsonb_build_object(
+      'services', (select coalesce(sum(amount), 0) from public.billing_lines where enrolment_id = new.enrolment_id and status = 'approved' and service_date between new.month and v_end),
+      'other_charges', (select coalesce(sum(amount), 0) from public.client_charges where enrolment_id = new.enrolment_id and status = 'approved' and service_date between new.month and v_end),
+      'care_management', v_month_cm),
+    'service_lines', (select coalesce(jsonb_agg(jsonb_build_object('date', l.service_date, 'service', coalesce(sv.label, 'Service'), 'category', l.sah_category, 'pct', l.contribution_pct,
+                        'quantity', l.quantity, 'unit', l.unit, 'rate', l.unit_price, 'band', l.band_label, 'kind', l.kind, 'amount', l.amount, 'client_share', l.client_share) order by l.service_date, l.starts_at), '[]')
+                        from public.billing_lines l left join public.client_services sv on sv.id = l.service_id
+                       where l.enrolment_id = new.enrolment_id and l.status = 'approved' and l.service_date between new.month and v_end),
+    'charge_lines', (select coalesce(jsonb_agg(jsonb_build_object('date', c.service_date, 'description', c.description, 'stream', c.funding_stream, 'category', c.sah_category, 'pct', c.contribution_pct,
+                        'amount', c.amount, 'client_share', c.client_share) order by c.service_date), '[]')
+                       from public.client_charges c where c.enrolment_id = new.enrolment_id and c.status = 'approved' and c.service_date between new.month and v_end));
+  return new;
+end;
+$$;
+drop trigger if exists guard_statement_detail on public.client_statements;
+create trigger guard_statement_detail before insert on public.client_statements for each row execute function public.statement_add_detail();
+revoke execute on function public.statement_add_detail() from public, anon, authenticated;
 
 grant select on public.billing_revenue to authenticated;
 revoke all on public.billing_revenue from anon;

@@ -94,6 +94,10 @@ export async function invoicePdf(inv: { number: string; tax_invoice: boolean; is
   return { bytes, checksum: createHash("sha256").update(bytes).digest("hex") };
 }
 
+// cmeprojects (update 166, owner's sample statement 23 Nov 2026): the monthly Support at Home
+// statement laid out like a full package statement: funds carried in, the quarter month by month,
+// this month's income and expenditure, then each service and charge with its contribution.
+// Statements issued before update 166 (less detail in their snapshot) still print.
 export async function statementPdf(st: { month: string; snapshot: Snap }) {
   const doc = await PDFDocument.create();
   const w = new Writer(doc, await doc.embedFont(StandardFonts.Helvetica), await doc.embedFont(StandardFonts.HelveticaBold));
@@ -103,28 +107,159 @@ export async function statementPdf(st: { month: string; snapshot: Snap }) {
   const q = (s.quarter ?? null) as Snap | null;
   const [y, m] = st.month.split("-");
   const label = `${MONTHS[Number(m) - 1]} ${y}`;
-  doc.setTitle(`Monthly statement ${label}`);
-  header(w, b, "MONTHLY STATEMENT");
-  w.text(`Support at Home statement for ${label}`, 40, 12, true); w.y -= 16;
-  w.text(`${c.name ?? ""}${c.aged_care_id ? ` · Aged care ID ${c.aged_care_id}` : ""}${c.client_ref ? ` · ref ${c.client_ref}` : ""}`, 40, 10); w.y -= 20;
-  if (q) {
-    for (const [k, v] of [
-      ["Quarter", `${dmy(q.start)} to ${dmy(q.end)}`], ["Quarterly budget", aud(q.quarterly_amount)], ["Carried over from last quarter", aud(q.carryover_in)],
-      ["Care management (held separately)", aud(q.care_management)], ["Available for services this quarter", aud(q.spendable)],
-      ["Services this month (full price)", aud(s.spent_in_month)], ["Your contributions this month", aud(s.contributions_in_month)], ["Available now", aud(s.available_now)],
-    ]) { w.text(k, 40, 10); w.right(v, 555, 10); w.y -= 14; }
-  } else { w.text("No approved quarter budget covers this month.", 40, 10); w.y -= 14; }
-  if (s.fee_reduction_in_month) { w.text("A fee reduction supplement applied this month: those contributions aren't charged.", 40, 9); w.y -= 14; }
+  const endDay = new Date(Number(y), Number(m), 0).getDate();
+  const days = Number(s.period_days ?? endDay);
+  const dd = (iso: unknown) => { const t = String(iso ?? "").slice(0, 10).split("-"); return t.length === 3 ? `${t[2]} ${MONTHS[Number(t[1]) - 1].slice(0, 3)} ${t[0]}` : ""; };
+  const CAT: Record<string, string> = { clinical: "Clinical", independence: "Independence", everyday_living: "Everyday living" };
+  const STREAM: Record<string, string> = { ongoing: "Quarterly budget", at_hm: "AT-HM", restorative: "Restorative Care", end_of_life: "End-of-Life", hcp_unspent: "Unspent HCP funds" };
+  const grey = rgb(0.32, 0.36, 0.4);
+  const light = rgb(0.93, 0.94, 0.95);
+  doc.setTitle(`Support at Home statement ${label}`);
+
+  const bar = (title: string) => {
+    w.need(40);
+    w.page.drawRectangle({ x: 40, y: w.y - 6, width: 515, height: 20, color: grey });
+    w.page.drawText(safe(title).toUpperCase(), { x: 46, y: w.y, size: 9.5, font: w.bold, color: rgb(1, 1, 1) });
+    w.y -= 24;
+  };
+  const row = (left: string, right: string, opts: { bold?: boolean; shade?: boolean; red?: boolean; mid?: string } = {}) => {
+    w.need(16);
+    if (opts.shade) w.page.drawRectangle({ x: 40, y: w.y - 4, width: 515, height: 16, color: light });
+    w.text(left, 46, 9.5, !!opts.bold);
+    if (opts.mid !== undefined) w.right(opts.mid, 400, 9.5, !!opts.bold);
+    const t = safe(right);
+    w.page.drawText(t, { x: 549 - (opts.bold ? w.bold : w.font).widthOfTextAtSize(t, 9.5), y: w.y, size: 9.5, font: opts.bold ? w.bold : w.font, color: opts.red ? rgb(0.75, 0.1, 0.1) : rgb(0.1, 0.1, 0.1) });
+    w.y -= 16;
+  };
+  type Col = { h: string; x: number; wd: number; right?: boolean };
+  const table = (cols: Col[], rows: string[][], total?: string[]) => {
+    const head = () => {
+      w.need(30);
+      w.page.drawRectangle({ x: 40, y: w.y - 4, width: 515, height: 16, color: light });
+      for (const k of cols) k.right ? w.right(k.h, k.x + k.wd, 8, true) : w.text(k.h, k.x, 8, true);
+      w.y -= 16;
+    };
+    head();
+    for (const r of rows) {
+      if (w.y < 80) { w.newPage(); head(); }
+      r.forEach((v, i) => { const k = cols[i]; const t = w.fit(v, k.wd, 8.5); k.right ? w.right(t, k.x + k.wd, 8.5) : w.text(t, k.x, 8.5); });
+      w.y -= 13;
+    }
+    if (total) { w.line(); w.y -= 11; total.forEach((v, i) => { if (!v) return; const k = cols[i]; k.right ? w.right(v, k.x + k.wd, 8.5, true) : w.text(v, k.x, 8.5, true); }); w.y -= 16; }
+  };
+
+  // Page 1: summary.
+  w.text(b.trading_name || b.legal_name, 40, 11, true);
+  w.y -= 26;
+  const title = "Support at Home Statement";
+  w.page.drawText(title, { x: 297.6 - w.bold.widthOfTextAtSize(title, 17) / 2, y: w.y, size: 17, font: w.bold });
+  w.y -= 16;
+  const per = `Statement period ${dd(st.month)} to ${dd(s.month_end ?? `${y}-${m}-${endDay}`)} (${days} days)`;
+  w.page.drawText(safe(per), { x: 297.6 - w.font.widthOfTextAtSize(safe(per), 9.5) / 2, y: w.y, size: 9.5, font: w.font });
+  w.y -= 22;
+  w.page.drawRectangle({ x: 40, y: w.y - 34, width: 515, height: 46, borderColor: rgb(0.75, 0.75, 0.75), borderWidth: 0.6 });
+  w.text(c.name, 50, 10, true); w.right(c.aged_care_id ? `Aged care recipient ID: ${c.aged_care_id}` : "", 545, 9, true); w.y -= 13;
+  w.text(w.fit(c.address ?? "", 330, 9), 50, 9); w.y -= 13;
+  if (c.client_ref) { w.text(`Client reference ${c.client_ref}`, 50, 8.5); }
+  w.y -= 26;
+
+  const carried = (s.carried_in ?? null) as Snap | null;
+  bar(q ? `Funds carried into this quarter (from ${dd(q.start)})` : "Funds carried into this quarter");
+  row("Unspent Home Care Package funds", aud(carried?.unspent_hcp ?? 0));
+  row("Quarterly rollover funds", aud(carried?.rollover ?? q?.carryover_in ?? 0), { shade: true });
   w.y -= 8;
-  w.text("Date", 40, 9, true); w.text("Service", 110, 9, true); w.right("Qty", 380, 9, true); w.right("Price", 465, 9, true); w.right("Your share", 555, 9, true);
-  w.y -= 6; w.line(); w.y -= 10;
-  for (const l of (s.lines ?? []) as Snap[]) {
-    w.need(14);
-    w.text(dmy(l.date), 40, 9); w.text(w.fit(l.band, 230), 110, 9); w.right(Number(l.quantity).toFixed(2), 380, 9); w.right(aud(l.amount), 465, 9); w.right(aud(l.client_share), 555, 9);
-    w.y -= 13;
+
+  const months = (s.quarter_months ?? []) as Snap[];
+  if (q) {
+    bar(`Quarterly budget remaining as of ${dd(s.month_end ?? `${y}-${m}-${endDay}`)}`);
+    row("Month", "Expenditure", { bold: true, shade: true, mid: "Subsidy" });
+    let ts = 0, te = 0;
+    for (const mm of months) {
+      ts += Number(mm.subsidy); te += Number(mm.expenditure);
+      row(MONTHS[Number(String(mm.month).slice(5, 7)) - 1], aud(mm.expenditure), { mid: aud(mm.subsidy) });
+    }
+    row("Total", aud(te), { bold: true, mid: aud(ts) });
+    const carriedIn = Number(q.carryover_in ?? 0);
+    if (carriedIn) row("Plus rollover funds carried in", aud(carriedIn));
+    const remaining = ts + carriedIn - te;
+    row("Quarterly budget remaining", aud(remaining), { bold: true, shade: true, red: remaining < 0 });
+    w.y -= 8;
   }
+
+  const inc = (s.month_income ?? {}) as Snap;
+  const ex = (s.month_expenditure ?? {}) as Snap;
+  const services = Number(ex.services ?? s.spent_in_month ?? 0);
+  const other = Number(ex.other_charges ?? 0);
+  const cm = Number(ex.care_management ?? 0);
+  const income = Number(inc.subsidy ?? 0);
+  bar(`Income and expenditure for ${label}`);
+  row("Income", "", { bold: true, shade: true });
+  row("Government subsidy (Support at Home quarterly budget)", aud(income));
+  row("Total income", aud(income), { bold: true });
+  row("Expenditure", "", { bold: true, shade: true });
+  row("Services", aud(services));
+  row("AT-HM and other charges (quarterly budget)", aud(other));
+  row("Care management (10%, held for care management)", aud(cm));
+  const totalEx = services + other + cm;
+  row("Total expenditure", aud(totalEx), { bold: true });
+  row(`Balance for ${label} (income less expenditure)`, aud(income - totalEx), { bold: true, shade: true, red: income - totalEx < 0 });
+  w.y -= 6;
+  w.text(`Your contributions this month: ${aud(s.contributions_in_month)} (invoiced separately; the rate is set by Services Australia).`, 46, 8.5); w.y -= 12;
+  if (s.fee_reduction_in_month) { w.text("A fee reduction supplement applied this month: those contributions aren't charged.", 46, 8.5); w.y -= 12; }
+  const pathways = (s.pathways ?? []) as Snap[];
+  if (pathways.length) {
+    w.y -= 6;
+    bar("Other funding (pathways)");
+    for (const p of pathways) row(`${STREAM[String(p.stream)] ?? p.stream} (to ${dd(p.ends_on)}): ${aud(p.amount)}, used ${aud(p.used)}`, `${aud(p.available)} left`, { red: Number(p.available) < 0 });
+  }
+
+  // Detail pages.
+  w.newPage();
+  bar("Service provision");
+  const svc = ((s.service_lines ?? s.lines ?? []) as Snap[]);
+  let sa = 0, sc = 0;
+  table(
+    [{ h: "Date", x: 44, wd: 48 }, { h: "Service", x: 94, wd: 106 }, { h: "Category (rate)", x: 202, wd: 108 }, { h: "Hours", x: 312, wd: 30, right: true }, { h: "Rate", x: 346, wd: 44, right: true },
+     { h: "Rate type", x: 394, wd: 64 }, { h: "Amount", x: 460, wd: 44, right: true }, { h: "Your share", x: 506, wd: 46, right: true }],
+    svc.map((l) => {
+      sa += Number(l.amount); sc += Number(l.client_share ?? 0);
+      return [dmy(l.date), `${l.service ?? l.band}${l.kind === "cancellation" ? " (late cancellation)" : ""}`, l.category ? `${CAT[String(l.category)] ?? l.category} (${Number(l.pct ?? 0).toFixed(2)}%)` : "",
+        Number(l.quantity).toFixed(2), l.rate !== undefined ? aud(l.rate) : "", String(l.band ?? ""), aud(l.amount), aud(l.client_share ?? 0)];
+    }),
+    ["", "", "", "", "", "Subtotal", aud(sa), aud(sc)],
+  );
+  if (!svc.length) { w.text("No services this period.", 46, 9); w.y -= 16; }
+  w.y -= 6;
+  bar("AT-HM and other charges");
+  const chg = ((s.charge_lines ?? s.charges ?? []) as Snap[]);
+  if (chg.length) {
+    let ca = 0, cc = 0;
+    table(
+      [{ h: "Date", x: 44, wd: 50 }, { h: "Description", x: 96, wd: 170 }, { h: "Funding", x: 270, wd: 80 }, { h: "Category (rate)", x: 352, wd: 90 }, { h: "Amount", x: 446, wd: 52, right: true }, { h: "Your share", x: 500, wd: 52, right: true }],
+      chg.map((x) => { ca += Number(x.amount); cc += Number(x.client_share ?? 0); return [dmy(x.date), String(x.description ?? ""), STREAM[String(x.stream)] ?? String(x.stream ?? ""), x.category ? `${CAT[String(x.category)] ?? x.category} (${Number(x.pct ?? 0).toFixed(2)}%)` : "", aud(x.amount), aud(x.client_share ?? 0)]; }),
+      ["", "", "", "Subtotal", aud(ca), aud(cc)],
+    );
+  } else { w.text("No other charges this period.", 46, 9); w.y -= 16; }
+  w.y -= 6;
+  bar("Care management");
+  table([{ h: "Description", x: 44, wd: 360 }, { h: "Amount", x: 460, wd: 92, right: true }], [["Care management: 10% of the quarterly budget, for this month", aud(cm)]]);
   w.y -= 10;
-  w.text("Your contribution is set by Services Australia. Contributions are invoiced separately.", 40, 8);
+  w.need(40);
+  w.page.drawRectangle({ x: 80, y: w.y - 18, width: 435, height: 30, borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.8 });
+  const note = "Please tell your care partner and our office if you'll be away (holiday, hospital or respite).";
+  w.page.drawText(safe(note), { x: 297.6 - w.bold.widthOfTextAtSize(safe(note), 8.5) / 2, y: w.y - 6, size: 8.5, font: w.bold });
+
+  // Footer with the business's contact details and page numbers on every page.
+  const pages = doc.getPages();
+  const contact = safe([b.trading_name || b.legal_name, b.email, b.phone].filter(Boolean).join("  |  "));
+  const addr = safe(`${b.address ?? ""}, ${b.suburb ?? ""} ${b.state ?? ""} ${b.postcode ?? ""}`);
+  pages.forEach((pg, i) => {
+    pg.drawLine({ start: { x: 40, y: 52 }, end: { x: 555, y: 52 }, thickness: 0.5, color: rgb(0.7, 0.7, 0.7) });
+    pg.drawText(contact, { x: 297.6 - w.font.widthOfTextAtSize(contact, 8) / 2, y: 40, size: 8, font: w.font });
+    pg.drawText(addr, { x: 297.6 - w.font.widthOfTextAtSize(addr, 8) / 2, y: 30, size: 8, font: w.font });
+    const pn = `Page ${i + 1} of ${pages.length}`;
+    pg.drawText(pn, { x: 297.6 - w.font.widthOfTextAtSize(pn, 8) / 2, y: 18, size: 8, font: w.font });
+  });
   const bytes = await doc.save();
   return { bytes, checksum: createHash("sha256").update(bytes).digest("hex") };
 }
