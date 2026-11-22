@@ -154,6 +154,9 @@ overwritten balance. Billing lines from delivered services. Billing permission. 
 
 **Phase 5: claims and invoices.** Program-specific claim workflows, invoices, suppliers and markup
 rules, AT-HM accounts, payments and receipts, reconciliation, financial reports.
+Owner (22 Nov 2026): no direct upload to the NDIA or Services Australia. Claims are prepared as files,
+uploaded manually by a person in the official portal and recorded in the portal; a direct (API)
+submission option may be set up later (TODO).
 
 **Phase 6: tie it together.** Rostering picks the client's approved service and checks program and
 funding; delivered shifts (not rostered ones) become billing lines after checks; budget checks

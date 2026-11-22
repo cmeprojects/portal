@@ -27,6 +27,18 @@ Update 159 gave "Assessments" the same access as care plans (owner's Option A): 
 Officers can view assessments for all clients but not start or change them. If the workflow needs it,
 give them edit on "Assessments" on the Access page (no code change).
 
+## LATER: direct claim submission to NDIS and Support at Home (owner, 22 Nov 2026)
+
+Not now. There is no API link to the NDIA (myplace / my NDIS provider portal) or to Services
+Australia (Aged Care Provider Portal / B2G). In Phase 5, submitting claims is MANUAL and
+mandatory: the portal prepares the claim file, a person uploads it in the official portal
+themselves, then records the submission in the portal (date, who, external reference, the file
+kept), and later records or imports the result. Later, an optional "direct submission" setting
+can be added per program once the organisation has the API access, credentials and approval
+(including PRODA/myID and RAM for NDIS, and the Services Australia B2G registration). It must keep
+the same records (file, who, when, reference, acknowledgement, results) and the manual way must
+stay available.
+
 ## LATER: rostering improvements from a reference screenshot (owner, 22 Nov 2026)
 
 Not now. The owner shared a screenshot of another product's weekly schedule as ideas for our
