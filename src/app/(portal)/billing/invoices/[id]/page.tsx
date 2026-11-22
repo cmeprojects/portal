@@ -7,6 +7,7 @@ import { canBill } from "@/lib/billing-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
 import { InvoiceActions, RemoveItem } from "../../claim-forms";
+import { CreditNoteActions, CreditNoteForm, InvoiceRefundForm, WriteOffForm } from "../../money-forms";
 import { INVOICE_KIND, INVOICE_STATUS } from "../../claims-tabs";
 
 export const metadata: Metadata = { title: "Invoice" };
@@ -34,6 +35,17 @@ export default async function InvoicePage({ params }: PageProps<"/billing/invoic
   const people = [v.prepared_by, v.approved_by, v.issued_by, v.sent_by, v.cancelled_by].filter(Boolean) as string[];
   const { data: pRows } = people.length ? await supabase.from("profiles").select("id, full_name, email").in("id", people) : { data: [] };
   const who = (pid: string | null) => ((pRows ?? []) as { id: string; full_name: string | null; email: string }[]).find((p) => p.id === pid)?.full_name ?? "someone";
+  // Update 164: balance, credit notes, payments, write-offs and refunds (hidden before it runs).
+  const [{ data: bal }, { data: cns }, { data: cnItems }, { data: allocs }, { data: wos }, canWo, canRefund, canPay] = await Promise.all([
+    supabase.from("invoice_balances").select("credited, paid, written_off, refunded, balance").eq("invoice_id", id).maybeSingle(),
+    supabase.from("credit_notes").select("id, number, status, amount, reason, prepared_by, pdf_checksum").eq("invoice_id", id).order("prepared_at"),
+    supabase.from("credit_note_items").select("invoice_item_id, amount, credit_notes!inner(status, invoice_id)").eq("credit_notes.invoice_id", id).neq("credit_notes.status", "cancelled"),
+    supabase.from("payment_allocations").select("id, amount, payment_id, payments!inner(received_on, reference, status)").eq("invoice_id", id),
+    supabase.from("write_offs").select("id, amount, reason, status").eq("invoice_id", id),
+    canBill("write_off", v.client_id), canBill("refund", v.client_id), canBill("payment_record", v.client_id),
+  ]);
+  const creditedByItem = new Map<string, number>();
+  for (const c of (cnItems ?? []) as { invoice_item_id: string; amount: number }[]) creditedByItem.set(c.invoice_item_id, (creditedByItem.get(c.invoice_item_id) ?? 0) + Number(c.amount));
   const its = (items ?? []) as { id: string; description: string; service_date: string; quantity: number; unit_price: number; amount: number; gst_code: string; gst_amount: number; status: string }[];
   return (
     <div className="flex flex-col gap-4">
@@ -47,6 +59,33 @@ export default async function InvoicePage({ params }: PageProps<"/billing/invoic
         {v.status === "cancelled" ? <p className="rounded-md bg-danger-soft px-3 py-2">Cancelled by {who(v.cancelled_by)} {when(v.cancelled_at)}: {v.cancel_reason}</p> : null}
         <InvoiceActions id={id} status={v.status} canApprove={canApprove} canIssue={canIssue} canCancel={canPrepare || canApprove} mine={v.prepared_by === profile.id} hasPdf={!!v.pdf_checksum} />
       </Card>
+      {bal ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Balance</h2>
+            <p className="text-sm">Total {aud(v.total)} · credited {aud(bal.credited)} · paid {aud(bal.paid)} · written off {aud(bal.written_off)} · refunded {aud(bal.refunded)} · <span className={`font-semibold ${Number(bal.balance) < 0 ? "text-success" : Number(bal.balance) > 0 ? "text-danger" : ""}`}>{Number(bal.balance) < 0 ? `in credit ${aud(-Number(bal.balance))}` : `owing ${aud(bal.balance)}`}</span></p>
+          </div>
+          {((allocs ?? []) as { id: string; amount: number; payment_id: string; payments: { received_on: string; reference: string; status: string } | { received_on: string; reference: string; status: string }[] }[]).map((a) => {
+            const pm = Array.isArray(a.payments) ? a.payments[0] : a.payments;
+            return <p key={a.id} className={`text-xs ${pm?.status === "reversed" ? "text-muted line-through" : ""}`}><Link href={`/billing/payments/${a.payment_id}`} className="text-brand underline">Payment {dmy(pm?.received_on)}{pm?.reference ? ` ${pm.reference}` : ""}</Link>: {aud(a.amount)}</p>;
+          })}
+          {((wos ?? []) as { id: string; amount: number; reason: string; status: string }[]).map((w) => <p key={w.id} className="text-xs">Write-off {aud(w.amount)} ({w.status.replace("_", " ")}): {w.reason}</p>)}
+          {((cns ?? []) as { id: string; number: string | null; status: string; amount: number; reason: string; prepared_by: string; pdf_checksum: string | null }[]).map((n) => (
+            <p key={n.id} className={`flex flex-wrap items-center gap-2 text-xs ${n.status === "cancelled" ? "text-muted line-through" : ""}`}>
+              <span>{n.number ? `Credit note ${n.number}` : `Credit note (${n.status})`} {aud(n.amount)}: {n.reason}</span>
+              <CreditNoteActions id={n.id} invoiceId={id} status={n.status} canApprove={canApprove} canIssue={canIssue} canCancel={canPrepare || canApprove} mine={n.prepared_by === profile.id} hasPdf={!!n.pdf_checksum} />
+            </p>
+          ))}
+          {canPrepare ? (
+            <details className="rounded-md border border-dashed border-line px-3 py-2">
+              <summary className="cursor-pointer text-xs font-semibold text-brand">Prepare a credit note</summary>
+              <div className="mt-2"><CreditNoteForm invoiceId={id} lines={its.filter((i) => i.status === "live").map((i) => ({ id: i.id, label: `${dmy(i.service_date)} ${i.description}`, left: Math.round((Number(i.amount) - (creditedByItem.get(i.id) ?? 0)) * 100) / 100 })).filter((l) => l.left > 0)} /></div>
+            </details>
+          ) : null}
+          {Number(bal.balance) > 0 && (canWo || canPay) ? <WriteOffForm target={{ invoice_id: id }} owed={Number(bal.balance)} back={`/billing/invoices/${id}`} /> : null}
+          {Number(bal.balance) < 0 && (canRefund || canPay) ? <InvoiceRefundForm invoiceId={id} credit={-Number(bal.balance)} /> : null}
+        </Card>
+      ) : null}
       <Card className="flex flex-col gap-2 p-4">
         <h2 className="heading-sm">Lines</h2>
         <div className="relative overflow-x-auto">

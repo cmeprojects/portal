@@ -153,8 +153,8 @@ overwritten balance. Billing lines from delivered services. Billing permission. 
 (prices, rates, contributions, budgets, lines, approvals, exports).
 
 **Phase 5: claims, invoices, payments. Final plan approved by the owner 22 Nov 2026 (D-066). Built one
-stage at a time (preview, deployment, tests, approval each). 5A built (update 163), waiting for the owner's
-preview results and approval; 5B not started.**
+stage at a time (preview, deployment, tests, approval each). 5A built (update 163, run on Dev 22 Nov 2026); 5B built (update 164); 5C and 5D in progress. The owner
+reviews all of Phase 5 at the end (D-068).**
 - 5A Claims and client invoices, with the NDIS catalogue foundation and price-limit validation;
   business details (setup wizard and Portal settings) and payers; claim lines locked once claimed
   or invoiced (an additive rule, Phase 4 not reopened). Built with the compliance additions (D-067):
@@ -167,7 +167,11 @@ preview results and approval; 5B not started.**
   monthly Support at Home statements.
 - 5B Claim results (partial acceptance and rejection tracked separately), payments, receipts,
   credit notes, adjustments, refunds, write-offs (threshold $500, second approver above it),
-  reconciliation.
+  reconciliation. Built in update 164 (D-069): results added, never changed (corrections kept);
+  fully rejected lines claimed again in a linked replacement claim; payments allocated to invoices
+  or accepted claim lines (never more than owed); receipts RCT-YYYY-000001; credit notes
+  CN-YYYY-000001 (adjustment notes for tax invoices); refunds and write-offs approved by someone
+  else; bank statement import, matching and period reconciliation.
 - 5C Supplier invoices (costs kept apart from client revenue; never create a client charge by
   themselves), markup, AT-HM, Restorative Care and End-of-Life pathways, unspent HCP funds.
 - 5D Consolidated financial reporting and cross-module integration (each stage brings its own

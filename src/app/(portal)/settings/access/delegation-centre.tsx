@@ -135,6 +135,11 @@ const ACTION_WORD: Record<string, string> = {
   invoice_prepare: "Prepare invoices",
   invoice_approve: "Approve invoices",
   invoice_issue: "Issue invoices and statements",
+  // cmeprojects (update 164): payments and reconciliation.
+  payment_record: "Record and allocate payments",
+  refund: "Approve refunds",
+  write_off: "Approve write-offs",
+  reconcile: "Bank reconciliation",
 };
 const word = (a: string) => ACTION_WORD[a] ?? a.replace(/_/g, " ");
 

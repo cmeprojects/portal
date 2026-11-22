@@ -128,3 +128,57 @@ export async function statementPdf(st: { month: string; snapshot: Snap }) {
   const bytes = await doc.save();
   return { bytes, checksum: createHash("sha256").update(bytes).digest("hex") };
 }
+
+// cmeprojects (update 164): credit notes and payment receipts.
+export async function creditNotePdf(n: { number: string; issue_date: string; amount: number; gst: number; snapshot: Snap }) {
+  const doc = await PDFDocument.create();
+  const w = new Writer(doc, await doc.embedFont(StandardFonts.Helvetica), await doc.embedFont(StandardFonts.HelveticaBold));
+  const s = n.snapshot;
+  const b = (s.business ?? {}) as Snap;
+  const p = (s.payer ?? {}) as Snap;
+  const c = (s.client ?? {}) as Snap;
+  const inv = (s.invoice ?? {}) as Snap;
+  doc.setTitle(`Credit note ${n.number}`);
+  header(w, b, inv.tax_invoice ? "ADJUSTMENT NOTE" : "CREDIT NOTE");
+  for (const [k, v] of [["Credit note", n.number], ["Date", dmy(n.issue_date)], ["For invoice", `${inv.number ?? ""} of ${dmy(inv.issue_date)}`], ["To", p.name], ["Client", c.name]]) {
+    w.text(k, 40, 9, true); w.text(v, 160, 9); w.y -= 13;
+  }
+  w.y -= 6;
+  w.text("Reason", 40, 9, true); w.y -= 12;
+  for (const ln of String(s.reason ?? "").split(/\r?\n/).slice(0, 6)) { w.text(w.fit(ln, 515), 40, 9); w.y -= 12; }
+  w.y -= 8;
+  w.text("Date", 40, 9, true); w.text("Description", 100, 9, true); w.right("Credit", 555, 9, true);
+  w.y -= 6; w.line(); w.y -= 10;
+  for (const it of (s.items ?? []) as Snap[]) {
+    w.need(14);
+    w.text(dmy(it.service_date), 40, 9); w.text(w.fit(it.description, 350), 100, 9); w.right(aud(it.amount), 555, 9);
+    w.y -= 13;
+  }
+  w.line(); w.y -= 12;
+  if (inv.tax_invoice) { w.text("GST included in the credit", 340, 10); w.right(aud(n.gst), 555, 10); w.y -= 13; }
+  w.text("Total credit", 340, 11, true); w.right(aud(n.amount), 555, 11, true); w.y -= 18;
+  w.text("This credit reduces the amount owing on the invoice above. Any credit left over is refunded on request.", 40, 8);
+  const bytes = await doc.save();
+  return { bytes, checksum: createHash("sha256").update(bytes).digest("hex") };
+}
+
+export async function receiptPdf(r: { receipt_number: string; received_on: string; amount: number; method: string; reference: string; business: Snap; payer: Snap; client: Snap | null; allocations: { amount: number; invoice: string }[] }) {
+  const doc = await PDFDocument.create();
+  const w = new Writer(doc, await doc.embedFont(StandardFonts.Helvetica), await doc.embedFont(StandardFonts.HelveticaBold));
+  const METHOD: Record<string, string> = { eft: "Bank transfer", bpay: "BPAY", card: "Card", cash: "Cash", cheque: "Cheque", government_remittance: "Remittance", other: "Other" };
+  doc.setTitle(`Receipt ${r.receipt_number}`);
+  header(w, r.business, "RECEIPT");
+  for (const [k, v] of [["Receipt", r.receipt_number], ["Received", dmy(r.received_on)], ["From", r.payer.name], ["Client", r.client?.name ?? ""], ["How paid", `${METHOD[r.method] ?? r.method}${r.reference ? `, reference ${r.reference}` : ""}`]]) {
+    w.text(k, 40, 9, true); w.text(v, 160, 9); w.y -= 13;
+  }
+  w.y -= 8;
+  w.text("Applied to", 40, 9, true); w.right("Amount", 555, 9, true); w.y -= 6; w.line(); w.y -= 10;
+  let applied = 0;
+  for (const a of r.allocations) { w.need(14); w.text(a.invoice ? `Invoice ${a.invoice}` : "Account", 40, 9); w.right(aud(a.amount), 555, 9); w.y -= 13; applied += Number(a.amount); }
+  if (Number(r.amount) - applied > 0.004) { w.text("Held as credit", 40, 9); w.right(aud(Number(r.amount) - applied), 555, 9); w.y -= 13; }
+  w.line(); w.y -= 12;
+  w.text("Total received", 340, 11, true); w.right(aud(r.amount), 555, 11, true); w.y -= 18;
+  w.text("Thank you for your payment.", 40, 9);
+  const bytes = await doc.save();
+  return { bytes, checksum: createHash("sha256").update(bytes).digest("hex") };
+}

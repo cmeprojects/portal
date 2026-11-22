@@ -10,6 +10,7 @@ import { addDays, mondayOf, sydneyParts, sydneyToday } from "@/lib/sydney-time";
 import { CancellationForm, TermsRow, type Terms } from "../settings/clients/[id]/billing-panels";
 import { BudgetsTab, ExceptionsTab, ExportTab, LinesTab } from "./tabs";
 import { ClaimsTab, ClientBillingTab, InvoicesTab } from "./claims-tabs";
+import { PaymentsTab, ReconciliationTab } from "./money-tabs";
 
 export const metadata: Metadata = { title: "Billing" };
 
@@ -27,8 +28,8 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
 // approvals (billing terms, cancellation charges) and exceptions, each linking
 // to the client's existing pages. Billing lines and exports arrive in Phase 4B.
 // What each person sees follows their Billing reach (the database decides).
-// Update 163 adds Claims, Invoices and statements, and Client billing details.
-const TABS: [string, string][] = [["overview", "Dashboard"], ["lines", "Billing lines"], ["exceptions", "Exceptions"], ["claims", "Claims"], ["invoices", "Invoices and statements"], ["clients", "Client billing details"], ["budgets", "Budgets and ledger"], ["export", "Export"]];
+// Update 163 adds Claims, Invoices and statements, and Client billing details; 164 adds Payments and Reconciliation.
+const TABS: [string, string][] = [["overview", "Dashboard"], ["lines", "Billing lines"], ["exceptions", "Exceptions"], ["claims", "Claims"], ["invoices", "Invoices and statements"], ["payments", "Payments"], ["reconciliation", "Reconciliation"], ["clients", "Client billing details"], ["budgets", "Budgets and ledger"], ["export", "Export"]];
 
 export default async function BillingPage({ searchParams }: PageProps<"/billing">) {
   await requireSession();
@@ -49,7 +50,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
             className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${tab === k ? "bg-brand text-brand-fg ring-brand" : "bg-surface text-muted ring-line hover:text-ink"}`}>{l}</Link>
         ))}
       </nav>
-      {tab === "claims" ? <ClaimsTab /> : tab === "invoices" ? <InvoicesTab sp={sp} /> : tab === "clients" ? <ClientBillingTab /> : tab === "lines" ? <LinesTab sp={sp} /> : tab === "exceptions" ? <ExceptionsTab sp={sp} /> : tab === "budgets" ? <BudgetsTab /> : tab === "export" ? <ExportTab /> : <Overview />}
+      {tab === "payments" ? <PaymentsTab /> : tab === "reconciliation" ? <ReconciliationTab /> : tab === "claims" ? <ClaimsTab /> : tab === "invoices" ? <InvoicesTab sp={sp} /> : tab === "clients" ? <ClientBillingTab /> : tab === "lines" ? <LinesTab sp={sp} /> : tab === "exceptions" ? <ExceptionsTab sp={sp} /> : tab === "budgets" ? <BudgetsTab /> : tab === "export" ? <ExportTab /> : <Overview />}
     </div>
   );
 }
