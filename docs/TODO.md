@@ -77,25 +77,18 @@ so there's one list: shifts pick a catalogue service (with its code), payroll an
 from it, and existing shifts keep their shift type. It touches rostering, timesheets and payroll,
 so it needs its own review, plan and approval before any work.
 
-## LATER: rostering improvements from a reference screenshot (owner, 22 Nov 2026)
+## Rostering improvements from the reference screenshot: built 23 Nov 2026 (update 169)
 
-Not now. The owner shared a screenshot of another product's weekly schedule as ideas for our
-roster. Build them in our own design (no copying of another product's look or wording), after
-checking each against what the roster already does, and only once the owner asks for it.
-- Week view by worker: each row shows the worker's phone, suburb, employment type, hours
-  rostered this week, hours available, and a warning for unscheduled (contracted but not yet
-  rostered) hours; "See breakdown" of their week.
-- Shift cards: client, time and length, service; breaks shown as their own small blocks;
-  leave (for example Annual Leave) shown greyed across the days it covers.
-- Hover card on a shift: client, address (suburb, state, postcode), date, time and length.
-- Menu on a shift: view details, duplicate, edit times, repeat, delete, and "auto-wrap visits"
-  (fit back-to-back visits into one worker's block; to define).
-- Menu on an empty day: add a one-off visit, add a recurring visit, add a shift, add a break,
-  other items.
-- Top bar: search by worker, filters, "sort by best match" (likely worker suitability for the
-  client: availability, distance, skills, continuity), view options, today and week arrows.
-- Ties in with Phase 6 (rostering picks the approved service and checks program, terms and
-  funding) and the budget guard.
+Built in our own design (D-074): client view is the default (Staff is one click); search, show
+(all, drafts, published, vacant, with warnings) and sort (name, most or fewest hours, best match for
+a vacant shift); worker rows show phone, suburb, employment type, rostered against contracted hours
+(update 169) with an unscheduled-hours badge and a "See breakdown" by day (contracted hours set
+there); client rows show suburb and hours booked; shift cards show breaks; leave shows its type;
+hover card on a shift (client, address, date, time and length, service, worker, status, warnings);
+right-click a shift: Open, Edit times, Duplicate as an open shift, Copy, Copy to next day, Cancel;
+right-click an empty day: Add a shift, Add a repeating shift (opens with Repeat ticked), Paste.
+Still to define with the owner: "auto-wrap visits" (fit back-to-back visits into one worker's
+block) and breaks as their own items on the roster (today a break is part of a shift).
 
 ## LATER: address auto-complete (owner, 19 Nov 2026)
 

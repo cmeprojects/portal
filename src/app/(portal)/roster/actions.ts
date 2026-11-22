@@ -559,3 +559,21 @@ export async function pasteShift(id: string, date: string, row: string, byClient
   if (error) return { error: friendlyError(error) };
   return { message: "Shift pasted.", spotlight: added.id };
 }
+
+// cmeprojects (update 169): a worker's contracted weekly hours (blank removes them).
+export async function saveContractHours(userId: string, hours: string): Promise<FormState> {
+  await requireSession();
+  if (!/^[0-9a-f-]{36}$/.test(userId)) return { error: "Something went wrong." };
+  const supabase = await createClient();
+  if (!hours.trim()) {
+    const { error } = await supabase.from("staff_contract_hours").delete().eq("user_id", userId);
+    if (error) return { error: friendlyError(error) };
+  } else {
+    const n = Number(hours);
+    if (!Number.isFinite(n) || n < 0 || n > 80) return { error: "Contracted hours are 0 to 80 a week." };
+    const { error } = await supabase.from("staff_contract_hours").upsert({ user_id: userId, hours_per_week: Math.round(n * 100) / 100 });
+    if (error) return { error: friendlyError(error) };
+  }
+  revalidatePath("/roster");
+  return { message: "Saved." };
+}

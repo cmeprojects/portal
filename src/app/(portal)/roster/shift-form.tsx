@@ -123,7 +123,9 @@ export function ShiftForm({
   closeHref,
   backHref,
   houses,
+  startRepeat,
 }: {
+  startRepeat?: boolean;
   shift: ShiftDraft;
   workers: WorkerFit[];
   clients: (Opt & { disabled?: boolean })[];
@@ -180,7 +182,8 @@ export function ShiftForm({
   };
   const [hasBreak, setHasBreak] = useState(shift.break_minutes > 0);
   const [breakMins, setBreakMins] = useState(shift.break_minutes || 30);
-  const [repeat, setRepeat] = useState(false);
+  // cmeprojects (rostering): "Add a repeating shift" opens with Repeat ticked.
+  const [repeat, setRepeat] = useState(!!startRepeat && !shift.id);
   const [freq, setFreq] = useState<RepeatFreq>("weekly");
   const [every, setEvery] = useState(1);
   const [days, setDays] = useState<number[]>([dowOf(shift.date)]);

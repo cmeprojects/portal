@@ -13,8 +13,8 @@ const addDay = (d: string) => {
   return t.toISOString().slice(0, 10);
 };
 
-// cmeprojects: right-click a shift (Open, Copy, Copy to next day, Cancel) or a
-// cell (Paste here). Ctrl+C / Ctrl+V work too. Pasted shifts are drafts.
+// cmeprojects: right-click a shift (Open, Edit times, Duplicate, Copy, Copy to next day, Cancel)
+// or an empty part of a day (Add a shift, Add a repeating shift, Paste here). Ctrl+C / Ctrl+V work too. Pasted shifts are drafts.
 export function RosterMenu({ byClient, base }: { byClient: boolean; base: string }) {
   const router = useRouter();
   const [, start] = useTransition();
@@ -22,9 +22,9 @@ export function RosterMenu({ byClient, base }: { byClient: boolean; base: string
   const [copied, setCopied] = useState<string>("");
   const [hover, setHover] = useState<{ shift?: string; date?: string; row?: string }>({});
 
-  const paste = (id: string, date: string, row: string) =>
+  const paste = (id: string, date: string, row: string, asClientView = byClient) =>
     start(async () => {
-      const res = await pasteShift(id, date, row, byClient);
+      const res = await pasteShift(id, date, row, asClientView);
       if (res?.error) router.push(`${base}&saved=${encodeURIComponent(`Not pasted: ${res.error}`)}`, { scroll: false });
       else router.push(`${base}&saved=${encodeURIComponent(res?.message ?? "Pasted.")}&spot=${res?.spotlight ?? ""}&spotlabel=added`, { scroll: false });
     });
@@ -84,6 +84,7 @@ export function RosterMenu({ byClient, base }: { byClient: boolean; base: string
     };
   }, [menu]);
 
+  const addFor = (row: string) => (row === "vacant" || row === "none" ? "" : byClient ? `&client=${row}` : `&worker=${row}`);
   const copiedNote = copied ? (
     <p role="status" className="fixed right-6 bottom-6 z-[65] flex items-center gap-3 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-surface shadow-xl">
       Shift copied. Right-click a cell and choose Paste here.
@@ -103,6 +104,14 @@ export function RosterMenu({ byClient, base }: { byClient: boolean; base: string
           <button role="menuitem" className={item} onClick={() => router.push(`${base}&shift=${menu.shift}`, { scroll: false })}>
             Open
           </button>
+          <button role="menuitem" className={item} onClick={() => router.push(`${base}&shift=${menu.shift}&edit=1`, { scroll: false })}>
+            Edit times
+          </button>
+          {menu.date ? (
+            <button role="menuitem" className={item} onClick={() => paste(menu.shift!, menu.date!, "vacant", false)}>
+              Duplicate as an open shift
+            </button>
+          ) : null}
           <button role="menuitem" className={item} onClick={() => setCopied(menu.shift!)}>
             Copy
           </button>
@@ -125,6 +134,17 @@ export function RosterMenu({ byClient, base }: { byClient: boolean; base: string
             }
           >
             Cancel shift
+          </button>
+        </>
+      ) : null}
+      {/* cmeprojects (rostering): an empty part of a day adds a one-off or repeating shift there. */}
+      {!menu.shift && menu.date && menu.row ? (
+        <>
+          <button role="menuitem" className={item} onClick={() => router.push(`${base}&add=${menu.date}${addFor(menu.row!)}`, { scroll: false })}>
+            Add a shift here
+          </button>
+          <button role="menuitem" className={item} onClick={() => router.push(`${base}&add=${menu.date}${addFor(menu.row!)}&repeat=1`, { scroll: false })}>
+            Add a repeating shift here
           </button>
         </>
       ) : null}

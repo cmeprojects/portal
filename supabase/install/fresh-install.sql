@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270423000001_document_templates.sql
+-- Built from every migration up to: 20270424000001_roster_contract_hours.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -37,6 +37,7 @@ begin
   if exists (select 1 from public.install_log) or to_regclass('public.profiles') is null then
     return;
   end if;
+  if v_upto = 0 and to_regclass('public.staff_contract_hours') is not null then v_upto := 187; end if;
   if v_upto = 0 and to_regclass('public.document_templates') is not null and to_regclass('public.document_issues') is not null then v_upto := 186; end if;
   if v_upto = 0 and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'service_catalogue' and column_name = 'code') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'service_catalogue' and column_name = 'sah_service_type') then v_upto := 185; end if;
   if v_upto = 0 and to_regclass('public.suppliers') is not null and to_regclass('public.supplier_invoices') is not null and to_regclass('public.supplier_invoice_lines') is not null and to_regclass('public.billing_markup_rules') is not null then v_upto := 183; end if;
@@ -333,7 +334,8 @@ begin
     (183, '20270420000001_suppliers_pathways.sql'),
     (184, '20270421000001_financial_reporting.sql'),
     (185, '20270422000001_service_codes.sql'),
-    (186, '20270423000001_document_templates.sql')
+    (186, '20270423000001_document_templates.sql'),
+    (187, '20270424000001_roster_contract_hours.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -37579,5 +37581,63 @@ select k, jsonb_build_object('layout', 'full', 'logo_position', 'left', 'colour_
 
 $m186$;
   insert into public.install_log (name) values ('20270423000001_document_templates.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270424000001_roster_contract_hours.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270424000001_roster_contract_hours.sql') then
+    return;
+  end if;
+  execute $m187$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 169): contracted weekly hours per worker, for the roster (owner's reference
+-- screenshot, 23 Nov 2026; built under the owner's go-ahead). The roster shows each worker's
+-- rostered hours against their contracted hours and warns about unscheduled hours. Set by people
+-- who can edit the roster; read by people who can see it. Every change is in the change log.
+-- No new security definer function. Safe to run again.
+
+create table if not exists public.staff_contract_hours (
+  user_id uuid primary key references public.profiles (id),
+  id uuid not null default gen_random_uuid() unique,
+  org_id uuid not null default public.default_org_id(),
+  hours_per_week numeric(5, 2) not null check (hours_per_week >= 0 and hours_per_week <= 80),
+  note text not null default '' check (length(note) <= 300),
+  set_by uuid default auth.uid(),
+  set_at timestamptz not null default now(),
+  updated_by uuid,
+  updated_at timestamptz not null default now()
+);
+create or replace function public.guard_contract_hours() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if public.from_portal() and not public.can('ops.roster', 'edit') then
+    raise exception 'Only people who can edit the roster set contracted hours.';
+  end if;
+  if tg_op = 'DELETE' then return old; end if;
+  new.set_by := auth.uid(); new.set_at := now(); new.updated_at := now(); new.updated_by := auth.uid();
+  return new;
+end;
+$$;
+drop trigger if exists guard_contract_hours on public.staff_contract_hours;
+create trigger guard_contract_hours before insert or update or delete on public.staff_contract_hours for each row execute function public.guard_contract_hours();
+drop trigger if exists log_contract_hours on public.staff_contract_hours;
+create trigger log_contract_hours after insert or update or delete on public.staff_contract_hours for each row execute function public.log_car_setup('contract_hours');
+revoke execute on function public.guard_contract_hours() from public, anon, authenticated;
+
+alter table public.staff_contract_hours enable row level security;
+drop policy if exists "roster sees contract hours" on public.staff_contract_hours;
+create policy "roster sees contract hours" on public.staff_contract_hours for select to authenticated using ((select public.can('ops.roster', 'view')) or user_id = (select auth.uid()));
+drop policy if exists "roster sets contract hours" on public.staff_contract_hours;
+create policy "roster sets contract hours" on public.staff_contract_hours for all to authenticated using ((select public.can('ops.roster', 'edit'))) with check ((select public.can('ops.roster', 'edit')));
+grant select, insert, update, delete on public.staff_contract_hours to authenticated;
+revoke all on public.staff_contract_hours from anon;
+
+$m187$;
+  insert into public.install_log (name) values ('20270424000001_roster_contract_hours.sql');
 end;
 $part$;

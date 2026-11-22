@@ -20,6 +20,7 @@ import { FitCalendar } from "./fit-calendar";
 import { CloseMenus } from "./close-menus";
 import { RosterMenu } from "./roster-menu";
 import { CancelShiftButton } from "./cancel-shift-button";
+import { ContractHoursForm } from "./contract-hours";
 
 export const metadata: Metadata = { title: "Roster" };
 
@@ -78,11 +79,14 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const compact = days.length > 7;
   const from = sydneyInstant(gridStart);
   const to = sydneyInstant(gridEnd);
-  const byClient = str("by") === "client";
+  // cmeprojects (owner, 23 Nov 2026): the client view is the default; "by=staff" shows workers.
+  const byClient = str("by") !== "staff";
   const selecting = canEdit && str("select") === "1";
   const viewQ = `${view === "week" ? "" : `v=${view}&`}d=${anchor}`;
-  const base = `/roster?${viewQ}${byClient ? "&by=client" : ""}`;
-  const go = (d: string, v: string = view) => `/roster?${v === "week" ? "" : `v=${v}&`}d=${d}${byClient ? "&by=client" : ""}`;
+  // Search, filters and sort carry over between days and views.
+  const keep = ["q", "show", "sort", "match"].filter((k) => str(k)).map((k) => `&${k}=${encodeURIComponent(str(k))}`).join("");
+  const base = `/roster?${viewQ}${byClient ? "" : "&by=staff"}${keep}`;
+  const go = (d: string, v: string = view) => `/roster?${v === "week" ? "" : `v=${v}&`}d=${d}${byClient ? "" : "&by=staff"}${keep}`;
   const supabase = await createClient();
   type Tpl = { id: string; name: string; shift_type: string; start_time: string; end_time: string; break_minutes: number; client_id: string | null; service_id: string | null; location_id: string | null; notes: string; allowances: string[]; pay_group: string; needs_worker_signature: boolean; needs_client_signature: boolean; extra_notes?: string; signatures_needed?: string[] };
   // cmeprojects (speed): queries that don't need the shifts start now, alongside the main batch.
@@ -107,9 +111,9 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("car_clients").select("id, name, status").neq("status", "discharged").order("name"),
     supabase.from("client_locations").select("id, client_id, label, address, suburb, state, postcode, access_notes").eq("approved", true),
     supabase.from("client_services").select("*").neq("status", "ended"),
-    supabase.from("leave_periods").select("user_id, start_date, end_date").lte("start_date", addDays(gridEnd, 6)).gte("end_date", gridStart),
+    supabase.from("leave_periods").select("user_id, start_date, end_date, leave_type").lte("start_date", addDays(gridEnd, 6)).gte("end_date", gridStart),
     supabase.from("shift_interest").select("shift_id, user_id"),
-    supabase.from("staff_private").select("user_id, availability"),
+    supabase.from("staff_private").select("user_id, availability, address, employment_type"),
     supabase.rpc("roster_check_dates"),
     supabase.from("shift_change_requests").select("id, shift_id, requested_by, kind, swap_with, reason, created_at").eq("status", "pending").order("created_at"),
     // cmeprojects (update 128): company cars from the Cars module (only those this person may see).
@@ -126,6 +130,23 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     supabase.from("client_programs").select("id, name"),
   ]);
   const catTypes = new Map(((catRes.data ?? []) as { id: string; shift_types: string[] }[]).map((c) => [c.id, c.shift_types]));
+  // cmeprojects (rostering, owner's reference screenshot): phone, suburb, employment type and
+  // contracted hours on each worker's row (contracted hours from update 169; empty before it runs).
+  const [{ data: dirRows }, contractRes] = await Promise.all([
+    supabase.from("staff_directory").select("user_id, work_phone"),
+    supabase.from("staff_contract_hours").select("user_id, hours_per_week"),
+  ]);
+  const phoneOf = new Map(((dirRows ?? []) as { user_id: string; work_phone: string | null }[]).map((d) => [d.user_id, d.work_phone ?? ""]));
+  const contractOf = new Map(((contractRes.data ?? []) as { user_id: string; hours_per_week: number }[]).map((c) => [c.user_id, Number(c.hours_per_week)]));
+  const contractsOn = !contractRes.error;
+  const privOf = new Map(((availRows ?? []) as { user_id: string; address?: string | null; employment_type?: string | null }[]).map((a) => [a.user_id, a]));
+  // Suburb from an address written "street, Suburb STATE 2000" (best effort).
+  const suburbOf = (addr: string | null | undefined) => {
+    const parts = String(addr ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+    const last = parts[parts.length - 1] ?? "";
+    return last.replace(/\s+(ACT|NSW|NT|QLD|SA|TAS|VIC|WA)\b.*$/i, "").replace(/\s*\d{4}$/, "").trim();
+  };
+  const EMPLOY: Record<string, string> = { full_time: "Full time", part_time: "Part time", casual: "Casual", contractor: "Contractor" };
   const programName = new Map(((progRes.data ?? []) as { id: string; name: string }[]).map((p) => [p.id, p.name]));
   // cmeprojects (update 141): shift types are a managed list; before it runs, the fixed list.
   type TypeRow = { key: string; label: string; active: boolean; used_for?: string; required_items?: string[] };
@@ -172,6 +193,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
   const hoursOf = new Map<string, number>();
   for (const s of shifts) if (s.worker_id) hoursOf.set(s.worker_id, (hoursOf.get(s.worker_id) ?? 0) + shiftHours(s));
   const onLeave = (who: string, day: string) => ((leave ?? []) as { user_id: string; start_date: string; end_date: string }[]).some((l) => l.user_id === who && l.start_date <= day && l.end_date >= day);
+  const leaveLabel = (who: string, day: string) => {
+    const l = ((leave ?? []) as { user_id: string; start_date: string; end_date: string; leave_type?: string | null }[]).find((x) => x.user_id === who && x.start_date <= day && x.end_date >= day);
+    const t = String(l?.leave_type ?? "").replace(/_/g, " ");
+    return t ? `${t.charAt(0).toUpperCase()}${t.slice(1)}` : "On leave";
+  };
   // cmeprojects (update 128): which published shifts the worker has answered (empty before it runs).
   const shiftIds = shifts.map((x) => x.id);
   const [{ data: answerRows }, { data: sentRows }, { data: inRows }] = shiftIds.length
@@ -258,6 +284,57 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         ]),
       ].sort((a, b) => groupRank(a) - groupRank(b) || groupOf(a).localeCompare(groupOf(b)) || (name.get(a) ?? "").localeCompare(name.get(b) ?? ""));
   const totalHours = shifts.filter((s) => s.worker_id).reduce((n, s) => n + shiftHours(s), 0);
+  // cmeprojects (rostering, owner's reference screenshot): search, show and sort.
+  const q = str("q").trim().toLowerCase();
+  const show = ["draft", "published", "vacant", "warnings"].includes(str("show")) ? str("show") : "all";
+  const sortBy = ["hours_desc", "hours_asc", "match"].includes(str("sort")) ? str("sort") : "name";
+  const passes = (x: Shift) => show === "all" || (show === "draft" && x.status === "draft") || (show === "published" && x.status === "published") || (show === "vacant" && !x.worker_id) || (show === "warnings" && warningsFor(x).length > 0);
+  const shown = shifts.filter(passes);
+  const shownVacant = vacant.filter(passes);
+  // Best match for a vacant shift: free at that time, available, knows the client, close by, under
+  // their hours, holds what the shift type needs.
+  const matchShift = sortBy === "match" ? vacant.find((x) => x.id === str("match")) ?? null : null;
+  type Match = { score: number; reasons: string[]; blocked: string };
+  const matchOf = new Map<string, Match>();
+  if (matchShift && !byClient) {
+    const since = sydneyInstant(addDays(today, -90));
+    const { data: pastRows } = matchShift.client_id ? await supabase.from("shifts").select("worker_id").eq("client_id", matchShift.client_id).neq("status", "cancelled").gte("starts_at", since).not("worker_id", "is", null).limit(2000) : { data: [] };
+    const knows = new Set(((pastRows ?? []) as { worker_id: string }[]).map((r) => r.worker_id));
+    const mLoc = ((locations ?? []) as { id: string; suburb?: string | null }[]).find((l) => l.id === matchShift.location_id);
+    const mDay = sydneyParts(matchShift.starts_at).date;
+    const needs = shiftTypes.find((t) => t.key === matchShift.shift_type)?.needs ?? [];
+    for (const w of (people ?? []) as { id: string }[]) {
+      const reasons: string[] = [];
+      let score = 0;
+      let blocked = "";
+      if (onLeave(w.id, mDay)) blocked = "On leave";
+      else if (shifts.some((x) => x.worker_id === w.id && Date.parse(x.starts_at) < Date.parse(matchShift.ends_at) && Date.parse(x.ends_at) > Date.parse(matchShift.starts_at))) blocked = "Already rostered then";
+      const a = avail.get(w.id);
+      if (a && Object.values(a).some((v) => v?.length)) {
+        if ((a[AVAIL_DAYS[sydneyParts(matchShift.starts_at).dow]] ?? []).includes(availabilitySlot(matchShift.starts_at))) { score += 3; reasons.push("Available"); } else { score -= 2; reasons.push("Outside availability"); }
+      }
+      if (knows.has(w.id)) { score += 2; reasons.push("Worked with this client"); }
+      if (mLoc?.suburb && suburbOf(privOf.get(w.id)?.address).toLowerCase() === String(mLoc.suburb).toLowerCase()) { score += 1; reasons.push("Same suburb"); }
+      const cap = contractOf.get(w.id) ?? 38;
+      if ((hoursOf.get(w.id) ?? 0) + shiftHours(matchShift) <= cap) { score += 1; reasons.push("Within their hours"); } else reasons.push("Over their hours");
+      if (needs.length) {
+        const held = holds.get(w.id) ?? {};
+        const missing = needs.filter((n) => !(n.id in held) || (held[n.id] !== null && String(held[n.id]) < today));
+        if (missing.length) { score -= 3; reasons.push(`Missing: ${missing.map((m) => m.title).join(", ")}`); } else { score += 2; reasons.push("Holds what the shift needs"); }
+      }
+      if (expired.get(w.id)?.before.length) { score -= 3; reasons.push("Check expired"); }
+      matchOf.set(w.id, { score: blocked ? -100 : score, reasons, blocked });
+    }
+  }
+  const searchHit = (k: string) => !q || (byClient ? (clientName.get(k) ?? "") : (name.get(k) ?? "")).toLowerCase().includes(q) || shifts.some((x) => (byClient ? x.client_id === k && name.get(x.worker_id ?? "")?.toLowerCase().includes(q) : x.worker_id === k && clientName.get(x.client_id ?? "")?.toLowerCase().includes(q)));
+  const hoursKey = (k: string) => byClient ? shifts.filter((x) => (x.client_id ?? "none") === k && x.worker_id).reduce((n, x) => n + shiftHours(x), 0) : (hoursOf.get(k) ?? 0);
+  const rows = rowIds.filter(searchHit);
+  if (sortBy === "hours_desc") rows.sort((a, b) => hoursKey(b) - hoursKey(a));
+  else if (sortBy === "hours_asc") rows.sort((a, b) => hoursKey(a) - hoursKey(b));
+  else if (matchShift && !byClient) rows.sort((a, b) => (matchOf.get(b)?.score ?? -999) - (matchOf.get(a)?.score ?? -999));
+  // Group headings only when sorted by name (other sorts mix the groups).
+  const grouped = sortBy === "name";
+  const weeksShown = days.length / 7;
   const opened = str("shift") ? shifts.find((s) => s.id === str("shift")) ?? (await supabase.from("shifts").select("*").eq("id", str("shift")).maybeSingle()).data as Shift | null : null;
   const sigNeeded: string[] = opened ? (opened.signatures_needed ?? [...(opened.needs_worker_signature ? ["worker_in", "worker_out"] : []), ...(opened.needs_client_signature ? ["client_out"] : [])]) : [];
   const editing = canEdit && (str("add") || (opened && str("edit") === "1"));
@@ -460,18 +537,33 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         </span>
         <span className="block truncate">{byClient ? (s.worker_id ? name.get(s.worker_id) : "No worker yet") : s.client_id ? clientName.get(s.client_id) : s.notes || "Shift"}</span>
         {s.service_id && !compact ? <span className="block truncate opacity-75">{serviceName.get(s.service_id)}</span> : null}
+        {s.break_minutes > 0 && !compact ? <span className="mt-0.5 inline-block rounded bg-surface/70 px-1 text-[10px] font-semibold" title="Break">Break {s.break_minutes} min</span> : null}
         {residentsOn.get(s.id)?.length ? <span className="mt-0.5 inline-block rounded-full bg-surface/70 px-1.5 text-[10px] font-semibold" title={`Also: ${residentsOn.get(s.id)!.map((c) => clientName.get(c) ?? "resident").join(", ")}`}>+{residentsOn.get(s.id)!.length} resident{residentsOn.get(s.id)!.length === 1 ? "" : "s"}</span> : null}
       </>
     );
-    const cls = `block w-full rounded-md border-l-[3px] px-1.5 py-1 text-left ${compact ? "text-[10px]" : "text-[11px]"} leading-tight ${STATUS_STYLE[statusOf(s)][1]}`;
+    const cls = `group/chip relative block w-full rounded-md border-l-[3px] px-1.5 py-1 text-left ${compact ? "text-[10px]" : "text-[11px]"} leading-tight ${STATUS_STYLE[statusOf(s)][1]}`;
+    // cmeprojects (rostering): a hover card with the client, address, date, time and length.
+    const loc = ((locations ?? []) as { id: string; address: string; suburb?: string | null; state?: string | null; postcode?: string | null }[]).find((l) => l.id === s.location_id);
+    const len = shiftHours(s);
+    const card = selecting ? null : (
+      <span role="tooltip" className="pointer-events-none absolute top-full left-0 z-40 mt-1 hidden w-60 rounded-lg border border-line bg-surface p-2 text-[11px] font-normal text-ink shadow-lg group-hover/chip:block group-focus-visible/chip:block">
+        <span className="block font-semibold">{s.client_id ? clientName.get(s.client_id) : s.notes || "Shift"}</span>
+        {loc ? <span className="block text-muted">{[loc.address, [loc.suburb, loc.state, loc.postcode].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</span> : null}
+        <span className="mt-1 block">{auDate(sydneyParts(s.starts_at).date)}, {shortTime(s.starts_at)}–{shortTime(s.ends_at)} ({len.toFixed(len % 1 ? 2 : 0)} h{s.break_minutes ? `, break ${s.break_minutes} min` : ""})</span>
+        {s.service_id ? <span className="block">{serviceName.get(s.service_id)}</span> : null}
+        <span className="block text-muted">{s.worker_id ? name.get(s.worker_id) : "No worker yet"} · {STATUS_STYLE[statusOf(s)][0]}</span>
+        {warn.length ? <span className="mt-1 block text-warn">{warn.join(" · ")}</span> : null}
+      </span>
+    );
     return selecting ? (
       <label key={s.id} data-shift-id={s.id} className={`${cls} cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-brand`}>
         <input type="checkbox" form="pick" name="ids" value={s.id} className="mr-1 size-3 align-middle" />
         {inner}
       </label>
     ) : (
-      <Link key={s.id} data-shift-id={s.id} data-can-drag={canEdit && s.status !== "cancelled" ? "" : undefined} draggable={false} href={`${base}&shift=${s.id}`} scroll={false} title={[...warn].join("\n")} className={`${cls} hover:ring-2 hover:ring-brand`}>
+      <Link key={s.id} data-shift-id={s.id} data-can-drag={canEdit && s.status !== "cancelled" ? "" : undefined} draggable={false} href={`${base}&shift=${s.id}`} scroll={false} className={`${cls} hover:ring-2 hover:ring-brand`}>
         {inner}
+        {card}
       </Link>
     );
   };
@@ -515,13 +607,13 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
-          <Link href={`/roster?${viewQ}`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand text-brand-fg"}`}>
-            <Users aria-hidden="true" className="size-4" />
-            Staff
-          </Link>
-          <Link href={`/roster?${viewQ}&by=client`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${byClient ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>
+          <Link href={`/roster?${viewQ}`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${byClient ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>
             <HeartHandshake aria-hidden="true" className="size-4" />
             Client
+          </Link>
+          <Link href={`/roster?${viewQ}&by=staff`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${byClient ? "text-muted hover:bg-page" : "bg-brand text-brand-fg"}`}>
+            <Users aria-hidden="true" className="size-4" />
+            Staff
           </Link>
         </span>
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
@@ -605,6 +697,38 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           </details>
         </span>
       </div>
+      {/* cmeprojects (rostering): search, show and sort (kept when changing day or view). */}
+      <form method="get" action="/roster" className="flex flex-wrap items-end gap-2 text-sm" role="search">
+        {view !== "week" ? <input type="hidden" name="v" value={view} /> : null}
+        <input type="hidden" name="d" value={anchor} />
+        {byClient ? null : <input type="hidden" name="by" value="staff" />}
+        <label className="flex flex-col gap-0.5 text-xs font-medium">Search
+          <input name="q" defaultValue={str("q")} placeholder={byClient ? "Client or worker name" : "Worker or client name"} className="h-9 w-56 rounded-lg border border-field bg-surface px-2 text-sm" />
+        </label>
+        <label className="flex flex-col gap-0.5 text-xs font-medium">Show
+          <select name="show" defaultValue={show} className="h-9 rounded-lg border border-field bg-surface px-2 text-sm">
+            <option value="all">All shifts</option><option value="draft">Drafts</option><option value="published">Published</option><option value="vacant">Vacant</option><option value="warnings">With warnings</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-0.5 text-xs font-medium">Sort
+          <select name="sort" defaultValue={sortBy} className="h-9 rounded-lg border border-field bg-surface px-2 text-sm">
+            <option value="name">By name</option><option value="hours_desc">Most hours first</option><option value="hours_asc">Fewest hours first</option>
+            {!byClient ? <option value="match">Best match for a vacant shift</option> : null}
+          </select>
+        </label>
+        {!byClient && vacant.length ? (
+          <label className="flex flex-col gap-0.5 text-xs font-medium">Vacant shift to match
+            <select name="match" defaultValue={str("match")} className="h-9 max-w-64 rounded-lg border border-field bg-surface px-2 text-sm">
+              <option value="">Choose…</option>
+              {vacant.map((x) => <option key={x.id} value={x.id}>{auDate(sydneyParts(x.starts_at).date)} {shortTime(x.starts_at)}–{shortTime(x.ends_at)} {x.client_id ? clientName.get(x.client_id) : ""}</option>)}
+            </select>
+          </label>
+        ) : null}
+        <button className={buttonClass("outline")}>Apply</button>
+        {q || show !== "all" || sortBy !== "name" ? <Link href={`/roster?${viewQ}${byClient ? "" : "&by=staff"}`} className="pb-2 text-xs font-semibold text-brand underline">Clear</Link> : null}
+        {sortBy === "match" && !byClient && !matchShift ? <span className="pb-2 text-xs text-warn">Choose the vacant shift to rank workers for.</span> : null}
+        {matchShift ? <span className="pb-2 text-xs text-muted">Workers ranked for {clientName.get(matchShift.client_id ?? "") ?? "the shift"} on {auDate(sydneyParts(matchShift.starts_at).date)}: free then, available, worked with the client, same suburb, within their hours, holds what it needs. Hover a badge for the reasons.</span> : null}
+      </form>
       <p className="flex flex-wrap gap-2 text-xs text-muted">
         {(Object.keys(STATUS_STYLE) as (keyof typeof STATUS_STYLE)[]).map((k) => (
           <span key={k} className={`rounded-md border-l-[3px] px-2 py-0.5 font-semibold text-ink ${STATUS_STYLE[k][1]}`}>
@@ -672,7 +796,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
               {days.map((d) => (
                 <td key={d} data-drop-date={canEdit && !byClient ? d : undefined} data-drop-row="vacant" className="group border-r border-line px-1 py-1 align-top hover:bg-page/60">
                   {(() => {
-                    const here = vacant.filter((s) => sydneyParts(s.starts_at).date === d);
+                    const here = shownVacant.filter((s) => sydneyParts(s.starts_at).date === d);
                     const canAdd = canEdit && !selecting && !byClient;
                     return (
                       <div className="relative flex min-h-14 flex-col gap-1" style={hourLines}>
@@ -694,19 +818,25 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                 </td>
               ))}
             </tr>
-            {rowIds.map((k, idx) => (
+            {rows.map((k, idx) => (
               <Fragment key={k}>
-                {!byClient && (idx === 0 || groupOf(rowIds[idx - 1]) !== groupOf(k)) ? (
+                {!byClient && grouped && (idx === 0 || groupOf(rows[idx - 1]) !== groupOf(k)) ? (
                   <tr className="border-b border-line bg-page">
                     <th colSpan={days.length + 1} scope="rowgroup" className="sticky left-0 px-3 py-1.5 text-left text-xs font-semibold tracking-wide text-muted uppercase">
-                      {groupOf(k)} <span className="font-normal normal-case">({rowIds.filter((x) => groupOf(x) === groupOf(k)).length})</span>
+                      {groupOf(k)} <span className="font-normal normal-case">({rows.filter((x) => groupOf(x) === groupOf(k)).length})</span>
                     </th>
                   </tr>
                 ) : null}
               <tr className="border-b border-line">
                 <th scope="row" className="sticky left-0 z-10 border-r-[3px] border-line bg-page px-3 py-2 text-left align-top">
                   {byClient ? (
-                    <span className="block text-sm font-semibold">{clientName.get(k) ?? "No client"}</span>
+                    <>
+                      <span className="block text-sm font-semibold">{clientName.get(k) ?? "No client"}</span>
+                      {(() => {
+                        const home = ((locations ?? []) as { client_id: string; suburb?: string | null }[]).find((l) => l.client_id === k);
+                        return <span className="block text-xs text-muted">{[home?.suburb, `${hoursKey(k).toFixed(1)} hours booked`].filter(Boolean).join(" · ")}</span>;
+                      })()}
+                    </>
                   ) : (
                     <>
                       <span className="block text-sm font-semibold">
@@ -717,7 +847,38 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                           </span>
                         ) : null}
                       </span>
-                      <span className={`text-xs ${(hoursOf.get(k) ?? 0) > 38 ? "font-semibold text-warn" : "text-muted"}`}>{(hoursOf.get(k) ?? 0).toFixed(1)} hours</span>
+                      {phoneOf.get(k) || suburbOf(privOf.get(k)?.address) || privOf.get(k)?.employment_type ? (
+                        <span className="block text-xs text-muted">{[phoneOf.get(k), suburbOf(privOf.get(k)?.address), EMPLOY[privOf.get(k)?.employment_type ?? ""] ?? privOf.get(k)?.employment_type].filter(Boolean).join(" · ")}</span>
+                      ) : null}
+                      {(() => {
+                        const rostered = hoursOf.get(k) ?? 0;
+                        const contracted = contractOf.has(k) ? (contractOf.get(k) ?? 0) * weeksShown : null;
+                        const gap = contracted !== null ? contracted - rostered : 0;
+                        return (
+                          <>
+                            <span className={`block text-xs ${rostered > (contracted ?? 38 * weeksShown) ? "font-semibold text-warn" : "text-muted"}`}>
+                              {rostered.toFixed(1)} h rostered{contracted !== null ? ` of ${contracted.toFixed(1)} h contracted` : ""}
+                            </span>
+                            {contracted !== null && gap > 0.05 && view !== "day" ? <span className="mt-0.5 block w-fit rounded-full bg-warn-soft px-1.5 text-[10px] font-semibold text-warn">{gap.toFixed(1)} h unscheduled</span> : null}
+                            {matchOf.get(k) ? (
+                              <span title={matchOf.get(k)!.reasons.join(" · ")} className={`mt-0.5 block w-fit rounded-full px-1.5 text-[10px] font-semibold ${matchOf.get(k)!.blocked ? "bg-danger-soft text-danger" : matchOf.get(k)!.score >= 5 ? "bg-good-soft text-good" : "bg-page text-muted"}`}>
+                                {matchOf.get(k)!.blocked || `Match ${matchOf.get(k)!.score}: ${matchOf.get(k)!.reasons.filter((r) => !/^(Outside|Over|Missing|Check)/.test(r)).slice(0, 2).join(", ") || "few reasons"}`}
+                              </span>
+                            ) : null}
+                            <details className="mt-0.5 text-xs">
+                              <summary className="cursor-pointer font-semibold text-brand">See breakdown</summary>
+                              <ul className="mt-1 flex flex-col gap-0.5 font-normal text-muted">
+                                {days.map((d) => {
+                                  const theirs = shifts.filter((x) => x.worker_id === k && sydneyParts(x.starts_at).date === d);
+                                  return theirs.length ? <li key={d}>{auDate(d)}: {theirs.reduce((n, x) => n + shiftHours(x), 0).toFixed(1)} h ({theirs.length} shift{theirs.length === 1 ? "" : "s"})</li> : null;
+                                })}
+                                {!shifts.some((x) => x.worker_id === k) ? <li>No shifts in this period.</li> : null}
+                              </ul>
+                              {canEdit && contractsOn ? <ContractHoursForm userId={k} hours={contractOf.get(k) ?? null} /> : null}
+                            </details>
+                          </>
+                        );
+                      })()}
                       {expired.get(k)?.before.length ? <span className="mt-0.5 block w-fit rounded-full bg-danger-soft px-1.5 text-[10px] font-semibold text-danger">Check expired</span> : null}
                     </>
                   )}
@@ -727,13 +888,13 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                   return (
                     <td key={d} data-drop-date={canEdit ? d : undefined} data-drop-row={k} className={`group border-r border-line px-1 py-1 align-top hover:bg-page/60 ${off ? "bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--line)_6px_7px)]" : ""}`}>
                       {(() => {
-                        const here = shifts.filter((s) => (byClient ? (s.client_id ?? "none") === k && !!s.worker_id : s.worker_id === k) && sydneyParts(s.starts_at).date === d);
+                        const here = shown.filter((s) => (byClient ? (s.client_id ?? "none") === k && !!s.worker_id : s.worker_id === k) && sydneyParts(s.starts_at).date === d);
                         const addHref = `${base}&add=${d}${byClient ? (k !== "none" ? `&client=${k}` : "") : `&worker=${k}`}`;
                         const addLabel = `Add a shift for ${byClient ? (clientName.get(k) ?? "this client") : (name.get(k) ?? "this worker")} on ${auDate(d)}`;
                         const canAdd = canEdit && !off && !selecting;
                         return (
                           <div className="relative flex min-h-14 flex-col gap-1" style={hourLines}>
-                            {off ? <span className="text-[11px] font-semibold text-muted">On leave</span> : null}
+                            {off ? <span className="rounded bg-line/70 px-1 text-[11px] font-semibold text-muted">{leaveLabel(k, d)}</span> : null}
                             {view === "day" && here.length ? timeline(here, d) : here.map(chip)}
                             {canAdd && !here.length ? (
                               // Empty cell: the whole cell adds a shift.
@@ -850,7 +1011,8 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
             ) : editing ? (
               <div className="flex min-h-full flex-col">
                 <ShiftForm
-                  key={`${opened?.id ?? str("add")}-${str("tpl")}`}
+                  startRepeat={str("repeat") === "1"}
+                  key={`${opened?.id ?? str("add")}-${str("tpl")}-${str("repeat")}`}
                   closeHref={closePanel}
                   backHref={opened ? `${base}&shift=${opened.id}` : undefined}
                   shiftTypes={shiftTypes}
