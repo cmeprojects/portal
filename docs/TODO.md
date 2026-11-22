@@ -27,6 +27,18 @@ Update 159 gave "Assessments" the same access as care plans (owner's Option A): 
 Officers can view assessments for all clients but not start or change them. If the workflow needs it,
 give them edit on "Assessments" on the Access page (no code change).
 
+## Phase 5A: company business details (owner, 22 Nov 2026)
+
+Part of Phase 5A (gap G1). The company's business details are collected in the portal setup
+wizard (a new "Business details" step) and can be updated later in Portal settings: legal and
+trading name, ABN, business address, phone and email for invoices, GST registration (with the
+accountant's verification and "as at" date), NDIS registration number and groups, Services
+Australia provider details, payment details (for example BSB and account), invoice numbering
+and payment terms. Who can change them: System Administrator and Manager Administrators (to
+confirm in the Phase 5 plan). Every change goes in the change log, and issued claims and
+invoices keep the details as they were when issued. Existing portals that skipped the step
+are asked to fill them in before the first claim or invoice.
+
 ## LATER: direct claim submission to NDIS and Support at Home (owner, 22 Nov 2026)
 
 Not now. There is no API link to the NDIA (myplace / my NDIS provider portal) or to Services

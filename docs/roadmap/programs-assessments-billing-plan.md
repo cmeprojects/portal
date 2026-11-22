@@ -157,6 +157,10 @@ rules, AT-HM accounts, payments and receipts, reconciliation, financial reports.
 Owner (22 Nov 2026): no direct upload to the NDIA or Services Australia. Claims are prepared as files,
 uploaded manually by a person in the official portal and recorded in the portal; a direct (API)
 submission option may be set up later (TODO).
+Owner (22 Nov 2026): the company's business details (legal and trading name, ABN, business address,
+contact details, GST registration, NDIS and Services Australia provider details, payment details,
+invoice numbering and terms) are entered in the portal setup wizard, and can be updated later in
+Portal settings (with every change in the change log; issued documents keep the details as they were).
 
 **Phase 6: tie it together.** Rostering picks the client's approved service and checks program and
 funding; delivered shifts (not rostered ones) become billing lines after checks; budget checks
