@@ -46,6 +46,14 @@ Still to do by the owner: enter the real details and record the accountant's GST
 - Support at Home care management account rollover (uncapped quarterly, capped at year end):
   verify the rule; calculating it is for a later approved change (not in 5A).
 - NDIS 90-day claiming rule: confirm from official text before it's relied on.
+- Verify the 7 rule checks added in update 165 (AT-HM, Restorative Care, End-of-Life, unspent HCP
+  funds, third-party services and markup, contributions on pathways; NDIS third-party supports).
+- Unspent HCP funds: once the order-of-use rule is verified, decide whether shift billing lines
+  should draw on them before the quarterly budget (today shift lines always use the quarter budget).
+- Set the write-off threshold in Business details if not $500, and the markup rules (Billing set-up).
+- Receipts list the allocations made when the receipt PDF is made (first allocation); later
+  allocations show on the payment page, not on that receipt.
+- Email sending of invoices, statements and receipts: later (D4; PDF download for now).
 
 ## LATER: direct claim submission to NDIS and Support at Home (owner, 22 Nov 2026; D-066)
 

@@ -153,7 +153,8 @@ overwritten balance. Billing lines from delivered services. Billing permission. 
 (prices, rates, contributions, budgets, lines, approvals, exports).
 
 **Phase 5: claims, invoices, payments. Final plan approved by the owner 22 Nov 2026 (D-066). Built one
-stage at a time (preview, deployment, tests, approval each). 5A built (update 163, run on Dev 22 Nov 2026); 5B built (update 164); 5C built (update 165); 5D in progress. The owner
+stage at a time (preview, deployment, tests, approval each). 5A built (update 163, run on Dev 22 Nov 2026); 5B built (update 164); 5C built (update 165); 5D built (update 166). Phase 5
+complete; waiting for the owner's review. The owner
 reviews all of Phase 5 at the end (D-068).**
 - 5A Claims and client invoices, with the NDIS catalogue foundation and price-limit validation;
   business details (setup wizard and Portal settings) and payers; claim lines locked once claimed
@@ -180,7 +181,10 @@ reviews all of Phase 5 at the end (D-068).**
   shown on statements; pathway budgets per client from the Services Australia notice; seven new
   rule checks to verify.
 - 5D Consolidated financial reporting and cross-module integration (each stage brings its own
-  operational reports first).
+  operational reports first). Built in update 166 (D-071): a Reports tab for any period (revenue by
+  scheme and funding, government claims, client invoices, money owed by age, money in and out,
+  supplier costs and charges, budgets, integrity checks), CSV per section (export right, download
+  trail), and a financial summary on the client's Funding tab.
 Rules: no double recovery (checked at billing line, payer and amount); multiple batches,
 amendments and replacements linked to their originals; accepted amounts never resubmitted;
 Support at Home full value, client contribution, government amount, claim amount and actual

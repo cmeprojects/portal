@@ -290,6 +290,17 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   ]);
   const pathwayRows = (pbRes2.data ?? []) as { pathway_budget_id: string; stream: string; amount: number; used: number; available: number; starts_on: string; ends_on: string; status: string }[];
   const chargeRows = (chRes2.data ?? []) as { id: string; description: string; service_date: string; amount: number; status: string; funding_stream: string }[];
+  // cmeprojects (update 166): the client's financial summary (read only).
+  const [revRes, balRes] = await Promise.all([
+    supabase.from("billing_revenue").select("amount, client_share, government_share").eq("client_id", id).limit(20000),
+    supabase.from("invoice_balances").select("balance").eq("client_id", id),
+  ]);
+  const revRows = (revRes.data ?? []) as { amount: number; client_share: number | null; government_share: number | null }[];
+  const finSummary = revRes.error ? null : {
+    value: revRows.reduce((a, r) => a + Number(r.amount), 0), client: revRows.reduce((a, r) => a + Number(r.client_share ?? 0), 0), gov: revRows.reduce((a, r) => a + Number(r.government_share ?? 0), 0),
+    owing: ((balRes.data ?? []) as { balance: number }[]).reduce((a, b) => a + Math.max(Number(b.balance), 0), 0),
+    credit: ((balRes.data ?? []) as { balance: number }[]).reduce((a, b) => a + Math.max(-Number(b.balance), 0), 0),
+  };
   const clientInvoices = (invRes.data ?? []) as { id: string; number: string | null; kind: string; status: string; total: number; period_from: string; period_to: string; due_date: string | null }[];
   type CI = { id: string; claim_id: string; claimed_value: number; expected_amount: number; quarter_budget_id: string | null; claims: { status: string; program: string; period_from: string; period_to: string } | { status: string; program: string; period_from: string; period_to: string }[] };
   const claimByClaim = new Map<string, { status: string; program: string; period_from: string; period_to: string; lines: number; claimed: number; expected: number }>();
@@ -1636,6 +1647,13 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
               </ul>
             </details>
           ) : null}
+        </Card>
+      ) : null}
+      {inView("funding") && billingOn && finSummary && finSummary.value > 0 ? (
+        <Card className="flex flex-col gap-2 p-4">
+          <h2 className="heading-sm">Financial summary</h2>
+          <p className="text-sm">Billed (approved services and charges, full value) {aud(finSummary.value)} · the client&apos;s share {aud(finSummary.client)} · government or plan share {aud(finSummary.gov)} · owing on invoices <span className={finSummary.owing > 0 ? "font-semibold text-danger" : ""}>{aud(finSummary.owing)}</span>{finSummary.credit > 0 ? ` · in credit ${aud(finSummary.credit)}` : ""}</p>
+          <p className="text-xs text-muted">Read only. Full detail in <Link href="/billing?tab=reports" className="text-brand underline">Billing → Reports</Link>.</p>
         </Card>
       ) : null}
       {inView("funding") && billingOn && (pathwayRows.length || chargeRows.length) ? (
