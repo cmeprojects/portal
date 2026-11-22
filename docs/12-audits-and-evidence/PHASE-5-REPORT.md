@@ -123,7 +123,7 @@ not been run on Dev. Nothing is deployed. The owner reviews all of Phase 5 now.
 | Check | Result |
 |---|---|
 | Database tests, new | 163: 57 · 164: 47 · 165: 31 · 166: 6 (all passing; each refusal checked for the right reason) |
-| Full database suite | All files passing (see the final run in the chat report) |
+| Full database suite | 130 files, 2,528 checks, all passing (final run 23 Nov 2026, includes the fresh-install check) |
 | Round trips (preview, update x2, undo x2, schema identical, update again) | 163, 164, 165, 166 clean |
 | Undo with data | 164 and 165 keep everything in their undo schema; updates re-run cleanly |
 | Browser | 163: 50/50 · 164: 34/34 · 165: 20/20 · 166: 16/16 · earlier 162: 25/25 |
