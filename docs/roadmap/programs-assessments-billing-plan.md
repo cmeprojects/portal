@@ -121,8 +121,8 @@ an append-only ledger stay traceable (4B); Billing permissions are separate from
 balance goes through a controlled, approved step (4B); billing terms approval is separate from care plan and
 funding approval.
 4A (update 161), BUILT, waiting for the owner to preview and run it on Dev: "Billing" access part (view,
-prepare, approve, prices, export; default managers), scheme rules and verification register, versioned price
-lists with their own rate bands, rounding, minimum and band-crossing rule, public holidays by state, client
+prepare, approve, prices, export; default System Administrator and Manager Administrators only), scheme rules and verification register, versioned price
+lists with their own rate bands (additions, edits and removals of draft prices and bands in the change log), rounding, minimum and band-crossing rule, public holidays by state, client
 contribution rates (dated), billing terms for approved services (dated versions linked to the enrolment,
 funding record, agreement, price list and support plan line; approved by Billing approve, not the preparer),
 cancellation details (charge decided by Billing approve, with a reason). Nothing is calculated or billed.

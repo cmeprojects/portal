@@ -1,9 +1,9 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { canBill } from "@/lib/billing-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
-import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { BandForm, ItemForm, RemovePart, VersionButtons, VersionSettings, type Version } from "../../forms";
@@ -19,7 +19,7 @@ const aud = (n: number) => Number(n).toLocaleString("en-AU", { style: "currency"
 // published and retired versions are shown as they are (they never change).
 export default async function PriceListPage({ params, searchParams }: PageProps<"/settings/billing/prices/[id]">) {
   await requireSession();
-  if (!(await canDo("clients.billing", "view"))) notFound();
+  if (!(await canBill("view"))) notFound();
   const { id } = await params;
   const sp = await searchParams;
   const supabase = await createClient();
@@ -28,7 +28,7 @@ export default async function PriceListPage({ params, searchParams }: PageProps<
     supabase.from("price_list_versions").select("id, version, status, effective_from, unit_minutes, rounding, minimum_minutes, crossing, notes, published_by, published_at").eq("price_list_id", id).order("version", { ascending: false }),
     supabase.from("service_catalogue").select("id, name").eq("active", true).order("name"),
     supabase.from("client_schemes").select("key, label"),
-    canDo("clients.billing", "prices"),
+    canBill("prices"),
   ]);
   if (!list) notFound();
   const versions = (verRows ?? []) as (Version & { published_by: string | null; published_at: string | null })[];

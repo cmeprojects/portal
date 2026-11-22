@@ -1,9 +1,9 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { canBill } from "@/lib/billing-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
-import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { HolidayForm, HolidayToggle, NewPriceListForm, SchemeRuleCard, type SchemeRule } from "./forms";
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Billing set-up" };
 // holidays by state. Nothing is billed from here.
 export default async function BillingSetupPage() {
   await requireSession();
-  if (!(await canDo("clients.billing", "view"))) notFound();
+  if (!(await canBill("view"))) notFound();
   const supabase = await createClient();
   const [rulesRes, checksRes, schemesRes, listsRes, versRes, holRes, canPrices, canApprove] = await Promise.all([
     supabase.from("billing_scheme_rules").select("scheme, status, rules_summary, source, as_at, confirmed_by, confirmed_at"),
@@ -24,8 +24,8 @@ export default async function BillingSetupPage() {
     supabase.from("price_lists").select("id, scheme, name, description, active").order("name"),
     supabase.from("price_list_versions").select("id, price_list_id, version, status, effective_from"),
     supabase.from("public_holidays").select("id, state, on_date, name, active").order("on_date", { ascending: false }).limit(200),
-    canDo("clients.billing", "prices"),
-    canDo("clients.billing", "approve"),
+    canBill("prices"),
+    canBill("approve"),
   ]);
   if (rulesRes.error) return <Card className="p-5 text-sm text-muted">Billing set-up isn&apos;t in place yet (update 161).</Card>;
   const schemes = ((schemesRes.data ?? []) as { key: string; label: string }[]).map((s) => [s.key, s.label] as [string, string]);

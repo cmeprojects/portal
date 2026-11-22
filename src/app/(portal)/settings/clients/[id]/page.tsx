@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { canBill } from "@/lib/billing-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -277,9 +278,9 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     supabase.from("client_service_terms").select("*").eq("client_id", id).order("version", { ascending: false }),
     supabase.from("price_lists").select("id, scheme, name, active").eq("active", true).order("name"),
     supabase.from("client_contribution_rates").select("id, enrolment_id, category, rate_pct, contribution_group, effective_from, effective_to, source").eq("client_id", id).order("effective_from", { ascending: false }),
-    canDoFor("clients.billing", "view", id),
-    canDoFor("clients.billing", "prepare", id),
-    canDoFor("clients.billing", "approve", id),
+    canBill("view", id),
+    canBill("prepare", id),
+    canBill("approve", id),
   ]);
   const billingOn = !termsRes.error && billView;
   const allTerms = (termsRes.data ?? []) as TermsRow[];

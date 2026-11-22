@@ -41,7 +41,20 @@ reset role;
 
 -- 1. Access: Billing is its own part, separate from Funding.
 select test.ok((select actions = '{view,prepare,approve,prices,export}' from public.app_modules where id = 'clients.billing'), 'Billing has view, prepare, approve, prices and export');
-select test.ok(test.n('boss@example.com', 'public.billing_can(''approve'')::int') = 1 and test.n('boss2@example.com', 'public.billing_can(''prices'')::int') = 1, 'managers have every Billing action by default');
+select test.ok(test.n('owner@example.com', 'public.billing_can(''approve'')::int') = 1 and test.n('owner@example.com', 'public.billing_can(''export'')::int') = 1, 'the System Administrator has every Billing action');
+select test.ok(test.n('boss@example.com', '(public.billing_can(''view'')::int + public.billing_can(''prepare'')::int + public.billing_can(''approve'')::int + public.billing_can(''prices'')::int + public.billing_can(''export'')::int)') = 5, 'a Manager Administrator has every Billing action by default');
+select test.ok(test.n('boss2@example.com', 'public.billing_can(''view'')::int') = 0, 'another manager has no Billing by default');
+select test.ok((select count(*) from public.access_baselines where module_id = 'clients.billing' and revoked_at is null) = 0, 'no Billing default for any access level, job title or group');
+-- A restriction on the Access page still applies to a Manager Administrator.
+insert into public.access_grants (module_id, user_id, granted_by, effect, actions) values ('clients.billing', test.pid('boss@example.com'), test.pid('owner@example.com'), 'restrict', '{approve}');
+select test.ok(test.n('boss@example.com', 'public.billing_can(''approve'')::int') = 0 and test.n('boss@example.com', 'public.billing_can(''view'')::int') = 1, 'a restriction on the Access page overrides the Manager Administrator default (only for the restricted action)');
+update public.access_grants set revoked_at = now() where module_id = 'clients.billing' and user_id = test.pid('boss@example.com');
+-- Another manager is given Billing on the Access page (by job title).
+insert into public.job_titles (name, access_level) values ('Finance Manager', 'manager');
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Finance Manager') where email = 'boss2@example.com';
+insert into public.access_baselines (job_title_id, module_id, actions, scope, effect, note, by_system_admin)
+select id, 'clients.billing', '{}', 'all', 'allow', 'Test: Finance Manager has Billing', true from public.job_titles where name = 'Finance Manager';
+select test.ok(test.n('boss2@example.com', 'public.billing_can(''approve'')::int') = 1, 'another manager given Billing on the Access page (job title) has it');
 select test.ok(test.n('cm@example.com', 'public.billing_can(''view'', test.cid(''Zara''))::int') = 0, 'a Case Manager (who can change funding) has no Billing access');
 select test.ok(test.n('io@example.com', 'public.billing_can(''view'')::int') = 0 and test.n('io@example.com', 'public.can(''clients.funding'', ''edit'', test.cid(''Zara''))::int') = 1, 'Funding rights don''t give Billing');
 select test.ok(test.n('sam@example.com', '(select count(*) from public.price_lists) + (select count(*) from public.billing_scheme_rules)') = 0, 'a support worker sees no billing set-up');
@@ -90,6 +103,13 @@ select test.refused($$delete from public.price_list_versions where id = test.ver
 select public.price_list_new_version((select id from public.price_lists where name = 'Standard'));
 select test.refused($$select public.price_list_new_version((select id from public.price_lists where name = 'Standard'))$$, 'one draft at a time');
 update public.price_items set price = 84 where version_id = test.ver(2);
+-- Draft changes are in the change log: additions, edits and removals of bands and prices.
+insert into public.price_list_bands (version_id, key, label, day_kind) values (test.ver(2), 'tmp_sun', 'Temporary', 'sunday');
+update public.price_list_bands set label = 'Temporary band' where version_id = test.ver(2) and key = 'tmp_sun';
+delete from public.price_list_bands where version_id = test.ver(2) and key = 'tmp_sun';
+insert into public.price_items (version_id, label, band_key, price, sah_category) values (test.ver(2), 'Gardening', 'sat', 95, 'everyday_living');
+update public.price_items set price = 96 where version_id = test.ver(2) and label = 'Gardening';
+delete from public.price_items where version_id = test.ver(2) and label = 'Gardening';
 select test.refused($$update public.price_list_versions set status = 'published', effective_from = '2026-07-01' where id = test.ver(2)$$, 'a new version takes effect after the one it replaces');
 update public.price_list_versions set status = 'published', effective_from = '2027-01-01' where id = test.ver(2);
 reset role;
@@ -97,6 +117,16 @@ select test.ok((select count(*) from public.price_list_bands where version_id = 
 select test.ok((select status from public.price_list_versions where id = test.ver(1)) = 'retired' and (select price from public.price_items where version_id = test.ver(1)) = 80, 'publishing retires the old version, which keeps its prices');
 select test.ok((select unit_minutes = 15 and rounding = 'up' and minimum_minutes = 60 and crossing = 'split' from public.price_list_versions where id = test.ver(2)), 'rounding, minimum and boundary rule are kept with the version');
 select test.ok((select count(*) from public.audit_log where entity in ('price_list_version', 'price_item', 'price_list_band')) >= 5, 'price changes are in the change log');
+select test.ok((select count(*) from public.audit_log where action = 'added_price_list_band' and details ->> 'key' = 'tmp_sun') = 1
+           and (select count(*) from public.audit_log where action = 'changed_price_list_band' and details -> 'after' ->> 'label' = 'Temporary band') = 1
+           and (select count(*) from public.audit_log where action = 'removed_price_list_band' and details ->> 'key' = 'tmp_sun') = 1,
+  'a draft rate band''s addition, edit and removal are each in the change log');
+select test.ok((select count(*) from public.audit_log where action = 'added_price_item' and details ->> 'label' = 'Gardening') = 1
+           and (select count(*) from public.audit_log where action = 'changed_price_item' and details -> 'after' ->> 'price' = '96.00') = 1
+           and (select count(*) from public.audit_log where action = 'removed_price_item' and details ->> 'label' = 'Gardening' and details ->> 'price' = '96.00') = 1,
+  'a draft price''s addition, edit and removal are each in the change log');
+select test.ok((select string_agg(details ->> 'label', ',') from public.audit_log where action = 'removed_price_item' and details ->> 'version_id' = test.ver(1)::text) = 'No category',
+  'version 1 only lost a price while it was a draft; nothing was removed once published');
 select test.act_as('cm@example.com');
 set role authenticated;
 select test.refused($$insert into public.price_lists (scheme, name) values ('ndis', 'Mine')$$, 'a Case Manager can''t make price lists');

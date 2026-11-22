@@ -5,7 +5,8 @@
 -- prices, public holidays, scheme rules and checks, contribution rates, billing terms,
 -- cancellation details). Change-log entries stay. Undo does NOT restore anything later;
 -- bringing records back is a separate, manual decision.
--- Then the new tables, rules and the "Billing" access part are removed (the part is
+-- Then the new tables, rules and the "Billing" access part are removed, and the
+-- change log function goes back to how it was (it no longer records removals) (the part is
 -- kept as retired if anyone was given it on the Access page). Nothing that existed
 -- before update 161 is changed: services, shifts, funding, agreements and enrolments
 -- stay exactly as they are.
@@ -58,6 +59,22 @@ drop function if exists public.guard_service_terms();
 drop function if exists public.guard_shift_cancellation();
 drop function if exists public.stamp_billing_updated();
 drop function if exists public.billing_can(text, uuid);
+
+-- The change log function as it was before update 161 (additions and changes only).
+create or replace function public.log_car_setup()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  perform public.write_audit(
+    case when tg_op = 'INSERT' then 'added' else 'changed' end || '_' || tg_argv[0],
+    tg_argv[0], new.id::text,
+    case when tg_op = 'INSERT' then to_jsonb(new) else jsonb_build_object('before', to_jsonb(old), 'after', to_jsonb(new)) end);
+  return new;
+end;
+$function$;
 
 update public.access_baselines set revoked_at = now() where module_id = 'clients.billing' and revoked_at is null;
 update public.app_modules set status = 'retired' where id in ('clients.billing', 'system.settings.billing')

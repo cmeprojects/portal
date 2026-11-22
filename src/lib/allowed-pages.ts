@@ -1,10 +1,11 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { canBill } from "@/lib/billing-access";
 import "server-only";
 import { cache } from "react";
 import { requireSession } from "@/lib/session";
 import { getNavAccess } from "@/lib/nav-access";
 import { navFor, sectionTabs } from "@/components/nav";
-import { canDo, seesExpiryFor } from "@/lib/module-access";
+import { seesExpiryFor } from "@/lib/module-access";
 import { managesPrograms, seesDownloads } from "@/lib/programs-access";
 
 // cmeprojects: the pages this person can open, from the existing menu and
@@ -31,7 +32,7 @@ export const getAllowedPages = cache(async () => {
     allowed.add("/settings/assessments"); // update 159: assessment templates, same people
   }
   // cmeprojects (update 161): billing set-up, for people with the Billing part.
-  if (await canDo("clients.billing", "view")) {
+  if (await canBill("view")) {
     allowed.add("/billing");
     allowed.add("/settings/billing");
   }

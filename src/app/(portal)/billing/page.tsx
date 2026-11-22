@@ -1,9 +1,9 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { canBill } from "@/lib/billing-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
-import { canDo } from "@/lib/module-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
 import { mondayOf, sydneyParts } from "@/lib/sydney-time";
@@ -27,7 +27,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
 // What each person sees follows their Billing reach (the database decides).
 export default async function BillingPage() {
   const { profile } = await requireSession();
-  if (!(await canDo("clients.billing", "view"))) notFound();
+  if (!(await canBill("view"))) notFound();
   const supabase = await createClient();
   const [rulesRes, checksRes, listsRes, termsRes, svcRes, cancRes, cdRes, canApprove, canPrepare] = await Promise.all([
     supabase.from("billing_scheme_rules").select("scheme, status"),
@@ -37,8 +37,8 @@ export default async function BillingPage() {
     supabase.from("client_services").select("id, client_id, label, status, end_date, program_id").neq("status", "ended"),
     supabase.from("shifts").select("id, client_id, service_id, starts_at").eq("status", "cancelled").not("client_id", "is", null).order("starts_at", { ascending: false }).limit(300),
     supabase.from("shift_cancellations").select("shift_id, notified_at, cancelled_by, reason, reasonable_grounds, charge, charge_note, decided_by, decided_at"),
-    canDo("clients.billing", "approve"),
-    canDo("clients.billing", "prepare"),
+    canBill("approve"),
+    canBill("prepare"),
   ]);
   if (rulesRes.error) return <Card className="p-5 text-sm text-muted">Billing isn&apos;t set up yet (update 161).</Card>;
 

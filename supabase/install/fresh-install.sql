@@ -32379,10 +32379,12 @@ begin
 -- assessments and billing plan, approved 21 Nov 2026). Set-up only: nothing
 -- here calculates or bills anything (billing lines come in Phase 4B).
 --   * "Billing" access part, separate from Funding: view, prepare, approve,
---     prices, export. Default: managers (owner to confirm).
+--     prices, export. Default: System Administrator and Manager Administrators only.
 --   * Scheme billing rules and a verification register: every scheme starts
 --     "not confirmed"; calculations for it stay off until its rules are
 --     confirmed (and, where listed, its figures verified with an "as at" date).
+--   * The change log records additions, edits and removals of draft prices and
+--     rate bands (the existing log_car_setup now also records removals).
 --   * Price lists per scheme, versioned (a published version never changes; a
 --     new version is a copy), each with its own rate bands (independent of
 --     payroll), rounding rule, minimum and boundary-crossing rule.
@@ -32402,14 +32404,22 @@ insert into public.app_modules (id, parent_id, category, label, sensitivity, del
   ('system.settings.billing', 'system.settings', 'system', 'Billing set-up', 'normal', false, 1129, '{view}', false)
 on conflict (id) do nothing;
 update public.app_modules set status = 'active' where id in ('clients.billing', 'system.settings.billing') and status = 'retired';
-insert into public.access_baselines (access_level, module_id, actions, scope, effect, note, by_system_admin)
-select 'manager', 'clients.billing', '{}', 'all', 'allow', 'Billing default: managers, every action (owner to confirm)', true
- where not exists (select 1 from public.access_baselines x where x.module_id = 'clients.billing' and x.revoked_at is null);
-
--- Billing reach for a client (all clients, or assigned clients), and for set-up.
+-- Defaults (owner, 22 Nov 2026): the System Administrator and Manager
+-- Administrators have every Billing action; nobody else has any by default
+-- (other managers, Case Managers, Intake, Payroll & Rostering, support workers).
+-- More people are given Billing on the Access page (for example by job title).
+-- A "restrict" set on the Access page still applies to a Manager Administrator.
 create or replace function public.billing_can(p_action text, p_client uuid default null) returns boolean
 language sql stable set search_path = '' as $$
-  select public.care_doc_reach('clients.billing', p_action, p_client)
+  select case
+    when public.is_system_admin() and public.mfa_ok() then true
+    when public.is_manager_admin(auth.uid()) and public.mfa_ok()
+         and not exists (select 1 from public.access_grants g
+                          where g.user_id = auth.uid() and g.module_id = 'clients.billing' and g.effect = 'restrict' and g.revoked_at is null
+                            and (g.expires_at is null or g.expires_at > now()) and (g.starts_at is null or g.starts_at <= now())
+                            and (cardinality(g.actions) = 0 or p_action = any (g.actions))) then true
+    else public.care_doc_reach('clients.billing', p_action, p_client)
+  end
 $$;
 
 -- 2. Scheme rules and the verification register.
@@ -33089,6 +33099,23 @@ begin
   revoke all on public.shift_cancellations from anon;
 end $$;
 
+-- The change log also records removals (draft prices, bands and versions).
+-- Same function as before for additions and changes; removals are new.
+create or replace function public.log_car_setup() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op = 'DELETE' then
+    perform public.write_audit('removed_' || tg_argv[0], tg_argv[0], old.id::text, to_jsonb(old));
+    return old;
+  end if;
+  perform public.write_audit(
+    case when tg_op = 'INSERT' then 'added' else 'changed' end || '_' || tg_argv[0],
+    tg_argv[0], new.id::text,
+    case when tg_op = 'INSERT' then to_jsonb(new) else jsonb_build_object('before', to_jsonb(old), 'after', to_jsonb(new)) end);
+  return new;
+end;
+$$;
+
 -- Who changed set-up records last, and when.
 create or replace function public.stamp_billing_updated() returns trigger
 language plpgsql set search_path = '' as $$
@@ -33130,7 +33157,7 @@ begin
   foreach t in array array['billing_scheme_rules:billing_scheme_rule', 'billing_rule_checks:billing_rule_check', 'price_lists:price_list', 'price_list_versions:price_list_version',
                            'price_list_bands:price_list_band', 'price_items:price_item', 'public_holidays:public_holiday'] loop
     execute format('drop trigger if exists log_billing_setup on public.%I', split_part(t, ':', 1));
-    execute format('create trigger log_billing_setup after insert or update on public.%I for each row execute function public.log_car_setup(%L)', split_part(t, ':', 1), split_part(t, ':', 2));
+    execute format('create trigger log_billing_setup after insert or update or delete on public.%I for each row execute function public.log_car_setup(%L)', split_part(t, ':', 1), split_part(t, ':', 2));
     execute format('drop trigger if exists stamp_billing_setup on public.%I', split_part(t, ':', 1));
     execute format('create trigger stamp_billing_setup before insert or update on public.%I for each row execute function public.stamp_billing_updated()', split_part(t, ':', 1));
   end loop;

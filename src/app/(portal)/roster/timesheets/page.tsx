@@ -1,4 +1,5 @@
 // Staff Portal · © cmeproject. All rights reserved.
+import { canBill } from "@/lib/billing-access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -68,7 +69,7 @@ export default async function TimesheetsPage({ searchParams }: PageProps<"/roste
   const [cancelledRes, cdRes, canDecide] = await Promise.all([
     supabase.from("shifts").select("id, worker_id, starts_at, ends_at, client_id, service_id").eq("status", "cancelled").not("client_id", "is", null).gte("starts_at", sydneyInstant(monday)).lt("starts_at", sydneyInstant(addDays(monday, 7))).order("starts_at"),
     supabase.from("shift_cancellations").select("shift_id, notified_at, cancelled_by, reason, reasonable_grounds, charge, charge_note, decided_by, decided_at"),
-    canDo("clients.billing", "approve"),
+    canBill("approve"),
   ]);
   const cancelled = cdRes.error ? [] : ((cancelledRes.data ?? []) as (Omit<Shift, "worker_id" | "break_minutes"> & { worker_id: string | null })[]);
   const details = new Map(((cdRes.data ?? []) as (Omit<Cancellation, "decided"> & { shift_id: string; decided_by: string | null; decided_at: string | null })[]).map((c) => [c.shift_id, c]));

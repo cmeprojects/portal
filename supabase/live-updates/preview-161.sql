@@ -19,10 +19,17 @@ union all
 select 2, 'LEFT AS THEY ARE', 'Clients with a Support at Home program (contribution rates can now be recorded)',
        (select count(distinct client_id) from public.client_enrolments where scheme = 'support_at_home' and status <> 'ended')::text
 union all
-select 3, 'WILL GET "BILLING" (DEFAULT)', 'Managers (every Billing action)',
-       (select count(*) from public.profiles where role = 'manager' and active)::text || ' active managers'
+select 3, 'WILL GET "BILLING" (DEFAULT)', 'System Administrator (every Billing action)',
+       (select count(*) from public.profiles where role = 'system_admin' and active)::text || ' active'
 union all
-select 3, 'WILL GET "BILLING" (DEFAULT)', 'Anyone else', 'no one (Case Managers, Intake, Payroll & Rostering and others get nothing; Funding rights don''t give Billing)'
+select 3, 'WILL GET "BILLING" (DEFAULT)', 'Manager Administrators (every Billing action)',
+       (select count(*) from public.profiles p where p.role = 'manager' and p.active and public.is_manager_admin(p.id))::text || ' active: '
+       || coalesce((select string_agg(coalesce(nullif(p.full_name, ''), p.email), ', ' order by p.full_name) from public.profiles p where p.role = 'manager' and p.active and public.is_manager_admin(p.id)), 'none')
+union all
+select 3, 'NO DEFAULT BILLING', 'Other managers',
+       (select count(*) from public.profiles p where p.role = 'manager' and p.active and not public.is_manager_admin(p.id))::text || ' active (can be given Billing on the Access page)'
+union all
+select 3, 'NO DEFAULT BILLING', 'Everyone else', 'Case Managers, Intake & Assessment Officers, Payroll & Rostering, support workers and others (Funding rights don''t give Billing)'
 union all
 select 4, 'WILL BE ADDED', 'Scheme billing rules', (select string_agg(label, ', ' order by sort_order) from public.client_schemes) || ': all "not confirmed" (billing stays off for them)'
 union all
