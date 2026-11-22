@@ -27,6 +27,26 @@ Update 159 gave "Assessments" the same access as care plans (owner's Option A): 
 Officers can view assessments for all clients but not start or change them. If the workflow needs it,
 give them edit on "Assessments" on the Access page (no code change).
 
+## LATER: rostering improvements from a reference screenshot (owner, 22 Nov 2026)
+
+Not now. The owner shared a screenshot of another product's weekly schedule as ideas for our
+roster. Build them in our own design (no copying of another product's look or wording), after
+checking each against what the roster already does, and only once the owner asks for it.
+- Week view by worker: each row shows the worker's phone, suburb, employment type, hours
+  rostered this week, hours available, and a warning for unscheduled (contracted but not yet
+  rostered) hours; "See breakdown" of their week.
+- Shift cards: client, time and length, service; breaks shown as their own small blocks;
+  leave (for example Annual Leave) shown greyed across the days it covers.
+- Hover card on a shift: client, address (suburb, state, postcode), date, time and length.
+- Menu on a shift: view details, duplicate, edit times, repeat, delete, and "auto-wrap visits"
+  (fit back-to-back visits into one worker's block; to define).
+- Menu on an empty day: add a one-off visit, add a recurring visit, add a shift, add a break,
+  other items.
+- Top bar: search by worker, filters, "sort by best match" (likely worker suitability for the
+  client: availability, distance, skills, continuity), view options, today and week arrows.
+- Ties in with Phase 6 (rostering picks the approved service and checks program, terms and
+  funding) and the budget guard.
+
 ## LATER: address auto-complete (owner, 19 Nov 2026)
 
 The owner wants every address (clients, houses, staff, contacts) to auto-complete and fill the
