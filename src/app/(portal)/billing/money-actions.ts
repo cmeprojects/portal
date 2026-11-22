@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { creditNotePdf, receiptPdf } from "@/lib/billing-pdf";
+import { loadDocTheme, recordDocIssue } from "@/lib/document-theme";
 
 // cmeprojects (update 164): claim results, payments, receipts, credit notes, refunds,
 // write-offs and bank reconciliation. The database decides who may do each step (payments,
@@ -98,8 +99,10 @@ async function makeReceipt(paymentId: string) {
     p.client_id ? supabase.from("car_clients").select("name, client_ref").eq("id", p.client_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("payment_allocations").select("amount, invoices(number)").eq("payment_id", paymentId),
   ]);
-  const pdf = await receiptPdf({ ...p, business: biz ?? {}, payer: payer ?? {}, client: client ?? null, allocations: ((allocs ?? []) as { amount: number; invoices: { number: string } | { number: string }[] | null }[]).map((a) => ({ amount: a.amount, invoice: (Array.isArray(a.invoices) ? a.invoices[0] : a.invoices)?.number ?? "" })) });
+  const { theme, templateId } = await loadDocTheme(supabase, "receipt");
+  const pdf = await receiptPdf({ ...p, business: biz ?? {}, payer: payer ?? {}, client: client ?? null, allocations: ((allocs ?? []) as { amount: number; invoices: { number: string } | { number: string }[] | null }[]).map((a) => ({ amount: a.amount, invoice: (Array.isArray(a.invoices) ? a.invoices[0] : a.invoices)?.number ?? "" })) }, theme);
   await supabase.from("payments").update({ receipt_pdf_base64: Buffer.from(pdf.bytes).toString("base64"), receipt_pdf_checksum: pdf.checksum }).eq("id", paymentId).is("receipt_pdf_base64", null);
+  await recordDocIssue(supabase, "receipt", paymentId, templateId, pdf.checksum);
 }
 
 export async function allocate(paymentId: string, rows: { kind: "invoice" | "claim_item"; id: string; amount: string }[]): Promise<FormState> {
@@ -175,8 +178,10 @@ export async function creditNoteStep(id: string, invoiceId: string, step: "appro
   if (step === "issued") {
     const { data: n } = await supabase.from("credit_notes").select("number, issue_date, amount, gst, snapshot").eq("id", id).single();
     if (n) {
-      const pdf = await creditNotePdf(n as Parameters<typeof creditNotePdf>[0]);
+      const { theme, templateId } = await loadDocTheme(supabase, "credit_note");
+      const pdf = await creditNotePdf(n as Parameters<typeof creditNotePdf>[0], theme);
       await supabase.from("credit_notes").update({ pdf_base64: Buffer.from(pdf.bytes).toString("base64"), pdf_checksum: pdf.checksum }).eq("id", id).is("pdf_base64", null);
+      await recordDocIssue(supabase, "credit_note", id, templateId, pdf.checksum);
     }
   }
   done(`/billing/invoices/${invoiceId}`);

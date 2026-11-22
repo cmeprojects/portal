@@ -8,6 +8,7 @@ import { friendlyError } from "@/lib/db-error";
 import { EMAIL, type FormState } from "@/lib/form";
 import { buildClaimFile } from "@/lib/claim-file";
 import { invoicePdf, statementPdf } from "@/lib/billing-pdf";
+import { loadDocTheme, recordDocIssue } from "@/lib/document-theme";
 import { checkPhone } from "@/lib/phone";
 import { abnValid } from "@/lib/abn";
 
@@ -159,8 +160,17 @@ export async function issueInvoice(id: string): Promise<FormState> {
   if (r) return r;
   const { data: inv } = await supabase.from("invoices").select("number, tax_invoice, issue_date, due_date, period_from, period_to, subtotal, gst, total, kind, snapshot").eq("id", id).single();
   if (inv) {
-    const pdf = await invoicePdf(inv as Parameters<typeof invoicePdf>[0]);
+    // Update 168: the invoice template, logo and theme; each line's service code.
+    const { theme, templateId } = await loadDocTheme(supabase, "invoice");
+    const { data: its } = await supabase.from("invoice_items").select("service_date, description, line_id, billing_lines(price_item_id, price_items(service_catalogue(code)))").eq("invoice_id", id).eq("status", "live");
+    const codes: Record<string, string> = {};
+    for (const it of (its ?? []) as unknown as { service_date: string; description: string; billing_lines: { price_items: { service_catalogue: { code: string | null } | null } | null } | null }[]) {
+      const code = it.billing_lines?.price_items?.service_catalogue?.code;
+      if (code) codes[`${it.service_date}|${it.description}`] = code;
+    }
+    const pdf = await invoicePdf(inv as Parameters<typeof invoicePdf>[0], theme, codes);
     await supabase.from("invoices").update({ pdf_base64: Buffer.from(pdf.bytes).toString("base64"), pdf_checksum: pdf.checksum }).eq("id", id).is("pdf_base64", null);
+    await recordDocIssue(supabase, "invoice", id, templateId, pdf.checksum);
   }
   done(`/billing/invoices/${id}`);
   return { message: `Issued as ${inv?.number ?? "a numbered invoice"}. Download the PDF, send it, then mark it sent.` };
@@ -203,8 +213,10 @@ export async function issueStatement(clientId: string, enrolmentId: string, mont
   const supabase = await createClient();
   const { data, error } = await supabase.from("client_statements").insert({ client_id: clientId, enrolment_id: enrolmentId, month: `${month}-01` }).select("id, month, snapshot").single();
   if (error) return { error: friendlyError(error) };
-  const pdf = await statementPdf({ month: data.month, snapshot: data.snapshot });
+  const { theme, templateId } = await loadDocTheme(supabase, "statement");
+  const pdf = await statementPdf({ month: data.month, snapshot: data.snapshot }, theme);
   await supabase.from("client_statements").update({ pdf_base64: Buffer.from(pdf.bytes).toString("base64"), pdf_checksum: pdf.checksum }).eq("id", data.id).is("pdf_base64", null);
+  await recordDocIssue(supabase, "statement", data.id, templateId, pdf.checksum);
   done();
   return { message: "Statement issued. Download the PDF from the list." };
 }

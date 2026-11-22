@@ -11,6 +11,7 @@ import { FigureRow } from "../../billing/forms";
 import { BusinessForm, CatalogueImport, CatalogueRow, ReviewRow, TemplateRow, TemplateUpload } from "./compliance-forms";
 import { businessForForm } from "@/lib/business";
 import { MarkupRuleForm } from "../../billing/supplier-forms";
+import { TemplateForm, type TemplateSettings } from "./template-forms";
 
 export const metadata: Metadata = { title: "Billing set-up" };
 
@@ -184,6 +185,7 @@ async function ComplianceSections() {
       </Card>
       <MarkupRules canPrices={canPrices} />
       <NotPriced />
+      <DocumentTemplates canEdit={canPrices || canApprove} />
       <Card className="flex flex-col gap-3 p-4">
         <div>
           <h2 className="heading-sm">NDIS Support Catalogue</h2>
@@ -244,6 +246,39 @@ async function NotPriced() {
           </div>
         );
       }) : <p className="text-sm text-muted">Every service is priced.</p>}
+    </Card>
+  );
+}
+
+// cmeprojects (update 168): document templates (invoice, statement, receipt, credit note).
+async function DocumentTemplates({ canEdit }: { canEdit: boolean }) {
+  const supabase = await createClient();
+  const [{ data, error }, { data: brand }] = await Promise.all([
+    supabase.from("document_templates").select("kind, version, settings").order("version", { ascending: false }),
+    supabase.from("app_settings").select("key, value").in("key", ["brand.color_primary", "brand.color_accent"]),
+  ]);
+  if (error) return null;
+  const get = (k: string) => String(((brand ?? []) as { key: string; value: unknown }[]).find((b) => b.key === k)?.value ?? "");
+  const theme = { primary: get("brand.color_primary") || "#134F8E", accent: get("brand.color_accent") || "#6497C8" };
+  const KINDS: [string, string][] = [["statement", "Monthly statement"], ["invoice", "Invoice"], ["receipt", "Receipt"], ["credit_note", "Credit note"]];
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <div>
+        <h2 className="heading-sm">Document templates</h2>
+        <p className="text-sm text-muted">How statements, invoices, receipts and credit notes look: the portal&apos;s logo and colours (or your own), the layout, which sections show, and your header, footer and payment text. Each save is a new version; issued documents keep the version they were made with.</p>
+      </div>
+      {KINDS.map(([k, l]) => {
+        const row = ((data ?? []) as { kind: string; version: number; settings: Record<string, unknown> }[]).find((r) => r.kind === k);
+        const st = (row?.settings ?? {}) as Record<string, unknown>;
+        const initial: TemplateSettings = { layout: String(st.layout ?? "full"), logo_position: String(st.logo_position ?? "left"), colour_source: String(st.colour_source ?? "theme"), primary: String(st.primary ?? ""), accent: String(st.accent ?? ""),
+          sections: (st.sections ?? {}) as Record<string, boolean>, header_note: String(st.header_note ?? ""), footer_text: String(st.footer_text ?? ""), payment_note: String(st.payment_note ?? "") };
+        return (
+          <details key={k} className="rounded-md border border-line px-3 py-2">
+            <summary className="cursor-pointer text-sm font-semibold text-brand">{l} <span className="text-xs font-normal text-muted">version {row?.version ?? 1}</span></summary>
+            <div className="mt-2"><TemplateForm kind={k} initial={initial} version={row?.version ?? 1} theme={theme} canEdit={canEdit} /></div>
+          </details>
+        );
+      })}
     </Card>
   );
 }
