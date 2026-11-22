@@ -39,17 +39,18 @@ confirm in the Phase 5 plan). Every change goes in the change log, and issued cl
 invoices keep the details as they were when issued. Existing portals that skipped the step
 are asked to fill them in before the first claim or invoice.
 
-## LATER: direct claim submission to NDIS and Support at Home (owner, 22 Nov 2026)
+## LATER: direct claim submission to NDIS and Support at Home (owner, 22 Nov 2026; D-066)
 
-Not now. There is no API link to the NDIA (myplace / my NDIS provider portal) or to Services
-Australia (Aged Care Provider Portal / B2G). In Phase 5, submitting claims is MANUAL and
-mandatory: the portal prepares the claim file, a person uploads it in the official portal
-themselves, then records the submission in the portal (date, who, external reference, the file
-kept), and later records or imports the result. Later, an optional "direct submission" setting
-can be added per program once the organisation has the API access, credentials and approval
-(including PRODA/myID and RAM for NDIS, and the Services Australia B2G registration). It must keep
-the same records (file, who, when, reference, acknowledgement, results) and the manual way must
-stay available.
+Not in Phase 5. Manual government claim submission is mandatory: the portal prepares and
+validates the claim file in the verified official format, an authorised person downloads it,
+uploads it in the official government portal, and records the submission in the portal (who,
+date and time, channel, external reference, acknowledgement). Only that record marks a claim
+Submitted; generating or downloading a file never does.
+Future optional integration with the Services Australia and NDIA APIs, for direct claim
+submission and retrieving claim results where officially supported. Needs a separate technical
+assessment, approval, access credentials (for example PRODA/myID and RAM, Services Australia B2G
+registration) and its own implementation plan. Manual submission must remain available as a
+fallback, with the same records kept.
 
 ## LATER: rostering improvements from a reference screenshot (owner, 22 Nov 2026)
 

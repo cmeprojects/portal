@@ -152,15 +152,36 @@ opening balance, allocations, charges, contributions, claims, payments, adjustme
 overwritten balance. Billing lines from delivered services. Billing permission. Financial audit
 (prices, rates, contributions, budgets, lines, approvals, exports).
 
-**Phase 5: claims and invoices.** Program-specific claim workflows, invoices, suppliers and markup
-rules, AT-HM accounts, payments and receipts, reconciliation, financial reports.
-Owner (22 Nov 2026): no direct upload to the NDIA or Services Australia. Claims are prepared as files,
-uploaded manually by a person in the official portal and recorded in the portal; a direct (API)
-submission option may be set up later (TODO).
-Owner (22 Nov 2026): the company's business details (legal and trading name, ABN, business address,
-contact details, GST registration, NDIS and Services Australia provider details, payment details,
-invoice numbering and terms) are entered in the portal setup wizard, and can be updated later in
-Portal settings (with every change in the change log; issued documents keep the details as they were).
+**Phase 5: claims, invoices, payments. Plan approved in principle 22 Nov 2026 (D-066); final plan
+waiting for approval. Built one stage at a time (preview, deployment, tests, approval each).**
+- 5A Claims and client invoices, with the NDIS catalogue foundation and price-limit validation;
+  business details (setup wizard and Portal settings) and payers; claim lines locked once claimed
+  or invoiced (an additive rule, Phase 4 not reopened).
+- 5B Claim results (partial acceptance and rejection tracked separately), payments, receipts,
+  credit notes, adjustments, refunds, write-offs (threshold $500, second approver above it),
+  reconciliation.
+- 5C Supplier invoices (costs kept apart from client revenue; never create a client charge by
+  themselves), markup, AT-HM, Restorative Care and End-of-Life pathways, unspent HCP funds.
+- 5D Consolidated financial reporting and cross-module integration (each stage brings its own
+  operational reports first).
+Rules: no double recovery (checked at billing line, payer and amount); multiple batches,
+amendments and replacements linked to their originals; accepted amounts never resubmitted;
+Support at Home full value, client contribution, government amount, claim amount and actual
+payment kept distinct; NDIS pricing zone from the service delivery location and the pricing
+version, kept in the snapshot; snapshots of prices, funding, client, payer and business details
+and issued documents; duplicate checks on claims, invoices and imports; ordinary invoices vs tax
+invoices from the verified GST status and line GST codes (accountant verification required);
+separate permissions for prepare, approve, submit (claims and invoices), payments, reconcile,
+refund and write-off; preparer differs from approver; approver may also submit with the submit
+right. Both Support at Home and NDIS designed; neither enabled for real claims until its rules
+and official formats are verified by the owner's nominee. PDF invoices downloaded or printed and
+marked issued or sent; email later.
+Manual government claim submission is mandatory (D-066): the portal prepares and validates the
+file in the verified official format; an authorised person downloads it, uploads it in the
+official portal, and records the submission (who, date and time, channel, external reference,
+acknowledgement); only that record makes a claim "Submitted"; generating or downloading never
+does. No direct API submission or automatic portal integration in Phase 5 (TODO: future optional
+integration).
 
 **Phase 6: tie it together.** Rostering picks the client's approved service and checks program and
 funding; delivered shifts (not rostered ones) become billing lines after checks; budget checks
