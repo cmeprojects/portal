@@ -6,9 +6,10 @@ import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
-import { mondayOf, sydneyParts } from "@/lib/sydney-time";
+import { addDays, mondayOf, sydneyParts, sydneyToday } from "@/lib/sydney-time";
 import { CancellationForm, TermsRow, type Terms } from "../settings/clients/[id]/billing-panels";
 import { BudgetsTab, ExceptionsTab, ExportTab, LinesTab } from "./tabs";
+import { ClaimsTab, ClientBillingTab, InvoicesTab } from "./claims-tabs";
 
 export const metadata: Metadata = { title: "Billing" };
 
@@ -26,7 +27,8 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
 // approvals (billing terms, cancellation charges) and exceptions, each linking
 // to the client's existing pages. Billing lines and exports arrive in Phase 4B.
 // What each person sees follows their Billing reach (the database decides).
-const TABS: [string, string][] = [["overview", "Dashboard"], ["lines", "Billing lines"], ["exceptions", "Exceptions"], ["budgets", "Budgets and ledger"], ["export", "Export"]];
+// Update 163 adds Claims, Invoices and statements, and Client billing details.
+const TABS: [string, string][] = [["overview", "Dashboard"], ["lines", "Billing lines"], ["exceptions", "Exceptions"], ["claims", "Claims"], ["invoices", "Invoices and statements"], ["clients", "Client billing details"], ["budgets", "Budgets and ledger"], ["export", "Export"]];
 
 export default async function BillingPage({ searchParams }: PageProps<"/billing">) {
   await requireSession();
@@ -38,7 +40,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Billing"
-        intro="Billing from delivered services, separate from funding: lines to review and approve, exceptions, Support at Home budgets and the funding ledger, and exports. Each item links to the client's own records."
+        intro="Billing from delivered services, separate from funding: lines to review and approve, exceptions, government claims (uploaded by a person in the government portal), client invoices and statements, Support at Home budgets and the funding ledger, and exports. Each item links to the client's own records."
         action={<Link href="/settings?open=system.settings.billing" className={buttonClass("outline")}>Billing set-up</Link>}
       />
       <nav aria-label="Billing" className="flex flex-wrap gap-1.5">
@@ -47,7 +49,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
             className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${tab === k ? "bg-brand text-brand-fg ring-brand" : "bg-surface text-muted ring-line hover:text-ink"}`}>{l}</Link>
         ))}
       </nav>
-      {tab === "lines" ? <LinesTab sp={sp} /> : tab === "exceptions" ? <ExceptionsTab sp={sp} /> : tab === "budgets" ? <BudgetsTab /> : tab === "export" ? <ExportTab /> : <Overview />}
+      {tab === "claims" ? <ClaimsTab /> : tab === "invoices" ? <InvoicesTab sp={sp} /> : tab === "clients" ? <ClientBillingTab /> : tab === "lines" ? <LinesTab sp={sp} /> : tab === "exceptions" ? <ExceptionsTab sp={sp} /> : tab === "budgets" ? <BudgetsTab /> : tab === "export" ? <ExportTab /> : <Overview />}
     </div>
   );
 }
@@ -120,6 +122,8 @@ async function Overview() {
           <Link href="/settings?open=system.settings.billing" className="font-semibold underline">Billing set-up</Link>. {published} price list(s) published.
         </p>
       ) : null}
+
+      <FollowUps />
 
       <Card className="flex flex-col gap-3 p-4">
         <div>
@@ -201,5 +205,69 @@ async function Overview() {
       </Card>
 
     </div>
+  );
+}
+
+// cmeprojects (update 163): compliance reviews due, and claims and invoices to follow up.
+// Delivered services not yet claimed are flagged at 30, 60 and 75 days (the NDIS claiming
+// window stays a rule to verify in Billing set-up; it isn't assumed here).
+async function FollowUps() {
+  const supabase = await createClient();
+  const today = sydneyToday();
+  const soon = addDays(today, 30);
+  const [checksRes, figsRes, tplRes, catRes, claimRes, invRes, linesRes] = await Promise.all([
+    supabase.from("billing_rule_checks").select("scheme, item, status, review_by, official_url").eq("status", "verified"),
+    supabase.from("billing_parameters").select("key, status, review_by").eq("status", "verified"),
+    supabase.from("claim_templates").select("program, name, review_by").eq("status", "verified"),
+    supabase.from("ndis_catalogue_versions").select("name, review_by").eq("status", "verified"),
+    supabase.from("claims").select("id, status"),
+    supabase.from("invoices").select("id, status, due_date"),
+    supabase.from("billing_lines").select("id, service_date, scheme").eq("status", "approved").lte("service_date", addDays(today, -30)).limit(5000),
+  ]);
+  if (claimRes.error) return null;
+  type R = { label: string; review_by: string | null };
+  const reviews: R[] = [
+    ...((checksRes.data ?? []) as { scheme: string; item: string; review_by: string | null; official_url: string }[]).map((c) => ({ label: `${c.scheme === "support_at_home" ? "Support at Home" : c.scheme.toUpperCase()}: ${c.item}`, review_by: c.review_by })),
+    ...((figsRes.data ?? []) as { key: string; review_by: string | null }[]).map((f) => ({ label: `Figure: ${f.key}`, review_by: f.review_by })),
+    ...((tplRes.data ?? []) as { name: string; review_by: string | null }[]).map((t) => ({ label: `Claim template: ${t.name}`, review_by: t.review_by })),
+    ...((catRes.data ?? []) as { name: string; review_by: string | null }[]).map((t) => ({ label: `NDIS catalogue: ${t.name}`, review_by: t.review_by })),
+  ];
+  const lapsed = reviews.filter((r) => r.review_by && r.review_by < today);
+  const due = reviews.filter((r) => r.review_by && r.review_by >= today && r.review_by <= soon);
+  const noDate = reviews.filter((r) => !r.review_by);
+  const claims = (claimRes.data ?? []) as { status: string }[];
+  const invs = (invRes.data ?? []) as { status: string; due_date: string | null }[];
+  // Approved lines still not in a live claim or invoice (by age).
+  const lines = (linesRes.data ?? []) as { id: string; service_date: string; scheme: string }[];
+  const ids = lines.map((l) => l.id);
+  const [{ data: ci }, { data: ii }] = ids.length
+    ? await Promise.all([
+        supabase.from("claim_items").select("line_id, claims!inner(status)").eq("status", "live").neq("claims.status", "cancelled").in("line_id", ids),
+        supabase.from("invoice_items").select("line_id, invoices!inner(status)").eq("status", "live").neq("invoices.status", "cancelled").in("line_id", ids),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const recovered = new Set([...((ci ?? []) as { line_id: string }[]), ...((ii ?? []) as { line_id: string }[])].map((r) => r.line_id));
+  const open = lines.filter((l) => !recovered.has(l.id) && ["support_at_home", "ndis"].includes(l.scheme));
+  const age = (n: number) => open.filter((l) => l.service_date <= addDays(today, -n)).length;
+  const dmy = (d: string | null) => (d ? d.split("-").reverse().join("/") : "");
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <div>
+        <h2 className="heading-sm">Compliance reviews and follow-ups</h2>
+        <p className="text-sm text-muted">Every rule, figure, claim template and NDIS catalogue has a &quot;review by&quot; date. Past it, claims, invoices and line approval pause for that scheme until it&apos;s reviewed in <Link href="/settings/billing" className="text-brand underline">Billing set-up</Link>.</p>
+      </div>
+      {lapsed.length ? <div className="rounded-lg bg-danger-soft px-4 py-2 text-sm"><p className="font-semibold">Past the review date ({lapsed.length}):</p><ul className="list-disc pl-5">{lapsed.slice(0, 10).map((r) => <li key={r.label}>{r.label} (review by {dmy(r.review_by)})</li>)}</ul></div> : null}
+      {due.length ? <div className="rounded-lg bg-warn-soft px-4 py-2 text-sm"><p className="font-semibold">Review due in the next 30 days ({due.length}):</p><ul className="list-disc pl-5">{due.slice(0, 10).map((r) => <li key={r.label}>{r.label} (review by {dmy(r.review_by)})</li>)}</ul></div> : null}
+      {noDate.length ? <p className="text-sm text-warn">{noDate.length} verified item(s) have no review date yet; claims and invoices need one.</p> : null}
+      {!lapsed.length && !due.length && !noDate.length ? <p className="text-sm text-muted">No reviews due.</p> : null}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Claims to approve" value={String(claims.filter((c) => c.status === "draft").length)} tone="border-l-warn" />
+        <Stat label="Approved claims not yet submitted" value={String(claims.filter((c) => c.status === "approved").length)} tone="border-l-danger" />
+        <Stat label="Submitted, awaiting acknowledgement" value={String(claims.filter((c) => c.status === "submitted").length)} tone="border-l-brand" />
+        <Stat label="Invoices issued, not sent / overdue" value={`${invs.filter((i) => i.status === "issued").length} / ${invs.filter((i) => i.status === "issued" && i.due_date && i.due_date < today).length}`} tone="border-l-warn" />
+      </div>
+      <p className="text-sm">Approved Support at Home and NDIS lines not yet claimed or invoiced: <span className="font-semibold">{age(30)}</span> over 30 days, <span className="font-semibold">{age(60)}</span> over 60 days, <span className={`font-semibold ${age(75) ? "text-danger" : ""}`}>{age(75)}</span> over 75 days.{" "}
+        <Link href="/billing?tab=claims" className="text-brand underline">Claims</Link> · <Link href="/billing?tab=invoices" className="text-brand underline">Invoices</Link></p>
+    </Card>
   );
 }

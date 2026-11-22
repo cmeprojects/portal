@@ -71,6 +71,16 @@ const TABLE: Record<string, [string, string]> = {
   billing_lines: ["a billing line", "Billing line"],
   funding_ledger: ["a funding ledger entry", "Funding ledger"],
   client_quarter_budgets: ["a Support at Home quarter budget", "Quarter budget"],
+  // cmeprojects (update 163): claims, invoices and client billing details.
+  client_payer_links: ["a payer link", "Payer link"],
+  client_fee_reductions: ["a fee reduction supplement", "Fee reduction"],
+  client_location_pricing: ["an NDIS pricing zone", "Pricing zone"],
+  ndis_plan_details: ["NDIS plan details", "NDIS plan details"],
+  line_recoveries: ["a recovery of a billing line", "Recovery"],
+  claim_items: ["a claim line", "Claim line"],
+  invoices: ["an invoice", "Invoice"],
+  invoice_items: ["an invoice line", "Invoice line"],
+  client_statements: ["a monthly statement", "Statement"],
   billing_delivery_overrides: ["a delivery decision", "Delivery decision"],
 };
 const VERB: Record<string, string> = { approved: "approved", needs_approval: "changed the address of (needs approving again)", added: "added", changed: "changed", removed: "removed", archived: "archived", restored: "restored", replaced: "uploaded a new version of" };

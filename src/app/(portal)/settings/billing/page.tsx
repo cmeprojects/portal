@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { HolidayForm, HolidayToggle, NewPriceListForm, SchemeRuleCard, type SchemeRule } from "./forms";
 import { FigureRow } from "../../billing/forms";
+import { BusinessForm, CatalogueImport, CatalogueRow, ReviewRow, TemplateRow, TemplateUpload } from "./compliance-forms";
+import { businessForForm } from "@/lib/business";
 
 export const metadata: Metadata = { title: "Billing set-up" };
 
@@ -49,7 +51,7 @@ export default async function BillingSetupPage() {
   const holidays = (holRes.data ?? []) as { id: string; state: string; on_date: string; name: string; active: boolean }[];
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader eyebrow="Portal settings" title="Billing set-up" intro="Each scheme's billing rules, price lists and public holidays. Billing for a scheme stays off until its rules are confirmed. Nothing is billed from this page." />
+      <PageHeader eyebrow="Portal settings" title="Billing set-up" intro="Each scheme's billing rules with their official sources and review dates, business details, official claim templates, the NDIS Support Catalogue, price lists and public holidays. Billing for a scheme stays off until its rules are confirmed. Nothing is billed from this page." />
       <Card className="flex flex-col gap-3 p-4">
         <div>
           <h2 className="heading-sm">Scheme billing rules</h2>
@@ -70,6 +72,7 @@ export default async function BillingSetupPage() {
           ))}
         </Card>
       ) : null}
+      <ComplianceSections />
       <Card className="flex flex-col gap-3 p-4">
         <div>
           <h2 className="heading-sm">Price lists</h2>
@@ -122,5 +125,74 @@ export default async function BillingSetupPage() {
         ) : null}
       </Card>
     </div>
+  );
+}
+
+// cmeprojects (update 163): business details, the compliance register (official link,
+// document version, effective and review dates), claim templates and the NDIS catalogue.
+async function ComplianceSections() {
+  const supabase = await createClient();
+  const [bizRes, checksRes, figRes, tplRes, catRes, canPrices, canApprove, isAdmin] = await Promise.all([
+    supabase.from("business_current").select("*").maybeSingle(),
+    supabase.from("billing_rule_checks").select("id, scheme, item, status, official_url, document_version, effective_from, review_by").order("scheme").order("created_at"),
+    supabase.from("billing_parameters").select("id, key, effective_from, status, official_url, document_version, review_by").order("key"),
+    supabase.from("claim_templates").select("id, program, name, version, status, headers, mapping, date_format, file_name_max, official_url, document_version, review_by, verified_by, verified_at").order("program").order("version", { ascending: false }),
+    supabase.from("ndis_catalogue_versions").select("id, name, document_version, effective_from, effective_to, review_by, item_count, status, official_url, verified_by, verified_at").order("effective_from", { ascending: false }),
+    canBill("prices"), canBill("approve"),
+    supabase.rpc("is_system_admin").then((r) => r.data === true),
+  ]);
+  if (tplRes.error) return null;
+  const b = bizRes.data as { version: number; created_at: string; gst_verified: boolean; gst_verified_on: string | null } | null;
+  const initial = businessForForm(bizRes.data as Record<string, unknown> | null);
+  const people = [...new Set([...(tplRes.data ?? []).map((t) => t.verified_by), ...(catRes.data ?? []).map((c) => c.verified_by)].filter(Boolean))] as string[];
+  const { data: names } = people.length ? await supabase.from("profiles").select("id, full_name, email").in("id", people) : { data: [] };
+  const who = (id: string | null) => ((names ?? []) as { id: string; full_name: string | null }[]).find((p) => p.id === id)?.full_name ?? "someone";
+  const day = (t: string | null) => (t ? new Date(t).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric" }) : "");
+  const SCHEME: Record<string, string> = { support_at_home: "Support at Home", ndis: "NDIS", chsp: "CHSP", private: "Private", other: "Other" };
+  const FIG: Record<string, string> = { sah_care_management_pct: "Care management %", sah_rollover_floor: "Rollover floor", sah_rollover_pct: "Rollover cap %" };
+  return (
+    <>
+      <Card id="business" className="flex flex-col gap-3 p-4">
+        <div>
+          <h2 className="heading-sm">Business details</h2>
+          <p className="text-sm text-muted">Shown on invoices and statements and used in claim files. Each save is a new version; issued documents keep the version they were issued with.{b ? ` Current: version ${b.version}, saved ${day(b.created_at)}. GST position ${b.gst_verified ? `verified ${b.gst_verified_on?.split("-").reverse().join("/")}` : "not verified yet"}.` : " Not entered yet."}</p>
+        </div>
+        <BusinessForm initial={initial} canEdit={canApprove || isAdmin} />
+      </Card>
+      <Card className="flex flex-col gap-3 p-4">
+        <div>
+          <h2 className="heading-sm">Compliance register: official sources and review dates</h2>
+          <p className="text-sm text-muted">For every rule and figure: the official link, the document version, when it takes effect and when to review it. Claims and invoices need all of these; past a review date, claims, invoices and line approval pause for that scheme. Government rules change: review them when new versions are published.</p>
+        </div>
+        <ul className="divide-y divide-line rounded-md border border-line">
+          {(checksRes.data ?? []).map((c) => <ReviewRow key={c.id} kind="check" canEdit={canApprove} r={{ id: c.id, label: `${SCHEME[c.scheme] ?? c.scheme}: ${c.item}`, status: c.status, official_url: c.official_url, document_version: c.document_version, effective_from: c.effective_from, review_by: c.review_by }} />)}
+          {(figRes.data ?? []).map((f) => <ReviewRow key={f.id} kind="figure" canEdit={canApprove} r={{ id: f.id, label: `Support at Home figure: ${FIG[f.key] ?? f.key} (from ${f.effective_from.split("-").reverse().join("/")})`, status: f.status, official_url: f.official_url, document_version: f.document_version, effective_from: null, review_by: f.review_by }} />)}
+        </ul>
+      </Card>
+      <Card className="flex flex-col gap-3 p-4">
+        <div>
+          <h2 className="heading-sm">Official claim templates</h2>
+          <p className="text-sm text-muted">Upload the official file (the NDIS Bulk Upload template from the provider portal; Services Australia&apos;s claim format) saved as CSV. Its header row is kept exactly. The owner&apos;s nominee checks each column and verifies it; no claim file is made until then. Claims are always uploaded by a person.</p>
+        </div>
+        {(tplRes.data ?? []).length ? (
+          <ul className="divide-y divide-line rounded-md border border-line">
+            {(tplRes.data ?? []).map((t) => <TemplateRow key={t.id} canPrices={canPrices} canApprove={canApprove} t={{ ...t, headers: t.headers as string[], mapping: (t.mapping ?? {}) as Record<string, string>, verified: t.verified_by ? `by ${who(t.verified_by)} ${day(t.verified_at)}` : "" }} />)}
+          </ul>
+        ) : <p className="text-sm text-muted">No templates yet.</p>}
+        {canPrices ? <details className="rounded-md border border-dashed border-line px-3 py-2"><summary className="cursor-pointer text-xs font-semibold text-brand">Upload an official template</summary><div className="mt-2"><TemplateUpload /></div></details> : null}
+      </Card>
+      <Card className="flex flex-col gap-3 p-4">
+        <div>
+          <h2 className="heading-sm">NDIS Support Catalogue</h2>
+          <p className="text-sm text-muted">Import each release of the official Support Catalogue (saved as CSV). Prices on NDIS lines are checked against the verified catalogue in force on the support date, for the pricing zone of the service delivery location.</p>
+        </div>
+        {(catRes.data ?? []).length ? (
+          <ul className="divide-y divide-line rounded-md border border-line">
+            {(catRes.data ?? []).map((v) => <CatalogueRow key={v.id} canPrices={canPrices} canApprove={canApprove} v={{ ...v, verified: v.verified_by ? `by ${who(v.verified_by)} ${day(v.verified_at)}` : "" }} />)}
+          </ul>
+        ) : <p className="text-sm text-muted">No catalogue imported yet.</p>}
+        {canPrices ? <details className="rounded-md border border-dashed border-line px-3 py-2"><summary className="cursor-pointer text-xs font-semibold text-brand">Import a catalogue release</summary><div className="mt-2"><CatalogueImport /></div></details> : null}
+      </Card>
+    </>
   );
 }

@@ -9,7 +9,7 @@ import { finishSetup } from "./actions";
 type Template = { key: string; name: string; description: string; added: boolean };
 type Start = { company: string; portal: string; clientWord: string; timezone: string; primary: string; dark: string; accent: string };
 
-const STEPS = ["Organisation", "Look", "Registers", "Package", "Finish"];
+const STEPS = ["Organisation", "Look", "Registers", "Package", "Business details", "Finish"];
 const ZONES: [string, string][] = [
   ["Australia/Melbourne", "Victoria (Melbourne)"],
   ["Australia/Sydney", "New South Wales or ACT (Sydney)"],
@@ -160,12 +160,30 @@ export function SetupWizard({ start, templates }: { start: Start; templates: Tem
         ))}
       </section>
 
-      <section className={`${show(4)} flex-col gap-2 text-sm`} aria-label="Finish">
+      {/* cmeprojects (update 163): the business details for invoices, statements and claim files (optional here; also in Billing set-up). */}
+      <section className={`${show(4)} flex-col gap-3`} aria-label="Business details">
+        <p className="text-sm text-muted">Shown on invoices and statements. Optional now: you can add or update them any time in Portal settings → Billing set-up, where the GST position, payment details and registration numbers are also recorded.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Legal name" htmlFor="biz_legal_name"><input id="biz_legal_name" name="biz_legal_name" maxLength={200} className={inputClass} /></Field>
+          <Field label="ABN" htmlFor="biz_abn" hint="11 digits; checked with the ATO's method."><input id="biz_abn" name="biz_abn" inputMode="numeric" maxLength={14} className={inputClass} /></Field>
+          <Field label="Street address" htmlFor="biz_address"><input id="biz_address" name="biz_address" maxLength={300} className={inputClass} /></Field>
+          <Field label="Suburb" htmlFor="biz_suburb"><input id="biz_suburb" name="biz_suburb" maxLength={100} className={inputClass} /></Field>
+          <Field label="State" htmlFor="biz_state">
+            <select id="biz_state" name="biz_state" defaultValue="NSW" className={inputClass}>{["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"].map((x) => <option key={x}>{x}</option>)}</select>
+          </Field>
+          <Field label="Postcode" htmlFor="biz_postcode"><input id="biz_postcode" name="biz_postcode" inputMode="numeric" maxLength={4} className={inputClass} /></Field>
+          <Field label="Phone" htmlFor="biz_phone"><input id="biz_phone" name="biz_phone" type="tel" maxLength={30} className={inputClass} /></Field>
+          <Field label="Accounts email" htmlFor="biz_email"><input id="biz_email" name="biz_email" type="email" maxLength={200} className={inputClass} /></Field>
+        </div>
+      </section>
+
+      <section className={`${show(5)} flex-col gap-2 text-sm`} aria-label="Finish">
         <p className="font-semibold">Ready to set up {company || "your organisation"}:</p>
         <ul className="list-disc pl-5 text-muted">
           <li>Name, look and time zone as chosen</li>
           <li>{picked.length} register{picked.length === 1 ? "" : "s"} from the templates, plus General tasks</li>
           <li>The {PACKAGES.find(([v]) => v === pkg)?.[1]} package</li>
+          <li>Business details, if entered</li>
         </ul>
         <p className="text-muted">These apply straight away. Next: invite people from People → Staff.</p>
       </section>

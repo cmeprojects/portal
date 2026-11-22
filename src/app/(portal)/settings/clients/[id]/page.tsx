@@ -279,6 +279,20 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     supabase.from("funding_ledger").select("id, quarter_budget_id, funding_id, entry_kind, amount, entry_date, reason, status").eq("client_id", id).order("entry_date", { ascending: false }).limit(100),
   ]);
   const qBudgets = (qbRes.data ?? []) as { id: string; quarter_start: string; quarter_end: string; quarterly_amount: number; start_date: string; prorated_amount: number; carryover_in: number; care_management: number; spendable: number; status: string; carryover_out: number | null; lapsed: number | null; spent: number | null }[];
+  // cmeprojects (update 163): this client's invoices and claim lines (read only; managed in Billing).
+  const [invRes, ciRes] = await Promise.all([
+    supabase.from("invoices").select("id, number, kind, status, total, period_from, period_to, due_date").eq("client_id", id).neq("status", "cancelled").order("prepared_at", { ascending: false }).limit(50),
+    supabase.from("claim_items").select("id, claim_id, claimed_value, expected_amount, quarter_budget_id, claims!inner(status, program, period_from, period_to)").eq("client_id", id).eq("status", "live").neq("claims.status", "cancelled").limit(500),
+  ]);
+  const clientInvoices = (invRes.data ?? []) as { id: string; number: string | null; kind: string; status: string; total: number; period_from: string; period_to: string; due_date: string | null }[];
+  type CI = { id: string; claim_id: string; claimed_value: number; expected_amount: number; quarter_budget_id: string | null; claims: { status: string; program: string; period_from: string; period_to: string } | { status: string; program: string; period_from: string; period_to: string }[] };
+  const claimByClaim = new Map<string, { status: string; program: string; period_from: string; period_to: string; lines: number; claimed: number; expected: number }>();
+  for (const it of (ciRes.data ?? []) as CI[]) {
+    const c = Array.isArray(it.claims) ? it.claims[0] : it.claims;
+    const cur = claimByClaim.get(it.claim_id) ?? { ...c, lines: 0, claimed: 0, expected: 0 };
+    cur.lines++; cur.claimed += Number(it.claimed_value); cur.expected += Number(it.expected_amount);
+    claimByClaim.set(it.claim_id, cur);
+  }
   const ledgerRows = (ledRes.data ?? []) as { id: string; quarter_budget_id: string | null; funding_id: string | null; entry_kind: string; amount: number; entry_date: string; reason: string; status: string }[];
   const [termsRes, plRes, rateRes, billView, billPrepare, billApprove] = await Promise.all([
     supabase.from("client_service_terms").select("*").eq("client_id", id).order("version", { ascending: false }),
@@ -1615,6 +1629,36 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                 ))}
               </ul>
             </details>
+          ) : null}
+        </Card>
+      ) : null}
+      {inView("funding") && billingOn && (clientInvoices.length || claimByClaim.size) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Claims and invoices</h2>
+            <p className="text-sm text-muted">Read only. Government claims and client invoices are managed in <Link href="/billing?tab=claims" className="font-semibold text-brand underline">Billing</Link>.</p>
+          </div>
+          {claimByClaim.size ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {[...claimByClaim.entries()].map(([cid, c]) => (
+                <li key={cid} className="flex flex-wrap items-center gap-2 px-3 py-1.5">
+                  <span className="min-w-40 flex-1 font-semibold">{c.program === "ndis" ? "NDIS" : "Support at Home"} claim {day(c.period_from)} to {day(c.period_to)}</span>
+                  <span className="text-xs">{c.lines} line(s), claimed {aud(c.claimed)}, expected {aud(c.expected)}</span>
+                  <span className="text-xs font-semibold">{c.status === "approved" ? "Approved, not submitted" : c.status.charAt(0).toUpperCase() + c.status.slice(1)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {clientInvoices.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {clientInvoices.map((v) => (
+                <li key={v.id} className="flex flex-wrap items-center gap-2 px-3 py-1.5">
+                  <span className="min-w-40 flex-1 font-semibold">{v.number ?? `Draft invoice ${day(v.period_from)} to ${day(v.period_to)}`}</span>
+                  <span className="text-xs">{aud(v.total)}{v.due_date ? `, due ${day(v.due_date)}` : ""}</span>
+                  <span className="text-xs font-semibold">{v.status.charAt(0).toUpperCase() + v.status.slice(1)}</span>
+                </li>
+              ))}
+            </ul>
           ) : null}
         </Card>
       ) : null}

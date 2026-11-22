@@ -7,7 +7,9 @@ import { requireRole } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { friendlyError } from "@/lib/db-error";
-import { text, type FormState } from "@/lib/form";
+import { EMAIL, text, type FormState } from "@/lib/form";
+import { abnValid } from "@/lib/abn";
+import { checkPhone } from "@/lib/phone";
 import { PRESETS, PRESET_SWITCHES } from "../system/options";
 
 const ZONES = ["Australia/Melbourne", "Australia/Sydney", "Australia/Brisbane", "Australia/Adelaide", "Australia/Perth", "Australia/Hobart", "Australia/Darwin"];
@@ -21,6 +23,22 @@ export async function finishSetup(_: FormState, form: FormData): Promise<FormSta
   const supabase = await createClient();
   const company = text(form, "company_name").slice(0, 80);
   if (!company) return { error: "Enter the organisation's name (step 1)." };
+
+  // cmeprojects (update 163): business details (optional here). Checked before anything is saved.
+  const biz = {
+    legal_name: text(form, "biz_legal_name").slice(0, 200), abn: text(form, "biz_abn").replace(/\s/g, ""), address: text(form, "biz_address").slice(0, 300), suburb: text(form, "biz_suburb").slice(0, 100),
+    state: text(form, "biz_state"), postcode: text(form, "biz_postcode"), phone: text(form, "biz_phone"), email: text(form, "biz_email").slice(0, 200),
+  };
+  const anyBiz = Object.entries(biz).some(([k, v]) => k !== "state" && v);
+  if (anyBiz) {
+    if (!biz.legal_name || !biz.address || !biz.suburb) return { error: "Business details (step 5): enter the legal name, street address and suburb, or leave the step blank." };
+    if (!abnValid(biz.abn)) return { error: "Business details (step 5): that ABN isn't valid." };
+    if (!["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"].includes(biz.state) || !/^\d{4}$/.test(biz.postcode)) return { error: "Business details (step 5): choose the state and enter a 4-digit postcode." };
+    if (biz.email && !EMAIL.test(biz.email)) return { error: "Business details (step 5): enter a valid email address." };
+    const ph = checkPhone("AU", biz.phone);
+    if (!ph.ok) return { error: `Business details (step 5): ${ph.error}` };
+    biz.phone = ph.value;
+  }
 
   const settings: Record<string, unknown> = {
     "brand.company_name": company,
@@ -57,6 +75,12 @@ export async function finishSetup(_: FormState, form: FormData): Promise<FormSta
     const on = preset.on.includes(key);
     const premium = features?.find((f) => f.key === key)?.premium === true;
     await supabase.from("features").update(on && premium ? { enabled: true, included: true } : { enabled: on }).eq("key", key);
+  }
+
+  if (anyBiz) {
+    const { error } = await supabase.from("business_details").insert(biz);
+    // Before update 163 the table doesn't exist: the details can be added later in Billing set-up.
+    if (error && error.code !== "42P01" && error.code !== "PGRST205") return { error: friendlyError(error) };
   }
 
   await supabase.from("app_settings").update({ value: true }).eq("key", "setup.completed");

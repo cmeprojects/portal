@@ -27,17 +27,25 @@ Update 159 gave "Assessments" the same access as care plans (owner's Option A): 
 Officers can view assessments for all clients but not start or change them. If the workflow needs it,
 give them edit on "Assessments" on the Access page (no code change).
 
-## Phase 5A: company business details (owner, 22 Nov 2026)
+## Phase 5A: company business details (owner, 22 Nov 2026) - built in update 163
 
-Part of Phase 5A (gap G1). The company's business details are collected in the portal setup
-wizard (a new "Business details" step) and can be updated later in Portal settings: legal and
-trading name, ABN, business address, phone and email for invoices, GST registration (with the
-accountant's verification and "as at" date), NDIS registration number and groups, Services
-Australia provider details, payment details (for example BSB and account), invoice numbering
-and payment terms. Who can change them: System Administrator and Manager Administrators (to
-confirm in the Phase 5 plan). Every change goes in the change log, and issued claims and
-invoices keep the details as they were when issued. Existing portals that skipped the step
-are asked to fill them in before the first claim or invoice.
+Built: a "Business details" step in the setup wizard (optional) and a Business details section in
+Portal settings -> Billing set-up (versioned; ABN checksum, AU phone, email, BSB and account checks;
+GST registration with the accountant's name, date and evidence; NDIS registration number; Support at
+Home provider ID and branch; payment details and terms). Changed by the System Administrator or the
+Billing approve right. Issued invoices and statements keep the version they were issued with.
+Still to do by the owner: enter the real details and record the accountant's GST verification.
+
+## Phase 5A follow-ups for the owner (22 Nov 2026)
+
+- Nominate who verifies (D2), then verify the 7 new register checks with official links, versions
+  and review dates; add links and review dates to the existing verified checks and figures.
+- Upload the official NDIA Bulk Upload template and the Services Australia claim format (CSV),
+  check each column's mapping and verify them.
+- Import the current NDIS Support Catalogue and set each NDIS client location's pricing zone.
+- Support at Home care management account rollover (uncapped quarterly, capped at year end):
+  verify the rule; calculating it is for a later approved change (not in 5A).
+- NDIS 90-day claiming rule: confirm from official text before it's relied on.
 
 ## LATER: direct claim submission to NDIS and Support at Home (owner, 22 Nov 2026; D-066)
 

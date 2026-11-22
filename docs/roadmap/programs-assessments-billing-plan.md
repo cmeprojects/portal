@@ -153,10 +153,18 @@ overwritten balance. Billing lines from delivered services. Billing permission. 
 (prices, rates, contributions, budgets, lines, approvals, exports).
 
 **Phase 5: claims, invoices, payments. Final plan approved by the owner 22 Nov 2026 (D-066). Built one
-stage at a time (preview, deployment, tests, approval each). 5A in progress (update 163).**
+stage at a time (preview, deployment, tests, approval each). 5A built (update 163), waiting for the owner's
+preview results and approval; 5B not started.**
 - 5A Claims and client invoices, with the NDIS catalogue foundation and price-limit validation;
   business details (setup wizard and Portal settings) and payers; claim lines locked once claimed
-  or invoiced (an additive rule, Phase 4 not reopened).
+  or invoiced (an additive rule, Phase 4 not reopened). Built with the compliance additions (D-067):
+  official link, document version, effective date and "review by" on every rule, figure, claim
+  template and NDIS catalogue (claims, invoices and line approval pause past a review date);
+  official claim templates uploaded and verified (header row kept exactly, CSV, date format, file
+  name limit); NDIS catalogue imported per release, price limits by support date and the delivery
+  location's zone, snapshotted; Support at Home care management claimed once per quarter as
+  clinical (no contribution) and shown in its own account; fee reduction supplements per client;
+  monthly Support at Home statements.
 - 5B Claim results (partial acceptance and rejection tracked separately), payments, receipts,
   credit notes, adjustments, refunds, write-offs (threshold $500, second approver above it),
   reconciliation.

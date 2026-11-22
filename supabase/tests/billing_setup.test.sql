@@ -40,7 +40,7 @@ insert into public.admin_designations (user_id, granted_by) values (test.pid('bo
 reset role;
 
 -- 1. Access: Billing is its own part, separate from Funding.
-select test.ok((select actions = '{view,prepare,approve,prices,export}' from public.app_modules where id = 'clients.billing'), 'Billing has view, prepare, approve, prices and export');
+select test.ok((select actions @> '{view,prepare,approve,prices,export}' from public.app_modules where id = 'clients.billing'), 'Billing has view, prepare, approve, prices and export (update 163 adds the claim and invoice actions)');
 select test.ok(test.n('owner@example.com', 'public.billing_can(''approve'')::int') = 1 and test.n('owner@example.com', 'public.billing_can(''export'')::int') = 1, 'the System Administrator has every Billing action');
 select test.ok(test.n('boss@example.com', '(public.billing_can(''view'')::int + public.billing_can(''prepare'')::int + public.billing_can(''approve'')::int + public.billing_can(''prices'')::int + public.billing_can(''export'')::int)') = 5, 'a Manager Administrator has every Billing action by default');
 select test.ok(test.n('boss2@example.com', 'public.billing_can(''view'')::int') = 0, 'another manager has no Billing by default');

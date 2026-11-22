@@ -126,6 +126,15 @@ const ACTION_WORD: Record<string, string> = {
   sign_for_employer: "Sign for the employer",
   download: "Download",
   reveal_tfn: "Reveal TFN",
+  prepare: "Prepare",
+  prices: "Prices",
+  // cmeprojects (update 163): claims and invoices.
+  claim_prepare: "Prepare claims",
+  claim_approve: "Approve claims",
+  claim_submit: "Record claim submissions",
+  invoice_prepare: "Prepare invoices",
+  invoice_approve: "Approve invoices",
+  invoice_issue: "Issue invoices and statements",
 };
 const word = (a: string) => ACTION_WORD[a] ?? a.replace(/_/g, " ");
 
