@@ -131,7 +131,7 @@ lines and exports from 4B), not part of the client page. Portal settings, Billin
 rules, verified figures, public holidays. The client page keeps only: Services (approved services and billing
 terms), Funding (funding records and Support at Home contribution and budget information), Audit (the client's
 billing history). Billing links to the client, service, agreement and funding records.
-4B (update 162), BUILT, waiting for the owner to preview and run it on Dev: billing lines from delivered shifts
+4B (update 162), DONE: run on Dev 22 Nov 2026 and approved by the owner (full billing workflow check on Dev to follow, once the nominated person has confirmed rules and verified figures): billing lines from delivered shifts
 (approved timesheet and service record, or a delivery decision with a reason) and chargeable cancellations, under the
 service's approved terms on the date, the price list version in force, its own bands (holidays of the location's
 state), rounding, minimum and band rule; one line per band, never duplicated; a full snapshot and the working kept
