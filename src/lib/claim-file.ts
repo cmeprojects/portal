@@ -26,10 +26,13 @@ export async function buildClaimFile(supabase: SupabaseClient, claimId: string):
   const t = tpl as Template | null;
   if (!t || t.status !== "verified") return { error: "The claim's official template isn't verified." };
   const [{ data: items }, { data: biz }] = await Promise.all([
-    supabase.from("claim_items").select("id, line_id, quarter_budget_id, client_id, claimed_value").eq("claim_id", claimId).eq("status", "live").order("created_at"),
+    supabase.from("claim_items").select("id, line_id, quarter_budget_id, charge_id, client_id, claimed_value").eq("claim_id", claimId).eq("status", "live").order("created_at"),
     supabase.from("business_current").select("*").maybeSingle(),
   ]);
-  const its = (items ?? []) as { id: string; line_id: string | null; quarter_budget_id: string | null; client_id: string; claimed_value: number }[];
+  const its = (items ?? []) as { id: string; line_id: string | null; quarter_budget_id: string | null; charge_id?: string | null; client_id: string; claimed_value: number }[];
+  const chIds = its.map((i) => i.charge_id).filter(Boolean) as string[];
+  const { data: chRows } = chIds.length ? await supabase.from("client_charges").select("id, service_date, description, amount, gst_code, sah_category, ndis_item").in("id", chIds) : { data: [] };
+  const CH = new Map(((chRows ?? []) as { id: string; service_date: string; description: string; amount: number; gst_code: string; sah_category: string | null; ndis_item: string }[]).map((c) => [c.id, c]));
   const lineIds = its.map((i) => i.line_id).filter(Boolean) as string[];
   const qbIds = its.map((i) => i.quarter_budget_id).filter(Boolean) as string[];
   const cIds = [...new Set(its.map((i) => i.client_id))];
@@ -54,6 +57,20 @@ export async function buildClaimFile(supabase: SupabaseClient, claimId: string):
     if (field.startsWith("=")) return field.slice(1);
     const l = i.line_id ? L.get(i.line_id) : undefined;
     const q = i.quarter_budget_id ? Q.get(i.quarter_budget_id) : undefined;
+    const ch = i.charge_id ? CH.get(i.charge_id) : undefined;
+    if (ch) {
+      // A client charge (update 165): one unit at the charge amount.
+      if (field === "date_from" || field === "date_to") return fmtDate(ch.service_date, t.date_format);
+      if (field === "support_item") return ch.ndis_item ?? "";
+      if (field === "service_type") return ch.description;
+      if (field === "sah_category") return ch.sah_category ?? "";
+      if (field === "quantity") return "1.00";
+      if (field === "hours") return "";
+      if (field === "unit_price") return num(i.claimed_value);
+      if (field === "gst_code") return ch.gst_code;
+      if (field === "ndis_gst_code") return NDIS_GST[ch.gst_code] ?? "";
+      if (field === "cancellation") return "";
+    }
     const c = C.get(i.client_id);
     const d = D.get(i.client_id);
     switch (field) {

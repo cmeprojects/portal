@@ -38,6 +38,9 @@ export async function prepareClaim(program: string, from: string, to: string): P
   const { data, error } = await (await createClient()).rpc("claim_prepare", { p_program: program, p_from: from, p_to: to });
   if (error) return { error: friendlyError(error) };
   const r = data as { claim: string; lines: number; excluded: number };
+  // Update 165: approved client charges in the period go in the same claim (skipped before 165 runs).
+  const { data: ch } = await (await createClient()).rpc("claim_add_charges", { p_claim: r.claim });
+  if (ch) r.lines += Number((ch as { charges: number }).charges ?? 0);
   done();
   return { id: r.claim, message: `Draft claim prepared: ${r.lines} line(s) included, ${r.excluded} listed as not claimable (with the reason). Someone else approves it.` };
 }
@@ -128,6 +131,12 @@ export async function prepareInvoices(kind: string, from: string, to: string): P
   const { data, error } = await (await createClient()).rpc("invoice_prepare", { p_kind: kind, p_from: from, p_to: to });
   if (error) return { error: friendlyError(error) };
   const r = data as { invoices_made: number; lines: number; excluded: { reason: string }[] };
+  // Update 165: approved client charges too (skipped before 165 runs).
+  const { data: ch } = await (await createClient()).rpc("invoice_add_charges", { p_kind: kind, p_from: from, p_to: to });
+  if (ch) {
+    const c = ch as { invoices_made: number; charges: number; excluded: { reason: string }[] };
+    r.invoices_made += c.invoices_made; r.lines += c.charges; r.excluded = [...r.excluded, ...c.excluded];
+  }
   done();
   const why = [...new Set(r.excluded.map((e) => e.reason))];
   return { message: `${r.invoices_made} draft invoice(s), ${r.lines} line(s).${r.excluded.length ? ` ${r.excluded.length} line(s) not invoiced: ${why.join(" ")}` : ""} Someone else approves them.` };

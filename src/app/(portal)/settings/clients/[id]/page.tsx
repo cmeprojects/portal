@@ -284,6 +284,12 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
     supabase.from("invoices").select("id, number, kind, status, total, period_from, period_to, due_date").eq("client_id", id).neq("status", "cancelled").order("prepared_at", { ascending: false }).limit(50),
     supabase.from("claim_items").select("id, claim_id, claimed_value, expected_amount, quarter_budget_id, claims!inner(status, program, period_from, period_to)").eq("client_id", id).eq("status", "live").neq("claims.status", "cancelled").limit(500),
   ]);
+  const [pbRes2, chRes2] = await Promise.all([
+    supabase.from("pathway_balances").select("pathway_budget_id, stream, amount, used, available, starts_on, ends_on, status").eq("client_id", id),
+    supabase.from("client_charges").select("id, description, service_date, amount, status, funding_stream").eq("client_id", id).neq("status", "voided").order("service_date", { ascending: false }).limit(50),
+  ]);
+  const pathwayRows = (pbRes2.data ?? []) as { pathway_budget_id: string; stream: string; amount: number; used: number; available: number; starts_on: string; ends_on: string; status: string }[];
+  const chargeRows = (chRes2.data ?? []) as { id: string; description: string; service_date: string; amount: number; status: string; funding_stream: string }[];
   const clientInvoices = (invRes.data ?? []) as { id: string; number: string | null; kind: string; status: string; total: number; period_from: string; period_to: string; due_date: string | null }[];
   type CI = { id: string; claim_id: string; claimed_value: number; expected_amount: number; quarter_budget_id: string | null; claims: { status: string; program: string; period_from: string; period_to: string } | { status: string; program: string; period_from: string; period_to: string }[] };
   const claimByClaim = new Map<string, { status: string; program: string; period_from: string; period_to: string; lines: number; claimed: number; expected: number }>();
@@ -1629,6 +1635,29 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
                 ))}
               </ul>
             </details>
+          ) : null}
+        </Card>
+      ) : null}
+      {inView("funding") && billingOn && (pathwayRows.length || chargeRows.length) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Pathway budgets and other charges</h2>
+            <p className="text-sm text-muted">Read only. Managed in <Link href="/billing?tab=suppliers" className="font-semibold text-brand underline">Billing → Suppliers and charges</Link>.</p>
+          </div>
+          {pathwayRows.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {pathwayRows.map((b) => (
+                <li key={b.pathway_budget_id} className="flex flex-wrap gap-2 px-3 py-1.5">
+                  <span className="min-w-40 flex-1 font-semibold">{({ at_hm: "AT-HM", restorative: "Restorative Care", end_of_life: "End-of-Life", hcp_unspent: "Unspent HCP funds" } as Record<string, string>)[b.stream]} {day(b.starts_on)} to {day(b.ends_on)}</span>
+                  <span className="text-xs">{aud(b.amount)} · used {aud(b.used)} · {Number(b.available) < 0 ? `over by ${aud(-Number(b.available))}` : `${aud(b.available)} left`}{b.status === "closed" ? " · closed" : ""}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {chargeRows.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {chargeRows.map((c) => <li key={c.id} className="flex flex-wrap gap-2 px-3 py-1.5"><span className="min-w-40 flex-1">{day(c.service_date)} · {c.description}</span><span className="text-xs">{aud(c.amount)} · {c.status}</span></li>)}
+            </ul>
           ) : null}
         </Card>
       ) : null}

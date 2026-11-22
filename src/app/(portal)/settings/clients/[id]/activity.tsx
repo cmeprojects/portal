@@ -87,6 +87,9 @@ const TABLE: Record<string, [string, string]> = {
   credit_notes: ["a credit note", "Credit note"],
   credit_note_items: ["a credit note line", "Credit note line"],
   write_offs: ["a write-off", "Write-off"],
+  // cmeprojects (update 165): charges and pathway budgets.
+  client_charges: ["a charge", "Charge"],
+  client_pathway_budgets: ["a pathway budget", "Pathway budget"],
   billing_delivery_overrides: ["a delivery decision", "Delivery decision"],
 };
 const VERB: Record<string, string> = { approved: "approved", needs_approval: "changed the address of (needs approving again)", added: "added", changed: "changed", removed: "removed", archived: "archived", restored: "restored", replaced: "uploaded a new version of" };

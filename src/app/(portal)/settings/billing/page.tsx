@@ -10,6 +10,7 @@ import { HolidayForm, HolidayToggle, NewPriceListForm, SchemeRuleCard, type Sche
 import { FigureRow } from "../../billing/forms";
 import { BusinessForm, CatalogueImport, CatalogueRow, ReviewRow, TemplateRow, TemplateUpload } from "./compliance-forms";
 import { businessForForm } from "@/lib/business";
+import { MarkupRuleForm } from "../../billing/supplier-forms";
 
 export const metadata: Metadata = { title: "Billing set-up" };
 
@@ -181,6 +182,7 @@ async function ComplianceSections() {
         ) : <p className="text-sm text-muted">No templates yet.</p>}
         {canPrices ? <details className="rounded-md border border-dashed border-line px-3 py-2"><summary className="cursor-pointer text-xs font-semibold text-brand">Upload an official template</summary><div className="mt-2"><TemplateUpload /></div></details> : null}
       </Card>
+      <MarkupRules canPrices={canPrices} />
       <Card className="flex flex-col gap-3 p-4">
         <div>
           <h2 className="heading-sm">NDIS Support Catalogue</h2>
@@ -194,5 +196,28 @@ async function ComplianceSections() {
         {canPrices ? <details className="rounded-md border border-dashed border-line px-3 py-2"><summary className="cursor-pointer text-xs font-semibold text-brand">Import a catalogue release</summary><div className="mt-2"><CatalogueImport /></div></details> : null}
       </Card>
     </>
+  );
+}
+
+// cmeprojects (update 165): markup rules for third-party charges (the provider's own pricing policy).
+async function MarkupRules({ canPrices }: { canPrices: boolean }) {
+  const { data, error } = await (await createClient()).from("billing_markup_rules").select("id, funding_stream, markup_pct, max_markup, effective_from, note").order("funding_stream").order("effective_from", { ascending: false });
+  if (error) return null;
+  const L: Record<string, string> = { all: "All streams", ongoing: "Support at Home quarterly", at_hm: "AT-HM", restorative: "Restorative Care", end_of_life: "End-of-Life", hcp_unspent: "Unspent HCP funds", ndis_plan: "NDIS", private: "Private" };
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <div>
+        <h2 className="heading-sm">Markup on third-party costs</h2>
+        <p className="text-sm text-muted">The markup added to supplier costs when they&apos;re charged to a client, by funding stream, from a date. Rules never change (add a new one). NDIS charges are still checked against the price limit; Support at Home pricing of third-party services is a rule for the nominee to verify.</p>
+      </div>
+      {(data ?? []).length ? (
+        <ul className="divide-y divide-line rounded-md border border-line text-sm">
+          {((data ?? []) as { id: string; funding_stream: string; markup_pct: number; max_markup: number | null; effective_from: string; note: string }[]).map((r) => (
+            <li key={r.id} className="flex flex-wrap gap-2 px-3 py-1.5"><span className="min-w-48 flex-1 font-semibold">{L[r.funding_stream]}</span><span>{Number(r.markup_pct)}%{r.max_markup !== null ? `, at most $${Number(r.max_markup).toFixed(2)}` : ""}</span><span className="text-xs text-muted">from {r.effective_from.split("-").reverse().join("/")}{r.note ? ` · ${r.note}` : ""}</span></li>
+          ))}
+        </ul>
+      ) : <p className="text-sm text-muted">No markup rules yet (charges from supplier costs then have no markup unless a reason is given).</p>}
+      {canPrices ? <MarkupRuleForm /> : null}
+    </Card>
   );
 }

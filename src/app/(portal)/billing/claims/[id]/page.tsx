@@ -29,7 +29,7 @@ export default async function ClaimPage({ params }: PageProps<"/billing/claims/[
   const { data: c } = await supabase.from("claims").select("*").eq("id", id).maybeSingle();
   if (!c) notFound();
   const [{ data: items }, { data: sub }, { data: tpl }, canApprove, canPrepare, canSubmit] = await Promise.all([
-    supabase.from("claim_items").select("id, line_id, quarter_budget_id, client_id, claimed_value, expected_amount, status").eq("claim_id", id).order("created_at"),
+    supabase.from("claim_items").select("*").eq("claim_id", id).order("created_at"),
     supabase.from("claim_submissions").select("*").eq("claim_id", id).maybeSingle(),
     c.template_id ? supabase.from("claim_templates").select("name, version, document_version, official_url").eq("id", c.template_id).maybeSingle() : Promise.resolve({ data: null }),
     canBill("claim_approve"), canBill("claim_prepare"), canBill("claim_submit"),
@@ -44,8 +44,11 @@ export default async function ClaimPage({ params }: PageProps<"/billing/claims/[
   const BAL = new Map(((bals ?? []) as { claim_item_id: string; paid: number; written_off: number }[]).map((b) => [b.claim_item_id, b]));
   const submitted = ["submitted", "acknowledged"].includes(c.status);
   const OUTCOME: Record<string, string> = { accepted: "Accepted", partly_accepted: "Partly accepted", rejected: "Rejected" };
-  type I = { id: string; line_id: string | null; quarter_budget_id: string | null; client_id: string; claimed_value: number; expected_amount: number; status: string };
+  type I = { id: string; line_id: string | null; quarter_budget_id: string | null; charge_id?: string | null; client_id: string; claimed_value: number; expected_amount: number; status: string };
   const its = (items ?? []) as I[];
+  const chargeIds = its.map((i) => i.charge_id).filter(Boolean) as string[];
+  const { data: chargeRows } = chargeIds.length ? await supabase.from("client_charges").select("id, service_date, description").in("id", chargeIds) : { data: [] };
+  const CHG = new Map(((chargeRows ?? []) as { id: string; service_date: string; description: string }[]).map((c) => [c.id, c]));
   const excluded = (c.excluded ?? []) as { line: string; reason: string }[];
   const lineIds = [...new Set([...its.map((i) => i.line_id), ...excluded.map((e) => e.line)].filter(Boolean))] as string[];
   const { data: lines } = lineIds.length ? await supabase.from("billing_lines").select("id, client_id, service_date, band_label, quantity, unit, amount").in("id", lineIds) : { data: [] };
@@ -87,8 +90,8 @@ export default async function ClaimPage({ params }: PageProps<"/billing/claims/[
                   return (
                     <tr key={i.id} className={i.status === "removed" ? "text-muted line-through" : ""}>
                       <td className="py-1.5">{cName.get(i.client_id) ?? "Client"}</td>
-                      <td>{l ? dmy(l.service_date) : "Quarter"}</td>
-                      <td>{l ? `${l.band_label} · ${Number(l.quantity)} ${l.unit}` : "Care management (clinical, no contribution)"}</td>
+                      <td>{l ? dmy(l.service_date) : i.charge_id ? dmy(CHG.get(i.charge_id)?.service_date) : "Quarter"}</td>
+                      <td>{l ? `${l.band_label} · ${Number(l.quantity)} ${l.unit}` : i.charge_id ? `Charge: ${CHG.get(i.charge_id)?.description ?? ""}` : "Care management (clinical, no contribution)"}</td>
                       <td className="text-right">{aud(i.claimed_value)}</td>
                       <td className="text-right">{aud(i.expected_amount)}</td>
                       {submitted ? (
@@ -121,7 +124,7 @@ export default async function ClaimPage({ params }: PageProps<"/billing/claims/[
                 const owed = o ? Number(o.accepted_amount) - Number(BAL.get(i.id)?.paid ?? 0) - Number(BAL.get(i.id)?.written_off ?? 0) : 0;
                 return (
                   <li key={i.id} className="flex flex-col gap-1 px-3 py-2 text-sm">
-                    <p className="font-semibold">{cName.get(i.client_id) ?? "Client"} · {l ? `${dmy(l.service_date)} ${l.band_label}` : "Care management"} · claimed {aud(i.claimed_value)}{o ? ` · ${OUTCOME[o.outcome]}` : ""}</p>
+                    <p className="font-semibold">{cName.get(i.client_id) ?? "Client"} · {l ? `${dmy(l.service_date)} ${l.band_label}` : i.charge_id ? `${dmy(CHG.get(i.charge_id)?.service_date)} ${CHG.get(i.charge_id)?.description ?? ""}` : "Care management"} · claimed {aud(i.claimed_value)}{o ? ` · ${OUTCOME[o.outcome]}` : ""}</p>
                     {canSubmit ? <ResultForm claimId={id} itemId={i.id} claimed={Number(i.claimed_value)} correctsId={o?.result_id} /> : null}
                     {o && owed > 0 ? <WriteOffForm target={{ claim_item_id: i.id }} owed={owed} back={`/billing/claims/${id}`} /> : null}
                   </li>
