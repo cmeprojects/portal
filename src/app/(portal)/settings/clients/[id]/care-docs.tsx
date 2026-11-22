@@ -468,7 +468,7 @@ export function BudgetLines({ proposalId, clientId, lines, services, editable, f
     <div className="flex flex-col gap-2">
       <p className="rounded-md bg-warn-soft px-2 py-1 text-xs">Estimates only. A proposed budget isn&apos;t funding, a price list or an invoice, and never changes funding records.</p>
       {lines.length ? (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full min-w-[34rem] text-left text-sm">
             <thead className="text-xs text-muted">
               <tr>

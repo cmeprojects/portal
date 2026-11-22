@@ -117,7 +117,7 @@ export default async function PriceListPage({ params, searchParams }: PageProps<
           <Card className="flex flex-col gap-3 p-4">
             <h2 className="heading-sm">Prices</h2>
             {items.length ? (
-              <div className="overflow-x-auto">
+              <div className="relative overflow-x-auto">
                 <table className="w-full min-w-[36rem] text-left text-sm">
                   <thead className="text-xs text-muted"><tr><th className="py-1 pr-2">Service</th><th className="py-1 pr-2">Band</th><th className="py-1 pr-2 text-right">Price</th><th className="py-1 pr-2">GST</th><th className="py-1 pr-2">{list.scheme === "support_at_home" ? "Category" : list.scheme === "ndis" ? "Item" : ""}</th>{editable ? <th><span className="sr-only">Remove</span></th> : null}</tr></thead>
                   <tbody className="divide-y divide-line">

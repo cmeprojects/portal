@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { HolidayForm, HolidayToggle, NewPriceListForm, SchemeRuleCard, type SchemeRule } from "./forms";
+import { FigureRow } from "../../billing/forms";
 
 export const metadata: Metadata = { title: "Billing set-up" };
 
@@ -17,20 +18,21 @@ export default async function BillingSetupPage() {
   await requireSession();
   if (!(await canBill("view"))) notFound();
   const supabase = await createClient();
-  const [rulesRes, checksRes, schemesRes, listsRes, versRes, holRes, canPrices, canApprove] = await Promise.all([
+  const [rulesRes, checksRes, schemesRes, listsRes, versRes, holRes, figRes, canPrices, canApprove] = await Promise.all([
     supabase.from("billing_scheme_rules").select("scheme, status, rules_summary, source, as_at, confirmed_by, confirmed_at"),
     supabase.from("billing_rule_checks").select("id, scheme, item, value, source, as_at, status, checked_by, checked_at").order("created_at"),
     supabase.from("client_schemes").select("key, label").order("sort_order"),
     supabase.from("price_lists").select("id, scheme, name, description, active").order("name"),
     supabase.from("price_list_versions").select("id, price_list_id, version, status, effective_from"),
     supabase.from("public_holidays").select("id, state, on_date, name, active").order("on_date", { ascending: false }).limit(200),
+    supabase.from("billing_parameters").select("id, key, value, effective_from, status, source, as_at, verified_by, verified_at").order("key").order("effective_from"),
     canBill("prices"),
     canBill("approve"),
   ]);
   if (rulesRes.error) return <Card className="p-5 text-sm text-muted">Billing set-up isn&apos;t in place yet (update 161).</Card>;
   const schemes = ((schemesRes.data ?? []) as { key: string; label: string }[]).map((s) => [s.key, s.label] as [string, string]);
   const label = (k: string) => schemes.find(([x]) => x === k)?.[1] ?? k;
-  const people = [...new Set([...(rulesRes.data ?? []).map((r) => r.confirmed_by), ...(checksRes.data ?? []).map((c) => c.checked_by)].filter(Boolean))] as string[];
+  const people = [...new Set([...(rulesRes.data ?? []).map((r) => r.confirmed_by), ...(checksRes.data ?? []).map((c) => c.checked_by), ...(figRes.data ?? []).map((f) => f.verified_by)].filter(Boolean))] as string[];
   const { data: names } = people.length ? await supabase.from("profiles").select("id, full_name, email").in("id", people) : { data: [] };
   const who = (id: string | null) => ((names ?? []) as { id: string; full_name: string | null; email: string }[]).find((p) => p.id === id)?.full_name ?? "someone";
   const day = (t: string | null) => (t ? new Date(t).toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric" }) : "");
@@ -55,6 +57,19 @@ export default async function BillingSetupPage() {
         </div>
         {rules.map((r) => <SchemeRuleCard key={r.scheme} rule={r} canApprove={canApprove} />)}
       </Card>
+      {figRes.data?.length ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Support at Home figures used in calculations</h2>
+            <p className="text-sm text-muted">Quarter budgets (care management, carryover and lapse) only use figures verified with their official source and &quot;as at&quot; date. {canApprove ? "" : "Only people with the Billing approve right verify them."}</p>
+          </div>
+          {(figRes.data ?? []).map((f) => (
+            <FigureRow key={f.id} canApprove={canApprove}
+              f={{ id: f.id, value: f.value, effective_from: f.effective_from, status: f.status, source: f.source, as_at: f.as_at, checked: f.verified_by ? `by ${who(f.verified_by)} ${day(f.verified_at)}` : "",
+                   label: f.key === "sah_care_management_pct" ? "Care management (% of the quarterly budget)" : f.key === "sah_rollover_floor" ? "Rollover floor (AUD)" : "Rollover cap (% of the quarterly budget)" }} />
+          ))}
+        </Card>
+      ) : null}
       <Card className="flex flex-col gap-3 p-4">
         <div>
           <h2 className="heading-sm">Price lists</h2>

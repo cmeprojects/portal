@@ -120,7 +120,7 @@ register; each listed figure verified with source and "as at" date); the Support
 an append-only ledger stay traceable (4B); Billing permissions are separate from Funding; the ledger opening
 balance goes through a controlled, approved step (4B); billing terms approval is separate from care plan and
 funding approval.
-4A (update 161), BUILT, waiting for the owner to preview and run it on Dev: "Billing" access part (view,
+4A (update 161), DONE: run on Dev, browser-checked and approved by the owner 22 Nov 2026: "Billing" access part (view,
 prepare, approve, prices, export; default System Administrator and Manager Administrators only), scheme rules and verification register, versioned price
 lists with their own rate bands (additions, edits and removals of draft prices and bands in the change log), rounding, minimum and band-crossing rule, public holidays by state, client
 contribution rates (dated), billing terms for approved services (dated versions linked to the enrolment,
@@ -131,8 +131,20 @@ lines and exports from 4B), not part of the client page. Portal settings, Billin
 rules, verified figures, public holidays. The client page keeps only: Services (approved services and billing
 terms), Funding (funding records and Support at Home contribution and budget information), Audit (the client's
 billing history). Billing links to the client, service, agreement and funding records.
-4B (not started; needs approval): billing lines with snapshots and void/correct, delivery overrides, Support at
-Home quarterly budget, append-only ledger with an approved opening balance, exceptions, CSV export.
+4B (update 162), BUILT, waiting for the owner to preview and run it on Dev: billing lines from delivered shifts
+(approved timesheet and service record, or a delivery decision with a reason) and chargeable cancellations, under the
+service's approved terms on the date, the price list version in force, its own bands (holidays of the location's
+state), rounding, minimum and band rule; one line per band, never duplicated; a full snapshot and the working kept
+on each line; Draft -> Approved by someone other than the maker (over-budget lines need a note); void with a reason
+code and remake (the corrected line points to the original). Calculations only for confirmed schemes; Support at
+Home figures (care management %, rollover floor and %) verified with source and "as at". Support at Home quarter
+budgets per enrolment (pro rata, care management, carryover in and out, lapse), made and approved by different
+people, closed once. Append-only funding ledger: charges and reversals from lines, carryover and lapse from a
+quarter close, opening balances and adjustments proposed and approved by someone else; funding records untouched.
+Exceptions listed with reasons; CSV export of approved lines (recorded in the download trail). Billing module tabs:
+Dashboard, Billing lines, Exceptions, Budgets and ledger, Export; the client's Funding tab shows the budget and
+ledger read only. Not in 4B: claims, invoices, statements, payments, reconciliation, supplier invoices and markup,
+AT-HM and pathway accounts, unspent HCP funds, the NDIS catalogue import (Phase 5); roster budget guard (Phase 6).
 Original scope: Correct and finalise the billing guide (see below). Rate tables
 (client prices, versioned, kept apart from worker pay rates; the same time boundaries for both).
 Public holidays by state. Contribution calculations. Quarterly budget ledger (Support at Home):

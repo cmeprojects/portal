@@ -68,6 +68,10 @@ const TABLE: Record<string, [string, string]> = {
   shift_cancellations: ["cancellation details", "Cancellation details"],
   client_budget_proposals: ["a proposed budget", "Proposed budget"],
   client_budget_lines: ["a proposed budget line", "Proposed budget line"],
+  billing_lines: ["a billing line", "Billing line"],
+  funding_ledger: ["a funding ledger entry", "Funding ledger"],
+  client_quarter_budgets: ["a Support at Home quarter budget", "Quarter budget"],
+  billing_delivery_overrides: ["a delivery decision", "Delivery decision"],
 };
 const VERB: Record<string, string> = { approved: "approved", needs_approval: "changed the address of (needs approving again)", added: "added", changed: "changed", removed: "removed", archived: "archived", restored: "restored", replaced: "uploaded a new version of" };
 

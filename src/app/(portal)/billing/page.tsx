@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
 import { mondayOf, sydneyParts } from "@/lib/sydney-time";
 import { CancellationForm, TermsRow, type Terms } from "../settings/clients/[id]/billing-panels";
+import { BudgetsTab, ExceptionsTab, ExportTab, LinesTab } from "./tabs";
 
 export const metadata: Metadata = { title: "Billing" };
 
@@ -25,9 +26,34 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
 // approvals (billing terms, cancellation charges) and exceptions, each linking
 // to the client's existing pages. Billing lines and exports arrive in Phase 4B.
 // What each person sees follows their Billing reach (the database decides).
-export default async function BillingPage() {
-  const { profile } = await requireSession();
+const TABS: [string, string][] = [["overview", "Dashboard"], ["lines", "Billing lines"], ["exceptions", "Exceptions"], ["budgets", "Budgets and ledger"], ["export", "Export"]];
+
+export default async function BillingPage({ searchParams }: PageProps<"/billing">) {
+  await requireSession();
   if (!(await canBill("view"))) notFound();
+  const sp = await searchParams;
+  const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
+  const tab = TABS.some(([k]) => k === str("tab")) ? str("tab") : "overview";
+  return (
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        title="Billing"
+        intro="Billing from delivered services, separate from funding: lines to review and approve, exceptions, Support at Home budgets and the funding ledger, and exports. Each item links to the client's own records."
+        action={<Link href="/settings?open=system.settings.billing" className={buttonClass("outline")}>Billing set-up</Link>}
+      />
+      <nav aria-label="Billing" className="flex flex-wrap gap-1.5">
+        {TABS.map(([k, l]) => (
+          <Link key={k} href={`/billing?tab=${k}`} aria-current={tab === k ? "page" : undefined}
+            className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${tab === k ? "bg-brand text-brand-fg ring-brand" : "bg-surface text-muted ring-line hover:text-ink"}`}>{l}</Link>
+        ))}
+      </nav>
+      {tab === "lines" ? <LinesTab sp={sp} /> : tab === "exceptions" ? <ExceptionsTab sp={sp} /> : tab === "budgets" ? <BudgetsTab /> : tab === "export" ? <ExportTab /> : <Overview />}
+    </div>
+  );
+}
+
+async function Overview() {
+  const { profile } = await requireSession();
   const supabase = await createClient();
   const [rulesRes, checksRes, listsRes, termsRes, svcRes, cancRes, cdRes, canApprove, canPrepare] = await Promise.all([
     supabase.from("billing_scheme_rules").select("scheme, status"),
@@ -82,11 +108,6 @@ export default async function BillingPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title="Billing"
-        intro="Approvals and exceptions for billing, separate from funding. Billing lines, review of delivered services and exports arrive in Phase 4B. Each item links to the client's own records."
-        action={<Link href="/settings?open=system.settings.billing" className={buttonClass("outline")}>Billing set-up</Link>}
-      />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Schemes with confirmed rules" value={`${rules.filter((r) => r.status === "confirmed").length} of ${rules.length}`} tone="border-l-brand" />
         <Stat label="Regulatory figures verified" value={`${checks.filter((c) => c.status === "verified").length} of ${checks.length}`} tone="border-l-brand" />
@@ -179,10 +200,6 @@ export default async function BillingPage() {
         {noTerms.length > 100 ? <p className="text-xs text-muted">Showing the first 100 of {noTerms.length}.</p> : null}
       </Card>
 
-      <Card className="p-4 text-sm text-muted">
-        <h2 className="heading-sm text-ink">Billing lines and exports</h2>
-        <p>Phase 4B (needs your approval) adds billing lines from delivered services, their review and approval, voids and corrections, the Support at Home quarterly budget and ledger, and the CSV export, here in this module.</p>
-      </Card>
     </div>
   );
 }

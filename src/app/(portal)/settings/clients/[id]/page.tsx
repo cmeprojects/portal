@@ -274,6 +274,12 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
   // cmeprojects (update 161): billing terms for services and contribution rates
   // (the Billing part, separate from Funding). Hidden before update 161 runs.
   type TermsRow = Omit<Terms, "trail" | "mine"> & { service_id: string; created_by: string | null; created_at: string; submitted_by: string | null; submitted_at: string | null; approved_by: string | null; approved_at: string | null; reviewed_by: string | null; reviewed_at: string | null };
+  const [qbRes, ledRes] = await Promise.all([
+    supabase.from("client_quarter_budgets").select("id, quarter_start, quarter_end, quarterly_amount, start_date, prorated_amount, carryover_in, care_management, spendable, status, carryover_out, lapsed, spent").eq("client_id", id).order("quarter_start", { ascending: false }),
+    supabase.from("funding_ledger").select("id, quarter_budget_id, funding_id, entry_kind, amount, entry_date, reason, status").eq("client_id", id).order("entry_date", { ascending: false }).limit(100),
+  ]);
+  const qBudgets = (qbRes.data ?? []) as { id: string; quarter_start: string; quarter_end: string; quarterly_amount: number; start_date: string; prorated_amount: number; carryover_in: number; care_management: number; spendable: number; status: string; carryover_out: number | null; lapsed: number | null; spent: number | null }[];
+  const ledgerRows = (ledRes.data ?? []) as { id: string; quarter_budget_id: string | null; funding_id: string | null; entry_kind: string; amount: number; entry_date: string; reason: string; status: string }[];
   const [termsRes, plRes, rateRes, billView, billPrepare, billApprove] = await Promise.all([
     supabase.from("client_service_terms").select("*").eq("client_id", id).order("version", { ascending: false }),
     supabase.from("price_lists").select("id, scheme, name, active").eq("active", true).order("name"),
@@ -1576,6 +1582,40 @@ export default async function ClientProfilePage({ params, searchParams }: PagePr
             <p className="text-sm text-muted">The client&apos;s contribution for each service category, from their Services Australia letter, with the dates they apply. Not used for any calculation until Support at Home billing rules are confirmed.</p>
           </div>
           <ContributionRates clientId={id} rates={rates} enrolments={sahEnrolments} documents={docChoices} canPrepare={billPrepare} />
+        </Card>
+      ) : null}
+      {inView("funding") && billingOn && (qBudgets.length || ledgerRows.length) ? (
+        <Card className="flex flex-col gap-3 p-4">
+          <div>
+            <h2 className="heading-sm">Support at Home budget and funding ledger</h2>
+            <p className="text-sm text-muted">Read only. Budgets, billing lines and ledger entries are managed in <Link href="/billing?tab=budgets" className="font-semibold text-brand underline">Billing</Link>.</p>
+          </div>
+          {qBudgets.length ? (
+            <ul className="divide-y divide-line rounded-md border border-line text-sm">
+              {qBudgets.map((b) => {
+                const moved = ledgerRows.filter((l) => l.quarter_budget_id === b.id && l.status === "approved").reduce((t, l) => t + Number(l.amount), 0);
+                return (
+                  <li key={b.id} className="flex flex-wrap items-center gap-2 px-3 py-1.5">
+                    <span className="min-w-40 flex-1 font-semibold">Quarter from {day(b.quarter_start)}{b.start_date !== b.quarter_start ? ` (started ${day(b.start_date)})` : ""}</span>
+                    <span className="text-xs">spendable {aud(b.spendable)} (care management {aud(b.care_management)}, carryover in {aud(b.carryover_in)})</span>
+                    <span className="text-xs font-semibold">{b.status === "draft" ? "Draft" : b.status === "closed" ? `Closed: spent ${aud(b.spent ?? 0)}, carried ${aud(b.carryover_out ?? 0)}, lapsed ${aud(b.lapsed ?? 0)}` : `Available ${aud(Number(b.spendable) + moved)}`}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          {ledgerRows.length ? (
+            <details className="rounded-md border border-line px-3 py-2 text-sm">
+              <summary className="cursor-pointer text-xs font-semibold text-brand">Ledger entries ({ledgerRows.length})</summary>
+              <ul className="mt-2 flex flex-col gap-1 text-xs">
+                {ledgerRows.map((l) => (
+                  <li key={l.id} className={l.status === "rejected" ? "text-muted line-through" : ""}>
+                    {day(l.entry_date)} · {l.entry_kind.replace(/_/g, " ")} · <span className="font-semibold">{aud(l.amount)}</span> · {l.reason}{l.status === "proposed" ? " · proposed (not counted yet)" : ""}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
         </Card>
       ) : null}
       {inView("funding") && docsOn160 && budgets && fundingOn.data?.value !== false && (budgets.length || canFunding) ? (
