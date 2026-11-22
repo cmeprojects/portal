@@ -32,6 +32,13 @@ export function buildNav(opts: {
   };
   const items = (cat: CategoryId): NavNode[] => {
     const out: NavNode[] = [];
+    // cmeprojects (update 161, owner 22 Nov 2026): Billing is its own main menu
+    // module (dashboard, approvals, exceptions; billing lines and exports from
+    // Phase 4B), for people with the Billing part. Set-up stays in Portal settings.
+    if (cat === "billing") {
+      if (allowed.has("/billing")) out.push({ id: "billing.home", label: "Billing", icon: "ClipboardCheck", href: "/billing", match: ["/billing"], children: [] });
+      return out;
+    }
     for (const m of MODULES.filter((x) => x.category === cat && !x.parent)) {
       if (m.id === "ops.features") {
         // Each built feature is its own item.

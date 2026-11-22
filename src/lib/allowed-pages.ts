@@ -31,7 +31,10 @@ export const getAllowedPages = cache(async () => {
     allowed.add("/settings/assessments"); // update 159: assessment templates, same people
   }
   // cmeprojects (update 161): billing set-up, for people with the Billing part.
-  if (await canDo("clients.billing", "view")) allowed.add("/settings/billing");
+  if (await canDo("clients.billing", "view")) {
+    allowed.add("/billing");
+    allowed.add("/settings/billing");
+  }
   // cmeprojects (update 154): the download trail.
   if (await seesDownloads()) allowed.add("/system/downloads");
   return { navAccess, groups, tabPages, searchPages, allowed };

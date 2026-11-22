@@ -126,6 +126,11 @@ lists with their own rate bands, rounding, minimum and band-crossing rule, publi
 contribution rates (dated), billing terms for approved services (dated versions linked to the enrolment,
 funding record, agreement, price list and support plan line; approved by Billing approve, not the preparer),
 cancellation details (charge decided by Billing approve, with a reason). Nothing is calculated or billed.
+Structure (owner, 22 Nov 2026): Billing is its own main menu module (dashboard, approvals, exceptions; billing
+lines and exports from 4B), not part of the client page. Portal settings, Billing set-up: price lists, scheme
+rules, verified figures, public holidays. The client page keeps only: Services (approved services and billing
+terms), Funding (funding records and Support at Home contribution and budget information), Audit (the client's
+billing history). Billing links to the client, service, agreement and funding records.
 4B (not started; needs approval): billing lines with snapshots and void/correct, delivery overrides, Support at
 Home quarterly budget, append-only ledger with an approved opening balance, exceptions, CSV export.
 Original scope: Correct and finalise the billing guide (see below). Rate tables

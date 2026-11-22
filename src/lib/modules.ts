@@ -11,7 +11,7 @@
 // sub-pages are hidden until the person chooses to show them (up to 3 modules
 // at a time); href "" = never a menu item (permission-only).
 
-export type CategoryId = "workspace" | "operations" | "apps" | "people" | "hr" | "clients" | "workflows" | "insights" | "engagement" | "system";
+export type CategoryId = "workspace" | "operations" | "apps" | "people" | "hr" | "clients" | "billing" | "workflows" | "insights" | "engagement" | "system";
 export type Sensitivity = "normal" | "sensitive" | "protected";
 
 export type ModuleDef = {
@@ -37,6 +37,7 @@ export const CATEGORIES: { id: CategoryId; label: string }[] = [
   { id: "people", label: "People & organisation" },
   { id: "hr", label: "HR & workforce" },
   { id: "clients", label: "Clients & care" },
+  { id: "billing", label: "Billing" },
   { id: "workflows", label: "Forms & workflows" },
   { id: "insights", label: "Reports & insights" },
   { id: "engagement", label: "Website & engagement" },

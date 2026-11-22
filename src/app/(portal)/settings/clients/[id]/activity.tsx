@@ -62,6 +62,12 @@ const TABLE: Record<string, [string, string]> = {
   client_communications: ["a communication log entry", "Communication log"],
   client_practitioner_notes: ["a practitioner note", "Practitioner note"],
   client_external_access: ["practitioner access", "Practitioner access"],
+  // cmeprojects (updates 160 and 161): billing-related records in the client's audit history.
+  client_service_terms: ["billing terms for a service", "Billing terms"],
+  client_contribution_rates: ["a contribution rate", "Contribution rate"],
+  shift_cancellations: ["cancellation details", "Cancellation details"],
+  client_budget_proposals: ["a proposed budget", "Proposed budget"],
+  client_budget_lines: ["a proposed budget line", "Proposed budget line"],
 };
 const VERB: Record<string, string> = { approved: "approved", needs_approval: "changed the address of (needs approving again)", added: "added", changed: "changed", removed: "removed", archived: "archived", restored: "restored", replaced: "uploaded a new version of" };
 

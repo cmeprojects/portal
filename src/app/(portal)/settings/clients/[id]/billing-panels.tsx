@@ -83,7 +83,7 @@ export function ServiceTermsPanel({ clientId, serviceId, scheme, terms, enrolmen
   );
 }
 
-function TermsRow({ t, clientId, serviceId, scheme, enrolments, funding, agreements, priceLists, supportLines, canPrepare, canApprove }: {
+export function TermsRow({ t, clientId, serviceId, scheme, enrolments, funding, agreements, priceLists, supportLines, canPrepare, canApprove }: {
   t: Terms; clientId: string; serviceId: string; scheme: string; enrolments: Opt[]; funding: Opt[]; agreements: Opt[]; priceLists: Opt[]; supportLines: Opt[]; canPrepare: boolean; canApprove: boolean;
 }) {
   const { pending, state, run } = useRun();
