@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeftRight, Calendar, CalendarCheck, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, Columns2, FilePen, Hand, HeartHandshake, Hourglass, MoreVertical, Plus, Repeat2, Send, SquareCheck, UserCheck, Users, UserX } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, Calendar, CircleDollarSign, CalendarCheck, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, Columns2, FilePen, Hand, HeartHandshake, Hourglass, MoreVertical, Plus, Repeat2, Send, SquareCheck, UserCheck, Users, UserX } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { canDo } from "@/lib/module-access";
+import { canBill } from "@/lib/billing-access";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
@@ -174,6 +175,17 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     });
   if (shiftsRes.error) notFound(); // before live update 122
   const shifts = (shiftsRes.data ?? []) as Shift[];
+  // cmeprojects (update 170, Phase 6): billing checks on rostered client shifts (estimate from the
+  // roster, why one couldn't be billed, budget left). Only for people with the Billing view right;
+  // a warning, never a block on rostering.
+  type BillCheck = { shift_id: string; severity: string; problem: string | null; amount: number | null; left_after: number | null };
+  const billCheck = new Map<string, BillCheck>();
+  if (shifts.some((x) => x.client_id) && (await canBill("view"))) {
+    const { data: bc } = await supabase.rpc("roster_billing_forecast", { p_from: gridStart, p_to: addDays(gridEnd, -1) });
+    for (const r of (bc ?? []) as BillCheck[]) billCheck.set(r.shift_id, r);
+  }
+  const billFlag = (id: string) => { const b = billCheck.get(id); return b && (b.severity === "fix" || b.severity === "over_budget") ? b : null; };
+  const billAud = (n: number) => Number(n).toLocaleString("en-AU", { style: "currency", currency: "AUD" });
   const requests = reqRes.error ? [] : ((reqRes.data ?? []) as Req[]);
   const name = new Map(((people ?? []) as { id: string; full_name: string | null; email: string }[]).map((p) => [p.id, p.full_name || p.email]));
   const clientName = new Map(((clients ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
@@ -515,6 +527,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
     const warn = warningsFor(s);
     const n = hands(s.id).length;
     const asked = requests.some((r) => r.shift_id === s.id);
+    const bill = billCheck.get(s.id);
     const band = bandOf(s.starts_at, s.ends_at);
     const inner = (
       <>
@@ -526,6 +539,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           </span>
           <span className="flex items-center gap-1">
             {warn.length ? <AlertTriangle aria-label="Warning" className="size-3 text-warn" /> : null}
+            {billFlag(s.id) ? <CircleDollarSign aria-label={`Billing: ${billFlag(s.id)!.problem}`} className="size-3 text-danger" /> : null}
             {asked ? <ArrowLeftRight aria-label="Change asked" className="size-3 text-warn" /> : null}
             {n ? (
               <span className="inline-flex items-center text-brand">
@@ -553,6 +567,11 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         {s.service_id ? <span className="block">{serviceName.get(s.service_id)}</span> : null}
         <span className="block text-muted">{s.worker_id ? name.get(s.worker_id) : "No worker yet"} · {STATUS_STYLE[statusOf(s)][0]}</span>
         {warn.length ? <span className="mt-1 block text-warn">{warn.join(" · ")}</span> : null}
+        {bill ? (
+          <span className={`mt-1 block ${bill.severity === "ok" ? "text-muted" : bill.severity === "setup" ? "text-warn" : "text-danger"}`}>
+            Billing: {bill.severity === "ok" ? `about ${billAud(bill.amount ?? 0)} from the roster${bill.left_after !== null ? `, ${billAud(bill.left_after)} left after it` : ""}` : bill.problem}
+          </span>
+        ) : null}
       </span>
     );
     return selecting ? (
@@ -605,6 +624,18 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
           </div>
         ))}
       </div>
+      {(() => {
+        const flagged = shifts.filter((x) => billFlag(x.id));
+        return flagged.length ? (
+          <p className="flex flex-wrap items-center gap-1.5 rounded-lg bg-danger-soft px-3 py-2 text-sm" data-billing-check>
+            <CircleDollarSign aria-hidden="true" className="size-4 text-danger" />
+            <span>
+              {flagged.length} client shift{flagged.length === 1 ? "" : "s"} shown can&apos;t be billed as rostered ({flagged.filter((x) => billFlag(x.id)!.severity === "over_budget").length} over budget). Hover the $ sign for the reason, or see{" "}
+              <Link href="/billing?tab=upcoming" className="font-semibold underline">Billing: Coming up</Link>.
+            </span>
+          </p>
+        ) : null;
+      })()}
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex overflow-hidden rounded-lg border border-line text-sm font-semibold">
           <Link href={`/roster?${viewQ}`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${byClient ? "bg-brand text-brand-fg" : "text-muted hover:bg-page"}`}>

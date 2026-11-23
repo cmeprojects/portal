@@ -204,9 +204,17 @@ acknowledgement); only that record makes a claim "Submitted"; generating or down
 does. No direct API submission or automatic portal integration in Phase 5 (TODO: future optional
 integration).
 
-**Phase 6: tie it together.** Rostering picks the client's approved service and checks program and
+**Phase 6: tie it together. Built (update 170, D-075), waiting for the owner's review; not run on Dev.** Rostering picks the client's approved service and checks program and
 funding; delivered shifts (not rostered ones) become billing lines after checks; budget checks
 before billing; exception lists; dashboards.
+Built: rostered client shifts (draft or published, not billed yet) checked as if delivered as rostered
+and estimated from the roster (approved terms, enrolment, scheme rules, prices, location state,
+contribution rate, quarter budget or funding); a budget forecast per funding account after earlier
+rostered shifts and draft lines; Billing: Coming up tab (to fix, over budget, waiting on set-up),
+dashboard tiles, and a $ sign with the reason on the roster, for people with the Billing view right
+only. Warnings, never a block on rostering. Already in place: approved service, shift types and
+program at rostering (143, 158); billing lines only from delivered shifts with evidence, over-budget
+note at approval, exceptions (162).
 
 ## Billing guide corrections (before Phase 4)
 

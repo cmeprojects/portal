@@ -244,3 +244,11 @@ the owner's brief:
   shown on the incident). They are not in the client's Activity tab. Checked 20 Nov 2026: updates
   154-156 don't change incidents or who can see them. Adding incident activity to the client trail is
   future work.
+
+## LATER: Phase 6 follow-ups (owner to decide; D-075)
+
+- Optional block on rostering when a client's service has no approved billing terms (today it's a
+  warning for billing staff only). A block would need the check to run for roster editors who can't
+  see billing terms, which means a new SECURITY DEFINER function: needs the owner's approval.
+- A warning inside the shift form itself (today the $ sign and reason show on the roster card).
+- Forecast beyond six months, and forecasting repeating shifts not yet created.

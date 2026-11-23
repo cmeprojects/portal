@@ -151,6 +151,115 @@ export async function ExceptionsTab({ sp }: { sp: SP }) {
   );
 }
 
+// ---- Phase 6 (update 170): rostered shifts, checked before they're delivered ----
+export type ForecastRow = { shift_id: string; client_id: string; service_id: string | null; starts_at: string; shift_status: string; severity: string; problem: string | null; amount: number | null; client_share: number | null; account_kind: string | null; account_id: string | null; available_before: number | null; left_after: number | null };
+export async function rosterForecast(from: string, to: string) {
+  const { data, error } = await (await createClient()).rpc("roster_billing_forecast", { p_from: from, p_to: to });
+  return error ? null : ((data ?? []) as ForecastRow[]);
+}
+const SEVERITY: Record<string, string> = { fix: "To fix before it can be billed", over_budget: "Would go over the budget", setup: "Waiting on set-up (scheme rules or a quarter budget)" };
+export async function UpcomingTab({ sp }: { sp: SP }) {
+  const today = sydneyToday();
+  const from = ymd(str(sp, "ufrom")) || today;
+  const to = ymd(str(sp, "uto")) || addDays(today, 27);
+  const rows = await rosterForecast(from, to);
+  if (rows === null) return <Card className="p-5 text-sm text-muted">Roster checks aren&apos;t available yet (update 170).</Card>;
+  const supabase = await createClient();
+  const clientIds = [...new Set(rows.map((r) => r.client_id))];
+  const svcIds = [...new Set(rows.map((r) => r.service_id).filter(Boolean))] as string[];
+  const qIds = [...new Set(rows.filter((r) => r.account_kind === "quarter_budget").map((r) => r.account_id!))];
+  const fIds = [...new Set(rows.filter((r) => r.account_kind === "funding").map((r) => r.account_id!))];
+  const [{ data: cRows }, { data: sRows }, { data: qRows }, { data: fRows }] = await Promise.all([
+    clientIds.length ? supabase.from("car_clients").select("id, name").in("id", clientIds) : Promise.resolve({ data: [] }),
+    svcIds.length ? supabase.from("client_services").select("id, label").in("id", svcIds) : Promise.resolve({ data: [] }),
+    qIds.length ? supabase.from("client_quarter_budgets").select("id, quarter_start, quarter_end").in("id", qIds) : Promise.resolve({ data: [] }),
+    fIds.length ? supabase.from("client_funding").select("id, scheme, period_start, period_end").in("id", fIds) : Promise.resolve({ data: [] }),
+  ]);
+  const cName = new Map(((cRows ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
+  const sName = new Map(((sRows ?? []) as { id: string; label: string }[]).map((c) => [c.id, c.label]));
+  const acctName = new Map<string, string>([
+    ...((qRows ?? []) as { id: string; quarter_start: string; quarter_end: string }[]).map((q) => [q.id, `Support at Home quarter ${dmy(q.quarter_start)} to ${dmy(q.quarter_end)}`] as [string, string]),
+    ...((fRows ?? []) as { id: string; scheme: string; period_start: string; period_end: string }[]).map((f) => [f.id, `${SCHEME[f.scheme] ?? f.scheme} funding ${dmy(f.period_start)} to ${dmy(f.period_end)}`] as [string, string]),
+  ]);
+  const problems = rows.filter((r) => r.severity !== "ok");
+  // Budget forecast: per funding account, what the rostered shifts would use and what's left.
+  const accounts = new Map<string, { client: string; id: string; before: number; used: number; left: number; shifts: number; firstOver: string | null }>();
+  for (const r of rows) {
+    if (!r.account_id || r.amount === null) continue;
+    const a = accounts.get(r.account_id) ?? { client: r.client_id, id: r.account_id, before: Number(r.available_before), used: 0, left: 0, shifts: 0, firstOver: null };
+    a.used += Number(r.amount); a.left = Number(r.left_after); a.shifts += 1;
+    if (a.left < 0 && !a.firstOver) a.firstOver = r.starts_at;
+    accounts.set(r.account_id, a);
+  }
+  const acctRows = [...accounts.values()].sort((x, y) => x.left - y.left);
+  return (
+    <>
+      <Card className="flex flex-col gap-3 p-4">
+        <div>
+          <h2 className="heading-sm">Coming up: rostered shifts</h2>
+          <p className="text-sm text-muted">Client shifts on the roster (draft or published) not billed yet, checked as if delivered as rostered: approved service, program, billing terms, prices, funding and budget. Rostering is never blocked; fix these before the shifts are delivered. Amounts are estimates from the roster, not billing lines.</p>
+        </div>
+        <form method="get" action="/billing" className="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="tab" value="upcoming" />
+          <label className="flex flex-col gap-1 text-xs font-medium">From<DateInput name="ufrom" defaultValue={from} className="rounded-lg border border-field bg-surface px-3 py-2 text-sm" /></label>
+          <label className="flex flex-col gap-1 text-xs font-medium">To<DateInput name="uto" defaultValue={to} className="rounded-lg border border-field bg-surface px-3 py-2 text-sm" /></label>
+          <button className={buttonClass("outline")}>Show</button>
+        </form>
+        <p className="text-sm">{rows.length} rostered client shift{rows.length === 1 ? "" : "s"} checked: {rows.filter((r) => r.severity === "ok").length} ready, {problems.filter((r) => r.severity === "fix").length} to fix, {problems.filter((r) => r.severity === "over_budget").length} over budget, {problems.filter((r) => r.severity === "setup").length} waiting on set-up.</p>
+        {(["fix", "over_budget", "setup"] as const).map((sev) => {
+          const list = problems.filter((r) => r.severity === sev);
+          if (!list.length) return null;
+          return (
+            <details key={sev} open={sev !== "setup"} className="rounded-md border border-line">
+              <summary className="cursor-pointer px-3 py-2 text-sm font-semibold">{SEVERITY[sev]} ({list.length})</summary>
+              <ul className="flex flex-col gap-1 px-3 pb-3">
+                {list.map((r) => {
+                  const p = sydneyParts(r.starts_at);
+                  return (
+                    <li key={r.shift_id} className="text-sm" data-upcoming={sev}>
+                      <Link href={`/settings/clients/${r.client_id}?tab=services#services`} className="font-semibold text-brand underline">{cName.get(r.client_id) ?? "Client"}</Link>
+                      {" · "}{r.service_id ? sName.get(r.service_id) ?? "Service" : "No service"} · {dmy(p.date)} {p.time}{r.shift_status === "draft" ? " · draft" : ""}
+                      {" · "}<Link href={`/roster?d=${p.date}&shift=${r.shift_id}`} className="text-xs text-brand underline">Open on the roster</Link>
+                      <span className={`block ${sev === "setup" ? "text-warn" : "text-danger"}`}>{r.problem}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          );
+        })}
+        {!rows.length ? <p className="text-sm text-muted">No rostered client shifts in this period.</p> : null}
+      </Card>
+      <Card className="flex flex-col gap-3 p-4">
+        <div>
+          <h2 className="heading-sm">Budget forecast</h2>
+          <p className="text-sm text-muted">For each funding account: what&apos;s available now (approved balance, less draft lines), what the rostered shifts in the period would use, and what would be left. Billing lines over the budget need a note when approved.</p>
+        </div>
+        {acctRows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-muted"><th className="py-1 pr-3">Client</th><th className="pr-3">Account</th><th className="pr-3 text-right">Available now</th><th className="pr-3 text-right">Rostered shifts</th><th className="pr-3 text-right">Would use</th><th className="pr-3 text-right">Left after</th><th>Goes over on</th></tr></thead>
+              <tbody>
+                {acctRows.map((a) => (
+                  <tr key={a.id} className="border-t border-line" data-forecast-row>
+                    <td className="py-1 pr-3">{cName.get(a.client) ?? "Client"}</td>
+                    <td className="pr-3">{acctName.get(a.id) ?? "Funding account"}</td>
+                    <td className="pr-3 text-right">{aud(a.before)}</td>
+                    <td className="pr-3 text-right">{a.shifts}</td>
+                    <td className="pr-3 text-right">{aud(a.used)}</td>
+                    <td className={`pr-3 text-right font-semibold ${a.left < 0 ? "text-danger" : ""}`}>{aud(a.left)}</td>
+                    <td>{a.firstOver ? dmy(sydneyParts(a.firstOver).date) : "–"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <p className="text-sm text-muted">No rostered shifts in the period draw on a funding account yet (they need approved terms, prices and funding first).</p>}
+      </Card>
+    </>
+  );
+}
+
 // ---- Budgets and ledger ----
 export async function BudgetsTab() {
   const { profile } = await requireSession();

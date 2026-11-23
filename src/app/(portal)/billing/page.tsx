@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass } from "@/components/ui";
 import { addDays, mondayOf, sydneyParts, sydneyToday } from "@/lib/sydney-time";
 import { CancellationForm, TermsRow, type Terms } from "../settings/clients/[id]/billing-panels";
-import { BudgetsTab, ExceptionsTab, ExportTab, LinesTab } from "./tabs";
+import { BudgetsTab, ExceptionsTab, ExportTab, LinesTab, UpcomingTab, rosterForecast } from "./tabs";
 import { ClaimsTab, ClientBillingTab, InvoicesTab } from "./claims-tabs";
 import { PaymentsTab, ReconciliationTab } from "./money-tabs";
 import { SuppliersTab } from "./supplier-tabs";
@@ -30,8 +30,9 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
 // approvals (billing terms, cancellation charges) and exceptions, each linking
 // to the client's existing pages. Billing lines and exports arrive in Phase 4B.
 // What each person sees follows their Billing reach (the database decides).
+// Update 170 (Phase 6) adds Coming up: rostered shifts checked before delivery, and the budget forecast.
 // Update 163 adds Claims, Invoices and statements, and Client billing details; 164 adds Payments and Reconciliation; 165 Suppliers and charges; 166 Reports.
-const TABS: [string, string][] = [["overview", "Dashboard"], ["lines", "Billing lines"], ["exceptions", "Exceptions"], ["claims", "Claims"], ["invoices", "Invoices and statements"], ["payments", "Payments"], ["reconciliation", "Reconciliation"], ["suppliers", "Suppliers and charges"], ["reports", "Reports"], ["clients", "Client billing details"], ["budgets", "Budgets and ledger"], ["export", "Export"]];
+const TABS: [string, string][] = [["overview", "Dashboard"], ["lines", "Billing lines"], ["exceptions", "Exceptions"], ["upcoming", "Coming up"], ["claims", "Claims"], ["invoices", "Invoices and statements"], ["payments", "Payments"], ["reconciliation", "Reconciliation"], ["suppliers", "Suppliers and charges"], ["reports", "Reports"], ["clients", "Client billing details"], ["budgets", "Budgets and ledger"], ["export", "Export"]];
 
 export default async function BillingPage({ searchParams }: PageProps<"/billing">) {
   await requireSession();
@@ -52,7 +53,26 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
             className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${tab === k ? "bg-brand text-brand-fg ring-brand" : "bg-surface text-muted ring-line hover:text-ink"}`}>{l}</Link>
         ))}
       </nav>
-      {tab === "reports" ? <ReportsTab sp={sp} /> : tab === "suppliers" ? <SuppliersTab /> : tab === "payments" ? <PaymentsTab /> : tab === "reconciliation" ? <ReconciliationTab /> : tab === "claims" ? <ClaimsTab /> : tab === "invoices" ? <InvoicesTab sp={sp} /> : tab === "clients" ? <ClientBillingTab /> : tab === "lines" ? <LinesTab sp={sp} /> : tab === "exceptions" ? <ExceptionsTab sp={sp} /> : tab === "budgets" ? <BudgetsTab /> : tab === "export" ? <ExportTab /> : <Overview />}
+      {tab === "reports" ? <ReportsTab sp={sp} /> : tab === "suppliers" ? <SuppliersTab /> : tab === "payments" ? <PaymentsTab /> : tab === "reconciliation" ? <ReconciliationTab /> : tab === "claims" ? <ClaimsTab /> : tab === "invoices" ? <InvoicesTab sp={sp} /> : tab === "clients" ? <ClientBillingTab /> : tab === "lines" ? <LinesTab sp={sp} /> : tab === "exceptions" ? <ExceptionsTab sp={sp} /> : tab === "upcoming" ? <UpcomingTab sp={sp} /> : tab === "budgets" ? <BudgetsTab /> : tab === "export" ? <ExportTab /> : <Overview />}
+    </div>
+  );
+}
+
+// cmeprojects (update 170, Phase 6): the next four weeks of the roster, checked for billing.
+async function RosterTiles() {
+  const today = sydneyToday();
+  const rows = await rosterForecast(today, addDays(today, 27));
+  if (rows === null) return null;
+  const overAccounts = new Set(rows.filter((r) => r.severity === "over_budget").map((r) => r.account_id)).size;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Rostered client shifts, next 4 weeks" value={String(rows.length)} tone="border-l-brand" />
+        <Stat label="Can't be billed as rostered (to fix)" value={String(rows.filter((r) => r.severity === "fix").length)} tone="border-l-danger" />
+        <Stat label="Would go over budget" value={`${rows.filter((r) => r.severity === "over_budget").length} shift(s), ${overAccounts} account(s)`} tone="border-l-warn" />
+        <Stat label="Waiting on set-up" value={String(rows.filter((r) => r.severity === "setup").length)} tone="border-l-warn" />
+      </div>
+      <Link href="/billing?tab=upcoming" className="text-sm font-semibold text-brand underline">See rostered shifts and the budget forecast</Link>
     </div>
   );
 }
@@ -126,6 +146,7 @@ async function Overview() {
         </p>
       ) : null}
 
+      <RosterTiles />
       <FollowUps />
 
       <Card className="flex flex-col gap-3 p-4">
