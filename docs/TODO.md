@@ -252,3 +252,10 @@ the owner's brief:
   see billing terms, which means a new SECURITY DEFINER function: needs the owner's approval.
 - A warning inside the shift form itself (today the $ sign and reason show on the roster card).
 - Forecast beyond six months, and forecasting repeating shifts not yet created.
+
+## LATER: zero-trust security review (owner, 27 Nov 2026)
+
+Report first, no changes without approval: audit each server use of the database master key
+(about 15 files) and each full-access (security definer) function; propose two-factor for
+Billing, Access and admin roles, signing in again before money approvals, issuing and exports,
+limits on repeated attempts, and a check of hosting and network settings.
