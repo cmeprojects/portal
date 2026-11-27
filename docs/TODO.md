@@ -259,3 +259,13 @@ Report first, no changes without approval: audit each server use of the database
 (about 15 files) and each full-access (security definer) function; propose two-factor for
 Billing, Access and admin roles, signing in again before money approvals, issuing and exports,
 limits on repeated attempts, and a check of hosting and network settings.
+
+## LATER: from the Phase 5-6 review (27 Nov 2026)
+
+- Map every existing client service to a catalogue service (11 of 14 aren't linked today) before
+  any catalogue-only pricing. Until then prices stay linked, by name, or both (update 167).
+- Bank reconciliation: split payments and grouped bank deposits (one bank line to many payments,
+  or many to one). Today matching is one-to-one on the exact amount; no approximate or automatic
+  matching without the owner's approval.
+- A reconciliation-status section in Billing > Reports (today it's on the Reconciliation tab and in
+  the integrity checks as "Unmatched bank lines").
