@@ -9,6 +9,13 @@
 --   * notify_many: send any notice (bell and email) to anyone, with any title, text and link.
 --   * resolve_people: list who is in an approval group.
 --   * escalate_requests: the scheduled escalation job (only the scheduler, as the service role).
+-- Also (W4 follow-up, 28 Nov 2026), three helper functions answered signed-out visitors:
+--   * rule_on: meant to say yes or no, but for a setting that isn't yes/no its error message showed
+--     the setting's value, so a signed-out visitor could read members-only settings.
+--   * setting_roles: which roles a setting lists (for example, which roles need two-factor).
+--   * can_take_tasks: whether a given person ID belongs to active staff.
+--   Signed-out visitors can no longer call these three; signed-in people still can (the access
+--   rules use them). None of the other signed-out helpers reveals anything or changes anything.
 -- They're now callable only from inside the database (by the functions that use them, which run as
 -- their owner) and, for the escalation job, by the scheduler. Nothing else changes: approving a
 -- request still puts it into effect, notices are still sent. No data changes. No new SECURITY
@@ -19,3 +26,6 @@ revoke execute on function public.notify_many(uuid[], text, text, text, text) fr
 revoke execute on function public.resolve_people(text[], uuid) from public, anon, authenticated;
 revoke execute on function public.escalate_requests() from public, anon, authenticated;
 grant execute on function public.escalate_requests() to service_role;
+revoke execute on function public.rule_on(text) from public, anon;
+revoke execute on function public.setting_roles(text) from public, anon;
+revoke execute on function public.can_take_tasks(uuid) from public, anon;

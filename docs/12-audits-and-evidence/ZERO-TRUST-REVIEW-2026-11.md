@@ -38,7 +38,8 @@ How it was checked:
 - **Tests:** `supabase/tests/internal_functions_locked.test.sql` (refused for a worker and for a
   manager; the leave stays pending), and `my_requests.test.sql` (approval still records the leave).
 
-**V2. Anyone signed in could send any notice, with an email, to anyone.**
+**V2. Anyone signed in could send any notice, with an email, to anyone.** (Update 171 also now
+closes three helpers to signed-out visitors; see W4.)
 - **Affected:** `notify_many` (database). `resolve_people` and `escalate_requests` had the same
   cause.
 - **Attack:** a support worker calls `notify_many` with a manager's ID, a title such as "Approve
@@ -74,11 +75,18 @@ How it was checked:
 
 ### Warnings (low impact; proposed, not changed)
 
-- **W1. Resend invite checks permission after sending.**
-  `settings/staff/actions.ts` checks `managesStaffFor()` first, but the database's own check
-  (`log_admin_action`) only runs after the email goes. Impact: someone who manages some staff could
-  re-send an invite email to anyone they can see. It gives them no access. Fix: call the check
-  before sending.
+- **W1. Resend invite: closed after follow-up (28 Nov 2026); not exploitable, no change needed.**
+  The app check (`managesStaffFor` = `can('people.staff', 'edit')`) and the database check that
+  runs after the email (`log_admin_action('invite_resent')`, the same `can('people.staff', 'edit')`)
+  are the same rule, asked in the same request. So anyone who could pass the first also passes the
+  second, and nobody can trigger the email without staff editing rights.
+  Tested with:
+  - support worker: no;
+  - team leader, even when given a team-only staff grant: no, because only managers and staff
+    admins can hold it;
+  - manager without two-factor in the session: no.
+  Only managers and staff admins hold the right by default, for all staff. The email (an invite or
+  sign-in link) goes to the person's own inbox and gives the sender no access.
 - **W2. `onboarding_missing` shows any colleague's unfinished onboarding items** (titles only, no
   values). Impact: low (privacy). A direct fix would break internal callers that run without a
   signed-in person. Fix: a separate viewer-checked version for the Staff pages.
@@ -86,9 +94,28 @@ How it was checked:
   database request until their sign-in token expires (at most 60 minutes). The app sends them to
   "deactivated" at once, sign-in is blocked, and managers lose all access straight away. Fix: add
   the "active member" check to the worker's own-shift rule.
-- **W4. 27 older full-access helper functions are callable by signed-out visitors.** Each only
-  answers yes or no about the caller, who is nobody, or reads harmless settings. Fix: remove
-  signed-out access as housekeeping.
+- **W4. The 27 helper functions signed-out visitors could call: checked one by one (28 Nov
+  2026).**
+  - None writes anything or causes any action (each body checked).
+  - None reads client, billing, HR or financial tables.
+  - Called as a signed-out visitor with real IDs:
+    - 18 answer only about the caller, who is nobody, so the answer is false or empty: the "can"
+      checks, has_role, is_staff_admin, is_system_admin, manages_registry, my_name,
+      my_role, sees_register_overview, task_folder_ok, leads_user, and mfa_ok. mfa_ok says "true",
+      but every rule that uses it also needs a role, so it grants nothing.
+    - 6 give harmless or public facts: default_org_id (an ID with no use without access),
+      local_today, next_business_day, website_front_page, feature_enabled (on or off switches),
+      and is_member (also needed by the public settings rule).
+  - Three leaked something and were **corrected in update 171** (signed-in access kept):
+    - **rule_on (low-severity vulnerability).** It's meant to say yes or no, but for a setting that
+      isn't yes/no its error message printed the value. With only the public key, the live API
+      returned the portal name and the list of roles that need two-factor. Members-only settings
+      (for example, weekly report recipients, the staff phone line, the invite message) were
+      readable the same way. No passwords or keys are kept in settings.
+    - **setting_roles.** Which roles a setting lists (for example, who needs two-factor).
+    - **can_take_tasks.** Whether a given person ID belongs to active staff.
+  - After the fix the API answers "permission denied"; the sign-in page and public site are
+    unaffected.
 - **W5. Money approvals don't ask the person to sign in again.** Two-factor is required for every
   Billing role (checked: no Billing without it), and the session times out after 30 minutes idle.
   Fix: already on the later list.

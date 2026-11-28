@@ -272,12 +272,14 @@ limits on repeated attempts, and a check of hosting and network settings.
 
 ## LATER: from the Zero Trust review (28 Nov 2026; docs/12-audits-and-evidence/ZERO-TRUST-REVIEW-2026-11.md)
 
-- W1 Resend invite: run the database permission check before the email is sent.
+- W1 Resend invite: checked 28 Nov 2026, not exploitable (the app and database checks are the same
+  rule in the same request). Optional tidy-up only: run the database check before the email.
 - W2 A viewer-checked version of onboarding_missing for the Staff pages (today any signed-in
   person can see a colleague's unfinished onboarding item titles).
 - W3 Add the active-member check to the worker's own-shift rule (a deactivated worker's token,
   valid up to 60 minutes, can still read their own published shifts by direct request).
-- W4 Remove signed-out access from the 27 older yes/no helper functions (housekeeping).
+- W4 Done in update 171 for the three that leaked (rule_on, setting_roles, can_take_tasks). The
+  other 24 were checked and reveal nothing; some are needed by the public site and sign-in.
 - W5 / D2 Sign in again before money approvals, issuing documents and exports.
 - D1 If customers ever share one database: organisation-scoped access rules on every table (today
   each customer has their own database and org_id isn't a security boundary).

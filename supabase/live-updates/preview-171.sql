@@ -11,6 +11,10 @@ select 2, 'NOW', 'Signed-in people can call resolve_people', case when has_funct
 union all
 select 2, 'NOW', 'Signed-in people can call escalate_requests', case when has_function_privilege('authenticated', 'public.escalate_requests()', 'execute') then 'YES: to close' else 'no' end
 union all
+select 2, 'NOW', 'Signed-out visitors can call rule_on (its error shows members-only settings)', case when has_function_privilege('anon', 'public.rule_on(text)', 'execute') then 'YES: to close' else 'no' end
+union all
+select 2, 'NOW', 'Signed-out visitors can call setting_roles / can_take_tasks', case when has_function_privilege('anon', 'public.setting_roles(text)', 'execute') or has_function_privilege('anon', 'public.can_take_tasks(uuid)', 'execute') then 'YES: to close' else 'no' end
+union all
 select 3, 'LEFT AS THEY ARE', 'Requests (pending / all)', (select count(*) filter (where status = 'pending') || ' / ' || count(*) from public.requests)
 union all
 select 3, 'LEFT AS THEY ARE', 'Leave periods', (select count(*)::text from public.leave_periods)
