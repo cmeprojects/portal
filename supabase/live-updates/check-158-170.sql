@@ -1,6 +1,6 @@
 -- Staff Portal · © cmeproject. All rights reserved.
 -- cmeprojects: READ ONLY check of which of updates 158 to 170 this copy has (Phase 5-6 review,
--- 27 Nov 2026). One SELECT; changes nothing. Expected on Dev today: 158 to 166 "yes", 167 to 170 "no",
+-- 27 Nov 2026). One SELECT; changes nothing. Expected on Dev today: 158 to 166 "yes", 167 to 171 "no",
 -- 15 Billing actions. An undo_160_kept schema may exist from the earlier undo of 160 (expected).
 select n as update_no, item, result from (values
   (158, 'Program enrolments (client_enrolments)', case when to_regclass('public.client_enrolments') is not null then 'yes' else 'no' end),
@@ -16,6 +16,7 @@ select n as update_no, item, result from (values
   (168, 'Document templates (document_templates)', case when to_regclass('public.document_templates') is not null then 'yes' else 'no' end),
   (169, 'Contracted hours (staff_contract_hours)', case when to_regclass('public.staff_contract_hours') is not null then 'yes' else 'no' end),
   (170, 'Roster billing checks (roster_billing_forecast)', case when to_regprocedure('public.roster_billing_forecast(date, date, uuid)') is not null then 'yes' else 'no' end),
+  (171, 'Internal functions locked (apply_request not callable by signed-in people)', case when not has_function_privilege('authenticated', 'public.apply_request(uuid)', 'execute') then 'yes' else 'no' end),
   (0, 'Undo schemas present (an undo was run)', coalesce((select string_agg(nspname, ', ' order by nspname) from pg_namespace where nspname like 'undo\_%\_kept'), 'none')),
   (0, 'Billing actions registered (expect 15)', coalesce((select cardinality(actions)::text from public.app_modules where id = 'clients.billing'), 'missing'))
 ) v(n, item, result)

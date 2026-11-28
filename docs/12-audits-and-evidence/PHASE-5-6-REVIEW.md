@@ -184,3 +184,17 @@ rather not wait, 167-170 are safe to run now: the corrections are app-side.
 Order: preview-167 -> update-167 -> preview-168 -> update-168 -> preview-169 -> update-169 ->
 preview-170 -> update-170. Stop if a preview says a prerequisite is missing or shows something
 unexpected. Real claims and invoices stay blocked until items 3-8 are in.
+
+## Corrections done (28 Nov 2026, approved by the owner)
+
+C1-C7 are built and tested locally (D-076); none changed SQL or Dev data.
+- **C1:** `src/lib/business.ts`, `billing/money-actions.ts`.
+- **C2 and C3:** `billing/tabs.tsx`, `billing/page.tsx`, `roster/page.tsx`.
+- **C4:** `roster/actions.ts` (`duplicateOpenShift`), `roster/page.tsx`.
+- **C5:** `src/lib/billing-pdf.ts`, the 168 migration header (a comment only; 168 isn't applied
+  anywhere), `settings/billing/template-forms.tsx`.
+- **C6:** `supabase/tests/billing_setup.test.sql`.
+- **C7:** `tests/e2e/roster-billing.e2e.cjs` with `tests/e2e/fixtures/roster-billing.sql`, 23/23 on
+  a fresh local database.
+
+The Zero Trust review that followed is in `ZERO-TRUST-REVIEW-2026-11.md`.

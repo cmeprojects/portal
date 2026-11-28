@@ -4,7 +4,7 @@
 --   * a brand-new, empty Supabase project: sets up everything;
 --   * a copy that's already in use: adds only what's missing (each part is
 --     recorded in public.install_log and skipped next time).
--- Built from every migration up to: 20270425000001_roster_billing_checks.sql
+-- Built from every migration up to: 20270426000001_internal_functions_locked.sql
 -- New copy afterwards: run a company file (supabase/companies/...), then
 -- sign in: the first person to sign in becomes the system admin.
 
@@ -336,7 +336,8 @@ begin
     (185, '20270422000001_service_codes.sql'),
     (186, '20270423000001_document_templates.sql'),
     (187, '20270424000001_roster_contract_hours.sql'),
-    (188, '20270425000001_roster_billing_checks.sql')
+    (188, '20270425000001_roster_billing_checks.sql'),
+    (189, '20270426000001_internal_functions_locked.sql')
   ) as x(n, name) where x.n <= v_upto
   on conflict do nothing;
 end;
@@ -37966,5 +37967,41 @@ grant execute on function public.roster_billing_forecast(date, date, uuid) to au
 
 $m188$;
   insert into public.install_log (name) values ('20270425000001_roster_billing_checks.sql');
+end;
+$part$;
+
+-- ====================================================================
+-- 20270426000001_internal_functions_locked.sql
+-- ====================================================================
+do $part$
+begin
+  if exists (select 1 from public.install_log where name = '20270426000001_internal_functions_locked.sql') then
+    return;
+  end if;
+  execute $m189$
+-- Staff Portal · © cmeproject. All rights reserved.
+--
+-- cmeprojects (update 171, Zero Trust review, 28 Nov 2026): four internal functions were meant to be
+-- called only by other database functions (the 2026 "My requests" update revoked them from everyone
+-- and granted them to no one), but Supabase gives every new function to signed-in users by default,
+-- so any signed-in person could call them directly:
+--   * apply_request: put a staff request into effect (leave, availability, swaps, shift changes)
+--     without it being approved. A worker could record their own pending leave.
+--   * notify_many: send any notice (bell and email) to anyone, with any title, text and link.
+--   * resolve_people: list who is in an approval group.
+--   * escalate_requests: the scheduled escalation job (only the scheduler, as the service role).
+-- They're now callable only from inside the database (by the functions that use them, which run as
+-- their owner) and, for the escalation job, by the scheduler. Nothing else changes: approving a
+-- request still puts it into effect, notices are still sent. No data changes. No new SECURITY
+-- DEFINER function. Safe to run again.
+
+revoke execute on function public.apply_request(uuid) from public, anon, authenticated;
+revoke execute on function public.notify_many(uuid[], text, text, text, text) from public, anon, authenticated;
+revoke execute on function public.resolve_people(text[], uuid) from public, anon, authenticated;
+revoke execute on function public.escalate_requests() from public, anon, authenticated;
+grant execute on function public.escalate_requests() to service_role;
+
+$m189$;
+  insert into public.install_log (name) values ('20270426000001_internal_functions_locked.sql');
 end;
 $part$;

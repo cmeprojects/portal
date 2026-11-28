@@ -269,3 +269,15 @@ limits on repeated attempts, and a check of hosting and network settings.
   matching without the owner's approval.
 - A reconciliation-status section in Billing > Reports (today it's on the Reconciliation tab and in
   the integrity checks as "Unmatched bank lines").
+
+## LATER: from the Zero Trust review (28 Nov 2026; docs/12-audits-and-evidence/ZERO-TRUST-REVIEW-2026-11.md)
+
+- W1 Resend invite: run the database permission check before the email is sent.
+- W2 A viewer-checked version of onboarding_missing for the Staff pages (today any signed-in
+  person can see a colleague's unfinished onboarding item titles).
+- W3 Add the active-member check to the worker's own-shift rule (a deactivated worker's token,
+  valid up to 60 minutes, can still read their own published shifts by direct request).
+- W4 Remove signed-out access from the 27 older yes/no helper functions (housekeeping).
+- W5 / D2 Sign in again before money approvals, issuing documents and exports.
+- D1 If customers ever share one database: organisation-scoped access rules on every table (today
+  each customer has their own database and org_id isn't a security boundary).
