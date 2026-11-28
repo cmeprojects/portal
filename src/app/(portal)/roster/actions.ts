@@ -560,6 +560,24 @@ export async function pasteShift(id: string, date: string, row: string, byClient
   return { message: "Shift pasted.", spotlight: added.id };
 }
 
+// cmeprojects (review C4, 27 Nov 2026): "Duplicate as an open shift" from the shift panel, so it
+// works on phones too (the right-click menu doesn't). Same rules as the menu's Duplicate: a draft,
+// same day and times, no worker; only the shift's plan is copied (never approvals, timesheets,
+// service records, signatures or billing, which live in their own tables).
+export async function duplicateOpenShift(form: FormData) {
+  await requireRoster();
+  const id = String(form.get("id") ?? "");
+  const backRaw = String(form.get("back") ?? "");
+  const back = /^\/roster\?[^\s]*$/.test(backRaw) ? backRaw : "/roster?";
+  if (!isId(id)) redirect(back);
+  const { data: s } = await (await createClient()).from("shifts").select("starts_at, status").eq("id", id).maybeSingle();
+  if (!s || s.status === "cancelled") redirect(`${back}&saved=${encodeURIComponent("Not duplicated: the shift isn't there or was cancelled.")}`);
+  const res = await pasteShift(id, sydneyParts(s.starts_at).date, "vacant", false);
+  revalidatePath("/roster");
+  if (res?.error) redirect(`${back}&saved=${encodeURIComponent(`Not duplicated: ${res.error}`)}`);
+  redirect(`${back}${res?.spotlight ? `&spot=${res.spotlight}&spotlabel=added` : ""}&saved=${encodeURIComponent("Duplicated as an open draft shift (no worker yet).")}`);
+}
+
 // cmeprojects (update 169): a worker's contracted weekly hours (blank removes them).
 export async function saveContractHours(userId: string, hours: string): Promise<FormState> {
   await requireSession();

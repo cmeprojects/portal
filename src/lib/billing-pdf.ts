@@ -17,8 +17,10 @@ const dmy = (d: unknown) => (d ? String(d).slice(0, 10).split("-").reverse().joi
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 // cmeprojects (update 168): each document kind's template: the company logo and colours (from the
-// portal theme or custom), layout, sections, and header, payment and footer text. Legally required
-// parts (business name, ABN, address, "Tax invoice", GST) always print whatever the settings.
+// portal theme or custom), layout, sections, and header, payment and footer text. The business
+// name, ABN and address always print and no setting removes them. "Tax invoice" (or "Adjustment
+// note") and GST print only when they apply: the business is GST-registered (verified) and a line is
+// taxable (set when the invoice is issued, review C5). Template settings never change that wording.
 export type DocTheme = {
   primary: RGB; accent: RGB; logo: { bytes: Uint8Array; png: boolean } | null; logoPosition: "left" | "centre" | "right" | "none";
   layout: "full" | "compact"; sections: Record<string, boolean>; headerNote: string; footerText: string; paymentNote: string;

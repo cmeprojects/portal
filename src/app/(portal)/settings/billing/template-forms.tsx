@@ -63,7 +63,7 @@ export function TemplateForm({ kind, initial, version, theme, canEdit }: { kind:
         <label className={field}>Footer text (optional)<textarea value={f.footer_text} disabled={!canEdit} onChange={(e) => set("footer_text", e.target.value)} maxLength={300} rows={2} className={`${inputClass} h-auto py-2`} /></label>
         {kind === "invoice" ? <label className={`${field} sm:col-span-2`}>Payment note (optional, under the bank details)<textarea value={f.payment_note} disabled={!canEdit} onChange={(e) => set("payment_note", e.target.value)} maxLength={500} rows={2} className={`${inputClass} h-auto py-2`} /></label> : null}
       </div>
-      <p className="text-xs text-muted">Always printed whatever the settings: business name, ABN and address{kind === "invoice" ? ", \"Tax invoice\" when it is one, and GST" : ""}. Version {version} in use.</p>
+      <p className="text-xs text-muted">Always printed whatever the settings: business name, ABN and address.{kind === "invoice" ? " \"Tax invoice\" and GST print only when they apply (GST-registered and a taxable line); settings can't add or remove them." : ""} Version {version} in use.</p>
       <div className="flex flex-wrap items-end gap-3">
         {canEdit ? (
           <>

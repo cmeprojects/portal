@@ -4,8 +4,9 @@
 -- (owner, 23 Nov 2026; D-072). Documents use the current logo, theme colours and business details;
 -- each kind has template settings (layout, which sections show, logo position, colours, header and
 -- footer text). Templates are saved as versions (never changed); each issued document records the
--- version it used, so it can always be explained. Legally required parts (business name, ABN,
--- address, "Tax invoice" wording, GST) are always printed, whatever the settings.
+-- version it used, so it can always be explained. The business name, ABN and address always print;
+-- "Tax invoice" wording and GST print only when they apply (GST-registered business and a taxable
+-- line, decided when the invoice is issued). No template setting changes either (review C5).
 -- No new security definer function. Safe to run again.
 
 create table if not exists public.document_templates (

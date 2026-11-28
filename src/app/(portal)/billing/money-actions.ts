@@ -8,6 +8,7 @@ import { friendlyError } from "@/lib/db-error";
 import type { FormState } from "@/lib/form";
 import { creditNotePdf, receiptPdf } from "@/lib/billing-pdf";
 import { loadDocTheme, recordDocIssue } from "@/lib/document-theme";
+import { businessMissing, businessMissingMessage } from "@/lib/business";
 
 // cmeprojects (update 164): claim results, payments, receipts, credit notes, refunds,
 // write-offs and bank reconciliation. The database decides who may do each step (payments,
@@ -81,6 +82,14 @@ export async function recordPayment(f: { payer_id: string; client_id: string; re
   if (amount === null) return { error: "Enter the amount received." };
   if (!METHODS.includes(f.method)) return { error: "Choose how it was paid." };
   const supabase = await createClient();
+  // cmeprojects (review C1): client, participant and other payers get a receipt number when the
+  // payment is recorded, so the business details a receipt prints must be complete first.
+  const { data: payerRow } = await supabase.from("billing_payers").select("kind").eq("id", f.payer_id).maybeSingle();
+  if (payerRow && ["client", "participant", "other"].includes(String(payerRow.kind))) {
+    const { data: biz } = await supabase.from("business_current").select("*").maybeSingle();
+    const missing = businessMissing(biz as Record<string, unknown> | null);
+    if (missing.length) return { error: businessMissingMessage(missing) };
+  }
   const { data, error } = await supabase.from("payments").insert({
     payer_id: f.payer_id, client_id: isId(f.client_id) ? f.client_id : null, received_on: f.received_on, amount, method: f.method, reference: clip(f.reference, 120), notes: clip(f.notes, 1000),
   }).select("id, receipt_number").single();
@@ -89,20 +98,25 @@ export async function recordPayment(f: { payer_id: string; client_id: string; re
   return { id: data.id, message: `Payment recorded${data.receipt_number ? ` (receipt ${data.receipt_number}; the receipt PDF is made when it's allocated)` : ""}. Now allocate it.` };
 }
 
-async function makeReceipt(paymentId: string) {
+// Returns an error message when the receipt can't be made (nothing is saved then).
+async function makeReceipt(paymentId: string): Promise<string | null> {
   const supabase = await createClient();
   const { data: p } = await supabase.from("payments").select("id, receipt_number, received_on, amount, method, reference, payer_id, client_id").eq("id", paymentId).single();
-  if (!p?.receipt_number) return;
+  if (!p?.receipt_number) return "This payment has no receipt number (only client, participant and other payers get receipts).";
   const [{ data: biz }, { data: payer }, { data: client }, { data: allocs }] = await Promise.all([
     supabase.from("business_current").select("*").maybeSingle(),
     supabase.from("billing_payers").select("name, email, address").eq("id", p.payer_id).maybeSingle(),
     p.client_id ? supabase.from("car_clients").select("name, client_ref").eq("id", p.client_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("payment_allocations").select("amount, invoices(number)").eq("payment_id", paymentId),
   ]);
+  // cmeprojects (review C1): never print a receipt with a blank business name, ABN or address.
+  const missing = businessMissing(biz as Record<string, unknown> | null);
+  if (missing.length) return businessMissingMessage(missing);
   const { theme, templateId } = await loadDocTheme(supabase, "receipt");
   const pdf = await receiptPdf({ ...p, business: biz ?? {}, payer: payer ?? {}, client: client ?? null, allocations: ((allocs ?? []) as { amount: number; invoices: { number: string } | { number: string }[] | null }[]).map((a) => ({ amount: a.amount, invoice: (Array.isArray(a.invoices) ? a.invoices[0] : a.invoices)?.number ?? "" })) }, theme);
   await supabase.from("payments").update({ receipt_pdf_base64: Buffer.from(pdf.bytes).toString("base64"), receipt_pdf_checksum: pdf.checksum }).eq("id", paymentId).is("receipt_pdf_base64", null);
   await recordDocIssue(supabase, "receipt", paymentId, templateId, pdf.checksum);
+  return null;
 }
 
 export async function allocate(paymentId: string, rows: { kind: "invoice" | "claim_item"; id: string; amount: string }[]): Promise<FormState> {
@@ -122,16 +136,17 @@ export async function allocate(paymentId: string, rows: { kind: "invoice" | "cla
     ok++;
   }
   // The receipt lists what it paid: made once the client payment is allocated (never changes after).
-  if (p?.receipt_number && !p.receipt_pdf_base64) await makeReceipt(paymentId);
+  const receiptProblem = p?.receipt_number && !p.receipt_pdf_base64 ? await makeReceipt(paymentId) : null;
   done(`/billing/payments/${paymentId}`);
-  return { message: `${ok} allocation(s) saved.` };
+  return { message: `${ok} allocation(s) saved.${receiptProblem ? ` The receipt wasn't made: ${receiptProblem}` : ""}` };
 }
 
 export async function issueReceipt(paymentId: string): Promise<FormState> {
   await requireSession();
   if (!isId(paymentId)) return { error: "Something went wrong." };
-  await makeReceipt(paymentId);
+  const problem = await makeReceipt(paymentId);
   done(`/billing/payments/${paymentId}`);
+  if (problem) return { error: problem };
   return { message: "Receipt made. Download it from this page." };
 }
 

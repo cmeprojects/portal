@@ -45,6 +45,36 @@ select test.ok(test.n('owner@example.com', 'public.billing_can(''approve'')::int
 select test.ok(test.n('boss@example.com', '(public.billing_can(''view'')::int + public.billing_can(''prepare'')::int + public.billing_can(''approve'')::int + public.billing_can(''prices'')::int + public.billing_can(''export'')::int)') = 5, 'a Manager Administrator has every Billing action by default');
 select test.ok(test.n('boss2@example.com', 'public.billing_can(''view'')::int') = 0, 'another manager has no Billing by default');
 select test.ok((select count(*) from public.access_baselines where module_id = 'clients.billing' and revoked_at is null) = 0, 'no Billing default for any access level, job title or group');
+-- cmeprojects (review C6, 27 Nov 2026): every Billing action, for every role, by default.
+-- The full list is read from the Billing part itself, so a sixteenth action can't slip through untested.
+insert into public.invitations (email, full_name, role) values
+  ('pay@example.com', 'Pat', 'support_worker'), ('ros@example.com', 'Rory', 'support_worker'), ('tl@example.com', 'Terry', 'team_leader'), ('sa@example.com', 'Sasha', 'staff_admin');
+insert into auth.users (email) values ('pay@example.com'), ('ros@example.com'), ('tl@example.com'), ('sa@example.com');
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Payroll Officer') where email = 'pay@example.com';
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Rostering Officer') where email = 'ros@example.com';
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Team Leader') where email = 'tl@example.com';
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Staff Administrator') where email = 'sa@example.com';
+update public.profiles set job_title_id = (select id from public.job_titles where name = 'Support Worker') where email = 'sam@example.com';
+create function test.billing_actions(p_email text) returns text language plpgsql as $$
+declare v text;
+begin
+  perform test.act_as(p_email);
+  execute 'set local role authenticated';
+  select coalesce(string_agg(a, ',' order by o) filter (where public.billing_can(a)), '') into v
+    from unnest((select actions from public.app_modules where id = 'clients.billing')) with ordinality x(a, o);
+  execute 'reset role';
+  return v;
+end $$;
+grant execute on function test.billing_actions(text) to authenticated;
+select test.ok((select array_to_string(actions, ',') from public.app_modules where id = 'clients.billing')
+  = 'view,prepare,approve,prices,export,claim_prepare,claim_approve,claim_submit,invoice_prepare,invoice_approve,invoice_issue,payment_record,refund,write_off,reconcile',
+  'Billing has exactly the 15 approved actions');
+select test.ok(test.billing_actions('owner@example.com') = (select array_to_string(actions, ',') from public.app_modules where id = 'clients.billing'), 'the System Administrator has all 15 Billing actions');
+select test.ok(test.billing_actions('boss@example.com') = (select array_to_string(actions, ',') from public.app_modules where id = 'clients.billing'), 'a Manager Administrator has all 15 Billing actions');
+select test.ok(test.billing_actions(e) = '', 'no Billing action by default: ' || r)
+  from (values ('boss2@example.com', 'another manager'), ('cm@example.com', 'Case Manager'), ('io@example.com', 'Intake & Assessment Officer'),
+               ('pay@example.com', 'Payroll Officer'), ('ros@example.com', 'Rostering Officer'), ('tl@example.com', 'Team Leader'),
+               ('sa@example.com', 'Staff Administrator'), ('sam@example.com', 'Support Worker')) v(e, r);
 -- A restriction on the Access page still applies to a Manager Administrator.
 insert into public.access_grants (module_id, user_id, granted_by, effect, actions) values ('clients.billing', test.pid('boss@example.com'), test.pid('owner@example.com'), 'restrict', '{approve}');
 select test.ok(test.n('boss@example.com', 'public.billing_can(''approve'')::int') = 0 and test.n('boss@example.com', 'public.billing_can(''view'')::int') = 1, 'a restriction on the Access page overrides the Manager Administrator default (only for the restricted action)');

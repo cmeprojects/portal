@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader, buttonClass, inputClass } from "@/components/ui";
 import { addDays, mondayOf, shiftHours, sydneyInstant, sydneyParts, sydneyToday } from "@/lib/sydney-time";
 import { BANDS, SHIFT_TYPES, availabilitySlot, bandOf, eventWords, shiftTypeLabel, shortTime } from "@/lib/roster";
-import { addShiftNote, decideRequest, endRepeat, giveOpenShift, makeOpenShift, switchOffTemplate, voidSignature } from "./actions";
+import { addShiftNote, decideRequest, duplicateOpenShift, endRepeat, giveOpenShift, makeOpenShift, switchOffTemplate, voidSignature } from "./actions";
 import { BulkBar, CopyWeekForm, ShiftForm, type ShiftDraft, type WorkerFit } from "./shift-form";
 import { PublishControl, type PublishPeriod } from "./publish-control";
 import { Spotlight } from "./spotlight";
@@ -569,7 +569,7 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
         {warn.length ? <span className="mt-1 block text-warn">{warn.join(" · ")}</span> : null}
         {bill ? (
           <span className={`mt-1 block ${bill.severity === "ok" ? "text-muted" : bill.severity === "setup" ? "text-warn" : "text-danger"}`}>
-            Billing: {bill.severity === "ok" ? `about ${billAud(bill.amount ?? 0)} from the roster${bill.left_after !== null ? `, ${billAud(bill.left_after)} left after it` : ""}` : bill.problem}
+            Billing: {bill.severity === "ok" ? `no set-up issue found. Estimate only: about ${billAud(bill.amount ?? 0)} from the roster${bill.left_after !== null ? `, ${billAud(bill.left_after)} left after it` : ""} (not delivered, billed or claimed)` : bill.problem}
           </span>
         ) : null}
       </span>
@@ -1082,11 +1082,18 @@ export default async function RosterPage({ searchParams }: PageProps<"/roster">)
                         {opened.series_id ? " · repeats" : ""}
                       </p>
                     </div>
-                    <span className="flex gap-2">
+                    <span className="flex flex-wrap gap-2">
                       {canEdit ? (
                         <Link href={`${base}&shift=${opened.id}&edit=1`} scroll={false} className={buttonClass("primary")}>
                           Edit
                         </Link>
+                      ) : null}
+                      {canEdit && opened.status !== "cancelled" ? (
+                        <form action={duplicateOpenShift}>
+                          <input type="hidden" name="id" value={opened.id} />
+                          <input type="hidden" name="back" value={base} />
+                          <button className={buttonClass("outline")} title="A draft copy at the same time, with no worker yet">Duplicate as an open shift</button>
+                        </form>
                       ) : null}
                       <Link href={closePanel} scroll={false} className={buttonClass("outline")}>
                         Close

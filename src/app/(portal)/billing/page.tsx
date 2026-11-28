@@ -67,12 +67,12 @@ async function RosterTiles() {
   return (
     <div className="flex flex-col gap-2">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Rostered client shifts, next 4 weeks" value={String(rows.length)} tone="border-l-brand" />
+        <Stat label="Rostered client shifts, next 4 weeks (estimates)" value={String(rows.length)} tone="border-l-brand" />
         <Stat label="Can't be billed as rostered (to fix)" value={String(rows.filter((r) => r.severity === "fix").length)} tone="border-l-danger" />
         <Stat label="Would go over budget" value={`${rows.filter((r) => r.severity === "over_budget").length} shift(s), ${overAccounts} account(s)`} tone="border-l-warn" />
         <Stat label="Waiting on set-up" value={String(rows.filter((r) => r.severity === "setup").length)} tone="border-l-warn" />
       </div>
-      <Link href="/billing?tab=upcoming" className="text-sm font-semibold text-brand underline">See rostered shifts and the budget forecast</Link>
+      <p className="text-xs text-muted">Estimates from the roster only: not delivered services, billing lines, claims or payments. <Link href="/billing?tab=upcoming" className="font-semibold text-brand underline">See rostered shifts and the budget forecast</Link></p>
     </div>
   );
 }

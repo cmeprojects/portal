@@ -172,7 +172,7 @@ export async function UpcomingTab({ sp }: { sp: SP }) {
   const [{ data: cRows }, { data: sRows }, { data: qRows }, { data: fRows }] = await Promise.all([
     clientIds.length ? supabase.from("car_clients").select("id, name").in("id", clientIds) : Promise.resolve({ data: [] }),
     svcIds.length ? supabase.from("client_services").select("id, label").in("id", svcIds) : Promise.resolve({ data: [] }),
-    qIds.length ? supabase.from("client_quarter_budgets").select("id, quarter_start, quarter_end").in("id", qIds) : Promise.resolve({ data: [] }),
+    qIds.length ? supabase.from("client_quarter_budgets").select("id, quarter_start, quarter_end, spendable").in("id", qIds) : Promise.resolve({ data: [] }),
     fIds.length ? supabase.from("client_funding").select("id, scheme, period_start, period_end").in("id", fIds) : Promise.resolve({ data: [] }),
   ]);
   const cName = new Map(((cRows ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
@@ -191,13 +191,27 @@ export async function UpcomingTab({ sp }: { sp: SP }) {
     if (a.left < 0 && !a.firstOver) a.firstOver = r.starts_at;
     accounts.set(r.account_id, a);
   }
-  const acctRows = [...accounts.values()].sort((x, y) => x.left - y.left);
+  // cmeprojects (review C3): the approved balance (approved ledger entries only) and the draft lines
+  // shown apart. The forecast function starts each account at approved balance less draft lines;
+  // the draft figure here is the difference, so the columns always add up to what it worked out.
+  const acctIds = [...accounts.keys()];
+  const { data: balRows } = acctIds.length ? await supabase.from("funding_balances").select("account_kind, account_id, available").in("account_id", acctIds) : { data: [] };
+  const spendable = new Map(((qRows ?? []) as { id: string; spendable?: number }[]).map((q) => [q.id, Number(q.spendable ?? 0)]));
+  const approvedOf = (id: string) => {
+    const b = ((balRows ?? []) as { account_id: string; available: number }[]).find((x) => x.account_id === id);
+    return b ? Number(b.available) : spendable.get(id) ?? 0;
+  };
+  const acctRows = [...accounts.values()].map((a) => {
+    const approved = approvedOf(a.id);
+    return { ...a, approved, drafts: Math.round((approved - a.before) * 100) / 100 };
+  }).sort((x, y) => x.left - y.left);
   return (
     <>
       <Card className="flex flex-col gap-3 p-4">
         <div>
           <h2 className="heading-sm">Coming up: rostered shifts</h2>
-          <p className="text-sm text-muted">Client shifts on the roster (draft or published) not billed yet, checked as if delivered as rostered: approved service, program, billing terms, prices, funding and budget. Rostering is never blocked; fix these before the shifts are delivered. Amounts are estimates from the roster, not billing lines.</p>
+          <p className="text-sm text-muted">Client shifts on the roster (draft or published) not billed yet, checked as if delivered as rostered: approved service, program, billing terms, prices, funding and budget. Rostering is never blocked; fix these before the shifts are delivered.</p>
+          <p className="mt-1 rounded-md bg-page px-3 py-2 text-xs" data-estimate-note>Estimate only. A rostered shift isn&apos;t a delivered service, a billing line, a claim or a payment. &quot;No set-up issue found&quot; means only that nothing in the billing set-up would stop it being billed once it&apos;s delivered and its evidence is approved.</p>
         </div>
         <form method="get" action="/billing" className="flex flex-wrap items-end gap-2">
           <input type="hidden" name="tab" value="upcoming" />
@@ -205,7 +219,7 @@ export async function UpcomingTab({ sp }: { sp: SP }) {
           <label className="flex flex-col gap-1 text-xs font-medium">To<DateInput name="uto" defaultValue={to} className="rounded-lg border border-field bg-surface px-3 py-2 text-sm" /></label>
           <button className={buttonClass("outline")}>Show</button>
         </form>
-        <p className="text-sm">{rows.length} rostered client shift{rows.length === 1 ? "" : "s"} checked: {rows.filter((r) => r.severity === "ok").length} ready, {problems.filter((r) => r.severity === "fix").length} to fix, {problems.filter((r) => r.severity === "over_budget").length} over budget, {problems.filter((r) => r.severity === "setup").length} waiting on set-up.</p>
+        <p className="text-sm">{rows.length} rostered client shift{rows.length === 1 ? "" : "s"} checked: {rows.filter((r) => r.severity === "ok").length} with no set-up issue found, {problems.filter((r) => r.severity === "fix").length} to fix, {problems.filter((r) => r.severity === "over_budget").length} over budget, {problems.filter((r) => r.severity === "setup").length} waiting on set-up.</p>
         {(["fix", "over_budget", "setup"] as const).map((sev) => {
           const list = problems.filter((r) => r.severity === sev);
           if (!list.length) return null;
@@ -233,21 +247,21 @@ export async function UpcomingTab({ sp }: { sp: SP }) {
       <Card className="flex flex-col gap-3 p-4">
         <div>
           <h2 className="heading-sm">Budget forecast</h2>
-          <p className="text-sm text-muted">For each funding account: what&apos;s available now (approved balance, less draft lines), what the rostered shifts in the period would use, and what would be left. Billing lines over the budget need a note when approved.</p>
+          <p className="text-sm text-muted">For each funding account: the approved balance (approved charges and entries only), billing lines still in draft, what the rostered shifts in the period are estimated to use, and what would be left. Estimates are worked out on the page only: they never change the balance, the draft lines or the funding ledger. Billing lines over the budget need a note when approved.</p>
         </div>
         {acctRows.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-muted"><th className="py-1 pr-3">Client</th><th className="pr-3">Account</th><th className="pr-3 text-right">Available now</th><th className="pr-3 text-right">Rostered shifts</th><th className="pr-3 text-right">Would use</th><th className="pr-3 text-right">Left after</th><th>Goes over on</th></tr></thead>
+              <thead><tr className="text-left text-xs text-muted"><th className="py-1 pr-3">Client</th><th className="pr-3">Account</th><th className="pr-3 text-right">Approved balance</th><th className="pr-3 text-right">Draft lines</th><th className="pr-3 text-right">Rostered estimates</th><th className="pr-3 text-right">Projected left</th><th>Goes over on</th></tr></thead>
               <tbody>
                 {acctRows.map((a) => (
                   <tr key={a.id} className="border-t border-line" data-forecast-row>
                     <td className="py-1 pr-3">{cName.get(a.client) ?? "Client"}</td>
                     <td className="pr-3">{acctName.get(a.id) ?? "Funding account"}</td>
-                    <td className="pr-3 text-right">{aud(a.before)}</td>
-                    <td className="pr-3 text-right">{a.shifts}</td>
-                    <td className="pr-3 text-right">{aud(a.used)}</td>
-                    <td className={`pr-3 text-right font-semibold ${a.left < 0 ? "text-danger" : ""}`}>{aud(a.left)}</td>
+                    <td className="pr-3 text-right" data-col="approved">{aud(a.approved)}</td>
+                    <td className="pr-3 text-right" data-col="drafts">{aud(a.drafts)}</td>
+                    <td className="pr-3 text-right" data-col="estimates">{aud(a.used)} <span className="text-xs text-muted">({a.shifts} shift{a.shifts === 1 ? "" : "s"})</span></td>
+                    <td className={`pr-3 text-right font-semibold ${a.left < 0 ? "text-danger" : ""}`} data-col="left">{aud(a.left)}</td>
                     <td>{a.firstOver ? dmy(sydneyParts(a.firstOver).date) : "–"}</td>
                   </tr>
                 ))}

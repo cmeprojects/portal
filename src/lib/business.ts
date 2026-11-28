@@ -21,3 +21,17 @@ export function businessForForm(row: Record<string, unknown> | null): Business {
   }
   return out as Business;
 }
+
+// cmeprojects (Phase 5-6 review C1, 27 Nov 2026): what a receipt (or any issued document) must
+// print. Returns the missing items in plain words; empty when the details are complete. Never
+// print blank placeholders: callers refuse to make the document until this is empty.
+export function businessMissing(row: Record<string, unknown> | null | undefined): string[] {
+  const s = (k: string) => (row && typeof row[k] === "string" ? (row[k] as string).trim() : "");
+  const missing: string[] = [];
+  if (!s("legal_name")) missing.push("legal name");
+  if (!/^\d{11}$/.test(s("abn").replace(/\s/g, ""))) missing.push("ABN");
+  if (!s("address") || !s("suburb") || !s("state") || !/^\d{4}$/.test(s("postcode"))) missing.push("address (street, suburb, state and postcode)");
+  return missing;
+}
+export const businessMissingMessage = (missing: string[]) =>
+  `Enter the business details first (Portal settings, Business details): ${missing.join(", ")}. Receipts aren't made without them.`;

@@ -91,8 +91,9 @@ official verification; DEFERRED future work (in TODO).
   statements. Business name, ABN and address always print and template settings can't remove them.
   Templates are versioned (insert only); each issued document records the version; issued PDFs never
   change.
-- **CORRECTION C5 (wording only):** the code comment, the 168 migration header, D-072 and the reports
-  say "Tax invoice" always prints. It actually prints only when it applies. Correct the wording.
+- **CORRECTION C5 (wording only), done 28 Nov 2026:** the code comment, the 168 migration header and
+  the template settings note said "Tax invoice" always prints; they now say it prints only when it
+  applies. D-072 already read correctly ("legally required parts can't be removed").
 
 ### 169 Rostering
 - PASS: client view default, Staff one click; best match only sorts (never assigns); Duplicate makes
